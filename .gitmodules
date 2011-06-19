@@ -7,3 +7,6 @@
 [submodule "wiki"]
 	path = wiki
 	url = git@github.com:lab616/hub.wiki.git
+[submodule "common"]
+	path = common
+	url = git@github.com:lab616/common.git
