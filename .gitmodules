@@ -1,0 +1,9 @@
+[submodule "tools"]
+	path = tools
+	url = git@github.com:lab616/tools.git
+[submodule "third_party"]
+	path = third_party
+	url = git@github.com:lab616/third_party.git
+[submodule "wiki"]
+	path = wiki
+	url = git@github.com:lab616/hub.wiki.git
