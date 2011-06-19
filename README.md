@@ -1,0 +1,1 @@
+# ATP - Algorithmic Trading Platform #
