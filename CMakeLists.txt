@@ -23,12 +23,18 @@ include(${PROJECT_SOURCE_DIR}/tools/cmake/Init.cmk)
 set(IBAPI_VERSION 9.64)
 set(IBAPI_ROOT ${THIRD_PARTY_DIR}/interactivebrokers/api-${IBAPI_VERSION})
 set(IBCLIENT_VERSION 0.1)
-
 message(STATUS "InteractiveBrokers API version ${IBAPI_VERSION}")
+
+# FIX/QuickFix paths
+set(FIX_VERSION 4.2)
+set(QUICKFIX_ROOT ${THIRD_PARTY_DIR}/quickfix/src/C++)
+
+# Generate paths for Emacs
 list(APPEND emacs_includes
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
   ${IBAPI_ROOT}/PosixSocketClient
+  ${QUICKFIX_ROOT}
 )
 
 list(APPEND emacs_sys_includes
@@ -38,7 +44,6 @@ emacs_ide_project("${emacs_includes}" "${emacs_sys_includes}")
 
 # Use the api version defined in the top level cmake file:
 set(API_ROOT ${COMMON_DIR}/ib/api/${IBAPI_VERSION})
-
 
 # The macros here will first find any locally installed
 # libraries.  If not, it will build them in build/third_party.

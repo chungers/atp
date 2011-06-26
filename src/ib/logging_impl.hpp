@@ -29,7 +29,7 @@
 using namespace std;
 
 namespace ib {
-namespace adapter {
+namespace internal {
 
 // From EWrapper.h
 const std::string kTickTypes[] = {
@@ -56,27 +56,16 @@ class LoggingEWrapper : public EWrapper {
 
  public:
 
-  LoggingEWrapper(const string host,
-                  const unsigned int port,
-                  const unsigned int connection_id);
+  LoggingEWrapper();
   ~LoggingEWrapper();
 
  protected:
   void set_connection_id(const unsigned int id);
+  int get_connection_id();
 
  private:
-  const string host_;
-  const unsigned int port_;
   unsigned int connection_id_;
 
- public:
-
-  template <typename State_t> const State_t get_current_state();
-  template <typename State_t> const State_t get_previous_state();
-
-  const string get_host();
-  const unsigned int get_port();
-  const unsigned int get_connection_id();
 
  public:
 

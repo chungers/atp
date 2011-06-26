@@ -28,7 +28,9 @@ set(ib_adapter_incs
   ${SRC_DIR}
 )
 set(ib_adapter_srcs
-  logging_adapter.cpp
+  logging_impl.cpp
+  SocketConnector.cpp
+  Initiator.cpp
   ticker_id.cpp
 )
 set(ib_adapter_libs

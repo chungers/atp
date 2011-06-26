@@ -1,8 +1,10 @@
 #include <sys/time.h>
 #include <iostream>
 #include <boost/date_time.hpp>
-#include <ib/logging_adapter.hpp>
 #include <glog/logging.h>
+
+#include "ib/logging_impl.hpp"
+
 
 // Verbose level.  Use flag --v=N where N >= VLOG_LEVEL_* to see.
 #define VLOG_LEVEL_ECLIENT  2
@@ -27,25 +29,28 @@ inline boost::posix_time::time_duration utc_micros()
 
 #define __f__(m) "," << #m << '=' << m
 
-#define LOG_EVENT				\
-  VLOG(VLOG_LEVEL_EWRAPPER)			\
-  << "cid=" << connection_id_			\
+#define LOG_EVENT                               \
+  VLOG(VLOG_LEVEL_EWRAPPER)                     \
+  << "cid=" << connection_id_                   \
   << ",ts_utc=" << utc_micros().total_microseconds()  \
-  << ",ts=" << now_micros()			\
+  << ",ts=" << now_micros()                     \
   << ",event=" << __func__
 
 #define __tick_type_enum(m) ",field=" << kTickTypes[m]
 
 namespace ib {
-namespace adapter {
+namespace internal {
 
-LoggingEWrapper::LoggingEWrapper(const string host,
-                                 const unsigned int port,
-                                 const unsigned int connection_id)
-    : host_(host)
-    , port_(port)
-    , connection_id_(connection_id)
-{
+// LoggingEWrapper::LoggingEWrapper(const string host,
+//                                  const unsigned int port,
+//                                  const unsigned int connection_id)
+//     : host_(host)
+//     , port_(port)
+//     , connection_id_(connection_id)
+// {
+// }
+
+LoggingEWrapper::LoggingEWrapper() {
 }
 
 LoggingEWrapper::~LoggingEWrapper() {
@@ -57,18 +62,7 @@ void LoggingEWrapper::set_connection_id(const unsigned int id)
   VLOG(VLOG_LEVEL_EWRAPPER) << "Connection id updated to " << id;
 }
 
-const string LoggingEWrapper::get_host()
-{
-  return host_;
-}
-
-const unsigned int LoggingEWrapper::get_port()
-{
-  return port_;
-}
-
-const unsigned int LoggingEWrapper::get_connection_id()
-{
+int LoggingEWrapper::get_connection_id() {
   return connection_id_;
 }
 
