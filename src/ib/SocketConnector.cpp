@@ -8,7 +8,6 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 
-#include "ib/EventDispatcher.hpp"
 #include "ib/SocketConnector.hpp"
 
 
@@ -50,17 +49,17 @@ SocketConnector::~SocketConnector()
 
 int SocketConnector::connect(const string& host,
                              unsigned int port,
-                             EventDispatcher* dispatcher)
+                             Strategy* strategy)
 {
   host_ = host;
   port_ = port;
-  dispatcher_.reset(dispatcher);
+  strategy_.reset(strategy);
 
   assert(!polling_thread_);
   VLOG(LOG_LEVEL) << "Starting thread.";
 
-  polling_thread_ = boost::shared_ptr<boost::thread>(
-      new boost::thread(boost::bind(&SocketConnector::event_loop, this)));
+  polling_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
+      boost::bind(&SocketConnector::connect_retry_loop, this)));
 
   return 0;
 }
@@ -190,8 +189,9 @@ void SocketConnector::connect_retry_loop()
     connection_id_++;
 
     // Deletes any previously allocated resource.
-    client_socket_.reset(
-        new LoggingEClientSocket(connection_id_, dispatcher_.get()));
+    EWrapper* ewrapperImpl = strategy_.get()->getEWrapperImpl();
+    client_socket_.reset(new LoggingEClientSocket(
+        connection_id_, ewrapperImpl));
 
     LOG(INFO) << "Connecting to "
               << host_ << ":" << port_ << " @ " << connection_id_;

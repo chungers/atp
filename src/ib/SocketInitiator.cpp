@@ -1,14 +1,23 @@
 
 #include <glog/logging.h>
 
-#include "ib/Initiator.hpp"
+#include <Shared/EWrapper.h>
+#include "ib/SocketInitiator.hpp"
 
 namespace ib {
 
-Initiator::Initiator(const string& host, unsigned int port, unsigned int id) {
+SocketInitiator::SocketInitiator(ib::Application& app,
+                                 ib::SessionSetting& setting)
+    : application_(app), setting_(setting) {
+
 }
 
-void Initiator::onConnect() {
+void SocketInitiator::start() {
+  // Create the socket connector
+  // Create callbacks
+}
+
+void SocketInitiator::onConnect() {
     boost::unique_lock<boost::mutex> lock(connected_mutex_);
     connected_ = true;
     connected_control_.notify_all();
@@ -16,7 +25,7 @@ void Initiator::onConnect() {
 
 }
 
-void Initiator::onError(const int errorCode) {
+void SocketInitiator::onError(const unsigned int errorCode) {
   switch (errorCode) {
     case 326:
       LOG(WARNING) << "Conflicting connection id. Disconnecting.";
@@ -37,9 +46,13 @@ void Initiator::onError(const int errorCode) {
   }
 }
 
- void Initiator::onHeartBeat(long time) {
-   select_client_->received_heartbeat(time);
- }
-
+void SocketInitiator::onHeartBeat(long time) {
+  select_client_->received_heartbeat(time);
 }
+
+EWrapper* SocketInitiator::getEWrapperImpl() {
+  return NULL;
+}
+
+} // namespace ib
 

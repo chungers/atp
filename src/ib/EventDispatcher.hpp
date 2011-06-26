@@ -23,15 +23,13 @@ class EventDispatcher : public LoggingEWrapper {
 
  public:
 
-  EventDispatcher(ib::Application& app, ib::Initiator initiator)
+  EventDispatcher(ib::Application& app)
       : app_(app)
-      , initiator_(initiator)
   {
   }
 
  private:
   Application& app_;
-  ib::Initiator& initiator_;
 
  public:
 

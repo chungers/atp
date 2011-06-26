@@ -4,7 +4,6 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 
-#include "ib/EventDispatcher.hpp"
 #include "ib/logging_impl.hpp"
 
 using namespace std;
@@ -21,12 +20,24 @@ namespace internal {
 class SocketConnector {
 
  public:
+  class Strategy {
+   public:
+    virtual ~Strategy() = 0;
+    virtual void onConnect() = 0;
+    virtual void onError(const unsigned int errorCode) = 0;
+    virtual void onHeartBeat(const long time) = 0;
+
+    // similar to the onData() method in QuickFIX's SocketConnector::Strategy
+    virtual EWrapper* getEWrapperImpl() = 0;
+  };
+
+ public:
 
   SocketConnector(const unsigned int connection_id);
   ~SocketConnector();
 
   int connect(const string& host,
-              unsigned int port, EventDispatcher* event);
+              unsigned int port, Strategy* s);
   void stop();
   void join();
 
@@ -51,7 +62,7 @@ class SocketConnector {
 
   boost::shared_ptr<boost::thread> polling_thread_;
   boost::scoped_ptr<EPosixClientSocket> client_socket_;
-  boost::scoped_ptr<EventDispatcher> dispatcher_;
+  boost::scoped_ptr<Strategy> strategy_;
   boost::mutex mutex_;
 
   int disconnects_;

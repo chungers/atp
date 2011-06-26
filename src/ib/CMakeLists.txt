@@ -30,7 +30,7 @@ set(ib_adapter_incs
 set(ib_adapter_srcs
   logging_impl.cpp
   SocketConnector.cpp
-  Initiator.cpp
+  SocketInitiator.cpp
   ticker_id.cpp
 )
 set(ib_adapter_libs
