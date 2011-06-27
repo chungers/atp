@@ -41,9 +41,7 @@ class SocketConnector {
   void stop();
   void join();
 
-  void received_connected();
-  void received_disconnected();
-  void received_heartbeat(long time);
+  void updateHeartbeat(long time);
 
   bool is_connected();
   void disconnect();
@@ -55,8 +53,14 @@ class SocketConnector {
   unsigned int port_;
   unsigned int connection_id_;
 
-  volatile bool stop_requested_;
-  volatile bool connected_;
+  enum ConnectorState {
+    RUNNING,
+    DISCONNECTING,
+    DISCONNECTED,
+    STOPPING,
+    STOPPED };
+
+  volatile ConnectorState state_;
   volatile bool pending_heartbeat_;
   volatile time_t heartbeat_deadline_;
 

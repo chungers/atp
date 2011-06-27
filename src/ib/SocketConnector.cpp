@@ -34,8 +34,7 @@ DEFINE_int32(heartbeat_interval, 10 * 60 * 60,
 //
 SocketConnector::SocketConnector(const unsigned int connection_id)
     : connection_id_(connection_id - 1)
-    , stop_requested_(false)
-    , connected_(false)
+    , state_(RUNNING)
     , pending_heartbeat_(false)
     , heartbeat_deadline_(0)
     , disconnects_(0)
@@ -67,8 +66,8 @@ int SocketConnector::connect(const string& host,
 void SocketConnector::stop()
 {
   assert(polling_thread_);
-  stop_requested_ = true;
-  polling_thread_->join();
+  boost::unique_lock<boost::mutex> lock(mutex_);
+  state_ = STOPPING;
 }
 
 void SocketConnector::join()
@@ -76,19 +75,7 @@ void SocketConnector::join()
   polling_thread_->join();
 }
 
-void SocketConnector::received_connected()
-{
-  boost::unique_lock<boost::mutex> lock(mutex_);
-  connected_ = true;
-}
-
-void SocketConnector::received_disconnected()
-{
-  boost::unique_lock<boost::mutex> lock(mutex_);
-  connected_ = false;
-}
-
-void SocketConnector::received_heartbeat(long time)
+void SocketConnector::updateHeartbeat(long time)
 {
   time_t t = (time_t)time;
   struct tm * timeinfo = localtime (&t);
@@ -104,15 +91,29 @@ void SocketConnector::received_heartbeat(long time)
 
 bool SocketConnector::is_connected()
 {
-  return (client_socket_.get())? client_socket_->isConnected() : false;
+  if (client_socket_.get()) {
+    if (!client_socket_->isConnected()) {
+
+      boost::unique_lock<boost::mutex> lock(mutex_);
+      state_ = DISCONNECTED;
+    } else {
+
+      boost::unique_lock<boost::mutex> lock(mutex_);
+      state_ = RUNNING;
+      return true;
+    }
+  }
+  return false;
 }
 
 void SocketConnector::disconnect()
 {
   if (client_socket_.get()) {
     client_socket_->eDisconnect();
+
+    boost::unique_lock<boost::mutex> lock(mutex_);
+    state_ = DISCONNECTING;
     disconnects_++;
-    received_disconnected();
   }
 }
 
@@ -184,7 +185,7 @@ bool SocketConnector::poll_socket(timeval tval)
 void SocketConnector::connect_retry_loop()
 {
   int tries = 0;
-  while (!stop_requested_) {
+  while (state_ == RUNNING) {
 
     connection_id_++;
 
@@ -206,7 +207,7 @@ void SocketConnector::connect_retry_loop()
       tval.tv_sec = 0;
 
       time_t now = time(NULL);
-      if (connected_ && now >= next_heartbeat) {
+      if (state_ == RUNNING && now >= next_heartbeat) {
         // Do heartbeat
         boost::unique_lock<boost::mutex> lock(mutex_);
         ping();

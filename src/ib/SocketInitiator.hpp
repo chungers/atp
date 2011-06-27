@@ -16,6 +16,10 @@ class SessionSetting {
   SessionSetting(const string& host, unsigned int port, unsigned int id)
       : host_(host), port_(port), id_(id) {}
 
+  const string& getHost() { return host_; }
+  const unsigned int getPort() { return port_; }
+  const unsigned int getConnectionId() { return id_; }
+
  private:
   const string& host_;
   unsigned int port_;
@@ -35,6 +39,8 @@ class SocketInitiator : SocketConnector::Strategy {
   void stop(bool force = false);
   void block();
 
+
+  // Implements SocketConnector::Strategy
   void onConnect();
   void onError(const unsigned int errorCode);
   void onHeartBeat(const long time);
@@ -44,7 +50,7 @@ class SocketInitiator : SocketConnector::Strategy {
  private:
   Application& application_;
   SessionSetting& setting_;
-  boost::scoped_ptr<SocketConnector> select_client_;
+  boost::scoped_ptr<SocketConnector> socket_connector_;
 
   volatile bool connected_;
   boost::mutex connected_mutex_;

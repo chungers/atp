@@ -5,7 +5,7 @@
 #include <glog/logging.h>
 
 #include "ib/Application.hpp"
-#include "ib/Initiator.hpp"
+#include "ib/SocketConnector.hpp"
 #include "ib/logging_impl.hpp"
 
 namespace ib {
@@ -23,13 +23,15 @@ class EventDispatcher : public LoggingEWrapper {
 
  public:
 
-  EventDispatcher(ib::Application& app)
+  EventDispatcher(ib::Application& app, SocketConnector::Strategy& strategy)
       : app_(app)
+      , strategy_(strategy)
   {
   }
 
  private:
   Application& app_;
+  SocketConnector::Strategy& strategy_;
 
  public:
 
@@ -38,7 +40,7 @@ class EventDispatcher : public LoggingEWrapper {
              const IBString errorString) {
 
     LoggingEWrapper::error(id, errorCode, errorString);
-    initiator_.onConnect();
+    strategy_.onError(errorCode);
   }
 
   /** @override EWrapper */
@@ -46,7 +48,7 @@ class EventDispatcher : public LoggingEWrapper {
     LoggingEWrapper::nextValidId(orderId);
     LOG(INFO) << "Connection confirmed wth next order id = "
               << orderId;
-    initiator_.onConnect();
+    strategy_.onConnect();
 
     NextOrderIdMessage m;
     m.nextOrderId = orderId;
@@ -57,7 +59,7 @@ class EventDispatcher : public LoggingEWrapper {
   void currentTime(long time) {
     LoggingEWrapper::currentTime(time);
 
-    initiator_.onHeartBeat(time);
+    strategy_.onHeartBeat(time);
 
     HeartBeatMessage m;
     m.currentTime = time;
