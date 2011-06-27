@@ -8,6 +8,11 @@
 
 namespace ib {
 
+
+const int VLOG_LEVEL = 2;
+
+
+
 SocketInitiator::SocketInitiator(ib::Application& app,
                                  ib::SessionSetting& setting)
     : application_(app), setting_(setting) {
@@ -15,9 +20,34 @@ SocketInitiator::SocketInitiator(ib::Application& app,
 }
 
 void SocketInitiator::start() {
+  VLOG(VLOG_LEVEL) << "Starting connector. " << std::endl;
+
   // Create the socket connector
-  // Create callbacks
+  socket_connector_.reset(new SocketConnector(setting_.getConnectionId()));
+
+  // Start the connector.  This starts a new thread
+  socket_connector_->connect(setting_.getHost(), setting_.getPort(), this);
 }
+
+void SocketInitiator::stop(double timeout) {
+  VLOG(VLOG_LEVEL) << "Stopping connector with timeout = "
+                   << timeout << std::endl;
+  socket_connector_->disconnect();
+  socket_connector_->stop();
+}
+
+void SocketInitiator::stop(bool force) {
+  VLOG(VLOG_LEVEL) << "Stopping connector with force = "
+                   << force << std::endl;
+  socket_connector_->disconnect();
+  socket_connector_->stop();
+}
+
+void SocketInitiator::block() {
+  // Wait for the thread to join.
+  socket_connector_->join();
+}
+
 
 void SocketInitiator::onConnect() {
     boost::unique_lock<boost::mutex> lock(connected_mutex_);
@@ -51,7 +81,7 @@ void SocketInitiator::onHeartBeat(long time) {
 }
 
 EWrapper* SocketInitiator::getEWrapperImpl() {
-  return NULL;
+  return new ib::internal::EventDispatcher(application_, *this);
 }
 
 } // namespace ib
