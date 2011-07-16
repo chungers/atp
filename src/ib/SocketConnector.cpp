@@ -30,7 +30,7 @@ DEFINE_int32(heartbeat_interval, 10 * 60 * 60,
 
 
 ///////////////////////////////////////////////////////////////
-// Polling client that polls the socket in a dedicated thread.
+// Synchronous / Polling client using SELECT
 //
 SocketConnector::SocketConnector(const unsigned int connection_id)
     : connection_id_(connection_id - 1)

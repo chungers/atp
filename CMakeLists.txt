@@ -56,6 +56,7 @@ third_party(glog)
 
 # Include the subdirectories required for this project:
 add_subdirectory(src)
+add_subdirectory(test)
 
 
 
