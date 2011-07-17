@@ -29,6 +29,7 @@ set(ib_adapter_incs
 )
 set(ib_adapter_srcs
   logging_impl.cpp
+  AsioEClientSocket.cpp
   SocketConnector.cpp
   SocketInitiator.cpp
   ticker_id.cpp
