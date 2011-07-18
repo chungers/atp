@@ -6,9 +6,7 @@
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/thread.hpp>
 
-#include <gmock/gmock.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
