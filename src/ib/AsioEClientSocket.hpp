@@ -23,7 +23,6 @@ class AsioEClientSocket : public EClientSocketBase {
   bool eConnect(const char *host, unsigned int port, int clientId=0);
   void eDisconnect();
 
-  
  private:
   bool isSocketOK() const;
   int send(const char* buf, size_t sz);
