@@ -17,6 +17,7 @@ set(AsioEClientSocket_test_srcs
 )
 set(AsioEClientSocket_test_libs
   boost_system
+  boost_thread
   ib_adapter
   gflags
   glog

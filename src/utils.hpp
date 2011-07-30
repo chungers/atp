@@ -28,4 +28,22 @@ inline const string to_lower(const string& s)
   return copy;
 }
 
+typedef uint64_t int64;
+
+inline int64 now_micros()
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return static_cast<int64>(tv.tv_sec) * 1000000 + tv.tv_usec;
+}
+
+inline void now_micros(string* str)
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  stringstream ss;
+  ss << tv.tv_sec << tv.tv_usec;
+  str->assign(ss.str());
+}
+
 #endif // UTILS_H_

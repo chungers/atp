@@ -1,20 +1,29 @@
 
 #include <stdio.h>
 #include <sstream>
+#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
+#include <boost/thread.hpp>
+
+#include "utils.hpp"
 #include "ib/AsioEClientSocket.hpp"
+
+
+using boost::asio::ip::tcp;
 
 namespace ib {
 namespace internal {
+
+const int LOG_LEVEL = 10;
 
 AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
                                      EWrapper *ptr) :
     EClientSocketBase(ptr),
     ioService_(ioService),
     socket_(ioService),
-    bytesRead_(0),
     clientId_(0),
     socketOk_(false)
 {
@@ -28,60 +37,38 @@ AsioEClientSocket::~AsioEClientSocket() {
 bool AsioEClientSocket::eConnect(const char *host, unsigned int port, int clientId) {
   clientId_ = clientId;
   tcp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
-  
+
   // Connect synchronously
-  bool ok = false;
   try {
+
+    VLOG(LOG_LEVEL) << "Connecting to " << endpoint << std::endl;
+
+    int64 start = now_micros();
+    
     socket_.connect(endpoint);
-    ok = true;
+
+    int64 elapsed = now_micros() - start;
+    
     socketOk_ = true;
 
+    LOG(INFO) << "Connected in " << elapsed << " microseconds." << std::endl;
+    
     // Sends client version to server
     onConnectBase();
-
-    //LOG(INFO) << "Blocking receive for connection ACK." << std::endl;
-
-
-    while (isSocketOK()) {
-      checkMessages();
-      }
     
-    //LOG(INFO) << "Received " << bytesRead_ << " bytes. " << std::endl;
-
     // Schedule async read handler for incoming packets.
-    /*
-    socket_.async_receive(boost::asio::buffer(data_, sizeof(data_)), 0,
-                          boost::bind(&AsioEClientSocket::handle_event, this,
-                                      boost::asio::placeholders::error,
-                                      boost::asio::placeholders::bytes_transferred));
+    assert(!eventLoopThread_);
 
-    LOG(INFO) << "Scheduled event handler." << std::endl;
-    */
+    eventLoopThread_ = boost::shared_ptr<boost::thread>(
+        new boost::thread(boost::bind(&AsioEClientSocket::event_loop, this)));
+
+    VLOG(LOG_LEVEL) << "Started event thread." << std::endl;
     
   } catch (boost::system::system_error e) {
     LOG(WARNING) << "Exception while connecting: " << e.what() << std::endl;
+    socketOk_ = false;
   }
-  return ok;
-}
-
-bool AsioEClientSocket::isSocketOK() const {
   return socketOk_;
-}
-
-void AsioEClientSocket::handle_event(const boost::system::error_code& error,
-                                     size_t bytes_read) {
-  LOG(INFO) << "Read " << bytes_read << " bytes: " << std::string(data_) <<  std::endl;
-  bytesRead_ = bytes_read;
-
-  while (isSocketOK()) {
-    checkMessages();
-  }
-  /*
-  socket_.async_receive(boost::asio::buffer(data_), 0,
-                        boost::bind(&AsioEClientSocket::handle_event, this,
-                                    boost::asio::placeholders::error,
-                                    boost::asio::placeholders::bytes_transferred));
-  */
 }
 
 
@@ -89,37 +76,64 @@ void AsioEClientSocket::eDisconnect() {
 
 }
 
-int AsioEClientSocket::send(const char* buf, size_t sz) {
-  // Use synchronous send because the base clientImpl expects a
-  // return value of the number of bytes transferred.
-  try {
-    LOG(INFO) << "Sending " << sz << " bytes: " << std::string(buf) << std::endl;
-    size_t sent = socket_.send(boost::asio::buffer(buf, sz));
+bool AsioEClientSocket::isSocketOK() const {
+  return socketOk_;
+}
 
-    LOG(INFO) << "Send completed " << sent << " bytes." << std::endl;
-    return sent;
-  } catch (boost::system::system_error e) {
-    LOG(WARNING) << "Send failed: " << e.what() << std::endl;
-    return 0;
+
+void AsioEClientSocket::event_loop() {
+  while (isSocketOK()) {
+    int64 start = now_micros();
+    checkMessages();
+    int64 elapsed = now_micros() - start;
   }
 }
 
 
+int AsioEClientSocket::send(const char* buf, size_t sz) {
+  // Use synchronous send because the base clientImpl expects a
+  // return value of the number of bytes transferred.
+  size_t sent = 0;
+  try {
+    
+    int64 start = now_micros();
+    sent = socket_.send(boost::asio::buffer(buf, sz));
+    int64 elapsed = now_micros() - start;
+
+    VLOG(LOG_LEVEL) << "Sent " << sz << " bytes in " << elapsed << " microseconds: "
+                    << std::string(buf)
+                    << std::endl;
+
+  } catch (boost::system::system_error e) {
+
+    LOG(WARNING) << "Send failed: " << e.what() << std::endl;
+    socketOk_ = false;
+  }
+
+  return sent;
+}
+
+
 int AsioEClientSocket::receive(char* buf, size_t sz) {
-  LOG(INFO) << "Receive() called with buffer size = " << sz << std::endl;
-  int read = socket_.receive(boost::asio::buffer(buf, sz));
-  LOG(INFO) << "Received " << read << " bytes: " << std::string(buf) << std::endl;
+  size_t read = -1;
+  try {
+
+    read = socket_.receive(boost::asio::buffer(buf, sz));
+    VLOG(LOG_LEVEL) << "Received " << read << " bytes: " << std::string(buf) << std::endl;
+
+  } catch (boost::system::system_error e) {
+
+    LOG(WARNING) << "Receive failed: " << e.what() << std::endl;
+    socketOk_ = false;
+  }
+
   return read;
 }
 
 
-/*
-int AsioEClientSocket::receive(char* buf, size_t sz) {
-  LOG(INFO) << "Receive() called with buffer size = " << sz << std::endl;
-  memcpy(buf, &data_, sizeof(bytesRead_));
-  LOG(INFO) << "Copied " << bytesRead_ << " bytes: " << std::string(data_) << std::endl;
-  return bytesRead_;
-  } */
+
+
+
 
 
 } // internal
