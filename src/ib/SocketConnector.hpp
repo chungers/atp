@@ -1,87 +1,50 @@
-#ifndef IB_POLLING_CLIENT_H_
-#define IB_POLLING_CLIENT_H_
-
-#include <boost/scoped_ptr.hpp>
-#include <boost/thread.hpp>
-
-#include "ib/logging_impl.hpp"
-
-using namespace std;
-
-#define LOG_LEVEL 1
+#ifndef IB_SOCKET_CONNECTOR_H_
+#define IB_SOCKET_CONNECTOR_H_
 
 
-namespace ib {
-namespace internal {
+#include <EWrapper.h>
 
 
-// Manages a thread with which the events from the
-// EPosixClientSocket is polled.
+namespace IBAPI {
+
+/**
+ * Models after the SocketConnector in the QuickFIX API.
+ * https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketConnector.h
+ */
 class SocketConnector {
+
+ public:
+  class Strategy;
+
+  SocketConnector(int timeout = 0);
+  ~SocketConnector();
+
+  int connect(const std::string& host, unsigned int port, unsigned int clientId,
+              Strategy* s);
+  
+ private :
+  int timeout_;
 
  public:
   class Strategy {
    public:
     virtual ~Strategy() = 0;
-    virtual void onConnect() = 0;
-    virtual void onError(const unsigned int errorCode) = 0;
-    virtual void onHeartBeat(const long time) = 0;
+    virtual void onConnect(SocketConnector&, int clientId) = 0;
 
-    // similar to the onData() method in QuickFIX's SocketConnector::Strategy
+    // In place of onData() in the QuickFix SocketConnector
+    // https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketConnector.h
     virtual EWrapper* getEWrapperImpl() = 0;
+
+    virtual void onDisconnect(SocketConnector&, int clientId) = 0;
+    virtual void onError(SocketConnector&, const int clientId,
+                         const unsigned int errorCode) = 0;
+    virtual void onTimeout(const long time) = 0;
   };
-
- public:
-
-  SocketConnector(const unsigned int connection_id);
-  ~SocketConnector();
-
-  int connect(const string& host,
-              unsigned int port, Strategy* s);
-  void stop();
-  void join();
-
-  void updateHeartbeat(long time);
-
-  bool is_connected();
-  void disconnect();
-  void ping();
-
- private :
-
-  std::string host_;
-  unsigned int port_;
-  unsigned int connection_id_;
-
-  enum ConnectorState {
-    RUNNING,
-    DISCONNECTING,
-    DISCONNECTED,
-    STOPPING,
-    STOPPED };
-
-  volatile ConnectorState state_;
-  volatile bool pending_heartbeat_;
-  volatile time_t heartbeat_deadline_;
-
-  boost::shared_ptr<boost::thread> polling_thread_;
-  boost::scoped_ptr<EPosixClientSocket> client_socket_;
-  boost::scoped_ptr<Strategy> strategy_;
-  boost::mutex mutex_;
-
-  int disconnects_;
-
-  void connect_retry_loop();
-
-  bool poll_socket(timeval tval);
-
-
-
 };
 
-} // namespace internal
-} // namespace ib
+
+} // namespace IBAPI
 
 
-#endif // IB_POLLING_CLIENT_H_
+#endif // IB_SOCKET_CONNECTOR_H_
 

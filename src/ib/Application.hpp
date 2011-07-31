@@ -1,7 +1,7 @@
 #ifndef IB_APPLICATION_H_
 #define IB_APPLICATION_H_
 
-namespace ib {
+namespace IBAPI {
 
 typedef unsigned int SessionID;
 struct Message {
@@ -51,6 +51,6 @@ class Application {
   virtual void fromApp( const Message&, const SessionID& )
       throw( IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType ) = 0;
 };
-} // namespace ib
+} // namespace IBAPI
 
 #endif // IB_APPLICATION_H_

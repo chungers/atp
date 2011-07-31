@@ -1,63 +1,47 @@
-#ifndef IB_INITIATOR_H_
-#define IB_INITIATOR_H_
+#ifndef IB_SOCKET_INITIATOR_H_
+#define IB_SOCKET_INITIATOR_H_
 
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 
 #include <Shared/EWrapper.h>
-#include "ib/Application.hpp"
+#include "ib/Initiator.hpp"
 #include "ib/SocketConnector.hpp"
-using ib::internal::SocketConnector;
 
-namespace ib {
 
-class SessionSetting {
- public:
-  SessionSetting(const string& host, unsigned int port, unsigned int id)
-      : host_(host), port_(port), id_(id) {}
 
-  const string& getHost() { return host_; }
-  const unsigned int getPort() { return port_; }
-  const unsigned int getConnectionId() { return id_; }
+namespace IBAPI {
 
- private:
-  const string& host_;
-  unsigned int port_;
-  unsigned int id_;
-};
-
-// Similar to the QuickFIX SocketInitiator class
-class SocketInitiator : SocketConnector::Strategy {
+/**
+ * Models after SocketInitiator in QuickFIX API:
+ * https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketInitiator.h
+ */
+class SocketInitiator : Initiator, SocketConnector::Strategy {
 
  public:
 
   SocketInitiator(Application& app, SessionSetting& setting);
   ~SocketInitiator();
 
-  void start();
+  void start() throw ( ConfigError, RuntimeError );
+  void block() throw ( ConfigError, RuntimeError );
+
   void stop(double timeout);
   void stop(bool force = false);
-  void block();
-
+ 
+  bool isLoggedOn();
 
   // Implements SocketConnector::Strategy
-  void onConnect();
-  void onError(const unsigned int errorCode);
-  void onHeartBeat(const long time);
+  void onConnect(SocketConnector&, int clientId);
   EWrapper* getEWrapperImpl();
 
-
- private:
-  Application& application_;
-  SessionSetting& setting_;
-  boost::scoped_ptr<SocketConnector> socket_connector_;
-
-  volatile bool connected_;
-  boost::mutex connected_mutex_;
-  boost::condition_variable connected_control_;
+  void onDisconnect(SocketConnector&, int clientId);
+  void onError(SocketConnector&, const int clientId,
+               const unsigned int errorCode);
+  void onTimeout(const long time);
 
 };
 
-}
+} // namespace IBAPI
 
-#endif // IB_INITIATOR_H_
+#endif // IB_SOCKET_INITIATOR_H_

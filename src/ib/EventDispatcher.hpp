@@ -1,5 +1,5 @@
-#ifndef IB_DISPATCHER_H_
-#define IB_DISPATCHER_H_
+#ifndef IB_EVENT_DISPATCHER_H_
+#define IB_EVENT_DISPATCHER_H_
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
@@ -23,15 +23,15 @@ class EventDispatcher : public LoggingEWrapper {
 
  public:
 
-  EventDispatcher(ib::Application& app, SocketConnector::Strategy& strategy)
+  EventDispatcher(IBAPI::Application& app, IBAPI::SocketConnector::Strategy& strategy)
       : app_(app)
       , strategy_(strategy)
   {
   }
 
  private:
-  Application& app_;
-  SocketConnector::Strategy& strategy_;
+  IBAPI::Application& app_;
+  IBAPI::SocketConnector::Strategy& strategy_;
 
  public:
 
@@ -40,7 +40,7 @@ class EventDispatcher : public LoggingEWrapper {
              const IBString errorString) {
 
     LoggingEWrapper::error(id, errorCode, errorString);
-    strategy_.onError(errorCode);
+    //strategy_.onError(errorCode);
   }
 
   /** @override EWrapper */
@@ -48,9 +48,9 @@ class EventDispatcher : public LoggingEWrapper {
     LoggingEWrapper::nextValidId(orderId);
     LOG(INFO) << "Connection confirmed wth next order id = "
               << orderId;
-    strategy_.onConnect();
+    //strategy_.onConnect();
 
-    NextOrderIdMessage m;
+    IBAPI::NextOrderIdMessage m;
     m.nextOrderId = orderId;
     app_.fromAdmin(m, get_connection_id());
   }
@@ -59,9 +59,7 @@ class EventDispatcher : public LoggingEWrapper {
   void currentTime(long time) {
     LoggingEWrapper::currentTime(time);
 
-    strategy_.onHeartBeat(time);
-
-    HeartBeatMessage m;
+    IBAPI::HeartBeatMessage m;
     m.currentTime = time;
     app_.fromAdmin(m, get_connection_id());
   }
@@ -73,4 +71,4 @@ class EventDispatcher : public LoggingEWrapper {
 } // internal
 } // ib
 
-#endif // IB_DISPATCHER_H_
+#endif // IB_EVENT_DISPATCHER_H_

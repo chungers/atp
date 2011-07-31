@@ -56,16 +56,14 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
   boost::asio::io_service& ioService_;
   tcp::socket socket_;
 
-  int clientId_;
   bool socketOk_;
   
   boost::shared_ptr<boost::thread> eventLoopThread_;
   boost::mutex mutext_;
 };
 
-} // internal
-} // ib
-
+} // namespace internal
+} // namespace ib
 
 
 #endif //IB_ASIO_ECLIENT_SOCKET_H_
