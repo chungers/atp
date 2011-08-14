@@ -10,9 +10,8 @@
 
 #include <EWrapper.h>
 #include <TwsSocketClientErrors.h>
-#include "utils.hpp"
+#include "common.hpp"
 #include "ib/AsioEClientSocket.hpp"
-
 
 
 using boost::asio::ip::tcp;
@@ -20,14 +19,14 @@ using boost::asio::ip::tcp;
 namespace ib {
 namespace internal {
 
-const int VLOG_LEVEL = 10;
 
 AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
-                                     EWrapper *ptr) :
-    EClientSocketBase(ptr),
+                                     EWrapper& wrapper) :
+    EClientSocketBase(&wrapper),
     ioService_(ioService),
     socket_(ioService),
-    socketOk_(false)
+    socketOk_(false),
+    state_(STARTING)
 {
   
 }
@@ -43,7 +42,7 @@ bool AsioEClientSocket::eConnect(const char *host, unsigned int port, int client
   // Connect synchronously
   try {
 
-    VLOG(VLOG_LEVEL) << "Connecting to " << endpoint << std::endl;
+    VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET) << "Connecting to " << endpoint << std::endl;
 
     int64 start = now_micros();
     socket_.connect(endpoint);
@@ -51,7 +50,8 @@ bool AsioEClientSocket::eConnect(const char *host, unsigned int port, int client
     
     socketOk_ = true;
 
-    LOG(INFO) << "Connected in " << elapsed << " microseconds." << std::endl;
+    LOG(INFO) << "Connected to " << endpoint
+              << "in " << elapsed << " microseconds." << std::endl;
     
     // Sends client version to server
     onConnectBase();
@@ -62,22 +62,44 @@ bool AsioEClientSocket::eConnect(const char *host, unsigned int port, int client
     eventLoopThread_ = boost::shared_ptr<boost::thread>(
         new boost::thread(boost::bind(&AsioEClientSocket::event_loop, this)));
 
-    VLOG(VLOG_LEVEL) << "Started event thread." << std::endl;
+    VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
+        << "Started event thread." << std::endl;
+
+    state_ = RUNNING;
     
   } catch (boost::system::system_error e) {
     LOG(WARNING) << "Exception while connecting: " << e.what() << std::endl;
     socketOk_ = false;
   }
-  return socketOk_;
+  return socketOk_ && state_ == RUNNING;
 }
 
 
 void AsioEClientSocket::eDisconnect() {
   eDisconnectBase();
+  boost::system::error_code ec;
+
+  // Wait for the event thread to stop
+  LOG(INFO) << "Stopping..." << std::endl;
+  state_ = STOPPING;
+  
+  // Now close the socket.
+  socket_.close(ec);
+  if (ec) {
+    LOG(WARNING) << "Failed to close socket connection." << std::endl;
+  } else {
+    LOG(INFO) << "Socket closed." << std::endl;
+  }
+
+  eventLoopThread_->join();
+  state_ = STOPPED;
 }
 
 bool AsioEClientSocket::isSocketOK() const {
-  return socketOk_;
+  VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
+      << "socketOk = " << socketOk_
+      << ", state = " << state_ << std::endl;
+  return socketOk_ && state_ == RUNNING;
 }
 
 void AsioEClientSocket::event_loop() {
@@ -86,20 +108,23 @@ void AsioEClientSocket::event_loop() {
   bool processed = true;
   while (isSocketOK() && processed) {
     try {
-      
       int64 start = now_micros();
       processed = checkMessages();
       int64 elapsed = now_micros() - start;
 
+      VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
+          << "Processed message in " << elapsed << " microseconds." << std::endl;
+      
     } catch (...) {
       // Implementation taken from 
       // https://github.com/lab616/third_party/blob/master/interactivebrokers/twsapi-unix-964/IBJts/cpp/PosixSocketClient/EPosixClientSocket.cpp#L78
       getWrapper()->error(NO_VALID_ID, CONNECT_FAIL.code(), CONNECT_FAIL.msg());
       processed = false;
       LOG(WARNING) << "Exception while processing event." << std::endl;
+      state_ = STOPPING;
     }
   }
-  LOG(INFO) << "Event loop terminated." << std::endl;
+  VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG) << "Event loop terminated." << std::endl;
 }
 
 
@@ -113,14 +138,19 @@ int AsioEClientSocket::send(const char* buf, size_t sz) {
     sent = socket_.send(boost::asio::buffer(buf, sz));
     int64 elapsed = now_micros() - start;
 
-    VLOG(VLOG_LEVEL) << "Sent " << sz << " bytes in " << elapsed << " microseconds: "
-                    << std::string(buf)
-                    << std::endl;
+    VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
+        << "Sent " << sz << " bytes in " << elapsed << " microseconds: "
+        << std::string(buf)
+        << std::endl;
 
   } catch (boost::system::system_error e) {
 
-    LOG(WARNING) << "Send failed: " << e.what() << std::endl;
+    if (state_ == RUNNING) {
+      LOG(WARNING) << "Send failed: " << e.what() << std::endl;
+    }
+
     socketOk_ = false;
+    state_ = STOPPING;
   }
 
   return sent;
@@ -132,12 +162,17 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
   try {
 
     read = socket_.receive(boost::asio::buffer(buf, sz));
-    VLOG(VLOG_LEVEL) << "Received " << read << " bytes: " << std::string(buf) << std::endl;
+
+    VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
+        << "Received " << read << " bytes: " << std::string(buf) << std::endl;
 
   } catch (boost::system::system_error e) {
 
-    LOG(WARNING) << "Receive failed: " << e.what() << std::endl;
+    if (state_ == RUNNING) {
+      LOG(WARNING) << "Receive failed: " << e.what() << std::endl;
+    }
     socketOk_ = false;
+    state_ = STOPPING;
   }
 
   return read;

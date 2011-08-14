@@ -1,10 +1,12 @@
-#ifndef UTILS_H_
-#define UTILS_H_
+#ifndef ATP_UTILS_H_
+#define ATP_UTILS_H_
 
 #include <algorithm>
 #include <cctype>
 #include <string>
 #include <sstream>
+#include <sys/time.h>
+#include <boost/date_time.hpp>
 
 using namespace std;
 
@@ -46,4 +48,13 @@ inline void now_micros(string* str)
   str->assign(ss.str());
 }
 
-#endif // UTILS_H_
+static const boost::posix_time::ptime utc_epoch(
+    boost::gregorian::date(1970, 1, 1));
+
+inline boost::posix_time::time_duration utc_micros()
+{
+  using namespace boost::posix_time;
+  return microsec_clock::universal_time() - utc_epoch;
+}
+
+#endif // ATP_UTILS_H_

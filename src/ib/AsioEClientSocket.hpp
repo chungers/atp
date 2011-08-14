@@ -28,38 +28,51 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
 
  public:
 
-  explicit AsioEClientSocket(boost::asio::io_service& ioService,
-                             EWrapper *ptr);
+  explicit AsioEClientSocket(boost::asio::io_service& ioService, EWrapper& ptr);
   ~AsioEClientSocket();
 
-  /** @implements EClientSocketBase */
+  /**
+     @overload EClientSocketBase
+  */
   bool eConnect(const char *host, unsigned int port, int clientId=0);
 
-  /** @implements EClientSocketBase */
+  /**
+     @overload EClientSocketBase
+   */
   void eDisconnect();
   
  private:
 
-  /** @implements EClientSocketBase */
+  /**
+     @overload EClientSocketBase
+  */
   bool isSocketOK() const;
 
-  /** @implements EClientSocketBase */
+  /**
+     @overload EClientSocketBase
+  */
   int send(const char* buf, size_t sz);
 
-  /** @implements EClientSocketBase */
+  /**
+     @overload EClientSocketBase
+  */
   int receive(char* buf, size_t sz);
 
-
-  /** Event loop that checks messages on the socket */
+  /**
+     Event loop that checks messages on the socket
+  */
   void event_loop();
 
   boost::asio::io_service& ioService_;
   tcp::socket socket_;
 
-  bool socketOk_;
+  volatile bool socketOk_;
+
+  enum State {  STARTING, RUNNING, STOPPING, STOPPED };
+  volatile State state_;
   
   boost::shared_ptr<boost::thread> eventLoopThread_;
-  boost::mutex mutext_;
+  //boost::mutex mutext_;
 };
 
 } // namespace internal

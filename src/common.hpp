@@ -1,11 +1,15 @@
-#ifndef COMMON_H_
-#define COMMON_H_
+#ifndef ATP_COMMON_H_
+#define ATP_COMMON_H_
 
 #include <iostream>
 #include <string>
 
 #include <boost/scoped_ptr.hpp>
 #include <boost/utility.hpp>
+
+#include "constants.h"
+#include "log_levels.h"
+#include "utils.hpp"
 
 
 typedef boost::noncopyable NoCopyAndAssign;
@@ -25,4 +29,4 @@ static void ReportError(DieWhenReporting should_die, const char* format, ...) {
 }
 
 
-#endif // COMMON_H_
+#endif // ATP_COMMON_H_

@@ -1,34 +1,17 @@
-#include <sys/time.h>
+
 #include <iostream>
-#include <boost/date_time.hpp>
 #include <glog/logging.h>
 
+#include "common.hpp"
+#include "utils.hpp"
+#include "ib/tick_types.hpp"
 #include "ib/logging_impl.hpp"
 
 
-// Verbose level.  Use flag --v=N where N >= VLOG_LEVEL_* to see.
-#define VLOG_LEVEL_ECLIENT  2
-#define VLOG_LEVEL_EWRAPPER 1
-
-typedef uint64_t int64;
-inline int64 now_micros()
-{
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  return static_cast<int64>(tv.tv_sec) * 1000000 + tv.tv_usec;
-}
-
-static const boost::posix_time::ptime utc_epoch(
-    boost::gregorian::date(1970, 1, 1));
-
-inline boost::posix_time::time_duration utc_micros()
-{
-  using namespace boost::posix_time;
-  return microsec_clock::universal_time() - utc_epoch;
-}
-
+// Macro for writing field value.
 #define __f__(m) "," << #m << '=' << m
 
+// Macro for logging the event api call.
 #define LOG_EVENT                               \
   VLOG(VLOG_LEVEL_EWRAPPER)                     \
   << "cid=" << connection_id_                   \
@@ -36,19 +19,11 @@ inline boost::posix_time::time_duration utc_micros()
   << ",ts=" << now_micros()                     \
   << ",event=" << __func__
 
-#define __tick_type_enum(m) ",field=" << kTickTypes[m]
+// Macro for tick type enum to string conversion
+#define __tick_type_enum(m) ",field=" << TickTypeNames[m]
 
 namespace ib {
 namespace internal {
-
-// LoggingEWrapper::LoggingEWrapper(const string host,
-//                                  const unsigned int port,
-//                                  const unsigned int connection_id)
-//     : host_(host)
-//     , port_(port)
-//     , connection_id_(connection_id)
-// {
-// }
 
 LoggingEWrapper::LoggingEWrapper() {
 }
