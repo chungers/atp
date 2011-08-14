@@ -1,56 +1,48 @@
-#ifndef IB_APPLICATION_H_
-#define IB_APPLICATION_H_
+#ifndef IBAPI_APPLICATION_H_
+#define IBAPI_APPLICATION_H_
+
+#include "ib/Exceptions.hpp"
+#include "ib/Message.hpp"
+#include "ib/SessionID.hpp"
+
 
 namespace IBAPI {
 
-typedef unsigned int SessionID;
-struct Message {
-
-};
-
-struct NextOrderIdMessage : Message {
-  int nextOrderId;
-};
-
-struct HeartBeatMessage : Message {
-  long currentTime;
-};
-
-struct DoNotSend {
-
-};
-
-struct IncorrectDataFormat {
-
-};
-
-struct IncorrectTagValue {
-
-};
-
-struct UnsupportedMessageType {
-
-};
-
-struct RejectLogon {
-
-};
-
+///
+/// This interface models after the Application interface in QuickFIX.  To receive messages from the
+/// IB gateway, an applicatio implements this interface where the engine will call the methods on
+/// various events.  For more information, see http://www.quickfixengine.org/quickfix/doc/html/application.html
 class Application {
 
  public :
   virtual ~Application() {};
+
   virtual void onCreate( const SessionID& ) = 0;
+
+
   virtual void onLogon( const SessionID& ) = 0;
+
+
   virtual void onLogout( const SessionID& ) = 0;
+
+
   virtual void toAdmin( Message&, const SessionID& ) = 0;
+
+
   virtual void toApp( Message&, const SessionID& )
       throw( DoNotSend ) = 0;
+
+
   virtual void fromAdmin( const Message&, const SessionID& )
       throw( IncorrectDataFormat, IncorrectTagValue, RejectLogon ) = 0;
+
+
+
+  /// Method called by the engine when events come from the gateway.  For the actual messages,
+  /// @see Message
   virtual void fromApp( const Message&, const SessionID& )
       throw( IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType ) = 0;
 };
 } // namespace IBAPI
 
-#endif // IB_APPLICATION_H_
+#endif // IBAPI_APPLICATION_H_

@@ -9,11 +9,13 @@ set(AsioEClientSocket_test_incs
   ${IBAPI_ROOT}
   ${GEN_DIR}
   ${SRC_DIR}
+  ${IBAPI_IMPL_DIR}
   ${TEST_DIR}
 )
 set(AsioEClientSocket_test_srcs
   AllTests.cpp
   AsioEClientSocketTest.cpp
+  ${IBAPI_IMPL_DIR}/EWrapperFactoryImpl.cpp
 )
 set(AsioEClientSocket_test_libs
   boost_system

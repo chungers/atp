@@ -21,9 +21,11 @@ include(${PROJECT_SOURCE_DIR}/tools/cmake/Init.cmk)
 #
 # IB API VERSION
 set(IBAPI_VERSION 9.64)
+# The class filename that implements the IBAPI messages
+set(IBAPI_IMPL_DIR api964)
 set(IBAPI_ROOT ${THIRD_PARTY_DIR}/interactivebrokers/api-${IBAPI_VERSION})
 set(IBCLIENT_VERSION 0.1)
-message(STATUS "InteractiveBrokers API version ${IBAPI_VERSION}")
+message(STATUS "InteractiveBrokers API version ${IBAPI_VERSION}, implDir=${IBAPI_IMPL_DIR}")
 
 # FIX/QuickFix paths
 set(FIX_VERSION 4.2)

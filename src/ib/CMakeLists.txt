@@ -26,13 +26,15 @@ set(ib_adapter_incs
   ${IBAPI_ROOT}/Shared
   ${GEN_DIR}
   ${SRC_DIR}
+  ${IBAPI_IMPL_DIR}
 )
 set(ib_adapter_srcs
-  logging_impl.cpp
   AsioEClientSocket.cpp
   SocketConnector.cpp
   SocketInitiator.cpp
   ticker_id.cpp
+  ${IBAPI_IMPL_DIR}/ApiImpl.cpp
+  ${IBAPI_IMPL_DIR}/Messages.cpp
 )
 set(ib_adapter_libs
   ib_api

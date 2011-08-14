@@ -1,5 +1,5 @@
-#ifndef IB_INITIATOR_H_
-#define IB_INITIATOR_H_
+#ifndef IBAPI_INITIATOR_H_
+#define IBAPI_INITIATOR_H_
 
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
@@ -58,4 +58,4 @@ class Initiator {
 
 } // namespace IBAPI
 
-#endif // IB_INITIATOR_H_
+#endif // IBAPI_INITIATOR_H_

@@ -5,7 +5,7 @@
 #include "common.hpp"
 #include "utils.hpp"
 #include "ib/tick_types.hpp"
-#include "ib/logging_impl.hpp"
+#include "ApiImpl.hpp"
 
 
 // Macro for writing field value.

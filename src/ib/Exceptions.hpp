@@ -33,6 +33,27 @@ struct RuntimeError : public Exception
     : Exception( "Runtime error", what ) {}
 };
 
+struct DoNotSend : public Exception {
+
+};
+
+struct IncorrectDataFormat : public Exception {
+
+};
+
+struct IncorrectTagValue : public Exception{
+
+};
+
+struct UnsupportedMessageType : public Exception {
+
+};
+
+struct RejectLogon : public Exception {
+
+};
+
+
 
 } // namespace IBAPI
 #endif // IB_EXCEPTIONS_H_

@@ -2,37 +2,37 @@
 #include <glog/logging.h>
 
 #include <Shared/EWrapper.h>
+
+#include "common.hpp"
 #include "ib/SocketInitiator.hpp"
-#include "ib/EventDispatcher.hpp"
+#include "ib/EWrapperFactory.hpp"
 
 
 
 namespace IBAPI {
 
 
-const int VLOG_LEVEL = 2;
-
-
 SocketInitiator::SocketInitiator(Application& app,
-                                 SessionSetting& setting)
-    : Initiator(app, setting) {
+                                 SessionSetting& setting,
+                                 EWrapperFactory& ewrapperFactory)
+    : Initiator(app, setting), ewrapperFactory_(ewrapperFactory) {
 
 }
 
 void SocketInitiator::start() throw ( ConfigError, RuntimeError ) {
-  VLOG(VLOG_LEVEL) << "Starting connector. " << std::endl;
+  VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR) << "Starting connector. " << std::endl;
 }
 
 void SocketInitiator::block() throw ( ConfigError, RuntimeError ) {
 }
 
 void SocketInitiator::stop(double timeout) {
-  VLOG(VLOG_LEVEL) << "Stopping connector with timeout = "
+  VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR) << "Stopping connector with timeout = "
                    << timeout << std::endl;
 }
 
 void SocketInitiator::stop(bool force) {
-  VLOG(VLOG_LEVEL) << "Stopping connector with force = "
+  VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR) << "Stopping connector with force = "
                    << force << std::endl;
 }
 
@@ -44,7 +44,7 @@ void SocketInitiator::onConnect(SocketConnector& connector, int clientId) {
 }
 
 EWrapper* SocketInitiator::getEWrapperImpl() {
-  return new ib::internal::EventDispatcher(application_, *this);
+  return ewrapperFactory_.getImpl();
 }
 
 void SocketInitiator::onError(SocketConnector& connector,

@@ -11,12 +11,15 @@
 #include <boost/format.hpp>
 
 #include "ib/GenericTickRequest.hpp"
-#include "ib/logging_impl.hpp"
+
 #include "ib/AsioEClientSocket.hpp"
+#include "ib/EWrapperFactory.hpp"
+#include "ib/TestHarness.hpp"
 #include "ib/ticker_id.hpp"
 
-using namespace ib::internal;
 
+using namespace ib::internal;
+using namespace IBAPI;
 
 static std::string FormatOptionExpiry(int year, int month, int day)
 {
@@ -29,132 +32,6 @@ static std::string FormatOptionExpiry(int year, int month, int day)
 
 
 // EWrapper implementation for test -- tracks invocations and ticker id seen.
-class TestEWrapper : public LoggingEWrapper {
- public:
-  enum EVENT {
-    NEXT_VALID_ID = 1,
-    TICK_PRICE,
-    TICK_SIZE,
-    TICK_GENERIC,
-    TICK_OPTION_COMPUTATION,
-    UPDATE_MKT_DEPTH,
-    CONTRACT_DETAILS,
-    CONTRACT_DETAILS_END // for option chain
-  };
-
-  TestEWrapper() : LoggingEWrapper(),
-                   optionChain_(NULL) {
-    LOG(INFO) << "Initialized LoggingEWrapper." << std:: endl;
-  }
-
- public:
-
-  // Returns the count of an event.
-  int getCount(EVENT event) {
-    if (eventCount_.find(event) != eventCount_.end()) {
-      return eventCount_[event];
-    } else {
-      return 0;
-    }
-  }
-
-  // Returns true if the ticker id was seen.
-  bool hasSeenTickerId(TickerId id) {
-    return tickerIds_.find(id) != tickerIds_.end();
-  }
-  
-  // @Override
-  void nextValidId(OrderId orderId) {
-    LoggingEWrapper::nextValidId(orderId);
-    incr(NEXT_VALID_ID);
-  }
-
-  // @Override
-  void tickPrice(TickerId tickerId, TickType tickType, double price, int canAutoExecute) {
-    LoggingEWrapper::tickPrice(tickerId, tickType, price, canAutoExecute);
-    incr(TICK_PRICE);
-    seen(tickerId);
-  }
-
-  // @Override
-  void tickSize(TickerId tickerId, TickType tickType, int size) {
-    LoggingEWrapper::tickSize(tickerId, tickType, size);
-    incr(TICK_SIZE);
-    seen(tickerId);
-  }
-
-  // @Override
-  void tickGeneric(TickerId tickerId, TickType tickType, double value) {
-    LoggingEWrapper::tickGeneric(tickerId, tickType, value);
-    incr(TICK_GENERIC);
-    seen(tickerId);
-  }
-
-  // @Override
-  void tickOptionComputation(TickerId tickerId, TickType tickType, double impliedVol, double delta,
-                             double optPrice, double pvDividend,
-                             double gamma, double vega, double theta, double undPrice) {
-    LoggingEWrapper::tickOptionComputation(tickerId, tickType, impliedVol, delta,
-                                           optPrice, pvDividend, gamma, vega, theta, undPrice);
-    incr(TICK_OPTION_COMPUTATION);
-    seen(tickerId);
-  }
-
-  // @Override
-  void updateMktDepth(TickerId id, int position, int operation, int side,
-                      double price, int size) {
-    LoggingEWrapper::updateMktDepth(id, position, operation, side, price, size);
-    incr(UPDATE_MKT_DEPTH);
-    seen(id);
-   }
-
-  // @Override
-  void contractDetails( int reqId, const ContractDetails& contractDetails) {
-    LoggingEWrapper::contractDetails(reqId, contractDetails);
-    incr(CONTRACT_DETAILS);
-    seen(reqId);
-    if (optionChain_) {
-      Contract c = contractDetails.summary;
-      optionChain_->push_back(c);
-    }
-  }
-
-  // @Override
-  void contractDetailsEnd( int reqId) {
-    LoggingEWrapper::contractDetailsEnd(reqId);
-    incr(CONTRACT_DETAILS_END);
-    seen(reqId);
-  }
-
-  void setOptionChain(std::vector<Contract>* optionChain) {
-    optionChain_ = optionChain;
-  }
-  
- private:
-
-  void incr(EVENT event, int count) {
-    if (eventCount_.find(event) == eventCount_.end()) {
-      eventCount_[event] = count;
-    } else {
-      eventCount_[event] += count;
-    }
-  }
-
-  inline void incr(EVENT event) {
-    incr(event, 1);
-  }
-
-  void seen(TickerId tickerId) {
-    if (!hasSeenTickerId(tickerId)) {
-      tickerIds_.insert(tickerId);
-    }
-  }
-  
-  std::map<EVENT, int> eventCount_;
-  std::set<TickerId> tickerIds_;
-  std::vector<Contract>* optionChain_;
-};
-
 
 // Spin around until connection is made.
 bool waitForConnection(AsioEClientSocket& ec, int attempts) {
@@ -173,8 +50,12 @@ bool waitForConnection(AsioEClientSocket& ec, int attempts) {
 TEST(AsioEClientSocketTest, ConnectionTest)
 {
   boost::asio::io_service ioService;
-  TestEWrapper ew;
-  AsioEClientSocket ec(ioService, ew);
+  EWrapperFactory factory;
+  
+  EWrapper* ew = factory.getImpl();
+  TestHarness* th = dynamic_cast<TestHarness*>(ew);
+  
+  AsioEClientSocket ec(ioService, *ew);
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
@@ -189,7 +70,7 @@ TEST(AsioEClientSocketTest, ConnectionTest)
 
   // Check invocation of the nextValidId -- this is part of the
   // TWS API protocol.
-  EXPECT_EQ(1, ew.getCount(TestEWrapper::NEXT_VALID_ID));
+  EXPECT_EQ(1, th->getCount(TestHarness::NEXT_VALID_ID));
 }
 
 
@@ -199,8 +80,12 @@ TEST(AsioEClientSocketTest, ConnectionTest)
 TEST(AsioEClientSocketTest, RequestMarketDataTest)
 {
   boost::asio::io_service ioService;
-  TestEWrapper ew;
-  AsioEClientSocket ec(ioService, ew);
+  EWrapperFactory factory;
+  
+  EWrapper* ew = factory.getImpl();
+  TestHarness* th = dynamic_cast<TestHarness*>(ew);
+
+  AsioEClientSocket ec(ioService, *ew);
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
@@ -236,7 +121,7 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
 
   // Spin and wait for data.
   int MAX_WAIT = 3; // seconds
-  for (int i = 0; i < MAX_WAIT && ew.getCount(TestEWrapper::TICK_PRICE) == 0; ++i) {
+  for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::TICK_PRICE) == 0; ++i) {
     sleep(1);
   }
 
@@ -245,9 +130,9 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
 
   EXPECT_FALSE(ec.isConnected());
 
-  EXPECT_GT(ew.getCount(TestEWrapper::TICK_PRICE), 1);
-  EXPECT_GT(ew.getCount(TestEWrapper::TICK_SIZE), 1);
-  EXPECT_TRUE(ew.hasSeenTickerId(tid));
+  EXPECT_GT(th->getCount(TestHarness::TICK_PRICE), 1);
+  EXPECT_GT(th->getCount(TestHarness::TICK_SIZE), 1);
+  EXPECT_TRUE(th->hasSeenTickerId(tid));
 }
 
 /**
@@ -256,9 +141,13 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
 TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 {
   boost::asio::io_service ioService;
-  TestEWrapper ew;
-  AsioEClientSocket ec(ioService, ew);
+  EWrapperFactory factory;
   
+  EWrapper* ew = factory.getImpl();
+  TestHarness* th = dynamic_cast<TestHarness*>(ew);
+
+  AsioEClientSocket ec(ioService, *ew);
+
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
 
@@ -292,7 +181,7 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 
   // Spin and wait for data.
   int MAX_WAIT = 3; // seconds
-  for (int i = 0; i < MAX_WAIT && ew.getCount(TestEWrapper::TICK_PRICE) == 0; ++i) {
+  for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::TICK_PRICE) == 0; ++i) {
     sleep(1);
   }
 
@@ -301,9 +190,9 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 
   EXPECT_FALSE(ec.isConnected());
 
-  EXPECT_GT(ew.getCount(TestEWrapper::TICK_PRICE), 1);
-  EXPECT_GT(ew.getCount(TestEWrapper::TICK_SIZE), 1);
-  EXPECT_TRUE(ew.hasSeenTickerId(tid));
+  EXPECT_GT(th->getCount(TestHarness::TICK_PRICE), 1);
+  EXPECT_GT(th->getCount(TestHarness::TICK_SIZE), 1);
+  EXPECT_TRUE(th->hasSeenTickerId(tid));
 }
 
 /**
@@ -312,8 +201,12 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 TEST(AsioEClientSocketTest, RequestMarketDepthTest)
 {
   boost::asio::io_service ioService;
-  TestEWrapper ew;
-  AsioEClientSocket ec(ioService, ew);
+  EWrapperFactory factory;
+  
+  EWrapper* ew = factory.getImpl();
+  TestHarness* th = dynamic_cast<TestHarness*>(ew);
+  
+  AsioEClientSocket ec(ioService, *ew);
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
@@ -336,7 +229,7 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
 
   // Spin and wait for data.
   int MAX_WAIT = 3; // seconds
-  for (int i = 0; i < MAX_WAIT && ew.getCount(TestEWrapper::UPDATE_MKT_DEPTH) == 0; ++i) {
+  for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::UPDATE_MKT_DEPTH) == 0; ++i) {
     sleep(1);
   }
   
@@ -346,9 +239,9 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
 
   EXPECT_FALSE(ec.isConnected());
 
-  EXPECT_EQ(ew.getCount(TestEWrapper::NEXT_VALID_ID), 1);
-  EXPECT_GT(ew.getCount(TestEWrapper::UPDATE_MKT_DEPTH), 1);
-  EXPECT_TRUE(ew.hasSeenTickerId(tid));
+  EXPECT_EQ(th->getCount(TestHarness::NEXT_VALID_ID), 1);
+  EXPECT_GT(th->getCount(TestHarness::UPDATE_MKT_DEPTH), 1);
+  EXPECT_TRUE(th->hasSeenTickerId(tid));
 }
 
 
@@ -365,8 +258,12 @@ struct SortByStrike {
 TEST(AsioEClientSocketTest, RequestOptionChainTest)
 {
   boost::asio::io_service ioService;
-  TestEWrapper ew;
-  AsioEClientSocket ec(ioService, ew);
+  EWrapperFactory factory;
+  
+  EWrapper* ew = factory.getImpl();
+  TestHarness* th = dynamic_cast<TestHarness*>(ew);
+
+  AsioEClientSocket ec(ioService, *ew);
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
@@ -390,18 +287,18 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
 
   // Collect the option chain
   std::vector<Contract> optionChain;
-  ew.setOptionChain(&optionChain);
+  th->setOptionChain(&optionChain);
   
   ec.reqContractDetails(requestId, c);
 
   // Spin and wait for data.
   int MAX_WAIT = 5; // seconds
-  for (int i = 0; i < MAX_WAIT && ew.getCount(TestEWrapper::CONTRACT_DETAILS_END) == 0; ++i) {
+  for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::CONTRACT_DETAILS_END) == 0; ++i) {
     sleep(1);
   }
   
-  EXPECT_EQ(ew.getCount(TestEWrapper::CONTRACT_DETAILS_END), 1);
-  EXPECT_TRUE(ew.hasSeenTickerId(requestId));
+  EXPECT_EQ(th->getCount(TestHarness::CONTRACT_DETAILS_END), 1);
+  EXPECT_TRUE(th->hasSeenTickerId(requestId));
 
   // Check the option chain
   EXPECT_GT(optionChain.size(), 0);
@@ -425,7 +322,7 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   // Wait until all the data has come through for all the contracts.
   for (std::vector<int>::iterator itr = tids.begin(); itr != tids.end(); ++itr) {
     int MAX_WAIT = 3; 
-    for (int i = 0; i < MAX_WAIT && !ew.hasSeenTickerId(*itr); ++i) {
+    for (int i = 0; i < MAX_WAIT && !th->hasSeenTickerId(*itr); ++i) {
       sleep(1);
     }
   }
@@ -434,11 +331,11 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   ec.eDisconnect();
   EXPECT_FALSE(ec.isConnected());
 
-  EXPECT_GT(ew.getCount(TestEWrapper::TICK_OPTION_COMPUTATION), 1);
+  EXPECT_GT(th->getCount(TestHarness::TICK_OPTION_COMPUTATION), 1);
 
   // Checks that we have seen the ticker ids for all the option contracts.
   for (std::vector<int>::iterator itr = tids.begin(); itr != tids.end(); ++itr) {
-    EXPECT_TRUE(ew.hasSeenTickerId(*itr));
+    EXPECT_TRUE(th->hasSeenTickerId(*itr));
   }
 }
 

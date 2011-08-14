@@ -6,6 +6,7 @@
 
 #include <Shared/EWrapper.h>
 #include "ib/Initiator.hpp"
+#include "ib/EWrapperFactory.hpp"
 #include "ib/SocketConnector.hpp"
 
 
@@ -20,7 +21,8 @@ class SocketInitiator : Initiator, SocketConnector::Strategy {
 
  public:
 
-  SocketInitiator(Application& app, SessionSetting& setting);
+  SocketInitiator(Application& app, SessionSetting& setting,
+                  EWrapperFactory& ewrapperFactory);
   ~SocketInitiator();
 
   void start() throw ( ConfigError, RuntimeError );
@@ -40,6 +42,9 @@ class SocketInitiator : Initiator, SocketConnector::Strategy {
                const unsigned int errorCode);
   void onTimeout(const long time);
 
+
+ private:
+  EWrapperFactory& ewrapperFactory_;
 };
 
 } // namespace IBAPI

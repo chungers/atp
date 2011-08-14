@@ -1,5 +1,5 @@
-#ifndef IB_ADAPTERS_H_
-#define IB_ADAPTERS_H_
+#ifndef IBAPI964_API_IMPL_H_
+#define IBAPI964_API_IMPL_H_
 
 // Header file for EWrapper and EClient derived classes for IB API Version 9.64
 //
@@ -193,4 +193,4 @@ class LoggingEClientSocket : public EPosixClientSocket {
 };
 } // namespace adapter
 }  // namespace ib
-#endif  // IB_ADAPTERS_H_
+#endif  // IBAPI964_API_IMPL_H_

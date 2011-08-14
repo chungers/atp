@@ -5,6 +5,7 @@
 #include <glog/logging.h>
 
 #include "ib/Application.hpp"
+#include "ib/Message.hpp"
 #include "ib/SocketConnector.hpp"
 #include "ib/logging_impl.hpp"
 
@@ -50,8 +51,7 @@ class EventDispatcher : public LoggingEWrapper {
               << orderId;
     //strategy_.onConnect();
 
-    IBAPI::NextOrderIdMessage m;
-    m.nextOrderId = orderId;
+    IBAPI::NextOrderIdMessage m(orderId);
     app_.fromAdmin(m, get_connection_id());
   }
 
