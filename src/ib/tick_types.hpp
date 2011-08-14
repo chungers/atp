@@ -83,7 +83,7 @@ const std::string TickTypeNames[] = {
    
    See http://goo.gl/LKfOD
 */
-enum GenericTickRequest {
+enum GenericTickType {
 
   // Optiaon Volume (currently for stocks)
     OPTION_VOLUME = 100, // 29, 30
@@ -109,7 +109,7 @@ enum GenericTickRequest {
     AUCTION_VALUES = 225, // 34, 35, 36
 
     // RTVolume
-    RT_VOLUME = 233, // 48
+    RTVOLUME = 233, // 48
 
     SHORTABLE = 236, // 46
 
