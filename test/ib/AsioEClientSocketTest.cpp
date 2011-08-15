@@ -21,6 +21,7 @@
 using namespace ib::internal;
 using namespace IBAPI;
 
+
 static std::string FormatOptionExpiry(int year, int month, int day)
 {
   ostringstream s1;
@@ -50,9 +51,9 @@ bool waitForConnection(AsioEClientSocket& ec, int attempts) {
 TEST(AsioEClientSocketTest, ConnectionTest)
 {
   boost::asio::io_service ioService;
-  EWrapperFactory factory;
+  EWrapperFactory* factory = EWrapperFactory::getInstance();
   
-  EWrapper* ew = factory.getImpl();
+  EWrapper* ew = factory->getImpl();
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   
   AsioEClientSocket ec(ioService, *ew);
@@ -80,9 +81,9 @@ TEST(AsioEClientSocketTest, ConnectionTest)
 TEST(AsioEClientSocketTest, RequestMarketDataTest)
 {
   boost::asio::io_service ioService;
-  EWrapperFactory factory;
+  EWrapperFactory* factory = EWrapperFactory::getInstance();
   
-  EWrapper* ew = factory.getImpl();
+  EWrapper* ew = factory->getImpl();
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -141,9 +142,9 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
 TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 {
   boost::asio::io_service ioService;
-  EWrapperFactory factory;
+  EWrapperFactory* factory = EWrapperFactory::getInstance();
   
-  EWrapper* ew = factory.getImpl();
+  EWrapper* ew = factory->getImpl();
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -201,9 +202,9 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 TEST(AsioEClientSocketTest, RequestMarketDepthTest)
 {
   boost::asio::io_service ioService;
-  EWrapperFactory factory;
+  EWrapperFactory* factory = EWrapperFactory::getInstance();
   
-  EWrapper* ew = factory.getImpl();
+  EWrapper* ew = factory->getImpl();
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   
   AsioEClientSocket ec(ioService, *ew);
@@ -258,9 +259,9 @@ struct SortByStrike {
 TEST(AsioEClientSocketTest, RequestOptionChainTest)
 {
   boost::asio::io_service ioService;
-  EWrapperFactory factory;
+  EWrapperFactory* factory = EWrapperFactory::getInstance();
   
-  EWrapper* ew = factory.getImpl();
+  EWrapper* ew = factory->getImpl();
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);

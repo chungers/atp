@@ -1,16 +1,12 @@
-#ifndef IB_SOCKET_CONNECTOR_H_
-#define IB_SOCKET_CONNECTOR_H_
+#ifndef IBAPI_SOCKET_CONNECTOR_H_
+#define IBAPI_SOCKET_CONNECTOR_H_
 
-
-#include <EWrapper.h>
 
 
 namespace IBAPI {
 
-/**
- * Models after the SocketConnector in the QuickFIX API.
- * https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketConnector.h
- */
+/// Models after the SocketConnector in the QuickFIX API.
+/// https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketConnector.h
 class SocketConnector {
 
  public:
@@ -30,11 +26,7 @@ class SocketConnector {
    public:
     virtual ~Strategy() = 0;
     virtual void onConnect(SocketConnector&, int clientId) = 0;
-
-    // In place of onData() in the QuickFix SocketConnector
-    // https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketConnector.h
-    virtual EWrapper* getEWrapperImpl() = 0;
-
+    virtual void onData(SocketConnector&, int clientId) = 0;
     virtual void onDisconnect(SocketConnector&, int clientId) = 0;
     virtual void onError(SocketConnector&, const int clientId,
                          const unsigned int errorCode) = 0;
@@ -46,5 +38,5 @@ class SocketConnector {
 } // namespace IBAPI
 
 
-#endif // IB_SOCKET_CONNECTOR_H_
+#endif // IBAPI_SOCKET_CONNECTOR_H_
 

@@ -1,6 +1,7 @@
 #ifndef IBAPI_INITIATOR_H_
 #define IBAPI_INITIATOR_H_
 
+#include <set>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 
@@ -15,8 +16,10 @@ namespace IBAPI {
 
 class SessionSetting {
  public:
-  SessionSetting(const std::string& host, unsigned int port, unsigned int id)
-      : host_(host), port_(port), id_(id) {}
+  SessionSetting(unsigned int id = 0,
+                 const std::string& host = "127.0.0.1",
+                 unsigned int port = 4001)
+      : id_(id), host_(host), port_(port) {}
 
   const std::string& getHost() { return host_; }
   const unsigned int getPort() { return port_; }
@@ -38,8 +41,8 @@ class Initiator {
 
  public:
 
-  Initiator(Application& app, SessionSetting& setting) :
-      application_(app), sessionSetting_(setting) {};
+  Initiator(Application& app, std::set<SessionSetting>& settings) :
+      application_(app), sessionSettings_(settings) {};
   
   ~Initiator() {};
 
@@ -53,7 +56,7 @@ class Initiator {
 
  protected:
   Application& application_;
-  SessionSetting& sessionSetting_;
+  std::set<SessionSetting>& sessionSettings_;
 };
 
 } // namespace IBAPI

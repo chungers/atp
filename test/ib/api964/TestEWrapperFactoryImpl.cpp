@@ -95,18 +95,27 @@ class TestEWrapper : public LoggingEWrapper, public TestHarness {
 namespace IBAPI {
 
 /// Implementation of EWrapperFactory
-EWrapperFactory::EWrapperFactory() {
-  LOG(INFO) << "EWrapperFactory start." << std::endl;
-}
+class TestEWrapperFactoryImpl : public EWrapperFactory {
 
-EWrapperFactory::~EWrapperFactory() {
-  LOG(INFO) << "EWrapperFactory done." << std::endl;
-}
+ public:
+  TestEWrapperFactoryImpl() {
+    LOG(INFO) << "EWrapperFactory start." << std::endl;
+  }
+  ~TestEWrapperFactoryImpl() {
+    LOG(INFO) << "EWrapperFactory done." << std::endl;
+  }
 
-/// Implements EWrapperFactory
-EWrapper* EWrapperFactory::getImpl() {
-  return new ib::internal::TestEWrapper();
+  /// Implements EWrapperFactory
+  EWrapper* getImpl() {
+    return new ib::internal::TestEWrapper();
+  }
+
+};
+
+EWrapperFactory* EWrapperFactory::getInstance() {
+  return new TestEWrapperFactoryImpl();
 }
+  
 
 } // IBAPI
 

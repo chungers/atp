@@ -1,4 +1,6 @@
 
+#include <set>
+
 #include <glog/logging.h>
 
 #include <Shared/EWrapper.h>
@@ -13,9 +15,9 @@ namespace IBAPI {
 
 
 SocketInitiator::SocketInitiator(Application& app,
-                                 SessionSetting& setting,
+                                 std::set<SessionSetting>& settings,
                                  EWrapperFactory& ewrapperFactory)
-    : Initiator(app, setting), ewrapperFactory_(ewrapperFactory) {
+    : Initiator(app, settings), ewrapperFactory_(ewrapperFactory) {
 
 }
 
@@ -40,37 +42,20 @@ bool SocketInitiator::isLoggedOn() {
   return false;
 }
 
+/// @implement SocketConnector::Strategy
 void SocketInitiator::onConnect(SocketConnector& connector, int clientId) {
 }
 
-EWrapper* SocketInitiator::getEWrapperImpl() {
-  return ewrapperFactory_.getImpl();
+/// @implement SocketConnector::Strategy
+void SocketInitiator::onData(SocketConnector& connector, int clientId) {
 }
 
-void SocketInitiator::onError(SocketConnector& connector,
-                              const int clientId,
-                              const unsigned int errorCode) {
-  switch (errorCode) {
-    case 326:
-      LOG(WARNING) << "Conflicting connection id. Disconnecting.";
-      //socket_connector_->disconnect();
-      break;
-    case 509:
-      LOG(WARNING) << "Connection reset. Disconnecting.";
-      //socket_connector_->disconnect();
-      break;
-    case 1100:
-      LOG(WARNING) << "Error code = " << errorCode << " disconnecting.";
-      //socket_connector_->disconnect();
-      break;
-    case 502:
-    default:
-      LOG(WARNING) << "Unhandled Error = " << errorCode << ", do nothing.";
-      break;
-  }
+/// @implement SocketConnector::Strategy
+void SocketInitiator::onError(SocketConnector& connector) {
 }
 
-void SocketInitiator::onTimeout(const long time) {
+/// @implement SocketConnector::Strategy
+void SocketInitiator::onTimeout(SocketConnector& connector) {
 
 }
 

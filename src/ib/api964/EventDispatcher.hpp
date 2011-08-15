@@ -7,7 +7,7 @@
 #include "ib/Application.hpp"
 #include "ib/Message.hpp"
 #include "ib/SocketConnector.hpp"
-#include "ib/logging_impl.hpp"
+#include "ApiImpl.hpp"
 
 namespace ib {
 namespace internal {
@@ -36,15 +36,34 @@ class EventDispatcher : public LoggingEWrapper {
 
  public:
 
-  /** @override EWrapper */
+  /// @overload EWrapper
   void error(const int id, const int errorCode,
              const IBString errorString) {
 
     LoggingEWrapper::error(id, errorCode, errorString);
+    switch (errorCode) {
+      case 326:
+        LOG(WARNING) << "Conflicting connection id. Disconnecting.";
+        //socket_connector_->disconnect();
+        break;
+      case 509:
+        LOG(WARNING) << "Connection reset. Disconnecting.";
+        //socket_connector_->disconnect();
+        break;
+      case 1100:
+        LOG(WARNING) << "Error code = " << errorCode << " disconnecting.";
+        //socket_connector_->disconnect();
+        break;
+      case 502:
+      default:
+        LOG(WARNING) << "Unhandled Error = " << errorCode << ", do nothing.";
+        break;
+    }
+
     //strategy_.onError(errorCode);
   }
 
-  /** @override EWrapper */
+  /// @overload EWrapper
   void nextValidId(OrderId orderId) {
     LoggingEWrapper::nextValidId(orderId);
     LOG(INFO) << "Connection confirmed wth next order id = "
@@ -55,7 +74,7 @@ class EventDispatcher : public LoggingEWrapper {
     app_.fromAdmin(m, get_connection_id());
   }
 
-  /** @implements EWrapper */
+  /// @overload EWrapper
   void currentTime(long time) {
     LoggingEWrapper::currentTime(time);
 
