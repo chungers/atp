@@ -26,9 +26,10 @@ class SessionSetting {
   const unsigned int getConnectionId() { return id_; }
 
  private:
+  unsigned int id_;
   const std::string& host_;
   unsigned int port_;
-  unsigned int id_;
+
 };
 
 

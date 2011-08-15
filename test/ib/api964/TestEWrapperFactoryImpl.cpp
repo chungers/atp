@@ -6,6 +6,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <boost/shared_ptr.hpp>
+
 #include "ib/TestHarness.hpp"
 #include "ib/EWrapperFactory.hpp"
 
@@ -112,8 +114,8 @@ class TestEWrapperFactoryImpl : public EWrapperFactory {
 
 };
 
-EWrapperFactory* EWrapperFactory::getInstance() {
-  return new TestEWrapperFactoryImpl();
+boost::shared_ptr<EWrapperFactory> EWrapperFactory::getInstance() {
+  return boost::shared_ptr<EWrapperFactory>(new TestEWrapperFactoryImpl());
 }
   
 

@@ -9,6 +9,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/format.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "ib/GenericTickRequest.hpp"
 
@@ -51,7 +52,7 @@ bool waitForConnection(AsioEClientSocket& ec, int attempts) {
 TEST(AsioEClientSocketTest, ConnectionTest)
 {
   boost::asio::io_service ioService;
-  EWrapperFactory* factory = EWrapperFactory::getInstance();
+  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
   EWrapper* ew = factory->getImpl();
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
@@ -81,7 +82,7 @@ TEST(AsioEClientSocketTest, ConnectionTest)
 TEST(AsioEClientSocketTest, RequestMarketDataTest)
 {
   boost::asio::io_service ioService;
-  EWrapperFactory* factory = EWrapperFactory::getInstance();
+  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
   EWrapper* ew = factory->getImpl();
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
@@ -142,7 +143,7 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
 TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 {
   boost::asio::io_service ioService;
-  EWrapperFactory* factory = EWrapperFactory::getInstance();
+  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
   EWrapper* ew = factory->getImpl();
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
@@ -202,7 +203,7 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 TEST(AsioEClientSocketTest, RequestMarketDepthTest)
 {
   boost::asio::io_service ioService;
-  EWrapperFactory* factory = EWrapperFactory::getInstance();
+  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
   EWrapper* ew = factory->getImpl();
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
@@ -259,7 +260,7 @@ struct SortByStrike {
 TEST(AsioEClientSocketTest, RequestOptionChainTest)
 {
   boost::asio::io_service ioService;
-  EWrapperFactory* factory = EWrapperFactory::getInstance();
+  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
   EWrapper* ew = factory->getImpl();
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
