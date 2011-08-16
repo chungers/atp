@@ -5,8 +5,8 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 
+#include "common.hpp"
 #include "ib/Initiator.hpp"
-#include "ib/EWrapperFactory.hpp"
 #include "ib/SocketConnector.hpp"
 
 
@@ -23,8 +23,7 @@ class SocketInitiator : Initiator, SocketConnector::Strategy {
 
  public:
 
-  SocketInitiator(Application& app, std::set<SessionSetting>& setting,
-                  EWrapperFactory& ewrapperFactory);
+  SocketInitiator(Application& app, std::set<SessionSetting>& setting);
   ~SocketInitiator();
 
   void start() throw ( ConfigError, RuntimeError );
@@ -50,9 +49,11 @@ class SocketInitiator : Initiator, SocketConnector::Strategy {
   /// @implement SocketConnector::Strategy
   void onTimeout(SocketConnector&);
 
+ protected:
+  SocketInitiator(){}
 
  private:
-  EWrapperFactory& ewrapperFactory_;
+  boost::scoped_ptr<SocketInitiator> impl_;
 };
 
 } // namespace IBAPI

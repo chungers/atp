@@ -4,6 +4,26 @@
 message(STATUS "Tests: IB API version ${IBAPI_VERSION} from ${IBAPI_ROOT}")
 include_directories(${IBAPI_ROOT}/Shared ${IBAPI_ROOT}/PosixSocketClient)
 
+# Complete Test Suite
+set(IBTestSuite_incs
+  ${IBAPI_ROOT}
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${IBAPI_IMPL_DIR}
+  ${TEST_DIR}
+)
+set(IBTestSuite_srcs
+  AllTests.cpp
+  AsioEClientSocketTest.cpp
+  SocketInitiatorTest.cpp
+  UtilsTest.cpp
+  ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
+)
+set(IBTestSuite_libs
+  IBAPIConnector
+)
+cpp_gtest(IBTestSuite)
+
 # AsioEClientSocket test
 set(AsioEClientSocket_test_incs
   ${IBAPI_ROOT}
@@ -32,7 +52,7 @@ set(SocketInitiator_test_incs
 )
 set(SocketInitiator_test_srcs
   AllTests.cpp
-  #SocketInitiatorTest.cpp
+  SocketInitiatorTest.cpp
   ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
 )
 set(SocketInitiator_test_libs

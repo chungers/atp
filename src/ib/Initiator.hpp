@@ -5,7 +5,10 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 
+
 #include <Shared/EWrapper.h>
+
+#include "common.hpp"
 #include "ib/Application.hpp"
 #include "ib/Exceptions.hpp"
 #include "ib/SocketConnector.hpp"
@@ -33,18 +36,12 @@ class SessionSetting {
 };
 
 
-
-/**
- * Models after Initiator in QuickFIX API:
- * https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/Initiator.h
- */
-class Initiator {
+/// Models after Initiator in QuickFIX API:
+/// https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/Initiator.h
+class Initiator : NoCopyAndAssign {
 
  public:
 
-  Initiator(Application& app, std::set<SessionSetting>& settings) :
-      application_(app), sessionSettings_(settings) {};
-  
   ~Initiator() {};
 
   virtual void start() throw ( ConfigError, RuntimeError ) {};
@@ -55,9 +52,6 @@ class Initiator {
  
   virtual bool isLoggedOn() { return false; };
 
- protected:
-  Application& application_;
-  std::set<SessionSetting>& sessionSettings_;
 };
 
 } // namespace IBAPI

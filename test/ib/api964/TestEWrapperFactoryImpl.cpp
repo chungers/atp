@@ -90,12 +90,6 @@ class TestEWrapper : public LoggingEWrapper, public TestHarness {
 };
 
 
-} // internal
-} // ib
-
-
-namespace IBAPI {
-
 /// Implementation of EWrapperFactory
 class TestEWrapperFactoryImpl : public EWrapperFactory {
 
@@ -119,5 +113,7 @@ boost::shared_ptr<EWrapperFactory> EWrapperFactory::getInstance() {
 }
   
 
-} // IBAPI
+} // internal
+} // ib
+
 

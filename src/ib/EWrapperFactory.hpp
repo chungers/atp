@@ -4,7 +4,8 @@
 #include <boost/shared_ptr.hpp>
 #include <Shared/EWrapper.h>
 
-namespace IBAPI {
+namespace ib {
+namespace internal {
 
 /// Simple factory class for getting a EWrapper that can receive events
 /// from IB's API.  This is basically an interface, with a static function
@@ -28,5 +29,6 @@ class EWrapperFactory {
 
 
 
-} // IBAPI
+} // internal
+} // ib
 #endif IBAPI_EWRAPPER_FACTORY_H_

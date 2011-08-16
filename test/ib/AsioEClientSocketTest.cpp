@@ -20,8 +20,10 @@
 
 
 using namespace ib::internal;
-using namespace IBAPI;
 
+
+/// How many seconds max to wait for certain data before timing out.
+const int MAX_WAIT = 10;
 
 static std::string FormatOptionExpiry(int year, int month, int day)
 {
@@ -122,7 +124,6 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
   ec.reqMktData(tid, c, genericTickRequest.toString(), snapShot);
 
   // Spin and wait for data.
-  int MAX_WAIT = 3; // seconds
   for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::TICK_PRICE) == 0; ++i) {
     sleep(1);
   }
@@ -182,7 +183,6 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
   ec.reqMktData(tid, c, genericTickRequest.toString(), snapShot);
 
   // Spin and wait for data.
-  int MAX_WAIT = 3; // seconds
   for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::TICK_PRICE) == 0; ++i) {
     sleep(1);
   }
@@ -230,7 +230,6 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
   ec.reqMktDepth(tid, c, 10);
 
   // Spin and wait for data.
-  int MAX_WAIT = 3; // seconds
   for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::UPDATE_MKT_DEPTH) == 0; ++i) {
     sleep(1);
   }
@@ -294,7 +293,6 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   ec.reqContractDetails(requestId, c);
 
   // Spin and wait for data.
-  int MAX_WAIT = 5; // seconds
   for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::CONTRACT_DETAILS_END) == 0; ++i) {
     sleep(1);
   }
@@ -323,7 +321,6 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
 
   // Wait until all the data has come through for all the contracts.
   for (std::vector<int>::iterator itr = tids.begin(); itr != tids.end(); ++itr) {
-    int MAX_WAIT = 3; 
     for (int i = 0; i < MAX_WAIT && !th->hasSeenTickerId(*itr); ++i) {
       sleep(1);
     }
