@@ -1,6 +1,7 @@
 #ifndef IBAPI_MESSAGES_H_
 #define IBAPI_MESSAGES_H_
 
+#include <cctype>
 #include "utils.hpp"
 
 namespace IBAPI {
