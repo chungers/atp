@@ -1,7 +1,12 @@
 #ifndef ATP_LOG_LEVELS_H_
 #define ATP_LOG_LEVELS_H_
 
+#include <glog/logging.h>
+
 // Verbose level.  Use flag --v=N where N >= VLOG_LEVEL_* to see.
+
+#define VLOG_LEVEL_IBAPI_APPLICATION 1
+
 #define VLOG_LEVEL_ECLIENT  2
 #define VLOG_LEVEL_EWRAPPER 1
 
@@ -11,5 +16,6 @@
 
 #define VLOG_LEVEL_IBAPI_SOCKET_INITIATOR 5
 #define VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR 5
+#define VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR_STRATEGY 1
 
 #endif //ATP_LOG_LEVELS_H_

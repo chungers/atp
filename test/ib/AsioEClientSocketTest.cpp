@@ -20,7 +20,7 @@
 
 
 using namespace ib::internal;
-
+using namespace IBAPI;
 
 /// How many seconds max to wait for certain data before timing out.
 const int MAX_WAIT = 10;
@@ -56,9 +56,11 @@ TEST(AsioEClientSocketTest, ConnectionTest)
   boost::asio::io_service ioService;
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
-  EWrapper* ew = factory->getImpl();
+  ApplicationBase app;
+  StrategyBase strategy;
+  EWrapper* ew = factory->getImpl(app, strategy);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
-  
+
   AsioEClientSocket ec(ioService, *ew);
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
@@ -86,7 +88,9 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
   boost::asio::io_service ioService;
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
-  EWrapper* ew = factory->getImpl();
+  ApplicationBase app;
+  StrategyBase strategy;
+  EWrapper* ew = factory->getImpl(app, strategy);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -146,7 +150,9 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
   boost::asio::io_service ioService;
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
-  EWrapper* ew = factory->getImpl();
+  ApplicationBase app;
+  StrategyBase strategy;
+  EWrapper* ew = factory->getImpl(app, strategy);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -205,7 +211,9 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
   boost::asio::io_service ioService;
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
-  EWrapper* ew = factory->getImpl();
+  ApplicationBase app;
+  StrategyBase strategy;
+  EWrapper* ew = factory->getImpl(app, strategy);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   
   AsioEClientSocket ec(ioService, *ew);
@@ -261,7 +269,9 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   boost::asio::io_service ioService;
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
-  EWrapper* ew = factory->getImpl();
+  ApplicationBase app;
+  StrategyBase strategy;
+  EWrapper* ew = factory->getImpl(app, strategy);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);

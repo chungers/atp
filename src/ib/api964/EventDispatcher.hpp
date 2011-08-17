@@ -55,6 +55,7 @@ class EventDispatcher : public LoggingEWrapper {
         //socket_connector_->disconnect();
         break;
       case 502:
+
       default:
         LOG(WARNING) << "Unhandled Error = " << errorCode << ", do nothing.";
         break;
@@ -70,17 +71,17 @@ class EventDispatcher : public LoggingEWrapper {
               << orderId;
     //strategy_.onConnect();
 
-    IBAPI::NextOrderIdMessage m(orderId);
-    app_.fromAdmin(m, get_connection_id());
+    //IBAPI::NextOrderIdMessage m(orderId);
+    //app_.fromAdmin(m, get_connection_id());
   }
 
   /// @overload EWrapper
   void currentTime(long time) {
     LoggingEWrapper::currentTime(time);
 
-    IBAPI::HeartBeatMessage m;
-    m.currentTime = time;
-    app_.fromAdmin(m, get_connection_id());
+    //IBAPI::HeartBeatMessage m;
+    //m.currentTime = time;
+    //app_.fromAdmin(m, get_connection_id());
   }
 
 

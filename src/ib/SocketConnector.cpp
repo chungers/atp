@@ -3,7 +3,6 @@
 #include <sys/time.h>
 
 #include <gflags/gflags.h>
-#include <glog/logging.h>
 
 #include <boost/asio.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -12,6 +11,7 @@
 
 #include "log_levels.h"
 
+#include "ib/Application.hpp"
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/SocketConnector.hpp"
@@ -25,9 +25,11 @@ namespace IBAPI {
 class SocketConnectorImpl : public SocketConnector {
 
  public:
-  SocketConnectorImpl(int timeout) :
+  SocketConnectorImpl(Application& app, Strategy& strategy, int timeout) :
       timeoutSeconds_(timeout),
-      ewrapperFactoryPtr_(EWrapperFactory::getInstance())
+      clientSocketPtr_(new AsioEClientSocket(
+          ioService_,
+          *(EWrapperFactory::getInstance()->getImpl(app, strategy))))
   {
   }
   
@@ -39,19 +41,30 @@ class SocketConnectorImpl : public SocketConnector {
               unsigned int clientId,
               Strategy* strategy)
   {
-    return 0; // TODO
+    clientSocketPtr_->eConnect(host.c_str(), port, clientId);
+    for (int seconds = 0; !clientSocketPtr_->isConnected() && seconds < timeoutSeconds_; ++seconds) {
+      VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "Waiting for connection : "
+                                              << seconds << " seconds " << std::endl;
+      sleep(1);
+    }
+    if (clientSocketPtr_->isConnected()) {
+      strategy->onConnect(*this, clientId);
+      return clientId;
+    } else {
+      strategy->onTimeout(*this);
+      return -1;
+    }
   }
   
  private:
   int timeoutSeconds_;
-  boost::shared_ptr<EWrapperFactory> ewrapperFactoryPtr_;
-  boost::asio::io_service ioService_; /// TODO: singleton??
+  boost::asio::io_service ioService_; // Dedicated per connector
   boost::scoped_ptr<AsioEClientSocket> clientSocketPtr_;
 };
 
 
-SocketConnector::SocketConnector(int timeout)
-    : impl_(new SocketConnectorImpl(timeout))
+SocketConnector::SocketConnector(Application& app, Strategy& strategy, int timeout)
+    : impl_(new SocketConnectorImpl(app, strategy, timeout))
 {
     VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "SocketConnector starting." << std::endl;
 }

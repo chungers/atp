@@ -35,6 +35,7 @@ set(IBAPIConnector_srcs
   ticker_id.cpp
   ${IBAPI_IMPL_DIR}/ApiImpl.cpp
   ${IBAPI_IMPL_DIR}/Messages.cpp
+  ${IBAPI_IMPL_DIR}/EWrapperFactoryImpl.cpp
 )
 set(IBAPIConnector_libs
   IBAPI

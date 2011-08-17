@@ -1,10 +1,10 @@
 
 #include <set>
-#include <glog/logging.h>
 
 #include <Shared/EWrapper.h>
 
 #include "common.hpp"
+#include "log_levels.h"
 #include "ib/SocketInitiator.hpp"
 #include "ib/EWrapperFactory.hpp"
 

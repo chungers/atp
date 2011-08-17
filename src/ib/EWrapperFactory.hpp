@@ -4,6 +4,10 @@
 #include <boost/shared_ptr.hpp>
 #include <Shared/EWrapper.h>
 
+#include "ib/Application.hpp"
+#include "ib/SocketConnector.hpp"
+
+
 namespace ib {
 namespace internal {
 
@@ -21,7 +25,8 @@ class EWrapperFactory {
  public:
   ~EWrapperFactory() {}
 
-  virtual EWrapper* getImpl() = 0;
+  virtual EWrapper* getImpl(IBAPI::Application& app,
+                            IBAPI::SocketConnector::Strategy& strategy) = 0;
 
   /// Returns a shared pointer to the factory.
   static boost::shared_ptr<EWrapperFactory> getInstance();

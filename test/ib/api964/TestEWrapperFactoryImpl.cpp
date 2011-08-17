@@ -8,8 +8,13 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include "ib/TestHarness.hpp"
+#include "ib/Application.hpp"
 #include "ib/EWrapperFactory.hpp"
+#include "ib/SocketConnector.hpp"
+
+
+#include "ib/TestHarness.hpp"
+
 
 #include "ib/api964/ApiImpl.hpp"
 
@@ -102,7 +107,7 @@ class TestEWrapperFactoryImpl : public EWrapperFactory {
   }
 
   /// Implements EWrapperFactory
-  EWrapper* getImpl() {
+  EWrapper* getImpl(IBAPI::Application& app, IBAPI::SocketConnector::Strategy& strategy) {
     return new ib::internal::TestEWrapper();
   }
 

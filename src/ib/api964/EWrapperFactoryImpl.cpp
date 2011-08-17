@@ -1,26 +1,39 @@
 
-
+// api964
+#include "ib/Application.hpp"
 #include "ib/EWrapperFactory.hpp"
+#include "ib/SocketConnector.hpp"
 #include "ApiImpl.hpp"
 #include "EventDispatcher.hpp"
 
 
-namespace IBAPI {
+namespace ib {
+namespace internal {
 
-/// Implementation of EWrapperFactory
-EWrapperFactory::EWrapperFactory() {
-  LOG(INFO) << "EWrapperFactory start." << std::endl;
+
+class EWrapperFactoryImpl : public EWrapperFactory {
+
+ public:
+  EWrapperFactoryImpl() {
+    LOG(INFO) << "EWrapperFactory start." << std::endl;
+  }
+  ~EWrapperFactoryImpl() {
+    LOG(INFO) << "EWrapperFactory done." << std::endl;
+  }
+
+  /// Implements EWrapperFactory
+  EWrapper* getImpl(IBAPI::Application& app, IBAPI::SocketConnector::Strategy& strategy) {
+    return new EventDispatcher(app, strategy);
+  }
+
+};
+
+boost::shared_ptr<EWrapperFactory> EWrapperFactory::getInstance() {
+  return boost::shared_ptr<EWrapperFactory>(new EWrapperFactoryImpl());
 }
 
-EWrapperFactory::~EWrapperFactory() {
-  LOG(INFO) << "EWrapperFactory done." << std::endl;
-}
 
-/// Implements EWrapperFactory
-EWrapper* EWrapperFactory::getImpl() {
-  return new ib::internal::TestEWrapper();
-}
-
-} // IBAPI
+} // internal
+} // ib
 
 

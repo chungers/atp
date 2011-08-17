@@ -8,13 +8,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#ifndef IB_USE_STD_STRING
-#define IB_USE_STD_STRING
-#endif
-
 #include <Shared/Contract.h>
 #include <Shared/EWrapper.h>
-
 
 
 class TestHarness {

@@ -2,6 +2,12 @@
 # Tests for IB connector
 
 message(STATUS "Tests: IB API version ${IBAPI_VERSION} from ${IBAPI_ROOT}")
+
+option(IB_USE_STD_STRING "Use standard c++ string (see Shared/IBString.h)." ON)
+if (IB_USE_STD_STRING)
+  add_definitions('-DIB_USE_STD_STRING')
+endif (IB_USE_STD_STRING)
+
 include_directories(${IBAPI_ROOT}/Shared ${IBAPI_ROOT}/PosixSocketClient)
 
 # Complete Test Suite
