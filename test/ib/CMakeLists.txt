@@ -59,7 +59,6 @@ set(SocketInitiator_test_incs
 set(SocketInitiator_test_srcs
   AllTests.cpp
   SocketInitiatorTest.cpp
-  ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
 )
 set(SocketInitiator_test_libs
   IBAPIConnector

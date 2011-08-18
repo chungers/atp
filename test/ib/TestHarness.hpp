@@ -11,6 +11,43 @@
 #include <Shared/Contract.h>
 #include <Shared/EWrapper.h>
 
+template <typename T>
+class TestHarnessBase
+{
+ public:
+  TestHarnessBase() {}
+  ~TestHarnessBase() {}
+
+  /// Returns the count of an event.
+  int getCount(T event) {
+    if (eventCount_.find(event) != eventCount_.end()) {
+      return eventCount_[event];
+    } else {
+      return 0;
+    }
+  }
+
+ protected:
+  /// Increment by count
+  void incr(T event, int count) {
+    if (eventCount_.find(event) == eventCount_.end()) {
+      eventCount_[event] = count;
+    } else {
+      eventCount_[event] += count;
+    }
+  }
+
+  /// Increment by 1
+  inline void incr(T event) {
+    incr(event, 1);
+  }
+
+
+ private:
+  std::map<T, int> eventCount_;
+
+};
+
 
 class TestHarness {
 
@@ -32,7 +69,7 @@ class TestHarness {
 
   ~TestHarness() {}
 
-  // Returns the count of an event.
+  /// Returns the count of an event.
   int getCount(EVENT event) {
     if (eventCount_.find(event) != eventCount_.end()) {
       return eventCount_[event];

@@ -24,16 +24,18 @@ class EventDispatcher : public LoggingEWrapper {
 
  public:
 
-  EventDispatcher(IBAPI::Application& app, IBAPI::SocketConnector::Strategy& strategy)
+  EventDispatcher(IBAPI::Application& app, IBAPI::SocketConnector::Strategy& strategy, int clientId)
       : app_(app)
       , strategy_(strategy)
+      , clientId_(clientId)
   {
   }
 
  private:
   IBAPI::Application& app_;
   IBAPI::SocketConnector::Strategy& strategy_;
-
+  int clientId_;
+  
  public:
 
   /// @overload EWrapper
@@ -69,8 +71,7 @@ class EventDispatcher : public LoggingEWrapper {
     LoggingEWrapper::nextValidId(orderId);
     LOG(INFO) << "Connection confirmed wth next order id = "
               << orderId;
-    //strategy_.onConnect();
-
+    app_.onLogon(clientId_);
     //IBAPI::NextOrderIdMessage m(orderId);
     //app_.fromAdmin(m, get_connection_id());
   }

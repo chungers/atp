@@ -26,7 +26,8 @@ AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
     ioService_(ioService),
     socket_(ioService),
     socketOk_(false),
-    state_(STARTING)
+    state_(STARTING),
+    clientId_(-1)
 {
   
 }
@@ -35,11 +36,18 @@ AsioEClientSocket::~AsioEClientSocket() {
 
 }
 
+int AsioEClientSocket::getClientId()
+{
+  return clientId_;
+}
+
 /**
    Connects to the gateway.
 */
 bool AsioEClientSocket::eConnect(const char *host, unsigned int port, int clientId) {
   setClientId(clientId);
+  clientId_ = clientId;
+  
   tcp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
 
   // Connect synchronously

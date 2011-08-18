@@ -107,7 +107,7 @@ class TestEWrapperFactoryImpl : public EWrapperFactory {
   }
 
   /// Implements EWrapperFactory
-  EWrapper* getImpl(IBAPI::Application& app, IBAPI::SocketConnector::Strategy& strategy) {
+  EWrapper* getImpl(IBAPI::Application& app, IBAPI::SocketConnector::Strategy& strategy, int clientId=0) {
     return new ib::internal::TestEWrapper();
   }
 

@@ -36,6 +36,9 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
   */
   bool eConnect(const char *host, unsigned int port, int clientId=0);
 
+  /// Returns clientId
+  int getClientId();
+  
   /**
      @overload EClientSocketBase
    */
@@ -73,6 +76,8 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
   
   boost::shared_ptr<boost::thread> eventLoopThread_;
   //boost::mutex mutext_;
+
+  int clientId_;
 };
 
 } // namespace internal

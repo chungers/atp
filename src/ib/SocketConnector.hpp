@@ -18,17 +18,15 @@ class SocketConnector : NoCopyAndAssign {
  public:
   class Strategy;
 
-  SocketConnector(Application& app, Strategy& strategy, int timeout = 0);
+  SocketConnector(Application& app, int timeout = 0);
   ~SocketConnector();
 
   int connect(const std::string& host, unsigned int port, unsigned int clientId,
               Strategy* s);
 
- protected:
-  SocketConnector(){}
-  
  private :
-  boost::scoped_ptr<SocketConnector> impl_;
+  class implementation;
+  boost::scoped_ptr<implementation> impl_;
 
  public:
   class Strategy {

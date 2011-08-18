@@ -26,7 +26,8 @@ class EWrapperFactory {
   ~EWrapperFactory() {}
 
   virtual EWrapper* getImpl(IBAPI::Application& app,
-                            IBAPI::SocketConnector::Strategy& strategy) = 0;
+                            IBAPI::SocketConnector::Strategy& strategy,
+                            int clientId = 0) = 0;
 
   /// Returns a shared pointer to the factory.
   static boost::shared_ptr<EWrapperFactory> getInstance();

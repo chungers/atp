@@ -22,51 +22,98 @@ using ib::internal::EWrapperFactory;
 
 namespace IBAPI {
 
-class SocketConnectorImpl : public SocketConnector {
+class SocketConnectorImpl {
 
  public:
-  SocketConnectorImpl(Application& app, Strategy& strategy, int timeout) :
+  SocketConnectorImpl(Application& app, int timeout) :
+      app_(app),
       timeoutSeconds_(timeout),
-      clientSocketPtr_(new AsioEClientSocket(
-          ioService_,
-          *(EWrapperFactory::getInstance()->getImpl(app, strategy))))
+      socket_(NULL),
+      socketConnector_(NULL)
   {
   }
   
-  ~SocketConnectorImpl() {}
+  ~SocketConnectorImpl()
+  {
+    if (socket_ != NULL) {
+      socket_->eDisconnect();
+      for (int i = 0; i < timeoutSeconds_ && socket_->isConnected(); ++i) {
+        sleep(1);
+      }
+      delete socket_;
+    }
+  }
 
   /// @overload
   int connect(const string& host,
               unsigned int port,
               unsigned int clientId,
-              Strategy* strategy)
+              SocketConnector::Strategy* strategy)
   {
-    clientSocketPtr_->eConnect(host.c_str(), port, clientId);
-    for (int seconds = 0; !clientSocketPtr_->isConnected() && seconds < timeoutSeconds_; ++seconds) {
+    LOG(INFO) << "Connecting..." << std::endl;
+
+    EWrapper* ew = EWrapperFactory::getInstance()->getImpl(app_, *strategy, clientId);
+    assert (ew != NULL);
+
+    if (socket_ != NULL) {
+      if (socket_->isConnected()) {
+        LOG(WARNING) << "Calling eConnect on already live connection." << std::endl;
+        return socket_->getClientId();
+      } else {
+        delete socket_;
+      }
+    }
+    
+    // Start a new socket.
+    socket_ = new AsioEClientSocket(ioService_, *ew);
+    socket_->eConnect(host.c_str(), port, clientId);
+    
+    for (int seconds = 0; !socket_->isConnected() && seconds < timeoutSeconds_; ++seconds) {
       VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "Waiting for connection : "
                                               << seconds << " seconds " << std::endl;
       sleep(1);
     }
-    if (clientSocketPtr_->isConnected()) {
-      strategy->onConnect(*this, clientId);
+    
+    if (socket_->isConnected()) {
+      strategy->onConnect(*socketConnector_, clientId);
       return clientId;
     } else {
-      strategy->onTimeout(*this);
+      strategy->onTimeout(*socketConnector_);
       return -1;
     }
   }
+
   
  private:
+  Application& app_;
   int timeoutSeconds_;
   boost::asio::io_service ioService_; // Dedicated per connector
-  boost::scoped_ptr<AsioEClientSocket> clientSocketPtr_;
+  AsioEClientSocket* socket_;
+  
+ protected:
+  SocketConnector* socketConnector_;
+  
 };
 
 
-SocketConnector::SocketConnector(Application& app, Strategy& strategy, int timeout)
-    : impl_(new SocketConnectorImpl(app, strategy, timeout))
+
+class SocketConnector::implementation : public SocketConnectorImpl {
+ public:
+  implementation(Application& app, int timeout) :
+      SocketConnectorImpl(app, timeout) {}
+
+  ~implementation() {}
+
+  friend class SocketConnector;
+};
+
+
+
+SocketConnector::SocketConnector(Application& app, int timeout)
+    : impl_(new SocketConnector::implementation(app, timeout))
 {
     VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "SocketConnector starting." << std::endl;
+    impl_->socketConnector_ = this;
 }
 
 SocketConnector::~SocketConnector()
@@ -81,6 +128,7 @@ int SocketConnector::connect(const string& host,
                              unsigned int clientId,
                              Strategy* strategy)
 {
+  LOG(INFO) << "CONNECT" << std::endl;
   return impl_->connect(host, port, clientId, strategy);
 }
 
