@@ -22,7 +22,7 @@ namespace internal {
 
 class TestEWrapper : public LoggingEWrapper, public TestHarness {
  public:
-  TestEWrapper() : LoggingEWrapper(), TestHarness() {
+  TestEWrapper(IBAPI::Application& app) : LoggingEWrapper(), TestHarness(), app_(app) {
     LOG(INFO) << "Initialized LoggingEWrapper." << std:: endl;
   }
 
@@ -32,6 +32,7 @@ class TestEWrapper : public LoggingEWrapper, public TestHarness {
   void nextValidId(OrderId orderId) {
     LoggingEWrapper::nextValidId(orderId);
     incr(NEXT_VALID_ID);
+    app_.onLogon(1);
   }
 
   // @Override
@@ -90,6 +91,9 @@ class TestEWrapper : public LoggingEWrapper, public TestHarness {
     incr(CONTRACT_DETAILS_END);
     seen(reqId);
   }
+
+ private:
+  IBAPI::Application& app_;
 };
 
 
@@ -106,7 +110,7 @@ class TestEWrapperFactoryImpl : public EWrapperFactory {
 
   /// Implements EWrapperFactory
   EWrapper* getImpl(IBAPI::Application& app, int clientId=0) {
-    return new ib::internal::TestEWrapper();
+    return new ib::internal::TestEWrapper(app);
   }
 
 };
