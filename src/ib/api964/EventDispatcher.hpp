@@ -42,7 +42,7 @@ class EventDispatcher : public LoggingEWrapper {
 
     LoggingEWrapper::error(id, errorCode, errorString);
     std::ostringstream msg;
-    msg << "ERROR[" << errorCode << "]: ";
+    msg << "IBAPI_ERROR[" << errorCode << "]: ";
 
     bool terminate = false;
     
@@ -71,6 +71,10 @@ class EventDispatcher : public LoggingEWrapper {
       case 2103:
         terminate = false;
         msg << "Market data farm connection is broken.";
+        break;
+      case 2104:
+        terminate = false;
+        msg << "Market data farm connection is OK";
         break;
       case 2110:
         terminate = false;

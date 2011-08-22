@@ -83,9 +83,9 @@ TEST(SocketInitiatorTest, SocketConnectorTest)
   
   EXPECT_EQ(status, clientId);
   EXPECT_EQ(strategy.getCount(ON_CONNECT), 1);
-  
-  for (int i = 0; i < 5; ++i) {
-    sleep(1);
-  }
+
+  app.waitForFirstOccurrence(ON_LOGON, 10);
+
+  EXPECT_EQ(app.getCount(ON_LOGON), 1);
 }
 

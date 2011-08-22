@@ -8,6 +8,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "utils.hpp"
+
 #include <Shared/Contract.h>
 #include <Shared/EWrapper.h>
 
@@ -27,6 +29,13 @@ class TestHarnessBase
     }
   }
 
+  bool waitForFirstOccurrence(T event, int secondsTimeout) {
+    int64 start = now_micros();
+    int64 limit = secondsTimeout * 1000000;
+    while (now_micros() - start < limit && getCount(event) < 1) {}
+    return getCount(event) > 0;
+  }
+  
  protected:
   /// Increment by count
   void incr(T event, int count) {
