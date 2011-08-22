@@ -8,8 +8,10 @@
 #include <gtest/gtest.h>
 
 #include <boost/asio.hpp>
+#include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
 
 #include "ib/GenericTickRequest.hpp"
 
@@ -23,7 +25,7 @@ using namespace ib::internal;
 using namespace IBAPI;
 
 /// How many seconds max to wait for certain data before timing out.
-const int MAX_WAIT = 10;
+const int MAX_WAIT = 20;
 
 static std::string FormatOptionExpiry(int year, int month, int day)
 {
@@ -34,8 +36,6 @@ static std::string FormatOptionExpiry(int year, int month, int day)
   return s1.str();
 }
 
-
-// EWrapper implementation for test -- tracks invocations and ticker id seen.
 
 // Spin around until connection is made.
 bool waitForConnection(AsioEClientSocket& ec, int attempts) {
@@ -57,8 +57,8 @@ TEST(AsioEClientSocketTest, ConnectionTest)
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
   ApplicationBase app;
-  StrategyBase strategy;
-  EWrapper* ew = factory->getImpl(app, strategy);
+  
+  EWrapper* ew = factory->getImpl(app);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -89,15 +89,15 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
   ApplicationBase app;
-  StrategyBase strategy;
-  EWrapper* ew = factory->getImpl(app, strategy);
+  
+  EWrapper* ew = factory->getImpl(app);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
-
+  
   bool connected = waitForConnection(ec, 5);
   EXPECT_TRUE(connected);
 
@@ -151,15 +151,15 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
   ApplicationBase app;
-  StrategyBase strategy;
-  EWrapper* ew = factory->getImpl(app, strategy);
+  
+  EWrapper* ew = factory->getImpl(app);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
-
+  
   bool connected = waitForConnection(ec, 5);
   EXPECT_TRUE(connected);
 
@@ -212,8 +212,8 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
   ApplicationBase app;
-  StrategyBase strategy;
-  EWrapper* ew = factory->getImpl(app, strategy);
+  
+  EWrapper* ew = factory->getImpl(app);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   
   AsioEClientSocket ec(ioService, *ew);
@@ -241,7 +241,6 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
   for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::UPDATE_MKT_DEPTH) == 0; ++i) {
     sleep(1);
   }
-  
 
   // Disconnect
   ec.eDisconnect();
@@ -270,15 +269,15 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
   
   ApplicationBase app;
-  StrategyBase strategy;
-  EWrapper* ew = factory->getImpl(app, strategy);
+ 
+  EWrapper* ew = factory->getImpl(app);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
-
+  
   bool connected = waitForConnection(ec, 5);
   EXPECT_TRUE(connected);
 
@@ -288,7 +287,7 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   c.secType = "OPT";
   c.exchange = "SMART";
   c.currency = "USD";
-  c.expiry = FormatOptionExpiry(2011, 8, 19);
+  c.expiry = FormatOptionExpiry(2011, 8, 26);
   c.right = "C"; // call - P for put
   
   int requestId = 1000; // Not a ticker id.  This is just a request id.
@@ -340,7 +339,7 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   ec.eDisconnect();
   EXPECT_FALSE(ec.isConnected());
 
-  EXPECT_GT(th->getCount(TestHarness::TICK_OPTION_COMPUTATION), 1);
+  EXPECT_GT(th->getCount(TestHarness::TICK_PRICE), 1);
 
   // Checks that we have seen the ticker ids for all the option contracts.
   for (std::vector<int>::iterator itr = tids.begin(); itr != tids.end(); ++itr) {

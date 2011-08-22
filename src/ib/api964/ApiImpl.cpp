@@ -11,14 +11,17 @@
 // Macro for writing field value.
 #define __f__(m) "," << #m << '=' << m
 
-// Macro for logging the event api call.
-#define LOG_EVENT                               \
-  VLOG(VLOG_LEVEL_EWRAPPER)                     \
-  << "cid=" << connection_id_                   \
-  << ",ts_utc=" << utc_micros().total_microseconds()  \
-  << ",ts=" << now_micros()                     \
-  << ",event=" << __func__
 
+
+
+// Macro for logging the event api call.
+#define LOG_EVENT                                     \
+  VLOG(VLOG_LEVEL_EWRAPPER)                           \
+  << "cid=" << connection_id_                         \
+  << ",ts_utc=" << utc_micros().total_microseconds()  \
+  << ",ts=" << now_micros()                           \
+  << ",event=" << __func__                            \
+  
 // Macro for tick type enum to string conversion
 #define __tick_type_enum(m) ",field=" << TickTypeNames[m]
 
@@ -350,10 +353,10 @@ void LoggingEWrapper::error(const int id, const int errorCode,
       << __f__(errorString);
 }
 
-#define LOG_START                               \
-  VLOG(VLOG_LEVEL_ECLIENT - 1)                  \
-  << "cid=" << connection_id_                   \
-  << ",ts=" << (call_start_ = now_micros())     \
+#define LOG_START                                    \
+  VLOG(VLOG_LEVEL_ECLIENT)                           \
+  << "cid=" << connection_id_                        \
+  << ",ts=" << (call_start_ = now_micros())          \
   << ",ts_utc=" << utc_micros().total_microseconds() \
   << ",action=" << __func__
 
@@ -362,10 +365,22 @@ void LoggingEWrapper::error(const int id, const int errorCode,
   << "cid=" << connection_id_                           \
   << ",ts=" << (call_start_)                            \
   << ",action=" << __func__                             \
-  << ",elapsed=" << (now_micros() - call_start_)
+  << ",elapsed=" << (now_micros() - call_start_)        \
 
 
+// Exclusive lock when writing on the socket.
+// If using boost::asio locking shouldn't be necessary.
 typedef boost::unique_lock<boost::mutex> write_lock;
+
+#define NO_LOCK
+
+#ifdef NO_LOCK
+#define LOCK // no-op
+#else
+#define LOCK write_lock lock(socket_write_mutex_);
+#endif
+
+//////////////////////////////////////////////////////////////
 
 LoggingEClientSocket::LoggingEClientSocket(
     unsigned int connection_id,
@@ -388,14 +403,14 @@ bool LoggingEClientSocket::eConnect(const char *host,
       __f__(host) <<
       __f__(port) <<
       __f__(clientId);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   bool v = EPosixClientSocket::eConnect(host, port, clientId);
   LOG_END;
   return v;
 }
 void LoggingEClientSocket::eDisconnect() {
   LOG_START;
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::eDisconnect();
   LOG_END;
 }
@@ -419,13 +434,13 @@ void LoggingEClientSocket::reqMktData(TickerId id, const Contract &contract,
       << __f__(&contract)
       << __f__(genericTicks)
       << __f__(snapshot);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqMktData(id, contract, genericTicks, snapshot);
   LOG_END;
 }
 void LoggingEClientSocket::cancelMktData(TickerId id) {
   LOG_START;
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::cancelMktData(id);
   LOG_END;
 }
@@ -435,20 +450,20 @@ void LoggingEClientSocket::placeOrder(OrderId id, const Contract &contract,
       << __f__(id)
       << __f__(&contract)
       << __f__(&order);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::placeOrder(id, contract, order);
   LOG_END;
 }
 void LoggingEClientSocket::cancelOrder(OrderId id) {
   LOG_START
       << __f__(id);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::cancelOrder(id);
   LOG_END;
 }
 void LoggingEClientSocket::reqOpenOrders() {
   LOG_START;
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqOpenOrders();
   LOG_END;
 }
@@ -457,7 +472,7 @@ void LoggingEClientSocket::reqAccountUpdates(bool subscribe,
   LOG_START
       << __f__(subscribe)
       << __f__(acctCode);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqAccountUpdates(subscribe, acctCode);
   LOG_END;
 }
@@ -466,14 +481,14 @@ void LoggingEClientSocket::reqExecutions(int reqId,
   LOG_START
       << __f__(reqId)
       << __f__(&filter);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqExecutions(reqId, filter);
   LOG_END;
 }
 void LoggingEClientSocket::reqIds(int numIds) {
   LOG_START
       << __f__(numIds);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqIds(numIds);
   LOG_END;
 }
@@ -482,7 +497,7 @@ void LoggingEClientSocket::reqContractDetails(int reqId,
   LOG_START
       << __f__(reqId)
       << __f__(&contract);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqContractDetails(reqId, contract);
   LOG_END;
 }
@@ -492,60 +507,60 @@ void LoggingEClientSocket::reqMktDepth(TickerId id,
       << __f__(id)
       << __f__(&contract)
       << __f__(numRows);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqMktDepth(id, contract, numRows);
   LOG_END;
 }
 void LoggingEClientSocket::cancelMktDepth(TickerId id) {
   LOG_START
       << __f__(id);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::cancelMktDepth(id);
   LOG_END;
 }
 void LoggingEClientSocket::reqNewsBulletins(bool allMsgs) {
   LOG_START
       << __f__(allMsgs);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqNewsBulletins(allMsgs);
   LOG_END;
 }
 void LoggingEClientSocket::cancelNewsBulletins() {
   LOG_START;
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::cancelNewsBulletins();
   LOG_END;
 }
 void LoggingEClientSocket::setServerLogLevel(int level) {
   LOG_START
       << __f__(level);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::setServerLogLevel(level);
   LOG_END;
 }
 void LoggingEClientSocket::reqAutoOpenOrders(bool bAutoBind) {
   LOG_START
       << __f__(bAutoBind);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqAutoOpenOrders(bAutoBind);
   LOG_END;
 }
 void LoggingEClientSocket::reqAllOpenOrders() {
   LOG_START;
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqAllOpenOrders();
   LOG_END;
 }
 void LoggingEClientSocket::reqManagedAccts() {
   LOG_START;
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqManagedAccts();
   LOG_END;
 }
 void LoggingEClientSocket::requestFA(faDataType pFaDataType) {
   LOG_START
       << __f__(pFaDataType);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::requestFA(pFaDataType);
   LOG_END;
 }
@@ -554,7 +569,7 @@ void LoggingEClientSocket::replaceFA(faDataType pFaDataType,
   LOG_START
       << __f__(pFaDataType)
       << __f__(cxml);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::replaceFA(pFaDataType, cxml);
   LOG_END;
 }
@@ -572,7 +587,7 @@ void LoggingEClientSocket::reqHistoricalData(
       << __f__(whatToShow)
       << __f__(useRTH)
       << __f__(formatDate);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqHistoricalData(
       id, contract, endDateTime,
       durationStr, barSizeSetting,
@@ -590,7 +605,7 @@ void LoggingEClientSocket::exerciseOptions(
       << __f__(exerciseQuantity)
       << __f__(account)
       << __f__(override);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::exerciseOptions(
       id, contract,
       exerciseAction, exerciseQuantity,
@@ -600,7 +615,7 @@ void LoggingEClientSocket::exerciseOptions(
 void LoggingEClientSocket::cancelHistoricalData(TickerId tickerId ) {
   LOG_START
       << __f__(tickerId);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::cancelHistoricalData(tickerId);
   LOG_END;
 }
@@ -615,7 +630,7 @@ void LoggingEClientSocket::reqRealTimeBars(TickerId id,
       << __f__(barSize)
       << __f__(whatToShow)
       << __f__(useRTH);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqRealTimeBars(id, contract, barSize,
                                       whatToShow, useRTH);
   LOG_END;
@@ -623,20 +638,20 @@ void LoggingEClientSocket::reqRealTimeBars(TickerId id,
 void LoggingEClientSocket::cancelRealTimeBars(TickerId tickerId) {
   LOG_START
       << __f__(tickerId);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::cancelRealTimeBars(tickerId);
   LOG_END;
 }
 void LoggingEClientSocket::cancelScannerSubscription(int tickerId) {
   LOG_START
       << __f__(tickerId);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::cancelScannerSubscription(tickerId);
   LOG_END;
 }
 void LoggingEClientSocket::reqScannerParameters() {
   LOG_START;
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqScannerParameters();
   LOG_END;
 }
@@ -645,13 +660,13 @@ void LoggingEClientSocket::reqScannerSubscription(
   LOG_START
       << __f__(tickerId)
       << __f__(&subscription);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqScannerSubscription(tickerId, subscription);
   LOG_END;
 }
 void LoggingEClientSocket::reqCurrentTime() {
   LOG_START;
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqCurrentTime();
   LOG_END;
 }
@@ -661,14 +676,14 @@ void LoggingEClientSocket::reqFundamentalData(
       << __f__(reqId)
       << __f__(&contract)
       << __f__(reportType);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::reqFundamentalData(reqId, contract, reportType);
   LOG_END;
 }
 void LoggingEClientSocket::cancelFundamentalData(TickerId reqId) {
   LOG_START
       << __f__(reqId);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::cancelFundamentalData(reqId);
   LOG_END;
 }
@@ -680,7 +695,7 @@ void LoggingEClientSocket::calculateImpliedVolatility(
       << __f__(&contract)
       << __f__(optionPrice)
       << __f__(underPrice);
-  write_lock lock(socket_write_mutex_);
+  LOCK
   EPosixClientSocket::calculateImpliedVolatility(reqId, contract,
                                                  optionPrice, underPrice);
   LOG_END;

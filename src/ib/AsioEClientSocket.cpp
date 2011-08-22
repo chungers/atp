@@ -1,7 +1,6 @@
 
-#include <stdio.h>
-#include <sstream>
-#include <gflags/gflags.h>
+//#include <stdio.h>
+//#include <sstream>
 #include <glog/logging.h>
 
 #include <boost/bind.hpp>
@@ -10,30 +9,29 @@
 
 #include <EWrapper.h>
 #include <TwsSocketClientErrors.h>
+
 #include "common.hpp"
 #include "ib/AsioEClientSocket.hpp"
 
 
 using boost::asio::ip::tcp;
 
+DEFINE_bool(startThread, false, "True to start thread.");
+
 namespace ib {
 namespace internal {
 
 
 AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
-                                     EWrapper& wrapper) :
+                                     EWrapper& wrapper, bool runThread) :
     EClientSocketBase(&wrapper),
     ioService_(ioService),
     socket_(ioService),
     socketOk_(false),
     state_(STARTING),
+    runThread_(runThread),
     clientId_(-1)
 {
-  
-}
-
-AsioEClientSocket::~AsioEClientSocket() {
-
 }
 
 int AsioEClientSocket::getClientId()
@@ -61,20 +59,21 @@ bool AsioEClientSocket::eConnect(const char *host, unsigned int port, int client
     
     socketOk_ = true;
 
-    LOG(INFO) << "Connected to " << endpoint
+    LOG(INFO) << "Socket connected to " << endpoint
               << " in " << elapsed << " microseconds." << std::endl;
     
     // Sends client version to server
     onConnectBase();
-    
+
     // Schedule async read handler for incoming packets.
-    assert(!eventLoopThread_);
+    if (runThread_) {
+      assert(!thread_);
+      thread_ = boost::shared_ptr<boost::thread>(
+          new boost::thread(boost::bind(&AsioEClientSocket::block, this)));
 
-    eventLoopThread_ = boost::shared_ptr<boost::thread>(
-        new boost::thread(boost::bind(&AsioEClientSocket::event_loop, this)));
-
-    VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
-        << "Started event thread." << std::endl;
+      VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
+          << "Started event thread." << std::endl;
+    }
 
     state_ = RUNNING;
     
@@ -108,7 +107,9 @@ void AsioEClientSocket::eDisconnect() {
       LOG(WARNING) << "Failed to close socket connection." << std::endl;
     } else {
       LOG(INFO) << "Socket closed." << std::endl;
-      eventLoopThread_->join();
+      if (thread_) {
+        thread_->join();
+      }
       state_ = STOPPED;
     }
   }
@@ -171,7 +172,7 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
 
 
 // Event handling loop.  This runs in a separate thread.
-void AsioEClientSocket::event_loop() {
+void AsioEClientSocket::block() {
   LOG(INFO) << "Starts processing incoming messages." << std::endl;
   
   bool processed = true;
@@ -194,8 +195,6 @@ void AsioEClientSocket::event_loop() {
   }
   VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG) << "Event loop terminated." << std::endl;
 }
-
-
 
 } // internal
 } // ib

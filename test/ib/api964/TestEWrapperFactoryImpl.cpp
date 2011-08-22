@@ -10,8 +10,6 @@
 
 #include "ib/Application.hpp"
 #include "ib/EWrapperFactory.hpp"
-#include "ib/SocketConnector.hpp"
-
 
 #include "ib/TestHarness.hpp"
 
@@ -107,7 +105,7 @@ class TestEWrapperFactoryImpl : public EWrapperFactory {
   }
 
   /// Implements EWrapperFactory
-  EWrapper* getImpl(IBAPI::Application& app, IBAPI::SocketConnector::Strategy& strategy, int clientId=0) {
+  EWrapper* getImpl(IBAPI::Application& app, int clientId=0) {
     return new ib::internal::TestEWrapper();
   }
 

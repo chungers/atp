@@ -21,6 +21,7 @@ class SocketConnector : NoCopyAndAssign {
   SocketConnector(Application& app, int timeout = 0);
   ~SocketConnector();
 
+  /// Blocking connect, up to the timeout limit in seconds.
   int connect(const std::string& host, unsigned int port, unsigned int clientId,
               Strategy* s);
 
@@ -38,6 +39,7 @@ class SocketConnector : NoCopyAndAssign {
     virtual void onError(SocketConnector&) = 0;
     virtual void onTimeout(SocketConnector&) = 0;
   };
+
 };
 
 

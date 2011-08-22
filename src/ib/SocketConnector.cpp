@@ -10,6 +10,7 @@
 #include <boost/thread.hpp>
 
 #include "log_levels.h"
+#include "utils.hpp"
 
 #include "ib/Application.hpp"
 #include "ib/AsioEClientSocket.hpp"
@@ -28,7 +29,6 @@ class SocketConnectorImpl {
   SocketConnectorImpl(Application& app, int timeout) :
       app_(app),
       timeoutSeconds_(timeout),
-      socket_(NULL),
       socketConnector_(NULL)
   {
   }
@@ -40,7 +40,6 @@ class SocketConnectorImpl {
       for (int i = 0; i < timeoutSeconds_ && socket_->isConnected(); ++i) {
         sleep(1);
       }
-      delete socket_;
     }
   }
 
@@ -52,27 +51,32 @@ class SocketConnectorImpl {
   {
     LOG(INFO) << "Connecting..." << std::endl;
 
-    EWrapper* ew = EWrapperFactory::getInstance()->getImpl(app_, *strategy, clientId);
+    EWrapper* ew = EWrapperFactory::getInstance()->getImpl(app_, clientId);
     assert (ew != NULL);
 
-    if (socket_ != NULL) {
-      if (socket_->isConnected()) {
+    if (socket_ && socket_->isConnected()) {
         LOG(WARNING) << "Calling eConnect on already live connection." << std::endl;
         return socket_->getClientId();
-      } else {
-        delete socket_;
-      }
     }
     
     // Start a new socket.
-    socket_ = new AsioEClientSocket(ioService_, *ew);
+    socket_ = boost::shared_ptr<AsioEClientSocket>(
+        new AsioEClientSocket(ioService_, *ew, false));  // Not threaded.
+
     socket_->eConnect(host.c_str(), port, clientId);
+
+    thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
+        boost::bind(&AsioEClientSocket::block, socket_)));
+    VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "Started listener thread " << thread_->get_id()
+                                            << std::endl;
+
+    // Spin until connected.
+    int64 limit = timeoutSeconds_ * 1000000;
+    int64 start = now_micros();
+    while (!socket_->isConnected() && now_micros() - start < limit) {}
     
-    for (int seconds = 0; !socket_->isConnected() && seconds < timeoutSeconds_; ++seconds) {
-      VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "Waiting for connection : "
-                                              << seconds << " seconds " << std::endl;
-      sleep(1);
-    }
+    int64 elapsed = now_micros() - start;
+    LOG(INFO) << "Connected in " << elapsed << " microseconds." << std::endl;
     
     if (socket_->isConnected()) {
       strategy->onConnect(*socketConnector_, clientId);
@@ -88,7 +92,9 @@ class SocketConnectorImpl {
   Application& app_;
   int timeoutSeconds_;
   boost::asio::io_service ioService_; // Dedicated per connector
-  AsioEClientSocket* socket_;
+  boost::shared_ptr<AsioEClientSocket> socket_;
+  boost::shared_ptr<boost::thread> thread_;
+  boost::mutex mutex_;
   
  protected:
   SocketConnector* socketConnector_;
@@ -131,6 +137,5 @@ int SocketConnector::connect(const string& host,
   LOG(INFO) << "CONNECT" << std::endl;
   return impl_->connect(host, port, clientId, strategy);
 }
-
 
 } // namespace IBAPI

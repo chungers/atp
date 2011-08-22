@@ -26,7 +26,6 @@ class EWrapperFactory {
   ~EWrapperFactory() {}
 
   virtual EWrapper* getImpl(IBAPI::Application& app,
-                            IBAPI::SocketConnector::Strategy& strategy,
                             int clientId = 0) = 0;
 
   /// Returns a shared pointer to the factory.

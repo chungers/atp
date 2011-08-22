@@ -28,43 +28,30 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
 
  public:
 
-  explicit AsioEClientSocket(boost::asio::io_service& ioService, EWrapper& ptr);
-  ~AsioEClientSocket();
+  explicit AsioEClientSocket(boost::asio::io_service& ioService, EWrapper& ptr, bool runThread=true);
 
-  /**
-     @overload EClientSocketBase
-  */
+  /// @overload EClientSocketBase
   bool eConnect(const char *host, unsigned int port, int clientId=0);
 
   /// Returns clientId
   int getClientId();
   
-  /**
-     @overload EClientSocketBase
-   */
+  /// @overload EClientSocketBase
   void eDisconnect();
   
+  /// Event loop that checks messages on the socket
+  void block();
+
  private:
 
-  /**
-     @overload EClientSocketBase
-  */
+  /// @overload EClientSocketBase
   bool isSocketOK() const;
 
-  /**
-     @overload EClientSocketBase
-  */
+  /// @overload EClientSocketBase
   int send(const char* buf, size_t sz);
 
-  /**
-     @overload EClientSocketBase
-  */
+  /// @overload EClientSocketBase
   int receive(char* buf, size_t sz);
-
-  /**
-     Event loop that checks messages on the socket
-  */
-  void event_loop();
 
   boost::asio::io_service& ioService_;
   tcp::socket socket_;
@@ -73,9 +60,9 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
 
   enum State {  STARTING, RUNNING, STOPPING, STOPPED };
   volatile State state_;
-  
-  boost::shared_ptr<boost::thread> eventLoopThread_;
-  //boost::mutex mutext_;
+
+  bool runThread_;
+  boost::shared_ptr<boost::thread> thread_;
 
   int clientId_;
 };

@@ -1,12 +1,12 @@
 #ifndef IB_EVENT_DISPATCHER_H_
 #define IB_EVENT_DISPATCHER_H_
 
-#include <gflags/gflags.h>
+#include <sstream>
 #include <glog/logging.h>
 
 #include "ib/Application.hpp"
+#include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
-#include "ib/SocketConnector.hpp"
 #include "ApiImpl.hpp"
 
 namespace ib {
@@ -24,50 +24,75 @@ class EventDispatcher : public LoggingEWrapper {
 
  public:
 
-  EventDispatcher(IBAPI::Application& app, IBAPI::SocketConnector::Strategy& strategy, int clientId)
+  EventDispatcher(IBAPI::Application& app, int clientId)
       : app_(app)
-      , strategy_(strategy)
       , clientId_(clientId)
   {
   }
 
  private:
   IBAPI::Application& app_;
-  IBAPI::SocketConnector::Strategy& strategy_;
   int clientId_;
   
  public:
 
   /// @overload EWrapper
-  void error(const int id, const int errorCode,
-             const IBString errorString) {
+  void error(const int id, const int errorCode, const IBString errorString)
+  {
 
     LoggingEWrapper::error(id, errorCode, errorString);
+    std::ostringstream msg;
+    msg << "ERROR[" << errorCode << "]: ";
+
+    bool terminate = false;
+    
     switch (errorCode) {
+
+      // The following code will cause exception to be thrown, which
+      // will force the event loop to terminate.
       case 326:
-        LOG(WARNING) << "Conflicting connection id. Disconnecting.";
-        //socket_connector_->disconnect();
-        break;
-      case 509:
-        LOG(WARNING) << "Connection reset. Disconnecting.";
-        //socket_connector_->disconnect();
-        break;
-      case 1100:
-        LOG(WARNING) << "Error code = " << errorCode << " disconnecting.";
-        //socket_connector_->disconnect();
+        terminate = true;
+        msg << "Conflicting connection id. Disconnecting.";
         break;
       case 502:
+        terminate = true;
+        msg << "Couldn't connect to TWS.  "
+            << "Confirm that \"Enable ActiveX and Socket Clients\" is enabled on the TWS "
+            << "\"Configure->API\" menu.";
+        break;
+      case 509:
+        terminate = true;
+        msg << "Connection reset. Disconnecting.";
+        break;
+      case 1100:
+        terminate = true;
+        msg << "Disconnecting.";
+        break;
+      case 2103:
+        terminate = false;
+        msg << "Market data farm connection is broken.";
+        break;
+      case 2110:
+        terminate = false;
+        msg << "Connectivity between TWS and server is broken. It will be restored automatically.";
+        break;
 
       default:
-        LOG(WARNING) << "Unhandled Error = " << errorCode << ", do nothing.";
+        terminate = false;
+        msg << "Unhandled error.  Continue...";
         break;
-    }
 
-    //strategy_.onError(errorCode);
+    }
+    
+    LOG(WARNING) << msg.str();
+    if (terminate) {
+        throw IBAPI::RuntimeError(msg.str());
+    }
   }
 
   /// @overload EWrapper
-  void nextValidId(OrderId orderId) {
+  void nextValidId(OrderId orderId)
+  {
     LoggingEWrapper::nextValidId(orderId);
     LOG(INFO) << "Connection confirmed wth next order id = "
               << orderId;
@@ -77,7 +102,8 @@ class EventDispatcher : public LoggingEWrapper {
   }
 
   /// @overload EWrapper
-  void currentTime(long time) {
+  void currentTime(long time)
+  {
     LoggingEWrapper::currentTime(time);
 
     //IBAPI::HeartBeatMessage m;
