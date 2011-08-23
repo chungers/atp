@@ -14,15 +14,18 @@
 #include "ib/TestHarness.hpp"
 
 
-#include "ib/api964/ApiImpl.hpp"
+#include "ib/api964/EventDispatcher.hpp"
 
 namespace ib {
 namespace internal {
 
 
-class TestEWrapper : public LoggingEWrapper, public TestHarness {
+class TestEWrapper : public EventDispatcher, public TestHarness {
  public:
-  TestEWrapper(IBAPI::Application& app) : LoggingEWrapper(), TestHarness(), app_(app) {
+  TestEWrapper(IBAPI::Application& app, int clientId)
+      : EventDispatcher(app, clientId),
+        TestHarness()
+  {
     LOG(INFO) << "Initialized LoggingEWrapper." << std:: endl;
   }
 
@@ -30,28 +33,27 @@ class TestEWrapper : public LoggingEWrapper, public TestHarness {
 
   // @Override
   void nextValidId(OrderId orderId) {
-    LoggingEWrapper::nextValidId(orderId);
+    EventDispatcher::nextValidId(orderId);
     incr(NEXT_VALID_ID);
-    app_.onLogon(1);
   }
 
   // @Override
   void tickPrice(TickerId tickerId, TickType tickType, double price, int canAutoExecute) {
-    LoggingEWrapper::tickPrice(tickerId, tickType, price, canAutoExecute);
+    EventDispatcher::tickPrice(tickerId, tickType, price, canAutoExecute);
     incr(TICK_PRICE);
     seen(tickerId);
   }
 
   // @Override
   void tickSize(TickerId tickerId, TickType tickType, int size) {
-    LoggingEWrapper::tickSize(tickerId, tickType, size);
+    EventDispatcher::tickSize(tickerId, tickType, size);
     incr(TICK_SIZE);
     seen(tickerId);
   }
 
   // @Override
   void tickGeneric(TickerId tickerId, TickType tickType, double value) {
-    LoggingEWrapper::tickGeneric(tickerId, tickType, value);
+    EventDispatcher::tickGeneric(tickerId, tickType, value);
     incr(TICK_GENERIC);
     seen(tickerId);
   }
@@ -60,7 +62,7 @@ class TestEWrapper : public LoggingEWrapper, public TestHarness {
   void tickOptionComputation(TickerId tickerId, TickType tickType, double impliedVol, double delta,
                              double optPrice, double pvDividend,
                              double gamma, double vega, double theta, double undPrice) {
-    LoggingEWrapper::tickOptionComputation(tickerId, tickType, impliedVol, delta,
+    EventDispatcher::tickOptionComputation(tickerId, tickType, impliedVol, delta,
                                            optPrice, pvDividend, gamma, vega, theta, undPrice);
     incr(TICK_OPTION_COMPUTATION);
     seen(tickerId);
@@ -69,14 +71,14 @@ class TestEWrapper : public LoggingEWrapper, public TestHarness {
   // @Override
   void updateMktDepth(TickerId id, int position, int operation, int side,
                       double price, int size) {
-    LoggingEWrapper::updateMktDepth(id, position, operation, side, price, size);
+    EventDispatcher::updateMktDepth(id, position, operation, side, price, size);
     incr(UPDATE_MKT_DEPTH);
     seen(id);
    }
 
   // @Override
   void contractDetails( int reqId, const ContractDetails& contractDetails) {
-    LoggingEWrapper::contractDetails(reqId, contractDetails);
+    EventDispatcher::contractDetails(reqId, contractDetails);
     incr(CONTRACT_DETAILS);
     seen(reqId);
     if (optionChain_) {
@@ -87,13 +89,10 @@ class TestEWrapper : public LoggingEWrapper, public TestHarness {
 
   // @Override
   void contractDetailsEnd( int reqId) {
-    LoggingEWrapper::contractDetailsEnd(reqId);
+    EventDispatcher::contractDetailsEnd(reqId);
     incr(CONTRACT_DETAILS_END);
     seen(reqId);
   }
-
- private:
-  IBAPI::Application& app_;
 };
 
 
@@ -110,7 +109,7 @@ class TestEWrapperFactoryImpl : public EWrapperFactory {
 
   /// Implements EWrapperFactory
   EWrapper* getImpl(IBAPI::Application& app, int clientId=0) {
-    return new ib::internal::TestEWrapper(app);
+    return new ib::internal::TestEWrapper(app, clientId);
   }
 
 };
