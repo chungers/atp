@@ -1,5 +1,6 @@
 
-#include <set>
+#include <map>
+#include <list>
 
 #include <Shared/EWrapper.h>
 
@@ -7,6 +8,7 @@
 #include "log_levels.h"
 #include "ib/SocketInitiator.hpp"
 #include "ib/EWrapperFactory.hpp"
+#include "ib/SessionID.hpp"
 
 
 using ib::internal::EWrapperFactory;
@@ -14,10 +16,11 @@ using ib::internal::EWrapperFactory;
 namespace IBAPI {
 
 
-class SocketInitiatorImpl : public SocketInitiator {
+class SocketInitiatorImpl : public SocketInitiator,
+                            public SocketConnector::Strategy {
 
  public :
-  SocketInitiatorImpl(Application& app, std::set<SessionSetting>& settings) :
+  SocketInitiatorImpl(Application& app, std::list<SessionSetting>& settings) :
       application_(app),
       sessionSettings_(settings),
       ewrapperFactoryPtr_(EWrapperFactory::getInstance()) {
@@ -29,7 +32,23 @@ class SocketInitiatorImpl : public SocketInitiator {
   /// @overload Initiator
   void start() throw ( ConfigError, RuntimeError )
   {
-    
+    // Start up the socket connectors one by one.
+    std::list<SessionSetting>::iterator itr;
+    for (itr = sessionSettings_.begin();
+         itr != sessionSettings_.end();
+         ++itr) {
+
+      SessionID sessionId = static_cast<SessionID>(itr->getConnectionId());
+      boost::shared_ptr<SocketConnector> s = boost::shared_ptr<SocketConnector>(
+          new SocketConnector(application_, sessionId));
+      socketConnectors_[sessionId] = s;
+
+      // Start the connection:
+      LOG(INFO) << "Connecting to " << itr->getIp() << ":"
+                << itr->getPort() << ", session = " << sessionId
+                << std::endl;
+      s->connect(itr->getIp(), itr->getPort(), sessionId, this);
+    }
   }
 
   /// @overload Initiator
@@ -41,14 +60,16 @@ class SocketInitiatorImpl : public SocketInitiator {
   /// @overload Initiator
   void stop(double timeout)
   {
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR) << "Stopping connector with timeout = "
-                                            << timeout << std::endl;
+    VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR)
+        << "Stopping connector with timeout = "
+        << timeout << std::endl;
   }
 
   /// @overload Initiator
   void stop(bool force) {
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR) << "Stopping connector with force = "
-                                            << force << std::endl;
+    VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR)
+        << "Stopping connector with force = "
+        << force << std::endl;
   }
 
   /// @overload Initiator
@@ -59,6 +80,8 @@ class SocketInitiatorImpl : public SocketInitiator {
   /// @implement SocketConnector::Strategy
   void onConnect(SocketConnector& connector, int clientId)
   {
+    VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR)
+        << "Connection (" << clientId << ") established." << std::endl;
   }
 
   /// @implement SocketConnector::Strategy
@@ -74,20 +97,29 @@ class SocketInitiatorImpl : public SocketInitiator {
   }
 
   /// @implement SocketConnector::Strategy
+  void onDisconnect(SocketConnector& connector, int clientId)
+  {
+    VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR)
+        << "Connection (" << clientId << ") disconnected." << std::endl;
+  }
+
+  /// @implement SocketConnector::Strategy
   void onTimeout(SocketConnector& connector)
   {
 
   }
 
+
  private:
   Application& application_;
-  std::set<SessionSetting>& sessionSettings_;
+  std::list<SessionSetting>& sessionSettings_;
   boost::shared_ptr<EWrapperFactory> ewrapperFactoryPtr_;
+  std::map< SessionID, boost::shared_ptr<SocketConnector> > socketConnectors_;
 };
 
 
 SocketInitiator::SocketInitiator(Application& app,
-                                 std::set<SessionSetting>& settings)
+                                 std::list<SessionSetting>& settings)
     : impl_(new SocketInitiatorImpl(app, settings))
 {
 }

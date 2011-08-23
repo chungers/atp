@@ -32,7 +32,7 @@ class SocketConnectorImpl {
       socketConnector_(NULL)
   {
   }
-  
+
   ~SocketConnectorImpl()
   {
     if (socket_ != NULL) {
@@ -55,10 +55,11 @@ class SocketConnectorImpl {
     assert (ew != NULL);
 
     if (socket_ && socket_->isConnected()) {
-        LOG(WARNING) << "Calling eConnect on already live connection." << std::endl;
+        LOG(WARNING) << "Calling eConnect on already live connection."
+                     << std::endl;
         return socket_->getClientId();
     }
-    
+
     // Start a new socket.
     socket_ = boost::shared_ptr<AsioEClientSocket>(
         new AsioEClientSocket(ioService_, *ew, false));  // Not threaded.
@@ -67,17 +68,18 @@ class SocketConnectorImpl {
 
     thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
         boost::bind(&AsioEClientSocket::block, socket_)));
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "Started listener thread " << thread_->get_id()
+    VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "Started listener thread "
+                                            << thread_->get_id()
                                             << std::endl;
 
     // Spin until connected.
     int64 limit = timeoutSeconds_ * 1000000;
     int64 start = now_micros();
     while (!socket_->isConnected() && now_micros() - start < limit) {}
-    
+
     int64 elapsed = now_micros() - start;
     LOG(INFO) << "Connected in " << elapsed << " microseconds." << std::endl;
-    
+
     if (socket_->isConnected()) {
       strategy->onConnect(*socketConnector_, clientId);
       return clientId;
@@ -87,7 +89,6 @@ class SocketConnectorImpl {
     }
   }
 
-  
  private:
   Application& app_;
   int timeoutSeconds_;
@@ -95,10 +96,10 @@ class SocketConnectorImpl {
   boost::shared_ptr<AsioEClientSocket> socket_;
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
-  
+
  protected:
   SocketConnector* socketConnector_;
-  
+
 };
 
 
@@ -118,7 +119,8 @@ class SocketConnector::implementation : public SocketConnectorImpl {
 SocketConnector::SocketConnector(Application& app, int timeout)
     : impl_(new SocketConnector::implementation(app, timeout))
 {
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "SocketConnector starting." << std::endl;
+    VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "SocketConnector starting."
+                                            << std::endl;
     impl_->socketConnector_ = this;
 }
 
@@ -139,3 +141,4 @@ int SocketConnector::connect(const string& host,
 }
 
 } // namespace IBAPI
+

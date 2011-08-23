@@ -39,7 +39,6 @@ class SocketConnector : NoCopyAndAssign {
     virtual void onError(SocketConnector&) = 0;
     virtual void onTimeout(SocketConnector&) = 0;
   };
-
 };
 
 
@@ -60,7 +59,7 @@ class StrategyBase : public SocketConnector::Strategy
     VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR_STRATEGY)
         << "onData(" << clientId << ")" << std::endl;
   }
-  
+
   void onDisconnect(SocketConnector& sc, int clientId)
   {
     VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR_STRATEGY)
@@ -72,7 +71,6 @@ class StrategyBase : public SocketConnector::Strategy
     LOG(ERROR) << "onError" << std::endl;
   }
 
-  
   void onTimeout(SocketConnector& sc)
   {
     LOG(ERROR) << "onTimeout" << std::endl;

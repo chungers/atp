@@ -1,7 +1,7 @@
 
 #include <algorithm>
 #include <map>
-#include <set>
+#include <list>
 #include <vector>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
@@ -15,7 +15,9 @@
 #include "ib/GenericTickRequest.hpp"
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
+#include "ib/SessionSetting.hpp"
 #include "ib/SocketConnector.hpp"
+#include "ib/SocketInitiator.hpp"
 
 #include "ib/TestHarness.hpp"
 #include "ib/ticker_id.hpp"
@@ -38,7 +40,8 @@ enum Event {
   FROM_APP
 };
 
-class TestApplication : public IBAPI::ApplicationBase, public TestHarnessBase<Event>
+class TestApplication : public IBAPI::ApplicationBase,
+                        public TestHarnessBase<Event>
 {
  public:
 
@@ -70,7 +73,7 @@ class TestStrategy : public IBAPI::StrategyBase, public TestHarnessBase<Event>
 };
 
 /// Basic test for establishing connections.
-TEST(SocketInitiatorTest, SocketConnectorTest)
+TEST(SocketInitiatorTest, SingleSocketConnectorTest)
 {
   TestApplication app;
   TestStrategy strategy;
@@ -80,7 +83,7 @@ TEST(SocketInitiatorTest, SocketConnectorTest)
   int clientId = 1;
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,
                                        &strategy);
-  
+
   EXPECT_EQ(status, clientId);
   EXPECT_EQ(strategy.getCount(ON_CONNECT), 1);
 
@@ -89,3 +92,27 @@ TEST(SocketInitiatorTest, SocketConnectorTest)
   EXPECT_EQ(app.getCount(ON_LOGON), 1);
 }
 
+
+TEST(SocketInitiatorTest, SocketInitiatorStartTest)
+{
+  TestApplication app;
+  IBAPI::SessionSetting setting1(1, "127.0.0.1", 4001);
+  IBAPI::SessionSetting setting2(2);
+
+  std::list<SessionSetting> settings;
+  settings.push_back(setting1);
+  settings.push_back(setting2);
+
+  std::list<SessionSetting>::iterator itr;
+  for (itr = settings.begin(); itr != settings.end(); ++itr) {
+    LOG(INFO) << "Setting: " << *itr << std::endl;
+  }
+
+  IBAPI::SocketInitiator initiator(app, settings);
+
+  initiator.start();
+
+  app.waitForFirstOccurrence(ON_LOGON, 10);
+
+  sleep(10);
+}

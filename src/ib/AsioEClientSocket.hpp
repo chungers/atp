@@ -28,17 +28,18 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
 
  public:
 
-  explicit AsioEClientSocket(boost::asio::io_service& ioService, EWrapper& ptr, bool runThread=true);
+  explicit AsioEClientSocket(boost::asio::io_service& ioService,
+                             EWrapper& ptr, bool runThread=true);
 
   /// @overload EClientSocketBase
   bool eConnect(const char *host, unsigned int port, int clientId=0);
 
   /// Returns clientId
   int getClientId();
-  
+
   /// @overload EClientSocketBase
   void eDisconnect();
-  
+
   /// Event loop that checks messages on the socket
   void block();
 
@@ -52,6 +53,8 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
 
   /// @overload EClientSocketBase
   int receive(char* buf, size_t sz);
+
+  bool closeSocket();
 
   boost::asio::io_service& ioService_;
   tcp::socket socket_;

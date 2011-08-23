@@ -42,26 +42,30 @@ int AsioEClientSocket::getClientId()
 /**
    Connects to the gateway.
 */
-bool AsioEClientSocket::eConnect(const char *host, unsigned int port, int clientId) {
+bool AsioEClientSocket::eConnect(const char *host,
+                                 unsigned int port,
+                                 int clientId)
+{
   setClientId(clientId);
   clientId_ = clientId;
-  
+
   tcp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
 
   // Connect synchronously
   try {
 
-    VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET) << "Connecting to " << endpoint << std::endl;
+    VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET) <<
+        "Connecting to " << endpoint << std::endl;
 
     int64 start = now_micros();
     socket_.connect(endpoint);
     int64 elapsed = now_micros() - start;
-    
+
     socketOk_ = true;
 
     LOG(INFO) << "Socket connected to " << endpoint
               << " in " << elapsed << " microseconds." << std::endl;
-    
+
     // Sends client version to server
     onConnectBase();
 
@@ -76,7 +80,7 @@ bool AsioEClientSocket::eConnect(const char *host, unsigned int port, int client
     }
 
     state_ = RUNNING;
-    
+
   } catch (boost::system::system_error e) {
     LOG(WARNING) << "Exception while connecting: " << e.what() << std::endl;
     socketOk_ = false;
@@ -84,35 +88,42 @@ bool AsioEClientSocket::eConnect(const char *host, unsigned int port, int client
   return socketOk_ && state_ == RUNNING;
 }
 
-
-/**
-   Disconnects the client from the gateway.
- */
-void AsioEClientSocket::eDisconnect() {
-  eDisconnectBase();
+bool AsioEClientSocket::closeSocket()
+{
   boost::system::error_code ec;
-
-  // Wait for the event thread to stop
-  LOG(INFO) << "Stopping..." << std::endl;
-  state_ = STOPPING;
-
-  // Shut down first before closing
   socket_.shutdown(tcp::socket::shutdown_both, ec);
   if (ec) {
     LOG(WARNING) << "Failed to shutdown socket." << std::endl;
+    return false;
   } else {
     // Now close the socket.
     socket_.close(ec);
     if (ec) {
       LOG(WARNING) << "Failed to close socket connection." << std::endl;
+      return false;
     } else {
       LOG(INFO) << "Socket closed." << std::endl;
-      if (thread_) {
-        thread_->join();
-      }
-      state_ = STOPPED;
+      return true;
     }
   }
+}
+
+/**
+   Disconnects the client from the gateway.
+ */
+void AsioEClientSocket::eDisconnect()
+{
+  eDisconnectBase();
+
+  // Wait for the event thread to stop
+  LOG(INFO) << "Stopping..." << std::endl;
+  state_ = STOPPING;
+
+  if (closeSocket() && thread_) {
+    thread_->join();
+    LOG(INFO) << "Listener thread stopped." << std::endl;
+  }
+  state_ = STOPPED;
 }
 
 bool AsioEClientSocket::isSocketOK() const {
@@ -125,7 +136,7 @@ int AsioEClientSocket::send(const char* buf, size_t sz) {
   // return value of the number of bytes transferred.
   size_t sent = 0;
   try {
-    
+
     int64 start = now_micros();
     sent = socket_.send(boost::asio::buffer(buf, sz));
     int64 elapsed = now_micros() - start;
@@ -165,8 +176,8 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
     }
     socketOk_ = false;
     state_ = STOPPING;
+    closeSocket();
   }
-
   return read;
 }
 
@@ -174,7 +185,7 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
 // Event handling loop.  This runs in a separate thread.
 void AsioEClientSocket::block() {
   LOG(INFO) << "Starts processing incoming messages." << std::endl;
-  
+
   bool processed = true;
   while (isSocketOK() && processed) {
     try {
@@ -183,17 +194,19 @@ void AsioEClientSocket::block() {
       int64 elapsed = now_micros() - start;
 
       VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
-          << "Processed message in " << elapsed << " microseconds." << std::endl;
-      
+          << "Processed message in " << elapsed <<
+          " microseconds." << std::endl;
     } catch (...) {
       // Implementation taken from http://goo.gl/aiOKm
       getWrapper()->error(NO_VALID_ID, CONNECT_FAIL.code(), CONNECT_FAIL.msg());
       processed = false;
       LOG(WARNING) << "Exception while processing event." << std::endl;
       state_ = STOPPING;
+      closeSocket();
     }
   }
-  VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG) << "Event loop terminated." << std::endl;
+  VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
+      << "Event loop terminated." << std::endl;
 }
 
 } // internal

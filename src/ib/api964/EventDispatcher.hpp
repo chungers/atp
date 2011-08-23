@@ -21,7 +21,6 @@ namespace internal {
  */
 class EventDispatcher : public LoggingEWrapper {
 
-
  public:
 
   EventDispatcher(IBAPI::Application& app, int clientId)
@@ -85,7 +84,6 @@ class EventDispatcher : public LoggingEWrapper {
         terminate = false;
         msg << "Unhandled error.  Continue...";
         break;
-
     }
     
     LOG(WARNING) << msg.str();

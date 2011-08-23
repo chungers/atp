@@ -1,7 +1,7 @@
 #ifndef IBAPI_SOCKET_INITIATOR_H_
 #define IBAPI_SOCKET_INITIATOR_H_
 
-#include <set>
+#include <list>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 
@@ -15,15 +15,15 @@ namespace IBAPI {
 
 
 /// Models after SocketInitiator in QuickFIX API:
-/// https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketInitiator.h
+/// http://goo.gl/S4bJa
 ///
-/// SocketInitiator manages one or more SocketConnector.  Each SocketConnector has a
-/// AsioEClientSocket connection to the IB gateway.
-class SocketInitiator : Initiator, SocketConnector::Strategy {
+/// SocketInitiator manages one or more SocketConnector.
+/// Each SocketConnector has a AsioEClientSocket connection to the IB gateway.
+class SocketInitiator : Initiator {
 
  public:
 
-  SocketInitiator(Application& app, std::set<SessionSetting>& setting);
+  SocketInitiator(Application& app, std::list<SessionSetting>& settings);
   ~SocketInitiator();
 
   void start() throw ( ConfigError, RuntimeError );
@@ -31,7 +31,7 @@ class SocketInitiator : Initiator, SocketConnector::Strategy {
 
   void stop(double timeout);
   void stop(bool force = false);
- 
+
   bool isLoggedOn();
 
   /// @implement SocketConnector::Strategy
@@ -45,7 +45,7 @@ class SocketInitiator : Initiator, SocketConnector::Strategy {
 
   /// @implement SocketConnector::Strategy
   void onError(SocketConnector&);
-  
+
   /// @implement SocketConnector::Strategy
   void onTimeout(SocketConnector&);
 

@@ -12,28 +12,11 @@
 #include "ib/Application.hpp"
 #include "ib/Exceptions.hpp"
 #include "ib/SocketConnector.hpp"
+#include "ib/SessionSetting.hpp"
 
 
 
 namespace IBAPI {
-
-class SessionSetting {
- public:
-  SessionSetting(unsigned int id = 0,
-                 const std::string& host = "127.0.0.1",
-                 unsigned int port = 4001)
-      : id_(id), host_(host), port_(port) {}
-
-  const std::string& getHost() { return host_; }
-  const unsigned int getPort() { return port_; }
-  const unsigned int getConnectionId() { return id_; }
-
- private:
-  unsigned int id_;
-  const std::string& host_;
-  unsigned int port_;
-
-};
 
 
 /// Models after Initiator in QuickFIX API:
@@ -49,9 +32,7 @@ class Initiator : NoCopyAndAssign {
 
   virtual void stop(double timeout) {};
   virtual void stop(bool force = false) {};
- 
   virtual bool isLoggedOn() { return false; };
-
 };
 
 } // namespace IBAPI
