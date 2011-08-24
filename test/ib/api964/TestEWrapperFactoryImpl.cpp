@@ -93,6 +93,11 @@ class TestEWrapper : public EventDispatcher, public TestHarness {
     incr(CONTRACT_DETAILS_END);
     seen(reqId);
   }
+
+  // @Override
+  void currentTime(long time) {
+    incr(CURRENT_TIME);
+  }
 };
 
 

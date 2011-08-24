@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/asio.hpp>
+#include <boost/assign.hpp>
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
@@ -26,6 +27,7 @@ using namespace IBAPI;
 
 /// How many seconds max to wait for certain data before timing out.
 const int MAX_WAIT = 20;
+
 
 static std::string FormatOptionExpiry(int year, int month, int day)
 {
@@ -55,9 +57,9 @@ TEST(AsioEClientSocketTest, ConnectionTest)
 {
   boost::asio::io_service ioService;
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
-  
+
   ApplicationBase app;
-  
+
   EWrapper* ew = factory->getImpl(app);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
@@ -76,7 +78,7 @@ TEST(AsioEClientSocketTest, ConnectionTest)
 
   // Check invocation of the nextValidId -- this is part of the
   // TWS API protocol.
-  EXPECT_EQ(1, th->getCount(TestHarness::NEXT_VALID_ID));
+  EXPECT_EQ(1, th->getCount(NEXT_VALID_ID));
 }
 
 
@@ -87,9 +89,9 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
 {
   boost::asio::io_service ioService;
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
-  
+
   ApplicationBase app;
-  
+
   EWrapper* ew = factory->getImpl(app);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
@@ -97,7 +99,7 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
-  
+
   bool connected = waitForConnection(ec, 5);
   EXPECT_TRUE(connected);
 
@@ -121,24 +123,23 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
       .add(REALTIME_HISTORICAL_VOLATILITY)
       ;
 
-  
-  LOG(INFO) << "Request generic ticks: " << genericTickRequest.toString() << std::endl;
+  LOG(INFO) << "Request generic ticks: " << genericTickRequest.toString()
+            << std::endl;
 
   bool snapShot = false;
   ec.reqMktData(tid, c, genericTickRequest.toString(), snapShot);
 
   // Spin and wait for data.
-  for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::TICK_PRICE) == 0; ++i) {
-    sleep(1);
-  }
+  th->waitForFirstOccurrence(TICK_PRICE, MAX_WAIT);
+  th->waitForFirstOccurrence(TICK_SIZE, MAX_WAIT);
 
   // Disconnect
   ec.eDisconnect();
 
   EXPECT_FALSE(ec.isConnected());
 
-  EXPECT_GT(th->getCount(TestHarness::TICK_PRICE), 1);
-  EXPECT_GT(th->getCount(TestHarness::TICK_SIZE), 1);
+  EXPECT_GE(th->getCount(TICK_PRICE), 1);
+  EXPECT_GE(th->getCount(TICK_SIZE), 1);
   EXPECT_TRUE(th->hasSeenTickerId(tid));
 }
 
@@ -149,9 +150,9 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 {
   boost::asio::io_service ioService;
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
-  
+
   ApplicationBase app;
-  
+
   EWrapper* ew = factory->getImpl(app);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
@@ -159,7 +160,7 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
-  
+
   bool connected = waitForConnection(ec, 5);
   EXPECT_TRUE(connected);
 
@@ -182,24 +183,24 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
       .add(REALTIME_HISTORICAL_VOLATILITY)
       ;
 
-  
-  LOG(INFO) << "Request generic ticks: " << genericTickRequest.toString() << std::endl;
+
+  LOG(INFO) << "Request generic ticks: "
+            << genericTickRequest.toString() << std::endl;
 
   bool snapShot = false;
   ec.reqMktData(tid, c, genericTickRequest.toString(), snapShot);
 
   // Spin and wait for data.
-  for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::TICK_PRICE) == 0; ++i) {
-    sleep(1);
-  }
+  th->waitForFirstOccurrence(TICK_PRICE, MAX_WAIT);
+  th->waitForFirstOccurrence(TICK_SIZE, MAX_WAIT);
 
   // Disconnect
   ec.eDisconnect();
 
   EXPECT_FALSE(ec.isConnected());
 
-  EXPECT_GT(th->getCount(TestHarness::TICK_PRICE), 1);
-  EXPECT_GT(th->getCount(TestHarness::TICK_SIZE), 1);
+  EXPECT_GE(th->getCount(TICK_PRICE), 1);
+  EXPECT_GE(th->getCount(TICK_SIZE), 1);
   EXPECT_TRUE(th->hasSeenTickerId(tid));
 }
 
@@ -210,12 +211,12 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
 {
   boost::asio::io_service ioService;
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
-  
+
   ApplicationBase app;
-  
+
   EWrapper* ew = factory->getImpl(app);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
-  
+
   AsioEClientSocket ec(ioService, *ew);
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
@@ -238,17 +239,15 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
   ec.reqMktDepth(tid, c, 10);
 
   // Spin and wait for data.
-  for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::UPDATE_MKT_DEPTH) == 0; ++i) {
-    sleep(1);
-  }
+  th->waitForFirstOccurrence(UPDATE_MKT_DEPTH, MAX_WAIT);
 
   // Disconnect
   ec.eDisconnect();
 
   EXPECT_FALSE(ec.isConnected());
 
-  EXPECT_EQ(th->getCount(TestHarness::NEXT_VALID_ID), 1);
-  EXPECT_GT(th->getCount(TestHarness::UPDATE_MKT_DEPTH), 1);
+  EXPECT_EQ(th->getCount(NEXT_VALID_ID), 1);
+  EXPECT_GE(th->getCount(UPDATE_MKT_DEPTH), 1);
   EXPECT_TRUE(th->hasSeenTickerId(tid));
 }
 
@@ -267,9 +266,9 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
 {
   boost::asio::io_service ioService;
   boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
-  
+
   ApplicationBase app;
- 
+
   EWrapper* ew = factory->getImpl(app);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
@@ -277,7 +276,7 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
   EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
-  
+
   bool connected = waitForConnection(ec, 5);
   EXPECT_TRUE(connected);
 
@@ -289,47 +288,51 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   c.currency = "USD";
   c.expiry = FormatOptionExpiry(2011, 8, 26);
   c.right = "C"; // call - P for put
-  
+
   int requestId = 1000; // Not a ticker id.  This is just a request id.
 
-  LOG(INFO) << "Requesting option chain for " << c.symbol << " with request id = "
+  LOG(INFO) << "Requesting option chain for "
+            << c.symbol << " with request id = "
             << requestId << std::endl;
 
   // Collect the option chain
   std::vector<Contract> optionChain;
   th->setOptionChain(&optionChain);
-  
+
   ec.reqContractDetails(requestId, c);
 
   // Spin and wait for data.
-  for (int i = 0; i < MAX_WAIT && th->getCount(TestHarness::CONTRACT_DETAILS_END) == 0; ++i) {
-    sleep(1);
-  }
-  
-  EXPECT_EQ(th->getCount(TestHarness::CONTRACT_DETAILS_END), 1);
+  th->waitForFirstOccurrence(CONTRACT_DETAILS_END, MAX_WAIT);
+
+  EXPECT_EQ(th->getCount(CONTRACT_DETAILS_END), 1);
   EXPECT_TRUE(th->hasSeenTickerId(requestId));
 
   // Check the option chain
   EXPECT_GT(optionChain.size(), 0);
 
   LOG(INFO) << "Received option chain." << std::endl;
-  
+
   // Sort the option chain by strike
   std::sort(optionChain.begin(), optionChain.end(), sortByStrikeFunctor);
-  
-  GenericTickRequest genericTickRequest;  // note we are setting any special requests.
-  
+
+  GenericTickRequest genericTickRequest;
+
   // Iterate through the option chain and make market data request:
   std::vector<int> tids;
   int tid = 10000;
-  for (std::vector<Contract>::iterator itr = optionChain.begin(); itr != optionChain.end(); ++itr) {
-    LOG(INFO) << "Requesting market data for contract / " << itr->localSymbol << std::endl;
+  for (std::vector<Contract>::iterator itr = optionChain.begin();
+       itr != optionChain.end();
+       ++itr) {
+    LOG(INFO) << "Requesting market data for contract / "
+              << itr->localSymbol << std::endl;
     ec.reqMktData(++tid, *itr, genericTickRequest.toString(), false);
     tids.push_back(tid);
   }
 
   // Wait until all the data has come through for all the contracts.
-  for (std::vector<int>::iterator itr = tids.begin(); itr != tids.end(); ++itr) {
+  for (std::vector<int>::iterator itr = tids.begin();
+       itr != tids.end();
+       ++itr) {
     for (int i = 0; i < MAX_WAIT && !th->hasSeenTickerId(*itr); ++i) {
       sleep(1);
     }
@@ -339,11 +342,87 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   ec.eDisconnect();
   EXPECT_FALSE(ec.isConnected());
 
-  EXPECT_GT(th->getCount(TestHarness::TICK_PRICE), 1);
+  EXPECT_GT(th->getCount(TICK_PRICE), 1);
 
   // Checks that we have seen the ticker ids for all the option contracts.
-  for (std::vector<int>::iterator itr = tids.begin(); itr != tids.end(); ++itr) {
+  for (std::vector<int>::iterator itr = tids.begin();
+       itr != tids.end();
+       ++itr) {
     EXPECT_TRUE(th->hasSeenTickerId(*itr));
   }
+}
+
+
+TickerId buildContract(Contract& c, const std::string& symbol)
+{
+  c.symbol = symbol;
+  c.secType = "STK";
+  c.exchange = "SMART";
+  c.currency = "USD";
+  TickerId tid = SymbolToTickerId(symbol);
+
+  LOG(INFO) << "Requesting market data for " << c.symbol << " with id = "
+            << tid << std::endl;
+  return tid;
+}
+
+
+TEST(AsioEClientSocketTest, RequestMarketDataLoadTest)
+{
+  boost::asio::io_service ioService;
+  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
+
+  ApplicationBase app;
+
+  EWrapper* ew = factory->getImpl(app);
+  TestHarness* th = dynamic_cast<TestHarness*>(ew);
+
+  AsioEClientSocket ec(ioService, *ew);
+
+  LOG(INFO) << "Started " << ioService.run() << std::endl;
+  EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
+
+  bool connected = waitForConnection(ec, 5);
+  EXPECT_TRUE(connected);
+
+  // Request market data for a list of stocks:
+  std::vector<std::string> stocks = boost::assign::list_of
+      ("AAPL")("IBM")("GOOG")("MSFT")("GS")
+      ("AMZN")("NFLX")("SPY")("PCLN")("BAC");
+
+  GenericTickRequest genericTickRequest;
+  genericTickRequest
+      .add(RTVOLUME)
+      .add(OPTION_VOLUME)
+      .add(OPTION_IMPLIED_VOLATILITY)
+      .add(HISTORICAL_VOLATILITY)
+      .add(REALTIME_HISTORICAL_VOLATILITY)
+      ;
+
+  LOG(INFO) << "Request generic ticks: " << genericTickRequest.toString()
+            << std::endl;
+
+  for (std::vector<std::string>::iterator symbol = stocks.begin();
+       symbol != stocks.end();
+       ++symbol) {
+    Contract c;
+    TickerId tid = buildContract(c, *symbol);
+
+    bool snapShot = false;
+    ec.reqMktData(tid, c, genericTickRequest.toString(), snapShot);
+  }
+
+  sleep(10);
+  
+  // Sleep for a bit and then start sending data on the socket
+  // from this thread:
+  for (int i = 0; i < 1000; ++i) {
+    ec.reqCurrentTime();
+  }
+
+  sleep(10);
+  ec.eDisconnect();
+
+  EXPECT_EQ(th->getCount(CURRENT_TIME), 1000);
 }
 

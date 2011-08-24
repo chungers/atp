@@ -35,7 +35,7 @@ class TestHarnessBase
     while (now_micros() - start < limit && getCount(event) < 1) {}
     return getCount(event) > 0;
   }
-  
+
  protected:
   /// Increment by count
   void incr(T event, int count) {
@@ -58,69 +58,53 @@ class TestHarnessBase
 };
 
 
-class TestHarness {
+enum EVENT {
+  NEXT_VALID_ID = 1,
+  CURRENT_TIME,
+  TICK_PRICE,
+  TICK_SIZE,
+  TICK_GENERIC,
+  TICK_OPTION_COMPUTATION,
+  UPDATE_MKT_DEPTH,
+  CONTRACT_DETAILS,
+  CONTRACT_DETAILS_END // for option chain
+};
+
+
+class TestHarness : public TestHarnessBase<EVENT> {
 
  public:
-  enum EVENT {
-    NEXT_VALID_ID = 1,
-    TICK_PRICE,
-    TICK_SIZE,
-    TICK_GENERIC,
-    TICK_OPTION_COMPUTATION,
-    UPDATE_MKT_DEPTH,
-    CONTRACT_DETAILS,
-    CONTRACT_DETAILS_END // for option chain
-  };
-
-  TestHarness() : optionChain_(NULL) {
-
+  TestHarness() : optionChain_(NULL)
+  {
   }
 
   ~TestHarness() {}
 
-  /// Returns the count of an event.
-  int getCount(EVENT event) {
-    if (eventCount_.find(event) != eventCount_.end()) {
-      return eventCount_[event];
-    } else {
-      return 0;
-    }
-  }
-
   // Returns true if the ticker id was seen.
-  bool hasSeenTickerId(TickerId id) {
+  bool hasSeenTickerId(TickerId id)
+  {
     return tickerIds_.find(id) != tickerIds_.end();
   }
 
-  void setOptionChain(std::vector<Contract>* optionChain) {
+  void setOptionChain(std::vector<Contract>* optionChain)
+  {
     optionChain_ = optionChain;
   }
 
  protected:
 
-  void incr(EVENT event, int count) {
-    if (eventCount_.find(event) == eventCount_.end()) {
-      eventCount_[event] = count;
-    } else {
-      eventCount_[event] += count;
-    }
-  }
-
-  inline void incr(EVENT event) {
-    incr(event, 1);
-  }
-
-  void seen(TickerId tickerId) {
+  void seen(TickerId tickerId)
+  {
     if (!hasSeenTickerId(tickerId)) {
       tickerIds_.insert(tickerId);
     }
   }
-  
-  std::map<EVENT, int> eventCount_;
+
   std::set<TickerId> tickerIds_;
   std::vector<Contract>* optionChain_;
 
 };
+
 
 #endif // TEST_TEST_HARNESS_H_
 

@@ -8,6 +8,7 @@
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
 #include "ApiImpl.hpp"
+#include "ib/ticker_id.hpp"
 
 namespace ib {
 namespace internal {
@@ -32,7 +33,7 @@ class EventDispatcher : public LoggingEWrapper {
  private:
   IBAPI::Application& app_;
   int clientId_;
-  
+
  public:
 
   /// @overload EWrapper
@@ -44,11 +45,18 @@ class EventDispatcher : public LoggingEWrapper {
     msg << "IBAPI_ERROR[" << errorCode << "]: ";
 
     bool terminate = false;
-    
+    std::string symbol;
+    SymbolFromTickerId(id, &symbol);
+
     switch (errorCode) {
 
       // The following code will cause exception to be thrown, which
       // will force the event loop to terminate.
+      case 200:
+        terminate = false;
+        msg << "No security definition has been found for the request, symbol="
+            << symbol;
+        break;
       case 326:
         terminate = true;
         msg << "Conflicting connection id. Disconnecting.";
