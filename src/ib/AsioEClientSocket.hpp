@@ -29,7 +29,7 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
  public:
 
   explicit AsioEClientSocket(boost::asio::io_service& ioService,
-                             EWrapper& ptr, bool runThread=true);
+                             EWrapper& wrapper);
 
   /// @overload EClientSocketBase
   bool eConnect(const char *host, unsigned int port, int clientId=0);
@@ -64,10 +64,14 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
   enum State {  STARTING, RUNNING, STOPPING, STOPPED };
   volatile State state_;
 
-  bool runThread_;
   boost::shared_ptr<boost::thread> thread_;
-
+  boost::mutex mutex_;
+  boost::condition_variable socketRunning_;
   int clientId_;
+
+  int64 sendDt_;
+  int64 receiveDt_;
+  int64 processMessageDt_;
 };
 
 } // namespace internal

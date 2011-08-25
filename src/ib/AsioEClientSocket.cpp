@@ -23,15 +23,20 @@ namespace internal {
 
 
 AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
-                                     EWrapper& wrapper, bool runThread) :
+                                     EWrapper& wrapper) :
     EClientSocketBase(&wrapper),
     ioService_(ioService),
     socket_(ioService),
     socketOk_(false),
     state_(STARTING),
-    runThread_(runThread),
     clientId_(-1)
 {
+  // Schedule async read handler for incoming packets.
+  assert(!thread_);
+  VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
+      << "Starting event listener thread." << std::endl;
+  thread_ = boost::shared_ptr<boost::thread>(
+      new boost::thread(boost::bind(&AsioEClientSocket::block, this)));
 }
 
 int AsioEClientSocket::getClientId()
@@ -64,22 +69,16 @@ bool AsioEClientSocket::eConnect(const char *host,
     socketOk_ = true;
 
     LOG(INFO) << "Socket connected to " << endpoint
-              << " in " << elapsed << " microseconds." << std::endl;
+              << " (dt=" << elapsed << " microseconds)."
+              << std::endl;
 
     // Sends client version to server
     onConnectBase();
 
-    // Schedule async read handler for incoming packets.
-    if (runThread_) {
-      assert(!thread_);
-      thread_ = boost::shared_ptr<boost::thread>(
-          new boost::thread(boost::bind(&AsioEClientSocket::block, this)));
-
-      VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
-          << "Started event thread." << std::endl;
-    }
-
+    // Update the state and notify the waiting listener thread.
+    boost::lock_guard<boost::mutex> lock(mutex_);
     state_ = RUNNING;
+    socketRunning_.notify_one();
 
   } catch (boost::system::system_error e) {
     LOG(WARNING) << "Exception while connecting: " << e.what() << std::endl;
@@ -139,12 +138,7 @@ int AsioEClientSocket::send(const char* buf, size_t sz) {
 
     int64 start = now_micros();
     sent = socket_.send(boost::asio::buffer(buf, sz));
-    int64 elapsed = now_micros() - start;
-
-    VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
-        << "Sent " << sz << " bytes in " << elapsed << " microseconds: "
-        << std::string(buf)
-        << std::endl;
+    sendDt_ = now_micros() - start;
 
   } catch (boost::system::system_error e) {
 
@@ -164,10 +158,9 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
   size_t read = -1;
   try {
 
+    int64 start = now_micros();
     read = socket_.receive(boost::asio::buffer(buf, sz));
-
-    VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
-        << "Received " << read << " bytes: " << std::string(buf) << std::endl;
+    receiveDt_ = now_micros() - start;
 
   } catch (boost::system::system_error e) {
 
@@ -184,18 +177,22 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
 
 // Event handling loop.  This runs in a separate thread.
 void AsioEClientSocket::block() {
-  LOG(INFO) << "Starts processing incoming messages." << std::endl;
+  // Wait for the socket to be connected
+  int64 start = now_micros();
+  boost::unique_lock<boost::mutex> lock(mutex_);
+  while (state_ != RUNNING) {
+    socketRunning_.wait(lock);
+  }
+  int64 elapsed = now_micros() - start;
+  LOG(INFO) << "Connection ready. Begin processing messages (dt="
+            << elapsed << " microseconds)." << std::endl;
 
   bool processed = true;
   while (isSocketOK() && processed) {
     try {
       int64 start = now_micros();
       processed = checkMessages();
-      int64 elapsed = now_micros() - start;
-
-      VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
-          << "Processed message in " << elapsed <<
-          " microseconds." << std::endl;
+      processMessageDt_ = now_micros() - start;
     } catch (...) {
       // Implementation taken from http://goo.gl/aiOKm
       getWrapper()->error(NO_VALID_ID, CONNECT_FAIL.code(), CONNECT_FAIL.msg());
@@ -206,7 +203,7 @@ void AsioEClientSocket::block() {
     }
   }
   VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
-      << "Event loop terminated." << std::endl;
+      << "Event thread terminated." << std::endl;
 }
 
 } // internal

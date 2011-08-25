@@ -388,7 +388,8 @@ TEST(AsioEClientSocketTest, RequestMarketDataLoadTest)
   // Request market data for a list of stocks:
   std::vector<std::string> stocks = boost::assign::list_of
       ("AAPL")("IBM")("GOOG")("MSFT")("GS")
-      ("AMZN")("NFLX")("SPY")("PCLN")("BAC");
+      ("AMZN")("NFLX")("SPY")("PCLN")("BAC")
+      ("GLD")("FAS")("FAZ")("JPM")("ORCL");
 
   GenericTickRequest genericTickRequest;
   genericTickRequest
@@ -412,17 +413,18 @@ TEST(AsioEClientSocketTest, RequestMarketDataLoadTest)
     ec.reqMktData(tid, c, genericTickRequest.toString(), snapShot);
   }
 
-  sleep(10);
-  
+  sleep(5);
+
   // Sleep for a bit and then start sending data on the socket
   // from this thread:
-  for (int i = 0; i < 1000; ++i) {
+  int REQUESTS = 5000;
+  for (int i = 0; i < REQUESTS; ++i) {
     ec.reqCurrentTime();
   }
 
   sleep(10);
   ec.eDisconnect();
 
-  EXPECT_EQ(th->getCount(CURRENT_TIME), 1000);
+  EXPECT_EQ(th->getCount(CURRENT_TIME), REQUESTS);
 }
 

@@ -62,15 +62,9 @@ class SocketConnectorImpl {
 
     // Start a new socket.
     socket_ = boost::shared_ptr<AsioEClientSocket>(
-        new AsioEClientSocket(ioService_, *ew, false));  // Not threaded.
+        new AsioEClientSocket(ioService_, *ew));  // Not threaded.
 
     socket_->eConnect(host.c_str(), port, clientId);
-
-    thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
-        boost::bind(&AsioEClientSocket::block, socket_)));
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "Started listener thread "
-                                            << thread_->get_id()
-                                            << std::endl;
 
     // Spin until connected.
     int64 limit = timeoutSeconds_ * 1000000;
