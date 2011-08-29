@@ -22,8 +22,9 @@ namespace internal {
 
 class TestEWrapper : public EventDispatcher, public TestHarness {
  public:
-  TestEWrapper(IBAPI::Application& app, int clientId)
-      : EventDispatcher(app, clientId),
+  TestEWrapper(IBAPI::Application& app, EWrapperFactory::ZmqAddress addr,
+               int clientId)
+      : EventDispatcher(app, addr, clientId),
         TestHarness()
   {
     LOG(INFO) << "Initialized LoggingEWrapper." << std:: endl;
@@ -113,8 +114,9 @@ class TestEWrapperFactoryImpl : public EWrapperFactory {
   }
 
   /// Implements EWrapperFactory
-  EWrapper* getImpl(IBAPI::Application& app, int clientId=0) {
-    return new ib::internal::TestEWrapper(app, clientId);
+  EWrapper* getImpl(IBAPI::Application& app, EWrapperFactory::ZmqAddress addr,
+                    int clientId=0) {
+    return new ib::internal::TestEWrapper(app, addr, clientId);
   }
 
 };

@@ -43,6 +43,7 @@ set(IBAPIConnector_libs
   boost_thread
   gflags
   glog
+  zmq
 )
 # Client implementation:
 cpp_library(IBAPIConnector)

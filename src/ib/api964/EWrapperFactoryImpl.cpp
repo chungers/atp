@@ -18,15 +18,16 @@ class EWrapperFactoryImpl : public EWrapperFactory
   {
     LOG(INFO) << "API964 EWrapperFactory" << std::endl;
   }
-  
+
   ~EWrapperFactoryImpl()
   {
   }
 
   /// Implements EWrapperFactory
-  EWrapper* getImpl(IBAPI::Application& app, int clientId=0)
+  EWrapper* getImpl(IBAPI::Application& app, ZmqAddress zmqAddress,
+                    int clientId)
   {
-    return new EventDispatcher(app, clientId);
+    return new EventDispatcher(app, zmqAddress, clientId);
   }
 
 };

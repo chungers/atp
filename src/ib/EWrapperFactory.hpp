@@ -23,9 +23,13 @@ namespace internal {
 class EWrapperFactory {
 
  public:
+
+  typedef std::string ZmqAddress;
+
   ~EWrapperFactory() {}
 
   virtual EWrapper* getImpl(IBAPI::Application& app,
+                            ZmqAddress zmqAddress,
                             int clientId = 0) = 0;
 
   /// Returns a shared pointer to the factory.

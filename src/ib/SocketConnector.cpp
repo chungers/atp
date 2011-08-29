@@ -1,4 +1,5 @@
 
+#include <sstream>
 #include <sys/select.h>
 #include <sys/time.h>
 
@@ -8,6 +9,7 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
+#include <zmq.hpp>
 
 #include "log_levels.h"
 #include "utils.hpp"
@@ -29,6 +31,7 @@ class SocketConnectorImpl {
   SocketConnectorImpl(Application& app, int timeout) :
       app_(app),
       timeoutSeconds_(timeout),
+      running_(false),
       socketConnector_(NULL)
   {
   }
@@ -49,20 +52,34 @@ class SocketConnectorImpl {
               unsigned int clientId,
               SocketConnector::Strategy* strategy)
   {
-    LOG(INFO) << "Connecting..." << std::endl;
-
-    EWrapper* ew = EWrapperFactory::getInstance()->getImpl(app_, clientId);
-    assert (ew != NULL);
-
+    // Check on the state.
     if (socket_ && socket_->isConnected()) {
         LOG(WARNING) << "Calling eConnect on already live connection."
                      << std::endl;
         return socket_->getClientId();
     }
 
+    // First spin up a thread that can handle the inbound messages to gateway
+    const string& zmqSocketAddress = getZmqSocketAddress(host, port, clientId);
+    thread_ = boost::shared_ptr<boost::thread>(
+        new boost::thread(boost::bind(
+            &SocketConnectorImpl::zmqHandler, this, zmqSocketAddress)));
+    LOG(INFO) << "Connecting..." << std::endl;
+
+    EWrapperFactory::ZmqAddress fromGatewayZmqAddress = "tcp://*:5555";
+
+    EWrapper* ew =
+        EWrapperFactory::getInstance()->getImpl(app_,
+                                                fromGatewayZmqAddress,
+                                                clientId);
+    assert (ew != NULL);
+
+
     // Start a new socket.
+    boost::lock_guard<boost::mutex> lock(mutex_);
+
     socket_ = boost::shared_ptr<AsioEClientSocket>(
-        new AsioEClientSocket(ioService_, *ew));  // Not threaded.
+        new AsioEClientSocket(ioService_, *ew));
 
     socket_->eConnect(host.c_str(), port, clientId);
 
@@ -74,12 +91,74 @@ class SocketConnectorImpl {
     int64 elapsed = now_micros() - start;
     LOG(INFO) << "Connected in " << elapsed << " microseconds." << std::endl;
 
+    int result;
     if (socket_->isConnected()) {
       strategy->onConnect(*socketConnector_, clientId);
-      return clientId;
+      result = clientId;
+      running_ = true;
     } else {
       strategy->onTimeout(*socketConnector_);
-      return -1;
+      result = -1;
+      running_ = false;
+    }
+
+    // Notify any waiting thread that a connection has been made.
+    socketConnected_.notify_one();
+    return result;
+  }
+
+ private:
+
+  /// Returns the address string for ZMQ -- for outbound messages to the
+  /// gateway.
+  std::string getZmqSocketAddress(const std::string& host,
+                                         unsigned int port,
+                                         int clientId)
+  {
+    std::ostringstream address;
+    address << "inproc://" << clientId << "@" << host << ":" << port;
+    std::string addr = address.str();
+    return addr;
+  }
+
+  /// Handles the incoming messages from the message queue.  These
+  /// messages are to be dispatched via the AsioEClientSocket to the gateway.
+  void zmqHandler(const std::string& zmqSocketAddress)
+  {
+    // First bind to the zmq address:
+    zmq::context_t zmqContext(1);
+    zmq::socket_t zmqSocket(zmqContext, ZMQ_REP);
+    zmqSocket.bind(zmqSocketAddress.c_str());
+
+    LOG(INFO) << "ZMQ - SocketConnector bound to " << zmqSocketAddress
+              << std::endl;
+
+    // Wait for the socket to be connected
+    int64 start = now_micros();
+    boost::unique_lock<boost::mutex> lock(mutex_);
+
+    while (!socket_ || !socket_->isConnected()) {
+      socketConnected_.wait(lock);
+    }
+
+    int64 elapsed = now_micros() - start;
+    VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR) << "Connected to gateway in "
+                                            << elapsed << " microseconds."
+                                            << std::endl;
+
+    // Here we are connected. So now go into loop to process inbound
+    // messages and forward them to the gateway.
+    while (running_) {
+      zmq::message_t request;
+
+      zmqSocket.recv(&request);
+
+      // Unpack the message and call the eclient socket:
+
+      // Send the reply with status
+      zmq::message_t reply(2);
+      memcpy((void*)reply.data(), "OK", 2);
+      zmqSocket.send(reply);
     }
   }
 
@@ -90,10 +169,11 @@ class SocketConnectorImpl {
   boost::shared_ptr<AsioEClientSocket> socket_;
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
+  boost::condition_variable socketConnected_;
+  bool running_;
 
  protected:
   SocketConnector* socketConnector_;
-
 };
 
 

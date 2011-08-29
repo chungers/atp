@@ -24,14 +24,18 @@ class EventDispatcher : public LoggingEWrapper {
 
  public:
 
-  EventDispatcher(IBAPI::Application& app, int clientId)
+  EventDispatcher(IBAPI::Application& app,
+                  EWrapperFactory::ZmqAddress zmqAddress,
+                  int clientId)
       : app_(app)
+      , zmqAddress_(zmqAddress)
       , clientId_(clientId)
   {
   }
 
  private:
   IBAPI::Application& app_;
+  EWrapperFactory::ZmqAddress zmqAddress_;
   int clientId_;
 
  public:
@@ -93,7 +97,7 @@ class EventDispatcher : public LoggingEWrapper {
         msg << "Unhandled error.  Continue...";
         break;
     }
-    
+
     LOG(WARNING) << msg.str();
     if (terminate) {
         throw IBAPI::RuntimeError(msg.str());

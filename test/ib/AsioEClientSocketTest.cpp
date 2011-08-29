@@ -60,7 +60,8 @@ TEST(AsioEClientSocketTest, ConnectionTest)
 
   ApplicationBase app;
 
-  EWrapper* ew = factory->getImpl(app);
+  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
+  EWrapper* ew = factory->getImpl(app, addr);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -92,7 +93,8 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
 
   ApplicationBase app;
 
-  EWrapper* ew = factory->getImpl(app);
+  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
+  EWrapper* ew = factory->getImpl(app, addr);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -153,7 +155,8 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 
   ApplicationBase app;
 
-  EWrapper* ew = factory->getImpl(app);
+  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
+  EWrapper* ew = factory->getImpl(app, addr);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -214,7 +217,8 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
 
   ApplicationBase app;
 
-  EWrapper* ew = factory->getImpl(app);
+  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
+  EWrapper* ew = factory->getImpl(app, addr);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -269,7 +273,8 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
 
   ApplicationBase app;
 
-  EWrapper* ew = factory->getImpl(app);
+  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
+  EWrapper* ew = factory->getImpl(app, addr);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -374,7 +379,8 @@ TEST(AsioEClientSocketTest, RequestMarketDataLoadTest)
 
   ApplicationBase app;
 
-  EWrapper* ew = factory->getImpl(app);
+  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
+  EWrapper* ew = factory->getImpl(app, addr);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
