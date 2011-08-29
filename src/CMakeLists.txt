@@ -10,3 +10,5 @@ configure_file(
 # Interactive Brokers adapter
 add_subdirectory(ib)
 
+# ZMQ
+add_subdirectory(zmq)
