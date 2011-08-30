@@ -10,9 +10,11 @@
 namespace ib {
 namespace internal {
 
-// Macro that converts the enum token into string while stripping the TickType:: prefix.
+/// Macro that converts the enum token into
+/// string while stripping the TickType:: prefix.
 using std::string;
-#define enum_string(name) string(#name).substr(string(#name).find_last_of("::") + 1)
+#define enum_string(name) \
+  string(#name).substr(string(#name).find_last_of("::") + 1)
 
 /**
    Printable string names of tick type enums (see EWrapper.h)

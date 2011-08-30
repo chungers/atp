@@ -34,7 +34,7 @@ set(IBAPIConnector_srcs
   SocketInitiator.cpp
   ticker_id.cpp
   ${IBAPI_IMPL_DIR}/ApiImpl.cpp
-  ${IBAPI_IMPL_DIR}/Messages.cpp
+  ${IBAPI_IMPL_DIR}/ApiMessages.cpp
   ${IBAPI_IMPL_DIR}/EWrapperFactoryImpl.cpp
 )
 set(IBAPIConnector_libs

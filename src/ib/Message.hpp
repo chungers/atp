@@ -1,27 +1,26 @@
-#ifndef IBAPI_MESSAGES_H_
-#define IBAPI_MESSAGES_H_
+#ifndef IBAPI_MESSAGE_H_
+#define IBAPI_MESSAGE_H_
 
-#include <cctype>
-#include "utils.hpp"
+#include "ib/ib_common.hpp"
 
 namespace IBAPI {
-
-typedef uint64_t timestamp;
 
 class Message {
 
  public:
   Message() : timestamp_(::now_micros()) {}
-  
   ~Message() {}
 
-  timestamp when() { return timestamp_; }
-  
+  TimestampMicros when()
+  {
+    return timestamp_;
+  }
+
  private:
-  timestamp timestamp_;
+  TimestampMicros timestamp_;
 };
 
 
 } // namespace IBAPI
 
-#endif // IBAPI_MESSAGES_H_
+#endif // IBAPI_MESSAGE_H_
