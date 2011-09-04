@@ -9,11 +9,11 @@ namespace IBAPI {
 
 typedef int64 TimestampMicros;
 
-enum SecurityType
-{
-  STK = 1,
-  OPT
-};
+// enum SecurityType
+// {
+//   STK = 1,
+//   OPT
+// };
 
 enum Exchange
 {

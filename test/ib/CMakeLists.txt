@@ -65,6 +65,21 @@ set(SocketInitiator_test_libs
 )
 cpp_gtest(SocketInitiator_test)
 
+# Message test
+set(Message_test_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${TEST_DIR}
+)
+set(Message_test_srcs
+  AllTests.cpp
+  MessageTest.cpp
+)
+set(Message_test_libs
+  IBAPIConnector
+)
+cpp_gtest(Message_test)
+
 # Utils test
 set(utils_test_incs
   ${GEN_DIR}

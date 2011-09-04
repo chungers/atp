@@ -33,6 +33,11 @@ struct RuntimeError : public Exception
     : Exception( "Runtime error", what ) {}
 };
 
+struct FieldConvertError : public Exception {
+  FieldConvertError( const std::string& what = "" )
+      : Exception( "Could not convert field", what ) {}
+};
+
 struct DoNotSend : public Exception {
 
 };

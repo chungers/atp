@@ -44,6 +44,7 @@ set(IBAPIConnector_libs
   boost_thread
   gflags
   glog
+  quickfix
   zmq
 )
 # Client implementation:

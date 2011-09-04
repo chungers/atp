@@ -7,33 +7,33 @@
 namespace IBAPI {
 
 
-class MarketDataRequest : public IBAPI::Message
-{
- public:
+// class MarketDataRequest : public IBAPI::Message
+// {
+//  public:
 
-  MarketDataRequest(const SecurityType& type,
-                    const std::string& symbol,
-                    const Exchange& exchange,
-                    const Currency& currency) :
-      securityType(type),
-      symbol(symbol),
-      exchange(exchange),
-      currency(currency)
-  {
-  }
+//   MarketDataRequest(const SecurityType& type,
+//                     const std::string& symbol,
+//                     const Exchange& exchange,
+//                     const Currency& currency) :
+//       securityType(type),
+//       symbol(symbol),
+//       exchange(exchange),
+//       currency(currency)
+//   {
+//   }
 
-  const SecurityType securityType;
-  const std::string& symbol;
-  const Exchange exchange;
-  const Currency currency;
-};
+//   const SecurityType securityType;
+//   const std::string& symbol;
+//   const Exchange exchange;
+//   const Currency currency;
+// };
 
 
 
-class NextOrderIdMessage : public IBAPI::Message {
- public:
-  NextOrderIdMessage(unsigned int nextOrderId) {}
-};
+// class NextOrderIdMessage : public IBAPI::Message {
+//  public:
+//   NextOrderIdMessage(unsigned int nextOrderId) {}
+// };
 
 
 }
