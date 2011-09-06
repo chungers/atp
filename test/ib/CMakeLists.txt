@@ -77,6 +77,7 @@ set(Message_test_srcs
 )
 set(Message_test_libs
   IBAPIConnector
+  zmq
 )
 cpp_gtest(Message_test)
 
