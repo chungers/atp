@@ -4,6 +4,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 #include <zmq.hpp>
+#include <stdlib.h>
 
 #include "utils.hpp"
 #include "common.hpp"
@@ -16,7 +17,7 @@ using FIX::FieldMap;
 class MarketDataRequest : public IBAPI::Message
 {
  public:
-  MarketDataRequest() : Message("MarketDataRequest")
+  MarketDataRequest() : Message("IBAPI964", "MarketDataRequest")
   {
   }
 
@@ -69,7 +70,7 @@ TEST(MessageTest, ApiTest)
 }
 
 struct SocketReader : NoCopyAndAssign {
-  virtual void operator()(zmq::socket_t& socket) = 0;
+  virtual bool operator()(zmq::socket_t& socket) = 0;
 };
 
 class Responder
@@ -105,8 +106,7 @@ class Responder
  private:
   void processMessages()
   {
-    while (running_) {
-      reader_(socket_);
+    while (running_ && reader_(socket_)) {
     }
   }
 
@@ -115,8 +115,8 @@ class Responder
   zmq::socket_t socket_;
   bool running_;
   boost::shared_ptr<boost::thread> thread_;
-  boost::mutex mutex_;
   SocketReader& reader_;
+  boost::mutex mutex_;
 };
 
 void free_func(void* mem, void* mem2)
@@ -127,9 +127,9 @@ void free_func(void* mem, void* mem2)
 void send(const FIX::FieldBase& f, zmq::socket_t& socket, int sendMore)
 {
   LOG(INFO) << "Sending [" << f.getValue() << "]" << std::endl;
-  const std::string& fv = f.getString();
+  const std::string& fv = f.getValue();
   const char* buff = fv.c_str();
-  size_t size = fv.length();
+  size_t size = fv.size() - 1;  // Don't send the \0 in the C string
   // Force zero copy by providing a mem free function that does
   // nothing (ownership of buffer still belongs to the Message)
   zmq::message_t frame((void*)(buff), size, free_func);
@@ -148,12 +148,43 @@ void send(const FIX::FieldMap& map, zmq::socket_t& socket, int sendMore)
 static bool receive(zmq::socket_t & socket, std::string* output) {
   zmq::message_t message;
   socket.recv(&message);
+  LOG(INFO) << "unpacking " << message.data() << " size = " << message.size()
+            << std::endl;
+
   output->assign(static_cast<char*>(message.data()), message.size());
+
   int64_t more;           //  Multipart detection
   size_t more_size = sizeof (more);
   socket.getsockopt(ZMQ_RCVMORE, &more, &more_size);
-  LOG(INFO) << '"' << *output << '/' << more << '"' << std::endl;
   return more;
+}
+
+static bool parseField(const std::string& buff, IBAPI::Message& message)
+{
+  // parse the message string
+  size_t pos = buff.find('=');
+  if (pos != std::string::npos) {
+    int code = atoi(buff.substr(0, pos).c_str());
+    std::string value = buff.substr(pos+1);
+    LOG(INFO) << "Code: " << code
+              << ", Value: " << value
+              << " (" << value.length() << ")"
+              << std::endl;
+    switch (code) {
+      case FIX::FIELD::MsgType:
+      case FIX::FIELD::BeginString:
+      case FIX::FIELD::SendingTime:
+        message.getHeader().setField(code, value);
+        break;
+      case FIX::FIELD::Ext_SendingTimeMicros:
+      case FIX::FIELD::Ext_OrigSendingTimeMicros:
+        message.getTrailer().setField(code, value);
+      default:
+        message.setField(code, value);
+    }
+    return true;
+  }
+  return false;
 }
 
 TEST(MessageTest, ZmqSendTest)
@@ -162,14 +193,33 @@ TEST(MessageTest, ZmqSendTest)
 
   struct TestReader : SocketReader
   {
-    void operator()(zmq::socket_t& socket)
+    bool operator()(zmq::socket_t& socket)
     {
+      IBAPI::Message message;
       std::string buff;
-      bool more = receive(socket, &buff);
-      while (more) {
-        more = receive(socket, &buff);
+      bool status = false;
+      try {
+        while (receive(socket, &buff)) {
+          parseField(buff, message);
+        }
+        // Last line
+        parseField(buff, message);
+        boost::lock_guard<boost::mutex> lock(mutex);
+        messages.push_back(message);
+        hasReceivedMessage.notify_one();
+
+        LOG(INFO) << "Got the whole message" << std::endl;
+        status = true;
+      } catch (zmq::error_t e) {
+        LOG(WARNING) << "Got exception " << e.what() << std::endl;
+        status = false;
       }
+      return status;
     }
+
+    std::vector<IBAPI::Message> messages;
+    boost::mutex mutex;
+    boost::condition_variable hasReceivedMessage;
   } testReader;
 
   const std::string& addr = "inproc://ZmqSendTest";
@@ -185,6 +235,7 @@ TEST(MessageTest, ZmqSendTest)
   request.setField(IBAPI::SecurityType(IBAPI::SecurityType_COMMON_STOCK));
   request.setField(IBAPI::Symbol("GOOG"));
 
+  // Sending out message
   const IBAPI::Header& header = request.getHeader();
   send(header, client, ZMQ_SNDMORE);
   send(request, client, ZMQ_SNDMORE);
@@ -193,6 +244,34 @@ TEST(MessageTest, ZmqSendTest)
   trailer.getField(sendingTimeMicros);
   send(sendingTimeMicros, client, 0); // END
 
+  // Waiting for the other side to receive it.
+  boost::unique_lock<boost::mutex> lock(testReader.mutex);
+  testReader.hasReceivedMessage.wait(lock);
+
+  IBAPI::Message message = testReader.messages.front();
+  for (FIX::FieldMap::iterator itr = message.begin();
+       itr != message.end();
+       ++itr) {
+    LOG(INFO) << "Got message field " << itr->second.getString() << std::endl;
+  }
+
+  IBAPI::MsgType msgType1;
+  request.getHeader().getField(msgType1);
+  IBAPI::MsgType msgType2;
+  message.getHeader().getField(msgType2);
+
+  EXPECT_EQ(msgType1.getString(), "MarketDataRequest");
+  EXPECT_EQ(msgType1.getString(), msgType2.getString());
+
+
+  LOG(INFO) << "Len = " << msgType1.getString().length()
+            << ", " << msgType2.getString().length() << std::endl;
+
+  IBAPI::Symbol symbol;
+  message.getField(symbol);
+  EXPECT_EQ(symbol.getString(), "GOOG");
+
+  LOG(INFO) << "Stopping responder." << std::endl;
   responder.stop();
 }
 

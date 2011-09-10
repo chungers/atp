@@ -3,6 +3,9 @@
 
 #include <zmq.hpp>
 
+#include "common.hpp"
+
+
 namespace atp {
 namespace zmq {
 
@@ -13,7 +16,11 @@ class ZmqMessage
 {
 
  public:
-  ZmqMessage(::zmq::socket_t& socket) :  socket_(socket) {}
+
+  typedef int64 timestamp;
+
+  ZmqMessage(::zmq::socket_t& socket) :
+      socket_(socket), timestamp_(now_micros()) {}
   ~ZmqMessage() {}
 
   /// Decodes the bytes from the Zmq socket and heap allocates
@@ -23,6 +30,11 @@ class ZmqMessage
   /// Given a constant value of type T, encode the
   virtual bool send(const V& source) = 0;
 
+  timestamp getTimestamp()
+  {
+    return timestamp_;
+  }
+
  protected:
   template <typename T> bool frame(const T& data);
   template <typename T> bool last(const T& data);
@@ -30,6 +42,7 @@ class ZmqMessage
 
  private:
   ::zmq::socket_t& socket_;
+  timestamp timestamp_;
 };
 
 } // zmq

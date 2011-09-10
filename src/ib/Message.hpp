@@ -14,12 +14,17 @@ namespace IBAPI {
 
 class Header : public FIX::FieldMap {
  public:
-  Header(const std::string& msgType)
+  Header() {}
+
+  Header(const std::string& version,
+         const std::string& msgType)
   {
     setField(IBAPI::MsgType(msgType));
+    setField(IBAPI::BeginString(version));
   }
 
   FIELD_SET(*this, IBAPI::MsgType);
+  FIELD_SET(*this, IBAPI::BeginString);
   FIELD_SET(*this, IBAPI::SendingTime);
 };
 
@@ -39,14 +44,16 @@ class Trailer : public FIX::FieldMap {
 class Message : public FIX::FieldMap
 {
  public:
-  Message(const std::string& msgType) : header_(msgType)
+  Message() {}
+  Message(const std::string& version,
+          const std::string& msgType) : header_(version, msgType)
   {
   }
 
-  const Header& getHeader()
+  Header& getHeader()
   { return header_; }
 
-  const Trailer& getTrailer()
+  Trailer& getTrailer()
   { return trailer_; }
 
  protected:

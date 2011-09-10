@@ -24,6 +24,7 @@ using namespace FIX;
 /// Where possbile, existing FIX fields are used.
 namespace IBAPI {
 
+DEFINE_STRING(BeginString);
 DEFINE_STRING(MsgType);
 DEFINE_STRING(SendingTime);
 
