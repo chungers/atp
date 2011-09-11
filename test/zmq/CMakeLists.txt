@@ -17,7 +17,7 @@ set(ZmqTestSuite_incs
 )
 set(ZmqTestSuite_srcs
   AllTests.cpp
-  ZmqMessageTest.cpp
+  ResponderTest.cpp
 )
 set(ZmqTestSuite_libs
   IBAPIConnector

@@ -130,7 +130,9 @@ void send(const FIX::FieldBase& f, zmq::socket_t& socket, int sendMore)
   LOG(INFO) << "Sending [" << f.getValue() << "]" << std::endl;
   const std::string& fv = f.getValue();
   const char* buff = fv.c_str();
-  size_t size = fv.size() - 1;  // Don't send the \0 in the C string
+  // FIX field pads an extra '\001' byte.  In the case of zmq, we don't
+  // send this extra byte.  (see http://goo.gl/EBDDi#L113)
+  size_t size = fv.size() - 1;
   // Force zero copy by providing a mem free function that does
   // nothing (ownership of buffer still belongs to the Message)
   zmq::message_t frame((void*)(buff), size, free_func);

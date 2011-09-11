@@ -9,38 +9,37 @@
 namespace atp {
 namespace zmq {
 
-
-template <typename T>
-inline static bool frame(::zmq::socket_t & socket, const T& data, bool last) {
-  ::zmq::message_t message(sizeof(T));
-  memcpy(message.data(), reinterpret_cast<const void*>(&data), sizeof(T));
-  bool rc = socket.send(message, last ? 0 : ZMQ_SNDMORE);
-  return (rc);
+void mem_free(void* mem, void* mem2)
+{
+  VLOG(VLOG_LEVEL_ZMQ_MEM_FREE) << "Freeing memory: " << mem
+                                 << ", " << mem2 << std::endl;
 }
 
-template <typename T>
-inline static bool frame(::zmq::socket_t & socket, const T& data) {
-  return frame(socket, data, false);
-}
-
-template <typename T>
-inline static bool last(::zmq::socket_t & socket, const T& data) {
-  return frame(socket, data, true);
-}
-
-template <typename T>
-inline static bool receive(::zmq::socket_t & socket, T& output) {
+inline static bool receive(::zmq::socket_t & socket, std::string* output) {
   ::zmq::message_t message;
   socket.recv(&message);
-
-  // reinterpret_cast if necessary...
-  memcpy(static_cast<void *>(&output), message.data(), sizeof(T));
+  output->assign(static_cast<char*>(message.data()), message.size());
   int64_t more;           //  Multipart detection
   size_t more_size = sizeof (more);
   socket.getsockopt(ZMQ_RCVMORE, &more, &more_size);
-  VLOG(VLOG_LEVEL_ZMQ_MESSAGE)
-      << '[' << output << '/' << more << ']' << std::endl;
   return more;
+}
+
+/// Special zero copy send.  This uses a dummy memory free function.  Note
+/// the ownership of the data buffer belongs to the input string. The input
+/// string needs to be alive long enough for the network call to send to occur.
+inline static int zero_copy_send(::zmq::socket_t& socket,
+                                 const std::string& input,
+                                 bool sendMore = false)
+{
+  const char* buff = input.c_str();
+  size_t size = input.size();
+  // Force zero copy by providing a mem free function that does
+  // nothing (ownership of buffer still belongs to the input)
+  ::zmq::message_t frame((void*)(buff), size, mem_free);
+  int more = (sendMore) ? ZMQ_SNDMORE : 0;
+  socket.send(frame, more);
+  return size;
 }
 
 

@@ -8,7 +8,7 @@ set(ZmqComponents_incs
   ${SRC_DIR}
 )
 set(ZmqComponents_srcs
-  ZmqMessage.cpp
+  Responder.cpp
 )
 set(ZmqComponents_libs
   boost_system
