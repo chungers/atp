@@ -13,8 +13,10 @@
 #include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
+#include <ql/quantlib.hpp>
 
 #include "ib/GenericTickRequest.hpp"
+
 
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
@@ -24,6 +26,7 @@
 
 using namespace ib::internal;
 using namespace IBAPI;
+using namespace QuantLib;
 
 /// How many seconds max to wait for certain data before timing out.
 const int MAX_WAIT = 20;
@@ -291,7 +294,21 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   c.secType = "OPT";
   c.exchange = "SMART";
   c.currency = "USD";
-  c.expiry = FormatOptionExpiry(2011, 8, 26);
+
+  // Determine the contract expiration == the friday from this date.
+  using QuantLib::Date;
+  Date today = Date::todaysDate();
+  Date nextFriday = Date::nextWeekday(today, QuantLib::Friday);
+
+  LOG(INFO) << "Expiration Year=" << nextFriday.year()
+            << ", Month = " << nextFriday.month()
+            << ", Day = " << nextFriday.dayOfMonth()
+            << ", day of week = " << nextFriday.weekday()
+            << std::endl;
+
+  c.expiry = FormatOptionExpiry(nextFriday.year(),
+                                nextFriday.month(),
+                                nextFriday.dayOfMonth());
   c.right = "C"; // call - P for put
 
   int requestId = 1000; // Not a ticker id.  This is just a request id.

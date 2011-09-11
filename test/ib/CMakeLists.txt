@@ -27,6 +27,8 @@ set(IBTestSuite_srcs
 )
 set(IBTestSuite_libs
   IBAPIConnector
+  Quantlib
+  zmq
 )
 cpp_gtest(IBTestSuite)
 
@@ -45,6 +47,7 @@ set(AsioEClientSocket_test_srcs
 )
 set(AsioEClientSocket_test_libs
   IBAPIConnector
+  Quantlib
 )
 cpp_gtest(AsioEClientSocket_test)
 
