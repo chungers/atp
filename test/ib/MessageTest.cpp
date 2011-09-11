@@ -100,6 +100,7 @@ class Responder
   {
     boost::unique_lock<boost::mutex> lock(mutex_);
     running_ = false;
+    socket_.close();
     thread_->join();
   }
 
