@@ -26,7 +26,6 @@ class Responder
   ~Responder();
 
   const std::string& addr();
-  bool ready();
 
  protected:
 
