@@ -36,7 +36,6 @@ list(APPEND emacs_includes
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
   ${IBAPI_ROOT}/PosixSocketClient
-  ${QUICKFIX_ROOT}
 )
 
 list(APPEND emacs_sys_includes

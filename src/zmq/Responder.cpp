@@ -8,35 +8,30 @@
 
 #include "utils.hpp"
 #include "common.hpp"
-
 #include "zmq/Responder.hpp"
+
+#define LOGGER VLOG(VLOG_LEVEL_ZMQ_RESPONDER)
 
 namespace atp {
 namespace zmq {
 
-void free_func(void* mem, void* mem2)
-{
-  VLOG(VLOG_LEVEL_ZMQ_RESPONDER) << "Freeing memory: " << mem
-                                 << ", " << mem2 << std::endl;
-}
 
-#define LOGGER VLOG(VLOG_LEVEL_ZMQ_RESPONDER)
+void free_func(void* mem, void* hint)
+{
+  LOGGER << "Freeing memory at " << mem
+         << ", hint=" << hint << std::endl;
+}
 
 Responder::Responder(const string& addr,
                      SocketReader& reader,
                      SocketWriter& writer) :
-    context_(1),
-    socket_(context_, ZMQ_REP),
-    running_(false),
+    addr_(addr),
+    //context_(1),
     reader_(reader),
     writer_(writer) {
-
-  socket_.bind(addr.c_str());
   // start thread
   thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
       boost::bind(&Responder::process, this)));
-  running_ = true;
-
   LOG(INFO) << "Started responder. " << std::endl;
 }
 
@@ -44,40 +39,25 @@ Responder::~Responder()
 {
 }
 
-
-::zmq::context_t& Responder::context()
+const std::string& Responder::addr()
 {
-  return context_;
-}
-
-void Responder::stop()
-{
-  boost::unique_lock<boost::mutex> lock(mutex_);
-  running_ = false;
-  LOG(INFO) << "Closing socket" << std::endl;
-  socket_.close();
-  LOG(INFO) << "Joining thread" << std::endl;
-  thread_->join();
+  return addr_;
 }
 
 void Responder::process()
 {
-  bool readOk = true;
-  bool writeOk = true;
-  while (running_) {
-    readOk = reader_(socket_);
-    LOG(INFO) << "Read was " << readOk << std::endl;
-    if (readOk) {
-      writeOk = writer_(socket_);
-      LOG(INFO) << "Write was " << writeOk << std::endl;
-      if (!writeOk) {
-        break;
-      }
-    } else {
-      break;
-    }
-    LOG(INFO) << "running=" << running_ << std::endl;
-  }
+  // Note that the context and socket are all local variables.
+  // This is because this method is running in a separate thread
+  // from the caller of the constructor, and we want to dedicate
+  // one context and one socket per thread while making them
+  // hidden from the caller.  In general, we don't want to create
+  // context and socket in one thread and then have another thread
+  // receiving or sending on them.
+  ::zmq::context_t context(1);
+  ::zmq::socket_t socket(context, ZMQ_REP);
+  socket.bind(addr_.c_str());
+  LOG(INFO) << "Listening: " << addr_ << std::endl;
+  while (reader_(socket) && writer_(socket)) {}
   LOG(ERROR) << "Responder listening thread stopped." << std::endl;
 }
 

@@ -24,10 +24,7 @@ class Responder
             SocketWriter& writer);
   ~Responder();
 
-  /// The current zmq context
-  ::zmq::context_t& context();
-
-  void stop();
+  const std::string& addr();
 
  protected:
 
@@ -35,9 +32,7 @@ class Responder
   void process();
 
  private:
-  ::zmq::context_t context_;
-  ::zmq::socket_t socket_;
-  bool running_;
+  const std::string& addr_;
   boost::shared_ptr<boost::thread> thread_;
   SocketReader& reader_;
   SocketWriter& writer_;
