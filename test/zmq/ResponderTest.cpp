@@ -37,10 +37,12 @@ struct TestReader : SocketReader
       message.push_back(buff);
       boost::lock_guard<boost::mutex> lock(mutex);
       messages.push_back(message);
+      LOGGER << "Total messages received: " << messages.size() << std::endl;
+
       if (messages.size() == howMany) {
+        LOGGER << "Notifying blockers." << std::endl;
         hasReceivedMessage.notify_one();
       }
-      LOGGER << "Total messages received: " << messages.size() << std::endl;
       status = true;
     } catch (zmq::error_t e) {
       LOG(WARNING) << "Got exception " << e.what() << std::endl;
@@ -60,7 +62,7 @@ struct TestWriter : SocketWriter {
   bool operator()(zmq::socket_t& socket)
   {
     std::string ok("OK");
-    size_t sent = atp::zmq::zero_copy_send(socket , ok);
+    size_t sent = atp::zmq::send_zero_copy(socket , ok);
     LOGGER << "Sent reply" << std::endl;
     return sent == ok.length();
   }
@@ -88,7 +90,7 @@ TEST(ResponderTest, SimpleIPCSendReceiveTest)
   oss << "This is a test";
 
   std::string message = oss.str();  // copies the return value of oss
-  atp::zmq::zero_copy_send(client, message);
+  atp::zmq::send_zero_copy(client, message);
 
   // Waiting for the other side to receive it.
   boost::unique_lock<boost::mutex> lock(testReader.mutex);
@@ -112,14 +114,15 @@ TEST(ResponderTest, IPCMultiSendReceiveTest)
 {
   LOGGER << "Current TimeMicros = " << now_micros() << std::endl;
 
-  int messages = 20;
+  int messages = 5000;
   TestReader testReader(messages);
   TestWriter testWriter;
 
   const std::string& addr = atp::zmq::EndPoint::ipc("test2");
 
-  // Immediately starts a listening thread at the given address.
   Responder responder(addr, testReader, testWriter);
+
+  sleep(1);
 
   LOGGER << "Starting client." << std::endl;
   zmq::context_t context(1);
@@ -134,29 +137,32 @@ TEST(ResponderTest, IPCMultiSendReceiveTest)
   ASSERT_FALSE(exception);
   LOGGER << "Client connected." << std::endl;
 
-  std::vector<std::string*> sent;
+  std::vector<std::string> sent;
   for (int i = 0; i < messages; ++i) {
     std::ostringstream oss;
     oss << "Message-" << i;
 
-    std::string* message = new std::string(oss.str());
-    sent.push_back(message);
-  }
-
-  for (int i = 0; i < messages; ++i) {
+    std::string message(oss.str());
     bool exception = false;
     try {
-      LOGGER << "Sending message " << *sent[i] << std::endl;
-      atp::zmq::zero_copy_send(client, *sent[i]);
+      LOGGER << "Sending message " << message << std::endl;
+      atp::zmq::send_zero_copy(client, message);
+
+      std::string reply;
+      atp::zmq::receive(client, &reply);
+
+      LOGGER << "Reply = " << reply << std::endl;
+      ASSERT_EQ("OK", reply);
+
     } catch (zmq::error_t e) {
       LOG(ERROR) << "Exception: " << e.what() << std::endl;
       exception = true;
     }
     ASSERT_FALSE(exception);
+    sent.push_back(message);
   }
-  // Waiting for the other side to receive it.
-  boost::unique_lock<boost::mutex> lock(testReader.mutex);
-  testReader.hasReceivedMessage.wait(lock);
+
+  LOGGER << "Finished sending." << std::endl;
 
   EXPECT_EQ(messages, testReader.messages.size());
 
@@ -164,7 +170,7 @@ TEST(ResponderTest, IPCMultiSendReceiveTest)
   for (std::vector<Message>::iterator itr = testReader.messages.begin();
        itr != testReader.messages.end();
        ++itr) {
-    EXPECT_EQ(*sent[i++], itr->at(0));
+    EXPECT_EQ(sent[i++], itr->at(0));
   }
 
 }

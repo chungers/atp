@@ -26,9 +26,9 @@ Responder::Responder(const string& addr,
                      SocketReader& reader,
                      SocketWriter& writer) :
     addr_(addr),
-    //context_(1),
     reader_(reader),
-    writer_(writer) {
+    writer_(writer)
+{
   // start thread
   thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
       boost::bind(&Responder::process, this)));
@@ -44,6 +44,7 @@ const std::string& Responder::addr()
   return addr_;
 }
 
+
 void Responder::process()
 {
   // Note that the context and socket are all local variables.
@@ -56,9 +57,11 @@ void Responder::process()
   ::zmq::context_t context(1);
   ::zmq::socket_t socket(context, ZMQ_REP);
   socket.bind(addr_.c_str());
-  LOG(INFO) << "Listening: " << addr_ << std::endl;
+  LOG(INFO) << "ZMQ_REP listening @ " << addr_ << std::endl;
+
   while (reader_(socket) && writer_(socket)) {}
   LOG(ERROR) << "Responder listening thread stopped." << std::endl;
+
 }
 
 

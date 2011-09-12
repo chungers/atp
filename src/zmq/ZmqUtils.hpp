@@ -2,6 +2,7 @@
 #define ATP_ZMQ_UTILS_H_
 
 #include <iostream>
+#include <stdio.h>
 #include <string>
 #include <zmq.hpp>
 
@@ -50,9 +51,9 @@ inline static bool receive(::zmq::socket_t & socket, std::string* output) {
 /// Special zero copy send.  This uses a dummy memory free function.  Note
 /// the ownership of the data buffer belongs to the input string. The input
 /// string needs to be alive long enough for the network call to send to occur.
-inline static int zero_copy_send(::zmq::socket_t& socket,
-                                 const std::string& input,
-                                 bool sendMore = false)
+inline static size_t send_zero_copy(::zmq::socket_t& socket,
+                                    const std::string& input,
+                                    bool sendMore = false)
 {
   const char* buff = input.c_str();
   size_t size = input.size();
@@ -64,6 +65,20 @@ inline static int zero_copy_send(::zmq::socket_t& socket,
   return size;
 }
 
+
+/// Send by memcpy.  This doesn't avoid the cost of memcpy but is safer
+/// because the buffer is copied to the zmq message buffer.
+inline static size_t send_copy(::zmq::socket_t& socket,
+                               const std::string& input,
+                               bool sendMore = false)
+{
+  size_t size = input.size();
+  ::zmq::message_t frame(size);
+  memcpy(frame.data(), input.data(), size);
+  int more = (sendMore) ? ZMQ_SNDMORE : 0;
+  socket.send(frame, more);
+  return size;
+}
 
 } // zmq
 } // atp

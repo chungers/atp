@@ -17,14 +17,16 @@ struct SocketWriter : NoCopyAndAssign {
   virtual bool operator()(::zmq::socket_t& socket) = 0;
 };
 
+/// By definition, a responder is required to send a reply to the
+/// client on receiving the message.  This uses the ZMQ_REP / ZMQ_REQ pair.
 class Responder
 {
  public:
-  Responder(const string& addr, SocketReader& reader,
-            SocketWriter& writer);
+  Responder(const string& addr, SocketReader& reader, SocketWriter& writer);
   ~Responder();
 
   const std::string& addr();
+  bool ready();
 
  protected:
 
@@ -36,7 +38,6 @@ class Responder
   boost::shared_ptr<boost::thread> thread_;
   SocketReader& reader_;
   SocketWriter& writer_;
-  boost::mutex mutex_;
 };
 
 
