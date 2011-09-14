@@ -15,13 +15,6 @@
 namespace atp {
 namespace zmq {
 
-
-void free_func(void* mem, void* hint)
-{
-  LOGGER << "Freeing memory at " << mem
-         << ", hint=" << hint << std::endl;
-}
-
 Responder::Responder(const string& addr,
                      SocketReader& reader,
                      SocketWriter& writer) :
@@ -59,7 +52,7 @@ void Responder::process()
   socket.bind(addr_.c_str());
   LOG(INFO) << "ZMQ_REP listening @ " << addr_ << std::endl;
 
-  while (reader_(socket) && writer_(socket)) {}
+  while (reader_.receive(socket) && writer_.send(socket)) {}
   LOG(ERROR) << "Responder listening thread stopped." << std::endl;
 
 }

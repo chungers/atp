@@ -21,6 +21,7 @@ set(IBTestSuite_incs
 set(IBTestSuite_srcs
   AllTests.cpp
   AsioEClientSocketTest.cpp
+  SocketConnectorTest.cpp
   SocketInitiatorTest.cpp
   UtilsTest.cpp
   ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
@@ -67,6 +68,23 @@ set(SocketInitiator_test_libs
   IBAPIConnector
 )
 cpp_gtest(SocketInitiator_test)
+
+# SocketConnector test
+set(SocketConnector_test_incs
+  ${IBAPI_ROOT}
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${IBAPI_IMPL_DIR}
+  ${TEST_DIR}
+)
+set(SocketConnector_test_srcs
+  AllTests.cpp
+  SocketConnectorTest.cpp
+)
+set(SocketConnector_test_libs
+  IBAPIConnector
+)
+cpp_gtest(SocketConnector_test)
 
 # Message test
 set(Message_test_incs

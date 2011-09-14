@@ -23,7 +23,7 @@ typedef std::vector<std::string> Message;
 struct TestReader : SocketReader
 {
   TestReader(size_t howMany = 1) : howMany(howMany) {}
-  bool operator()(zmq::socket_t& socket)
+  bool receive(zmq::socket_t& socket)
   {
     Message message;
     std::string buff;
@@ -59,7 +59,7 @@ struct TestReader : SocketReader
 
 struct TestWriter : SocketWriter {
 
-  bool operator()(zmq::socket_t& socket)
+  bool send(zmq::socket_t& socket)
   {
     std::string ok("OK");
     size_t sent = atp::zmq::send_zero_copy(socket , ok);

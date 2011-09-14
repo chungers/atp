@@ -72,26 +72,6 @@ class TestStrategy : public IBAPI::StrategyBase, public TestHarnessBase<Event>
   }
 };
 
-/// Basic test for establishing connections.
-TEST(SocketInitiatorTest, SingleSocketConnectorTest)
-{
-  TestApplication app;
-  TestStrategy strategy;
-
-  SocketConnector socketConnector(app, 10);
-
-  int clientId = 1;
-  int status = socketConnector.connect("127.0.0.1", 4001, clientId,
-                                       &strategy);
-
-  EXPECT_EQ(status, clientId);
-  EXPECT_EQ(strategy.getCount(ON_CONNECT), 1);
-
-  app.waitForFirstOccurrence(ON_LOGON, 10);
-
-  EXPECT_EQ(app.getCount(ON_LOGON), 1);
-}
-
 
 TEST(SocketInitiatorTest, SocketInitiatorStartTest)
 {

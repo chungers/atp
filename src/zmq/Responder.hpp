@@ -10,11 +10,11 @@ namespace zmq {
 
 
 struct SocketReader : NoCopyAndAssign {
-  virtual bool operator()(::zmq::socket_t& socket) = 0;
+  virtual bool receive(::zmq::socket_t& socket) = 0;
 };
 
 struct SocketWriter : NoCopyAndAssign {
-  virtual bool operator()(::zmq::socket_t& socket) = 0;
+  virtual bool send(::zmq::socket_t& socket) = 0;
 };
 
 /// By definition, a responder is required to send a reply to the

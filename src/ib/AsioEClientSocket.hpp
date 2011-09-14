@@ -31,6 +31,8 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
   explicit AsioEClientSocket(boost::asio::io_service& ioService,
                              EWrapper& wrapper);
 
+  ~AsioEClientSocket();
+
   /// @overload EClientSocketBase
   bool eConnect(const char *host, unsigned int port, int clientId=0);
 

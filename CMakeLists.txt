@@ -38,9 +38,8 @@ list(APPEND emacs_includes
   ${IBAPI_ROOT}/PosixSocketClient
 )
 
-list(APPEND emacs_sys_includes
-#  ${THIRD_PARTY_DIR}
-)
+#list(APPEND emacs_sys_includes
+#)
 emacs_ide_project("${emacs_includes}" "${emacs_sys_includes}")
 
 # Use the api version defined in the top level cmake file:

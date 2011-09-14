@@ -11,28 +11,28 @@
 namespace atp {
 namespace zmq {
 
-  struct EndPoint {
-    static std::string inproc(const std::string& name)
-    {
-      return "inproc://" + name;
-    }
+struct EndPoint {
+  static std::string inproc(const std::string& name)
+  {
+    return "inproc://" + name;
+  }
 
-    static std::string ipc(const std::string& name) 
-    {
-      return "ipc://" + name;
-    }
+  static std::string ipc(const std::string& name)
+  {
+    return "ipc://" + name;
+  }
 
-    /// As of ZMQ 2.1.7, hostname must be resolvable (not '*')
-    static std::string tcp(int port, const std::string& host="localhost")
-    {
-      std::ostringstream oss;
-      oss << "tcp://" << host << ":" << port;
-      return oss.str();
-    }
-  };
+  /// As of ZMQ 2.1.7, hostname must be resolvable (not '*')
+  static std::string tcp(int port, const std::string& host="localhost")
+  {
+    std::ostringstream oss;
+    oss << "tcp://" << host << ":" << port;
+    return oss.str();
+  }
+};
 
 
-void mem_free(void* mem, void* mem2)
+static void mem_free(void* mem, void* mem2)
 {
   VLOG(VLOG_LEVEL_ZMQ_MEM_FREE) << "Freeing memory: " << mem
                                  << ", " << mem2 << std::endl;
