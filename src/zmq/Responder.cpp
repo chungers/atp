@@ -33,7 +33,7 @@ Responder::Responder(const string& addr,
     isReady_.wait(lock);
   }
 
-  LOG(INFO) << "Responder is ready. " << std::endl;
+  LOG(INFO) << "Responder is ready." << std::endl;
 }
 
 Responder::~Responder()
