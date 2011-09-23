@@ -37,6 +37,9 @@ class Responder
   boost::shared_ptr<boost::thread> thread_;
   SocketReader& reader_;
   SocketWriter& writer_;
+  bool ready_;
+  boost::mutex mutex_;
+  boost::condition_variable isReady_;
 };
 
 

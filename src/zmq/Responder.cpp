@@ -20,12 +20,20 @@ Responder::Responder(const string& addr,
                      SocketWriter& writer) :
     addr_(addr),
     reader_(reader),
-    writer_(writer)
+    writer_(writer),
+    ready_(false)
 {
   // start thread
   thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
       boost::bind(&Responder::process, this)));
-  LOG(INFO) << "Started responder. " << std::endl;
+
+  // Wait here for the connection to be ready.
+  boost::unique_lock<boost::mutex> lock(mutex_);
+  while (!ready_) {
+    isReady_.wait(lock);
+  }
+
+  LOG(INFO) << "Responder is ready. " << std::endl;
 }
 
 Responder::~Responder()
@@ -52,9 +60,14 @@ void Responder::process()
   socket.bind(addr_.c_str());
   LOG(INFO) << "ZMQ_REP listening @ " << addr_ << std::endl;
 
+  {
+    boost::lock_guard<boost::mutex> lock(mutex_);
+    ready_ = true;
+  }
+  isReady_.notify_all();
+
   while (reader_.receive(socket) && writer_.send(socket)) {}
   LOG(ERROR) << "Responder listening thread stopped." << std::endl;
-
 }
 
 

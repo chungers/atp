@@ -18,6 +18,7 @@
 #include "ib/EWrapperFactory.hpp"
 #include "ib/SessionSetting.hpp"
 #include "ib/SocketConnector.hpp"
+#include "ib/SocketConnectorImpl.hpp"
 #include "ib/SocketInitiator.hpp"
 
 #include "ib/TestHarness.hpp"
@@ -76,17 +77,20 @@ class TestStrategy : public IBAPI::StrategyBase, public TestHarnessBase<Event>
 };
 
 /// Basic test for instantiation and destroy
-TEST(SocketConnectorTest, InstantiationTest)
+TEST(SocketConnectorTest, SocketConnectorImplTest)
 {
   TestApplication app;
   TestStrategy strategy;
 
-  SocketConnector socketConnector(app, 10);
+  const string& bindAddr = "ipc://SocketConnectorImplTest";
+
+  ib::internal::SocketConnectorImpl socketConnector(
+      app, 10, bindAddr);
 
   // Client
   zmq::context_t context(1);
   zmq::socket_t client(context, ZMQ_REQ);
-  client.connect("ipc://connector1");
+  client.connect(bindAddr.c_str());
 
   size_t messages = 5000;
   for (unsigned int i = 0; i < messages; ++i) {
@@ -110,14 +114,14 @@ TEST(SocketConnectorTest, InstantiationTest)
   }
 }
 
-TEST(SocketConnectorTest, DISABLED_ConnectionTest)
+TEST(SocketConnectorTest, SocketConnectorImplConnectionTest)
 {
   TestApplication app;
   TestStrategy strategy;
 
-  SocketConnector socketConnector(app, 10);
+  const string& bindAddr = "ipc://SocketConnectorImplConnectionTest";
 
-  sleep(5);
+  ib::internal::SocketConnectorImpl socketConnector(app, 10, bindAddr);
 
   int clientId = 1;
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,
