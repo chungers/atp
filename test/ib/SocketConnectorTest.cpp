@@ -96,6 +96,11 @@ TEST(SocketConnectorTest, SocketConnectorImplTest)
 
   LOG(INFO) << "Client connected."  << std::endl;
 
+  int status = socketConnector.connect("127.0.0.1", 4001, 0,
+                                       &strategy);
+  EXPECT_EQ(0, status); // Expected, actual
+  EXPECT_EQ(1, strategy.getCount(ON_CONNECT));
+
   size_t messages = 5000;
   for (unsigned int i = 0; i < messages; ++i) {
     std::ostringstream oss;
