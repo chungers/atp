@@ -36,18 +36,20 @@ namespace internal {
 
 static const std::string& OK = "OK";
 
-class ZmqHandler : public atp::zmq::Responder::Strategy
+
+class EClientAdapter : public atp::zmq::Responder::Strategy
 {
  public:
 
-  ZmqHandler() {}
-  ~ZmqHandler() {}
+  EClientAdapter() {}
+  ~EClientAdapter() {}
 
   bool respond(zmq::socket_t& socket)
   {
-    if (eclientSocket_.get() != 0 && !eclientSocket_->isConnected()) {
+    if (eclientSocket_.get() == 0 || !eclientSocket_->isConnected()) {
       return true; // No-op -- don't read the messages from socket yet.
     }
+
     // Now we are connected.  Process the received messages.
     std::string msg;
     int more = atp::zmq::receive(socket, &msg);
@@ -75,6 +77,8 @@ class ZmqHandler : public atp::zmq::Responder::Strategy
 
 
 
+
+
 class SocketConnectorImpl {
 
  public:
@@ -82,8 +86,8 @@ class SocketConnectorImpl {
                       const string& bindAddress) :
       app_(app),
       timeoutSeconds_(timeout),
-      zmqHandler_(),
-      responder_(bindAddress, zmqHandler_),
+      eClientAdapter_(),
+      responder_(bindAddress, eClientAdapter_),
       socketConnector_(NULL)
   {
   }
@@ -123,35 +127,34 @@ class SocketConnectorImpl {
     // Start a new socket.
     boost::lock_guard<boost::mutex> lock(mutex_);
 
+    // If shared pointer hasn't been set, alloc new socket.
     if (socket_.get() == 0) {
       socket_ = boost::shared_ptr<AsioEClientSocket>(
           new AsioEClientSocket(ioService_, *ew));
     }
 
+    int64 start = now_micros();
     socket_->eConnect(host.c_str(), port, clientId);
 
-    // Spin until connected.
+    // Spin until connected.  This is the part where some handshake
+    // occurs with the IB gateway.
     int64 limit = timeoutSeconds_ * 1000000;
-    int64 start = now_micros();
     while (!socket_->isConnected() && now_micros() - start < limit) {}
 
-    int64 elapsed = now_micros() - start;
-    CONNECTOR_IMPL_LOGGER
-        << "Connected in " << elapsed << " microseconds." << std::endl;
-
-    int result;
     if (socket_->isConnected()) {
+      int64 elapsed = now_micros() - start;
+      CONNECTOR_IMPL_LOGGER
+          << "Connected in " << elapsed << " microseconds." << std::endl;
+
+      // Set up the handler
+      eClientAdapter_.setSink(socket_);
+
       strategy->onConnect(*socketConnector_, clientId);
-      result = clientId;
+      return clientId;
     } else {
       strategy->onTimeout(*socketConnector_);
-      result = -1;
+      return -1;
     }
-
-    // Set up the handler
-    zmqHandler_.setSink(socket_);
-
-    return result;
   }
 
  private:
@@ -162,7 +165,7 @@ class SocketConnectorImpl {
   boost::shared_ptr<AsioEClientSocket> socket_;
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
-  ZmqHandler zmqHandler_;
+  EClientAdapter eClientAdapter_;
   atp::zmq::Responder responder_;
 
  protected:

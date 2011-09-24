@@ -127,8 +127,8 @@ TEST(SocketConnectorTest, SocketConnectorImplConnectionTest)
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,
                                        &strategy);
 
-  EXPECT_EQ(status, clientId);
-  EXPECT_EQ(strategy.getCount(ON_CONNECT), 1);
+  EXPECT_EQ(clientId, status); // Expected, actual
+  EXPECT_EQ(1, strategy.getCount(ON_CONNECT));
 
   LOG(INFO) << "Checked on_connect = " << strategy.getCount(ON_CONNECT)
             << std::endl;
