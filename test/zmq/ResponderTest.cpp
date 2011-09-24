@@ -20,10 +20,11 @@ typedef std::vector<std::string> Message;
 #define LOGGER VLOG(20)
 
 
-struct TestReader : SocketReader
+struct TestStrategy : Responder::Strategy
 {
-  TestReader(size_t howMany = 1) : howMany(howMany) {}
-  bool receive(zmq::socket_t& socket)
+  TestStrategy(size_t howMany = 1) : howMany(howMany), reply_("") {}
+
+  bool respond(zmq::socket_t& socket)
   {
     Message message;
     std::string buff;
@@ -44,6 +45,13 @@ struct TestReader : SocketReader
         hasReceivedMessage.notify_one();
       }
       status = true;
+
+      reply_ = "OK";
+      size_t sent = atp::zmq::send_zero_copy(socket , reply_);
+      LOGGER << "Sent reply: " << reply_ << std::endl;
+
+      return sent == reply_.length();
+
     } catch (zmq::error_t e) {
       LOG(WARNING) << "Got exception " << e.what() << std::endl;
       status = false;
@@ -55,17 +63,9 @@ struct TestReader : SocketReader
   std::vector<Message> messages;
   boost::mutex mutex;
   boost::condition_variable hasReceivedMessage;
-};
 
-struct TestWriter : SocketWriter {
-
-  bool send(zmq::socket_t& socket)
-  {
-    std::string ok("OK");
-    size_t sent = atp::zmq::send_zero_copy(socket , ok);
-    LOGGER << "Sent reply" << std::endl;
-    return sent == ok.length();
-  }
+  // Storage for reply must be beyond temporary alloc from stack.
+  std::string reply_;
 };
 
 TEST(ResponderTest, SimpleIPCSendReceiveTest)
@@ -73,12 +73,12 @@ TEST(ResponderTest, SimpleIPCSendReceiveTest)
   LOGGER << "Current TimeMicros = " << now_micros() << std::endl;
 
   int messages = 1;
-  TestReader testReader(messages);
-  TestWriter testWriter;
+  TestStrategy testStrategy(messages);
+
 
   const std::string& addr = atp::zmq::EndPoint::ipc("test1");
   // Immediately starts a listening thread at the given address.
-  Responder responder(addr, testReader, testWriter);
+  Responder responder(addr, testStrategy);
 
   // For inproc endpoint, we need to use a shared context. Otherwise, the
   // program will crash.
@@ -93,12 +93,12 @@ TEST(ResponderTest, SimpleIPCSendReceiveTest)
   atp::zmq::send_zero_copy(client, message);
 
   // Waiting for the other side to receive it.
-  boost::unique_lock<boost::mutex> lock(testReader.mutex);
-  testReader.hasReceivedMessage.wait(lock);
+  boost::unique_lock<boost::mutex> lock(testStrategy.mutex);
+  testStrategy.hasReceivedMessage.wait(lock);
 
-  Message received = testReader.messages.front();
+  Message received = testStrategy.messages.front();
   ASSERT_EQ(message, received[0]);
-  ASSERT_EQ(messages, testReader.messages.size());
+  ASSERT_EQ(messages, testStrategy.messages.size());
 
   LOGGER << "Checking the response" << std::endl;
   // Read the response
@@ -115,12 +115,11 @@ TEST(ResponderTest, IPCMultiSendReceiveTest)
   LOGGER << "Current TimeMicros = " << now_micros() << std::endl;
 
   int messages = 5000;
-  TestReader testReader(messages);
-  TestWriter testWriter;
+  TestStrategy testStrategy(messages);
 
   const std::string& addr = atp::zmq::EndPoint::ipc("test2");
 
-  Responder responder(addr, testReader, testWriter);
+  Responder responder(addr, testStrategy);
 
   sleep(1);
 
@@ -164,11 +163,11 @@ TEST(ResponderTest, IPCMultiSendReceiveTest)
 
   LOGGER << "Finished sending." << std::endl;
 
-  EXPECT_EQ(messages, testReader.messages.size());
+  EXPECT_EQ(messages, testStrategy.messages.size());
 
   int i = 0;
-  for (std::vector<Message>::iterator itr = testReader.messages.begin();
-       itr != testReader.messages.end();
+  for (std::vector<Message>::iterator itr = testStrategy.messages.begin();
+       itr != testStrategy.messages.end();
        ++itr) {
     EXPECT_EQ(sent[i++], itr->at(0));
   }

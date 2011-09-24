@@ -36,14 +36,14 @@ namespace internal {
 
 static const std::string& OK = "OK";
 
-class ZmqHandler : public atp::zmq::SocketReader, public atp::zmq::SocketWriter
+class ZmqHandler : public atp::zmq::Responder::Strategy
 {
  public:
 
-  ZmqHandler() : reply_("") {}
+  ZmqHandler() {}
   ~ZmqHandler() {}
 
-  bool receive(zmq::socket_t& socket)
+  bool respond(zmq::socket_t& socket)
   {
     if (eclientSocket_.get() != 0 && !eclientSocket_->isConnected()) {
       return true; // No-op -- don't read the messages from socket yet.
@@ -51,21 +51,16 @@ class ZmqHandler : public atp::zmq::SocketReader, public atp::zmq::SocketWriter
     // Now we are connected.  Process the received messages.
     std::string msg;
     int more = atp::zmq::receive(socket, &msg);
-    reply_ = msg;
-    return true;
-  }
 
-  bool send(zmq::socket_t& socket)
-  {
-    if (reply_.length() > 0) {
-      try {
-        size_t sent = atp::zmq::send_zero_copy(socket, reply_);
-        return sent > 0;
-      } catch (zmq::error_t e) {
-        LOG(ERROR) << "Exception " << e.what() << std::endl;
-        return false;
-      }
+    // just echo back
+    try {
+      size_t sent = atp::zmq::send_zero_copy(socket, msg);
+      return sent > 0;
+    } catch (zmq::error_t e) {
+      LOG(ERROR) << "Exception " << e.what() << std::endl;
+      return false;
     }
+
     return true;
   }
 
@@ -76,7 +71,6 @@ class ZmqHandler : public atp::zmq::SocketReader, public atp::zmq::SocketWriter
 
  private:
   boost::shared_ptr<AsioEClientSocket> eclientSocket_;
-  std::string reply_;
 };
 
 
@@ -89,7 +83,7 @@ class SocketConnectorImpl {
       app_(app),
       timeoutSeconds_(timeout),
       zmqHandler_(),
-      responder_(bindAddress, zmqHandler_, zmqHandler_),
+      responder_(bindAddress, zmqHandler_),
       socketConnector_(NULL)
   {
   }

@@ -16,11 +16,9 @@ namespace atp {
 namespace zmq {
 
 Responder::Responder(const string& addr,
-                     SocketReader& reader,
-                     SocketWriter& writer) :
+                     Responder::Strategy& strategy) :
     addr_(addr),
-    reader_(reader),
-    writer_(writer),
+    strategy_(strategy),
     ready_(false)
 {
   // start thread
@@ -66,7 +64,7 @@ void Responder::process()
   }
   isReady_.notify_all();
 
-  while (reader_.receive(socket) && writer_.send(socket)) {}
+  while (strategy_.respond(socket)) {}
   LOG(ERROR) << "Responder listening thread stopped." << std::endl;
 }
 
