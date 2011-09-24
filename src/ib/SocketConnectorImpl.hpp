@@ -53,10 +53,13 @@ class EClientAdapter : public atp::zmq::Responder::Strategy
     // Now we are connected.  Process the received messages.
     std::string msg;
     int more = atp::zmq::receive(socket, &msg);
+    CONNECTOR_IMPL_LOGGER << "Received " << msg << std::endl;
 
     // just echo back
     try {
       size_t sent = atp::zmq::send_zero_copy(socket, msg);
+      CONNECTOR_IMPL_LOGGER << "Sent " << msg << std::endl;
+
       return sent > 0;
     } catch (zmq::error_t e) {
       LOG(ERROR) << "Exception " << e.what() << std::endl;

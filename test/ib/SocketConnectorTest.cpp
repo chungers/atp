@@ -87,10 +87,14 @@ TEST(SocketConnectorTest, SocketConnectorImplTest)
   ib::internal::SocketConnectorImpl socketConnector(
       app, 10, bindAddr);
 
+  LOG(INFO) << "Starting client."  << std::endl;
+
   // Client
   zmq::context_t context(1);
   zmq::socket_t client(context, ZMQ_REQ);
   client.connect(bindAddr.c_str());
+
+  LOG(INFO) << "Client connected."  << std::endl;
 
   size_t messages = 5000;
   for (unsigned int i = 0; i < messages; ++i) {
@@ -100,6 +104,8 @@ TEST(SocketConnectorTest, SocketConnectorImplTest)
     std::string message(oss.str());
     bool exception = false;
     try {
+      LOG(INFO) << "sending " << message << std::endl;
+
       atp::zmq::send_zero_copy(client, message);
 
       std::string reply;
