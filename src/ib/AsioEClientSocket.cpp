@@ -24,10 +24,12 @@ namespace internal {
 
 
 AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
-                                     EWrapper& wrapper) :
+                                     EWrapper& wrapper,
+                                     AsioEClientSocket::EventCallback* cb) :
     EClientSocketBase(&wrapper),
     ioService_(ioService),
     socket_(ioService),
+    callback_(cb),
     socketOk_(false),
     state_(STARTING),
     clientId_(-1)
@@ -88,27 +90,35 @@ bool AsioEClientSocket::eConnect(const char *host,
     LOG(WARNING) << "Exception while connecting: " << e.what() << std::endl;
     socketOk_ = false;
   }
-  return socketOk_ && state_ == RUNNING;
+  bool result = socketOk_ && state_ == RUNNING;
+  if (callback_.get() != 0) {
+    callback_->onSocketConnect(result);
+  }
+  return result;
 }
 
 bool AsioEClientSocket::closeSocket()
 {
+  bool success = false;
   boost::system::error_code ec;
   socket_.shutdown(tcp::socket::shutdown_both, ec);
   if (ec) {
-    LOG(WARNING) << "Failed to shutdown socket." << std::endl;
-    return false;
-  } else {
-    // Now close the socket.
-    socket_.close(ec);
-    if (ec) {
-      LOG(WARNING) << "Failed to close socket connection." << std::endl;
-      return false;
-    } else {
-      LOG(INFO) << "Socket closed." << std::endl;
-      return true;
-    }
+    LOG(WARNING) << "Failed to shutdown socket: " << ec << std::endl;
   }
+
+  // Now close the socket.
+  socket_.close(ec);
+  if (ec) {
+    LOG(WARNING) << "Failed to close socket connection: " << ec << std::endl;
+  } else {
+    LOG(INFO) << "Socket closed." << std::endl;
+    success = true;
+  }
+
+  if (callback_.get() != 0) {
+    callback_->onSocketClose(success);
+  }
+  return success;
 }
 
 /**
@@ -181,6 +191,11 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
 
 // Event handling loop.  This runs in a separate thread.
 void AsioEClientSocket::block() {
+
+  if (callback_.get() != 0) {
+    callback_->onEventThreadStart();
+  }
+
   // Wait for the socket to be connected
   int64 start = now_micros();
   boost::unique_lock<boost::mutex> lock(mutex_);
@@ -205,6 +220,9 @@ void AsioEClientSocket::block() {
       state_ = STOPPING;
       closeSocket();
     }
+  }
+  if (callback_.get() != 0) {
+    callback_->onEventThreadStop();
   }
   LOGGER << "Event thread terminated." << std::endl;
 }

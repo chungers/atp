@@ -143,7 +143,7 @@ class TestEWrapperFactoryImpl : public EWrapperFactory {
 boost::shared_ptr<EWrapperFactory> EWrapperFactory::getInstance() {
   return boost::shared_ptr<EWrapperFactory>(new TestEWrapperFactoryImpl());
 }
-  
+
 
 } // internal
 } // ib

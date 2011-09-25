@@ -28,8 +28,18 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
 
  public:
 
+  class EventCallback
+  {
+   public:
+    virtual void onEventThreadStart() = 0;
+    virtual void onEventThreadStop() = 0;
+    virtual void onSocketConnect(bool success) = 0;
+    virtual void onSocketClose(bool success) = 0;
+  };
+
   explicit AsioEClientSocket(boost::asio::io_service& ioService,
-                             EWrapper& wrapper);
+                             EWrapper& wrapper,
+                             EventCallback* callback = NULL);
 
   ~AsioEClientSocket();
 
@@ -60,6 +70,7 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
 
   boost::asio::io_service& ioService_;
   tcp::socket socket_;
+  boost::shared_ptr<EventCallback> callback_;
 
   volatile bool socketOk_;
 
