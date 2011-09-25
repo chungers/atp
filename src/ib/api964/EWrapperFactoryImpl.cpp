@@ -24,10 +24,11 @@ class EWrapperFactoryImpl : public EWrapperFactory
   }
 
   /// Implements EWrapperFactory
-  EWrapper* getImpl(IBAPI::Application& app, ZmqAddress zmqAddress,
+  EWrapper* getImpl(IBAPI::Application& app,
+                    EWrapperEventSink& eventSink,
                     int clientId)
   {
-    return new EventDispatcher(app, zmqAddress, clientId);
+    return new EventDispatcher(app, eventSink, clientId);
   }
 
 };

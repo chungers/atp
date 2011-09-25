@@ -20,11 +20,29 @@ namespace ib {
 namespace internal {
 
 
+class TestEWrapperEventSink : public ib::internal::EWrapperEventSink
+{
+ public:
+  TestEWrapperEventSink() {}
+
+  void start()
+  {
+    LOG(INFO) << "Starting the event sink." << std::endl;
+  }
+
+  zmq::socket_t* getSink()
+  {
+    LOG(INFO) << "Accessing the sink." << std::endl;
+    return NULL;
+  }
+};
+
+
 class TestEWrapper : public EventDispatcher, public TestHarness {
  public:
-  TestEWrapper(IBAPI::Application& app, EWrapperFactory::ZmqAddress addr,
+  TestEWrapper(IBAPI::Application& app, EWrapperEventSink& eventSink,
                int clientId)
-      : EventDispatcher(app, addr, clientId),
+      : EventDispatcher(app, eventSink, clientId),
         TestHarness()
   {
     LOG(INFO) << "Initialized LoggingEWrapper." << std:: endl;
@@ -114,9 +132,10 @@ class TestEWrapperFactoryImpl : public EWrapperFactory {
   }
 
   /// Implements EWrapperFactory
-  EWrapper* getImpl(IBAPI::Application& app, EWrapperFactory::ZmqAddress addr,
+  EWrapper* getImpl(IBAPI::Application& app,
+                    ib::internal::EWrapperEventSink& sink,
                     int clientId=0) {
-    return new ib::internal::TestEWrapper(app, addr, clientId);
+    return new ib::internal::TestEWrapper(app, sink, clientId);
   }
 
 };

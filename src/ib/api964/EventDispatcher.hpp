@@ -25,17 +25,17 @@ class EventDispatcher : public LoggingEWrapper {
  public:
 
   EventDispatcher(IBAPI::Application& app,
-                  EWrapperFactory::ZmqAddress zmqAddress,
+                  EWrapperEventSink& eventSink,
                   int clientId)
-      : app_(app)
-      , zmqAddress_(zmqAddress)
-      , clientId_(clientId)
+      : app_(app),
+        eventSink_(eventSink),
+        clientId_(clientId)
   {
   }
 
  private:
   IBAPI::Application& app_;
-  EWrapperFactory::ZmqAddress zmqAddress_;
+  EWrapperEventSink& eventSink_;
   int clientId_;
 
  public:

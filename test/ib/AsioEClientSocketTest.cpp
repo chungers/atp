@@ -52,6 +52,22 @@ bool waitForConnection(AsioEClientSocket& ec, int attempts) {
   return ec.isConnected();
 }
 
+class TestEWrapperEventSink : public ib::internal::EWrapperEventSink
+{
+ public:
+  TestEWrapperEventSink() {}
+
+  void start()
+  {
+    LOG(INFO) << "Starting the event sink." << std::endl;
+  }
+
+  zmq::socket_t* getSink()
+  {
+    LOG(INFO) << "Accessing the sink." << std::endl;
+    return NULL;
+  }
+};
 
 /**
    Basic connection test.
@@ -63,8 +79,8 @@ TEST(AsioEClientSocketTest, ConnectionTest)
 
   ApplicationBase app;
 
-  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
-  EWrapper* ew = factory->getImpl(app, addr);
+  TestEWrapperEventSink sink;
+  EWrapper* ew = factory->getImpl(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -96,8 +112,9 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
 
   ApplicationBase app;
 
-  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
-  EWrapper* ew = factory->getImpl(app, addr);
+
+  TestEWrapperEventSink sink;
+  EWrapper* ew = factory->getImpl(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -158,8 +175,8 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 
   ApplicationBase app;
 
-  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
-  EWrapper* ew = factory->getImpl(app, addr);
+  TestEWrapperEventSink sink;
+  EWrapper* ew = factory->getImpl(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -220,8 +237,8 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
 
   ApplicationBase app;
 
-  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
-  EWrapper* ew = factory->getImpl(app, addr);
+  TestEWrapperEventSink sink;
+  EWrapper* ew = factory->getImpl(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -276,8 +293,8 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
 
   ApplicationBase app;
 
-  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
-  EWrapper* ew = factory->getImpl(app, addr);
+  TestEWrapperEventSink sink;
+  EWrapper* ew = factory->getImpl(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -396,8 +413,8 @@ TEST(AsioEClientSocketTest, RequestMarketDataLoadTest)
 
   ApplicationBase app;
 
-  EWrapperFactory::ZmqAddress addr = "tcp://*:5555";
-  EWrapper* ew = factory->getImpl(app, addr);
+  TestEWrapperEventSink sink;
+  EWrapper* ew = factory->getImpl(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);

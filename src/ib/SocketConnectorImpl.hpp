@@ -34,19 +34,50 @@ namespace ib {
 namespace internal {
 
 
-static const std::string& OK = "OK";
 
-
-class EClientAdapter : public atp::zmq::Responder::Strategy
+class SocketConnectorImpl :
+      public atp::zmq::Responder::Strategy,
+      public ib::internal::EWrapperEventSink
 {
+
  public:
+  SocketConnectorImpl(Application& app, int timeout,
+                      const string& responderAddress) :
+      app_(app),
+      timeoutSeconds_(timeout),
+      responder_(responderAddress, *this),
+      responderAddress_(responderAddress),
+      socketConnector_(NULL)
+  {
+  }
 
-  EClientAdapter() {}
-  ~EClientAdapter() {}
+  ~SocketConnectorImpl()
+  {
+    if (socket_.get() != 0) {
+      socket_->eDisconnect();
+      for (int i = 0; i < timeoutSeconds_ && socket_->isConnected(); ++i) {
+        sleep(1);
+      }
+    }
+  }
 
+  /// @overload EWrapperEventSink
+  void start()
+  {
+
+  }
+
+  /// @overload EWrapperEventSink
+  zmq::socket_t* getSink()
+  {
+    return NULL;
+  }
+
+  /// @overload Responder::Strategy
+  /// This method is run from the Responder's thread.
   bool respond(zmq::socket_t& socket)
   {
-    if (eclientSocket_.get() == 0 || !eclientSocket_->isConnected()) {
+    if (socket_.get() == 0 || !socket_->isConnected()) {
       return true; // No-op -- don't read the messages from socket yet.
     }
 
@@ -69,42 +100,6 @@ class EClientAdapter : public atp::zmq::Responder::Strategy
     return true;
   }
 
-  void setSink(boost::shared_ptr<AsioEClientSocket>& eclientSocket)
-  {
-    eclientSocket_ = eclientSocket;
-  }
-
- private:
-  boost::shared_ptr<AsioEClientSocket> eclientSocket_;
-};
-
-
-
-
-
-class SocketConnectorImpl {
-
- public:
-  SocketConnectorImpl(Application& app, int timeout,
-                      const string& bindAddress) :
-      app_(app),
-      timeoutSeconds_(timeout),
-      eClientAdapter_(),
-      responder_(bindAddress, eClientAdapter_),
-      socketConnector_(NULL)
-  {
-  }
-
-  ~SocketConnectorImpl()
-  {
-    if (socket_.get() != 0) {
-      socket_->eDisconnect();
-      for (int i = 0; i < timeoutSeconds_ && socket_->isConnected(); ++i) {
-        sleep(1);
-      }
-    }
-  }
-
   /// @overload
   int connect(const string& host,
               unsigned int port,
@@ -118,12 +113,9 @@ class SocketConnectorImpl {
         return socket_->getClientId();
     }
 
-    EWrapperFactory::ZmqAddress publishAddress =
-        atp::zmq::EndPoint::tcp(5555);
-
     EWrapper* ew =
         EWrapperFactory::getInstance()->getImpl(app_,
-                                                publishAddress,
+                                                *this,
                                                 clientId);
     assert (ew != NULL);
 
@@ -149,9 +141,6 @@ class SocketConnectorImpl {
       CONNECTOR_IMPL_LOGGER
           << "Connected in " << elapsed << " microseconds." << std::endl;
 
-      // Set up the handler
-      eClientAdapter_.setSink(socket_);
-
       strategy->onConnect(*socketConnector_, clientId);
       return clientId;
     } else {
@@ -168,8 +157,8 @@ class SocketConnectorImpl {
   boost::shared_ptr<AsioEClientSocket> socket_;
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
-  EClientAdapter eClientAdapter_;
   atp::zmq::Responder responder_;
+  const std::string& responderAddress_;
 
  protected:
   SocketConnector* socketConnector_;

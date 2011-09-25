@@ -3,6 +3,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include <Shared/EWrapper.h>
+#include <zmq.hpp>
 
 #include "ib/Application.hpp"
 #include "ib/SocketConnector.hpp"
@@ -10,6 +11,22 @@
 
 namespace ib {
 namespace internal {
+
+class EWrapperEventSink
+{
+ public:
+  ~EWrapperEventSink() {}
+
+  /// Start the event sink.  This is a blocking call.  When this method returns,
+  /// the sink must be ready to be written to.
+  virtual void start() = 0;
+
+  /// Returns the ZMQ socket that will be written to.
+  virtual zmq::socket_t* getSink() = 0;
+
+  // TODO: add a << operator
+};
+
 
 /// Simple factory class for getting a EWrapper that can receive events
 /// from IB's API.  This is basically an interface, with a static function
@@ -20,7 +37,8 @@ namespace internal {
 /// static factory method.  At compile /link time, the actual api version
 /// (or as in the case of testing), is specified and the .cpp implementation
 /// file is compiled and linked.
-class EWrapperFactory {
+class EWrapperFactory
+{
 
  public:
 
@@ -29,7 +47,7 @@ class EWrapperFactory {
   ~EWrapperFactory() {}
 
   virtual EWrapper* getImpl(IBAPI::Application& app,
-                            ZmqAddress zmqAddress,
+                            EWrapperEventSink& sink,
                             int clientId = 0) = 0;
 
   /// Returns a shared pointer to the factory.

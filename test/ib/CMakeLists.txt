@@ -31,7 +31,7 @@ set(IBTestSuite_libs
   Quantlib
   zmq
 )
-cpp_gtest(IBTestSuite)
+#cpp_gtest(IBTestSuite)
 
 # AsioEClientSocket test
 set(AsioEClientSocket_test_incs
