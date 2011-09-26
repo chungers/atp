@@ -64,7 +64,9 @@ class TestApplication : public IBAPI::ApplicationBase,
 
 };
 
-class TestStrategy : public IBAPI::StrategyBase, public TestHarnessBase<Event>
+class TestStrategy :
+    public IBAPI::StrategyBase,
+    public TestHarnessBase<Event>
 {
  public :
   TestStrategy() {}
@@ -76,6 +78,42 @@ class TestStrategy : public IBAPI::StrategyBase, public TestHarnessBase<Event>
   }
 };
 
+using ib::internal::EWrapperFactory;
+
+class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
+{
+ public:
+    TestSocketConnectorImpl(Application& app, int timeout,
+                            const string& responderAddress) :
+        SocketConnectorImpl(app, timeout,
+                            EWrapperFactory::getInstance(),
+                            responderAddress) {}
+
+ protected:
+
+  bool readSocketAndProcess(zmq::socket_t& socket)
+  {
+    int more = atp::zmq::receive(socket, &msg);
+    LOG(INFO) << "Received " << msg << std::endl;
+
+    // just echo back
+    try {
+      size_t sent = atp::zmq::send_zero_copy(socket, msg);
+      LOG(INFO) << "Sent " << msg << std::endl;
+
+      return sent > 0;
+    } catch (zmq::error_t e) {
+      LOG(ERROR) << "Exception " << e.what() << std::endl;
+      return false;
+    }
+  }
+
+ private:
+  std::string msg;
+};
+
+
+
 /// Basic test for instantiation and destroy
 TEST(SocketConnectorTest, SocketConnectorImplTest)
 {
@@ -84,7 +122,7 @@ TEST(SocketConnectorTest, SocketConnectorImplTest)
 
   const string& bindAddr = "ipc://SocketConnectorImplTest";
 
-  ib::internal::SocketConnectorImpl socketConnector(
+  TestSocketConnectorImpl socketConnector(
       app, 10, bindAddr);
 
   LOG(INFO) << "Starting client."  << std::endl;
@@ -132,7 +170,7 @@ TEST(SocketConnectorTest, SocketConnectorImplConnectionTest)
 
   const string& bindAddr = "ipc://SocketConnectorImplConnectionTest";
 
-  ib::internal::SocketConnectorImpl socketConnector(app, 10, bindAddr);
+  TestSocketConnectorImpl socketConnector(app, 10, bindAddr);
 
   int clientId = 1;
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,

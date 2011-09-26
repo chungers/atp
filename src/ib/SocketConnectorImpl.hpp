@@ -11,6 +11,7 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/tss.hpp>
 #include <zmq.hpp>
 
 #include "log_levels.h"
@@ -37,14 +38,17 @@ namespace internal {
 
 class SocketConnectorImpl :
       public atp::zmq::Responder::Strategy,
-      public ib::internal::EWrapperEventSink
+      public ib::internal::EWrapperEventSink,
+      public ib::internal::AsioEClientSocket::EventCallback
 {
 
  public:
   SocketConnectorImpl(Application& app, int timeout,
+                      boost::shared_ptr<EWrapperFactory> eWrapperFactory,
                       const string& responderAddress) :
       app_(app),
       timeoutSeconds_(timeout),
+      eWrapperFactory_(eWrapperFactory),
       responder_(responderAddress, *this),
       responderAddress_(responderAddress),
       socketConnector_(NULL)
@@ -61,19 +65,38 @@ class SocketConnectorImpl :
     }
   }
 
-  /// @overload EWrapperEventSink
-  void start()
+  /// @see AsioEClientSocket::EventCallback
+  void onEventThreadStart()
+  {
+    LOG(INFO) << "Start the event sink zmq socket here." << std::endl;
+  }
+
+  /// @see AsioEClientSocket::EventCallback
+  void onEventThreadStop()
   {
 
   }
 
-  /// @overload EWrapperEventSink
-  zmq::socket_t* getSink()
+  /// @see AsioEClientSocket::EventCallback
+  void onSocketConnect(bool success)
   {
-    return NULL;
+
   }
 
-  /// @overload Responder::Strategy
+
+  /// @see AsioEClientSocket::EventCallback
+  void onSocketClose(bool success)
+  {
+
+  }
+
+  /// @see EWrapperEventSink
+  zmq::socket_t& getSink()
+  {
+    return *zmqEventSinkSocket_;
+  }
+
+  /// @see Responder::Strategy
   /// This method is run from the Responder's thread.
   bool respond(zmq::socket_t& socket)
   {
@@ -82,22 +105,7 @@ class SocketConnectorImpl :
     }
 
     // Now we are connected.  Process the received messages.
-    std::string msg;
-    int more = atp::zmq::receive(socket, &msg);
-    CONNECTOR_IMPL_LOGGER << "Received " << msg << std::endl;
-
-    // just echo back
-    try {
-      size_t sent = atp::zmq::send_zero_copy(socket, msg);
-      CONNECTOR_IMPL_LOGGER << "Sent " << msg << std::endl;
-
-      return sent > 0;
-    } catch (zmq::error_t e) {
-      LOG(ERROR) << "Exception " << e.what() << std::endl;
-      return false;
-    }
-
-    return true;
+    return readSocketAndProcess(socket);
   }
 
   /// @overload
@@ -108,15 +116,14 @@ class SocketConnectorImpl :
   {
     // Check on the state.
     if (socket_.get() != 0 && socket_->isConnected()) {
-        CONNECTOR_IMPL_WARNING << "Calling eConnect on already live connection."
-                               << std::endl;
+        CONNECTOR_IMPL_WARNING
+            << "Calling eConnect on already live connection."
+            << std::endl;
         return socket_->getClientId();
     }
 
-    EWrapper* ew =
-        EWrapperFactory::getInstance()->getImpl(app_,
-                                                *this,
-                                                clientId);
+    EWrapper* ew = eWrapperFactory_->getImpl(app_, *this, clientId);
+
     assert (ew != NULL);
 
     // Start a new socket.
@@ -125,7 +132,7 @@ class SocketConnectorImpl :
     // If shared pointer hasn't been set, alloc new socket.
     if (socket_.get() == 0) {
       socket_ = boost::shared_ptr<AsioEClientSocket>(
-          new AsioEClientSocket(ioService_, *ew));
+          new AsioEClientSocket(ioService_, *ew, this));
     }
 
     int64 start = now_micros();
@@ -149,16 +156,28 @@ class SocketConnectorImpl :
     }
   }
 
+ protected:
+  virtual bool readSocketAndProcess(zmq::socket_t& socket)
+  {
+    // TODO
+    LOG(WARNING) << "I shouldn't be here." << std::endl;
+    return true;
+  }
+
+
  private:
 
   Application& app_;
   int timeoutSeconds_;
+  boost::shared_ptr<EWrapperFactory> eWrapperFactory_;
   boost::asio::io_service ioService_; // Dedicated per connector
   boost::shared_ptr<AsioEClientSocket> socket_;
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
   atp::zmq::Responder responder_;
   const std::string& responderAddress_;
+
+  boost::thread_specific_ptr<zmq::socket_t> zmqEventSinkSocket_;
 
  protected:
   SocketConnector* socketConnector_;

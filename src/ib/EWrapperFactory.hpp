@@ -17,12 +17,8 @@ class EWrapperEventSink
  public:
   ~EWrapperEventSink() {}
 
-  /// Start the event sink.  This is a blocking call.  When this method returns,
-  /// the sink must be ready to be written to.
-  virtual void start() = 0;
-
   /// Returns the ZMQ socket that will be written to.
-  virtual zmq::socket_t* getSink() = 0;
+  virtual zmq::socket_t& getSink() = 0;
 
   // TODO: add a << operator
 };

@@ -7,12 +7,17 @@
 
 namespace IBAPI {
 
+using ib::internal::SocketConnectorImpl;
+using ib::internal::EWrapperFactory;
+
 class SocketConnector::implementation :
       public ib::internal::SocketConnectorImpl
 {
  public:
   implementation(Application& app, int timeout) :
-      ib::internal::SocketConnectorImpl(app, timeout, "") {}
+      SocketConnectorImpl(app, timeout,
+                          EWrapperFactory::getInstance(),
+                          "") {}
 
   ~implementation() {}
 
