@@ -22,10 +22,8 @@ class SocketInitiatorImpl : public SocketInitiator,
  public :
   SocketInitiatorImpl(Application& app, std::list<SessionSetting>& settings) :
       application_(app),
-      sessionSettings_(settings),
-      ewrapperFactoryPtr_(EWrapperFactory::getInstance()) {
-
-  }
+      sessionSettings_(settings)
+  { }
 
   ~SocketInitiatorImpl() {}
 
@@ -113,7 +111,6 @@ class SocketInitiatorImpl : public SocketInitiator,
  private:
   Application& application_;
   std::list<SessionSetting>& sessionSettings_;
-  boost::shared_ptr<EWrapperFactory> ewrapperFactoryPtr_;
   std::map< SessionID, boost::shared_ptr<SocketConnector> > socketConnectors_;
 };
 

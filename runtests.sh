@@ -22,7 +22,7 @@ LOG="--logtostderr"
 while getopts "t:v:cbrq" optionName; do
 case "$optionName" in
 t) TEST="$OPTARG";;
-t) VLEVEL="$OPTARG";;
+v) VLEVEL="$OPTARG";;
 c) CLEAN=1;;
 b) BUILD=1;;
 r) RUN=1;;

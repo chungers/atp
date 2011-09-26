@@ -44,11 +44,9 @@ class SocketConnectorImpl :
 
  public:
   SocketConnectorImpl(Application& app, int timeout,
-                      boost::shared_ptr<EWrapperFactory> eWrapperFactory,
                       const string& responderAddress) :
       app_(app),
       timeoutSeconds_(timeout),
-      eWrapperFactory_(eWrapperFactory),
       responder_(responderAddress, *this),
       responderAddress_(responderAddress),
       socketConnector_(NULL)
@@ -57,12 +55,15 @@ class SocketConnectorImpl :
 
   ~SocketConnectorImpl()
   {
+    CONNECTOR_IMPL_LOGGER << "Shutting down." << std::endl;
     if (socket_.get() != 0) {
       socket_->eDisconnect();
       for (int i = 0; i < timeoutSeconds_ && socket_->isConnected(); ++i) {
         sleep(1);
       }
     }
+    socket_.reset();
+    CONNECTOR_IMPL_LOGGER << "Shutting down -- completed." << std::endl;
   }
 
   /// @see AsioEClientSocket::EventCallback
@@ -91,9 +92,9 @@ class SocketConnectorImpl :
   }
 
   /// @see EWrapperEventSink
-  zmq::socket_t& getSink()
+  zmq::socket_t* getSink()
   {
-    return *zmqEventSinkSocket_;
+    return NULL;
   }
 
   /// @see Responder::Strategy
@@ -122,7 +123,7 @@ class SocketConnectorImpl :
         return socket_->getClientId();
     }
 
-    EWrapper* ew = eWrapperFactory_->getImpl(app_, *this, clientId);
+    EWrapper* ew = EWrapperFactory::getInstance(app_, *this, clientId);
 
     assert (ew != NULL);
 
@@ -169,7 +170,6 @@ class SocketConnectorImpl :
 
   Application& app_;
   int timeoutSeconds_;
-  boost::shared_ptr<EWrapperFactory> eWrapperFactory_;
   boost::asio::io_service ioService_; // Dedicated per connector
   boost::shared_ptr<AsioEClientSocket> socket_;
   boost::shared_ptr<boost::thread> thread_;
@@ -177,7 +177,7 @@ class SocketConnectorImpl :
   atp::zmq::Responder responder_;
   const std::string& responderAddress_;
 
-  boost::thread_specific_ptr<zmq::socket_t> zmqEventSinkSocket_;
+  //boost::thread_specific_ptr<zmq::socket_t> zmqEventSinkSocket_;
 
  protected:
   SocketConnector* socketConnector_;

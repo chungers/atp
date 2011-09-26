@@ -120,29 +120,14 @@ class TestEWrapper : public EventDispatcher, public TestHarness {
 };
 
 
-/// Implementation of EWrapperFactory
-class TestEWrapperFactoryImpl : public EWrapperFactory {
-
- public:
-  TestEWrapperFactoryImpl() {
-    LOG(INFO) << "EWrapperFactory start." << std::endl;
-  }
-  ~TestEWrapperFactoryImpl() {
-    LOG(INFO) << "EWrapperFactory done." << std::endl;
-  }
-
-  /// Implements EWrapperFactory
-  EWrapper* getImpl(IBAPI::Application& app,
-                    ib::internal::EWrapperEventSink& sink,
-                    int clientId=0) {
-    return new ib::internal::TestEWrapper(app, sink, clientId);
-  }
-
-};
-
-boost::shared_ptr<EWrapperFactory> EWrapperFactory::getInstance() {
-  return boost::shared_ptr<EWrapperFactory>(new TestEWrapperFactoryImpl());
+EWrapper* EWrapperFactory::getInstance(IBAPI::Application& app,
+                                       ib::internal::EWrapperEventSink& sink,
+                                       int clientId)
+{
+  LOG(INFO) << "Getting test EWrapper instance." << std::endl;
+  return new ib::internal::TestEWrapper(app, sink, clientId);
 }
+
 
 
 } // internal

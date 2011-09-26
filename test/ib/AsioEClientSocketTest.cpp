@@ -57,14 +57,8 @@ class TestEWrapperEventSink : public ib::internal::EWrapperEventSink
  public:
   TestEWrapperEventSink() {}
 
-  void start()
-  {
-    LOG(INFO) << "Starting the event sink." << std::endl;
-  }
-
   zmq::socket_t* getSink()
   {
-    LOG(INFO) << "Accessing the sink." << std::endl;
     return NULL;
   }
 };
@@ -75,12 +69,11 @@ class TestEWrapperEventSink : public ib::internal::EWrapperEventSink
 TEST(AsioEClientSocketTest, ConnectionTest)
 {
   boost::asio::io_service ioService;
-  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
 
   ApplicationBase app;
 
   TestEWrapperEventSink sink;
-  EWrapper* ew = factory->getImpl(app, sink);
+  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -108,13 +101,10 @@ TEST(AsioEClientSocketTest, ConnectionTest)
 TEST(AsioEClientSocketTest, RequestMarketDataTest)
 {
   boost::asio::io_service ioService;
-  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
-
   ApplicationBase app;
 
-
   TestEWrapperEventSink sink;
-  EWrapper* ew = factory->getImpl(app, sink);
+  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -171,12 +161,10 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
 TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 {
   boost::asio::io_service ioService;
-  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
-
   ApplicationBase app;
 
   TestEWrapperEventSink sink;
-  EWrapper* ew = factory->getImpl(app, sink);
+  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -233,12 +221,10 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
 TEST(AsioEClientSocketTest, RequestMarketDepthTest)
 {
   boost::asio::io_service ioService;
-  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
-
   ApplicationBase app;
 
   TestEWrapperEventSink sink;
-  EWrapper* ew = factory->getImpl(app, sink);
+  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -289,12 +275,10 @@ struct SortByStrike {
 TEST(AsioEClientSocketTest, RequestOptionChainTest)
 {
   boost::asio::io_service ioService;
-  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
-
   ApplicationBase app;
 
   TestEWrapperEventSink sink;
-  EWrapper* ew = factory->getImpl(app, sink);
+  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -409,12 +393,10 @@ TickerId buildContract(Contract& c, const std::string& symbol)
 TEST(AsioEClientSocketTest, RequestMarketDataLoadTest)
 {
   boost::asio::io_service ioService;
-  boost::shared_ptr<EWrapperFactory> factory = EWrapperFactory::getInstance();
-
   ApplicationBase app;
 
   TestEWrapperEventSink sink;
-  EWrapper* ew = factory->getImpl(app, sink);
+  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);

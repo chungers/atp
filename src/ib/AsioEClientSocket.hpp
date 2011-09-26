@@ -70,7 +70,10 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
 
   boost::asio::io_service& ioService_;
   tcp::socket socket_;
-  boost::shared_ptr<EventCallback> callback_;
+  boost::mutex socketMutex_;
+
+  // No ownership of this object.
+  EventCallback* callback_;
 
   volatile bool socketOk_;
 
@@ -79,6 +82,7 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
 
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
+
   boost::condition_variable socketRunning_;
   int clientId_;
 

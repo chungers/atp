@@ -18,7 +18,7 @@ class EWrapperEventSink
   ~EWrapperEventSink() {}
 
   /// Returns the ZMQ socket that will be written to.
-  virtual zmq::socket_t& getSink() = 0;
+  virtual zmq::socket_t* getSink() = 0;
 
   // TODO: add a << operator
 };
@@ -36,18 +36,14 @@ class EWrapperEventSink
 class EWrapperFactory
 {
 
- public:
-
-  typedef std::string ZmqAddress;
-
+ private:
+  EWrapperFactory() {}
   ~EWrapperFactory() {}
 
-  virtual EWrapper* getImpl(IBAPI::Application& app,
-                            EWrapperEventSink& sink,
-                            int clientId = 0) = 0;
-
-  /// Returns a shared pointer to the factory.
-  static boost::shared_ptr<EWrapperFactory> getInstance();
+ public:
+  static EWrapper* getInstance(IBAPI::Application& app,
+                                EWrapperEventSink& sink,
+                               int clientId = 0);
 };
 
 

@@ -15,9 +15,7 @@ class SocketConnector::implementation :
 {
  public:
   implementation(Application& app, int timeout) :
-      SocketConnectorImpl(app, timeout,
-                          EWrapperFactory::getInstance(),
-                          "") {}
+      SocketConnectorImpl(app, timeout, "") {}
 
   ~implementation() {}
 

@@ -43,6 +43,7 @@ AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
 
 AsioEClientSocket::~AsioEClientSocket()
 {
+  LOGGER << "Done" << std::endl;
 }
 
 int AsioEClientSocket::getClientId()
@@ -91,7 +92,7 @@ bool AsioEClientSocket::eConnect(const char *host,
     socketOk_ = false;
   }
   bool result = socketOk_ && state_ == RUNNING;
-  if (callback_.get() != 0) {
+  if (callback_) {
     callback_->onSocketConnect(result);
   }
   return result;
@@ -99,26 +100,31 @@ bool AsioEClientSocket::eConnect(const char *host,
 
 bool AsioEClientSocket::closeSocket()
 {
-  bool success = false;
-  boost::system::error_code ec;
-  socket_.shutdown(tcp::socket::shutdown_both, ec);
-  if (ec) {
-    LOG(WARNING) << "Failed to shutdown socket: " << ec << std::endl;
-  }
+  boost::unique_lock<boost::mutex> lock(socketMutex_);
+  if (socket_.is_open()) {
+    bool success = false;
+    boost::system::error_code ec;
+    socket_.shutdown(tcp::socket::shutdown_both, ec);
+    if (ec) {
+      LOG(WARNING) << "Failed to shutdown socket: " << ec << std::endl;
+    }
 
-  // Now close the socket.
-  socket_.close(ec);
-  if (ec) {
-    LOG(WARNING) << "Failed to close socket connection: " << ec << std::endl;
+    // Now close the socket.
+    socket_.close(ec);
+    if (ec) {
+      LOG(WARNING) << "Failed to close socket connection: " << ec << std::endl;
+    } else {
+      LOG(INFO) << "Socket closed." << std::endl;
+      success = true;
+    }
+
+    if (callback_) {
+      callback_->onSocketClose(success);
+    }
+    return success;
   } else {
-    LOG(INFO) << "Socket closed." << std::endl;
-    success = true;
+    return true;
   }
-
-  if (callback_.get() != 0) {
-    callback_->onSocketClose(success);
-  }
-  return success;
 }
 
 /**
@@ -192,7 +198,7 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
 // Event handling loop.  This runs in a separate thread.
 void AsioEClientSocket::block() {
 
-  if (callback_.get() != 0) {
+  if (callback_) {
     callback_->onEventThreadStart();
   }
 
@@ -221,7 +227,7 @@ void AsioEClientSocket::block() {
       closeSocket();
     }
   }
-  if (callback_.get() != 0) {
+  if (callback_) {
     callback_->onEventThreadStop();
   }
   LOGGER << "Event thread terminated." << std::endl;

@@ -83,11 +83,9 @@ using ib::internal::EWrapperFactory;
 class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
 {
  public:
-    TestSocketConnectorImpl(Application& app, int timeout,
-                            const string& responderAddress) :
-        SocketConnectorImpl(app, timeout,
-                            EWrapperFactory::getInstance(),
-                            responderAddress) {}
+  TestSocketConnectorImpl(Application& app, int timeout,
+                          const string& responderAddress) :
+      SocketConnectorImpl(app, timeout, responderAddress) {}
 
  protected:
 
@@ -99,8 +97,6 @@ class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
     // just echo back
     try {
       size_t sent = atp::zmq::send_zero_copy(socket, msg);
-      LOG(INFO) << "Sent " << msg << std::endl;
-
       return sent > 0;
     } catch (zmq::error_t e) {
       LOG(ERROR) << "Exception " << e.what() << std::endl;
@@ -112,56 +108,6 @@ class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
   std::string msg;
 };
 
-
-
-/// Basic test for instantiation and destroy
-TEST(SocketConnectorTest, SocketConnectorImplTest)
-{
-  TestApplication app;
-  TestStrategy strategy;
-
-  const string& bindAddr = "ipc://SocketConnectorImplTest";
-
-  TestSocketConnectorImpl socketConnector(
-      app, 10, bindAddr);
-
-  LOG(INFO) << "Starting client."  << std::endl;
-
-  // Client
-  zmq::context_t context(1);
-  zmq::socket_t client(context, ZMQ_REQ);
-  client.connect(bindAddr.c_str());
-
-  LOG(INFO) << "Client connected."  << std::endl;
-
-  int status = socketConnector.connect("127.0.0.1", 4001, 0,
-                                       &strategy);
-  EXPECT_EQ(0, status); // Expected, actual
-  EXPECT_EQ(1, strategy.getCount(ON_CONNECT));
-
-  size_t messages = 5000;
-  for (unsigned int i = 0; i < messages; ++i) {
-    std::ostringstream oss;
-    oss << "Message-" << i;
-
-    std::string message(oss.str());
-    bool exception = false;
-    try {
-      LOG(INFO) << "sending " << message << std::endl;
-
-      atp::zmq::send_zero_copy(client, message);
-
-      std::string reply;
-      atp::zmq::receive(client, &reply);
-
-      ASSERT_EQ(message, reply);
-    } catch (zmq::error_t e) {
-      LOG(ERROR) << "Exception: " << e.what() << std::endl;
-      exception = true;
-    }
-    ASSERT_FALSE(exception);
-  }
-}
 
 TEST(SocketConnectorTest, SocketConnectorImplConnectionTest)
 {
@@ -185,4 +131,58 @@ TEST(SocketConnectorTest, SocketConnectorImplConnectionTest)
   app.waitForFirstOccurrence(ON_LOGON, 10);
 
   EXPECT_EQ(app.getCount(ON_LOGON), 1);
+
+  LOG(INFO) << "Test complete." << std::endl;
 }
+
+
+/// Basic test for instantiation and destroy
+TEST(SocketConnectorTest, SendMessageTest)
+{
+  TestApplication app;
+  TestStrategy strategy;
+
+  const string& bindAddr = "ipc://SocketConnectorImplTest";
+
+  TestSocketConnectorImpl socketConnector(app, 10, bindAddr);
+
+  LOG(INFO) << "Starting client."  << std::endl;
+
+  // Client
+  zmq::context_t context(1);
+  zmq::socket_t client(context, ZMQ_REQ);
+  client.connect(bindAddr.c_str());
+
+  LOG(INFO) << "Client connected."  << std::endl;
+
+  int status = socketConnector.connect("127.0.0.1", 4001, 0,
+                                       &strategy);
+  EXPECT_EQ(0, status); // Expected, actual
+  EXPECT_EQ(1, strategy.getCount(ON_CONNECT));
+
+  size_t messages = 10;
+  for (unsigned int i = 0; i < messages; ++i) {
+    std::ostringstream oss;
+    oss << "Message-" << i;
+
+    std::string message(oss.str());
+    bool exception = false;
+    try {
+      VLOG(40) << "sending " << message << std::endl;
+
+      atp::zmq::send_zero_copy(client, message);
+
+      std::string reply;
+      atp::zmq::receive(client, &reply);
+
+      ASSERT_EQ(message, reply);
+    } catch (zmq::error_t e) {
+      LOG(ERROR) << "Exception: " << e.what() << std::endl;
+      exception = true;
+    }
+    ASSERT_FALSE(exception);
+  }
+
+  LOG(INFO) << "Finishing." << std::endl;
+}
+
