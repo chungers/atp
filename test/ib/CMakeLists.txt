@@ -80,6 +80,7 @@ set(SocketConnector_test_incs
 set(SocketConnector_test_srcs
   AllTests.cpp
   SocketConnectorTest.cpp
+  ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
 )
 set(SocketConnector_test_libs
   IBAPIConnector

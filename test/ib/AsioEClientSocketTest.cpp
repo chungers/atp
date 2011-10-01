@@ -55,12 +55,21 @@ bool waitForConnection(AsioEClientSocket& ec, int attempts) {
 class TestEWrapperEventSink : public ib::internal::EWrapperEventSink
 {
  public:
-  TestEWrapperEventSink() {}
+  TestEWrapperEventSink() : context_(1), socket_(context_, ZMQ_PUB)
+  {
+    std::string endpoint = "tcp://127.0.0.1:6666";
+    LOG(INFO) << "Creating publish socket @ " << endpoint << std::endl;
+    socket_.bind(endpoint.c_str());
+  }
 
   zmq::socket_t* getSink()
   {
-    return NULL;
+    return &socket_;
   }
+
+ private:
+  zmq::context_t context_;
+  zmq::socket_t socket_;
 };
 
 /**

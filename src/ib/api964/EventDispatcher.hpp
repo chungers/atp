@@ -8,34 +8,34 @@
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
 #include "ApiImpl.hpp"
+#include "ib/EventDispatcherBase.hpp"
 #include "ib/ticker_id.hpp"
 
 namespace ib {
 namespace internal {
 
-//class SocketConnector::Stragtegy;
 
 /**
  * Basic design follows SocketConnector / SocketInitiator in QuickFIX.
  *
  * See https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketConnector.h
  */
-class EventDispatcher : public LoggingEWrapper {
+class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper {
 
  public:
 
   EventDispatcher(IBAPI::Application& app,
                   EWrapperEventSink& eventSink,
-                  int clientId)
-      : app_(app),
-        eventSink_(eventSink),
-        clientId_(clientId)
+                  int clientId) :
+      EventDispatcherBase(eventSink),
+      app_(app),
+      clientId_(clientId)
+
   {
   }
 
  private:
   IBAPI::Application& app_;
-  EWrapperEventSink& eventSink_;
   int clientId_;
 
  public:

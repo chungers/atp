@@ -4,6 +4,7 @@
 #include <set>
 #include <vector>
 #include <gflags/gflags.h>
+#include <gtest/gtest.h>
 #include <glog/logging.h>
 
 #include <boost/shared_ptr.hpp>
@@ -18,24 +19,6 @@
 
 namespace ib {
 namespace internal {
-
-
-class TestEWrapperEventSink : public ib::internal::EWrapperEventSink
-{
- public:
-  TestEWrapperEventSink() {}
-
-  void start()
-  {
-    LOG(INFO) << "Starting the event sink." << std::endl;
-  }
-
-  zmq::socket_t* getSink()
-  {
-    LOG(INFO) << "Accessing the sink." << std::endl;
-    return NULL;
-  }
-};
 
 
 class TestEWrapper : public EventDispatcher, public TestHarness {
@@ -54,6 +37,11 @@ class TestEWrapper : public EventDispatcher, public TestHarness {
   void nextValidId(OrderId orderId) {
     EventDispatcher::nextValidId(orderId);
     incr(NEXT_VALID_ID);
+
+    zmq::socket_t* sink = getEventSink();
+    EXPECT_TRUE(sink != NULL);
+
+    LOG(INFO) << "Event sink: " << sink << std::endl;
   }
 
   // @Override
