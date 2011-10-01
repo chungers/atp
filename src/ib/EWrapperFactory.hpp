@@ -42,7 +42,7 @@ class EWrapperFactory
 
  public:
   static EWrapper* getInstance(IBAPI::Application& app,
-                                EWrapperEventSink& sink,
+                               EWrapperEventSink& sink,
                                int clientId = 0);
 };
 

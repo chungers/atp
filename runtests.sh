@@ -59,6 +59,10 @@ if [ $BUILD == 1 ]; then
         echo "****************************************************************"
         echo "BUILDING $t"
         make $t
+        if [ $? != 0 ]; then
+            echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  Build failed. Exiting.";
+            exit -1;
+        fi;
     done
 fi
 

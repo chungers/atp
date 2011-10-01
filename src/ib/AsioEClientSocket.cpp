@@ -92,7 +92,7 @@ bool AsioEClientSocket::eConnect(const char *host,
     socketOk_ = false;
   }
   bool result = socketOk_ && state_ == RUNNING;
-  if (callback_) {
+  if (callback_ && socketOk_) {
     callback_->onSocketConnect(result);
   }
   return result;
@@ -118,7 +118,7 @@ bool AsioEClientSocket::closeSocket()
       success = true;
     }
 
-    if (callback_) {
+    if (callback_ && success) {
       callback_->onSocketClose(success);
     }
     return success;
@@ -145,7 +145,8 @@ void AsioEClientSocket::eDisconnect()
   state_ = STOPPED;
 }
 
-bool AsioEClientSocket::isSocketOK() const {
+bool AsioEClientSocket::isSocketOK() const
+{
   return socketOk_ && state_ == RUNNING;
 }
 

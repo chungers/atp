@@ -53,48 +53,53 @@ class SocketConnectorImpl :
   {
   }
 
-  ~SocketConnectorImpl()
+  virtual ~SocketConnectorImpl()
   {
-    CONNECTOR_IMPL_LOGGER << "Shutting down." << std::endl;
-    if (socket_.get() != 0) {
-      socket_->eDisconnect();
-      for (int i = 0; i < timeoutSeconds_ && socket_->isConnected(); ++i) {
-        sleep(1);
-      }
+    if (socket_.get() != 0 || publishSocket_.get() != 0) {
+      CONNECTOR_IMPL_LOGGER << "Shutting down " << stop() << std::endl;
     }
-    socket_.reset();
-    CONNECTOR_IMPL_LOGGER << "Shutting down -- completed." << std::endl;
   }
 
   /// @see AsioEClientSocket::EventCallback
   void onEventThreadStart()
   {
-    LOG(INFO) << "Start the event sink zmq socket here." << std::endl;
+    // on successful connection. here we connect to the outbound socket
+    // for publishing events.
+    // this must be from the same thread as the thread in the socket event
+    // dispatcher.
+    zmq::socket_t* sink = createPublishSocket();
+
+    CONNECTOR_IMPL_LOGGER
+        << "Creating event sink zmq socket:" << sink << std::endl;
+
+    publishSocket_.reset(sink);
   }
 
   /// @see AsioEClientSocket::EventCallback
   void onEventThreadStop()
   {
-
+    CONNECTOR_IMPL_LOGGER << "EClient socket stopped." << std::endl;
   }
 
   /// @see AsioEClientSocket::EventCallback
   void onSocketConnect(bool success)
   {
-
+    CONNECTOR_IMPL_LOGGER
+        << "EClient socket connected:" << success << std::endl;
   }
 
 
   /// @see AsioEClientSocket::EventCallback
   void onSocketClose(bool success)
   {
-
+    CONNECTOR_IMPL_LOGGER
+        << "EClient socket closed:" << success << std::endl;
   }
 
   /// @see EWrapperEventSink
   zmq::socket_t* getSink()
   {
-    return NULL;
+    return publishSocket_.get();
   }
 
   /// @see Responder::Strategy
@@ -157,6 +162,28 @@ class SocketConnectorImpl :
     }
   }
 
+  bool stop()
+  {
+    if (socket_.get() != 0) {
+      socket_->eDisconnect();
+      for (int i = 0; i < timeoutSeconds_ && socket_->isConnected(); ++i) {
+        CONNECTOR_IMPL_LOGGER
+            << "Waiting for EClientSocket to stop." << std::endl;
+        sleep(1);
+      }
+    }
+    socket_.reset();
+    if (publishSocket_.get() != 0) {
+      CONNECTOR_IMPL_LOGGER << "Stopping publish socket." << std::endl;
+      delete publishSocket_.get();
+    }
+    publishSocket_.reset();
+    bool status = publishSocket_.get() == 0 && socket_.get() == 0;
+    CONNECTOR_IMPL_LOGGER
+        << "Stopped all sockets (EClient + publish):" << status << std::endl;
+    return status;
+  }
+
  protected:
   virtual bool readSocketAndProcess(zmq::socket_t& socket)
   {
@@ -165,6 +192,12 @@ class SocketConnectorImpl :
     return true;
   }
 
+
+  virtual zmq::socket_t* createPublishSocket()
+  {
+    LOG(WARNING) << "I shouldn't be here." << std::endl;
+    return NULL;
+  }
 
  private:
 
@@ -177,7 +210,7 @@ class SocketConnectorImpl :
   atp::zmq::Responder responder_;
   const std::string& responderAddress_;
 
-  //boost::thread_specific_ptr<zmq::socket_t> zmqEventSinkSocket_;
+  boost::thread_specific_ptr<zmq::socket_t> publishSocket_;
 
  protected:
   SocketConnector* socketConnector_;

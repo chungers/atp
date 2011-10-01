@@ -70,7 +70,7 @@ class TestStrategy :
 {
  public :
   TestStrategy() {}
-  ~TestStrategy() {}
+  ~TestStrategy() { }
 
   void onConnect(SocketConnector& sc, int clientId)
   {
@@ -85,7 +85,9 @@ class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
  public:
   TestSocketConnectorImpl(Application& app, int timeout,
                           const string& responderAddress) :
-      SocketConnectorImpl(app, timeout, responderAddress) {}
+      SocketConnectorImpl(app, timeout, responderAddress),
+      publishContext_(1)
+  {}
 
  protected:
 
@@ -94,18 +96,40 @@ class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
     int more = atp::zmq::receive(socket, &msg);
     LOG(INFO) << "Received " << msg << std::endl;
 
-    // just echo back
     try {
+
+      zmq::socket_t* sink = getSink();
+
+      // This is run in a thread separate from the AsioEClientSocket's
+      // block() thread.  That thread has access to the publish socket.
+      // We need to make sure that no other thread has access to the socket.
+
+      EXPECT_EQ(NULL, sink);
+
+      // just echo back to the client
       size_t sent = atp::zmq::send_zero_copy(socket, msg);
+
       return sent > 0;
+
     } catch (zmq::error_t e) {
       LOG(ERROR) << "Exception " << e.what() << std::endl;
       return false;
     }
   }
 
+  zmq::socket_t* createPublishSocket()
+  {
+    std::string endpoint = "tcp://127.0.0.1:5555";
+
+    LOG(INFO) << "Creating publish socket @ " << endpoint << std::endl;
+    zmq::socket_t* socket = new zmq::socket_t(publishContext_, ZMQ_PUB);
+    socket->bind(endpoint.c_str());
+    return socket;
+  }
+
  private:
   std::string msg;
+  zmq::context_t publishContext_;
 };
 
 
@@ -133,6 +157,7 @@ TEST(SocketConnectorTest, SocketConnectorImplConnectionTest)
   EXPECT_EQ(app.getCount(ON_LOGON), 1);
 
   LOG(INFO) << "Test complete." << std::endl;
+  socketConnector.stop();
 }
 
 
@@ -184,5 +209,6 @@ TEST(SocketConnectorTest, SendMessageTest)
   }
 
   LOG(INFO) << "Finishing." << std::endl;
+  socketConnector.stop();
 }
 
