@@ -209,6 +209,7 @@ void AsioEClientSocket::block() {
   while (state_ != RUNNING) {
     socketRunning_.wait(lock);
   }
+
   int64 elapsed = now_micros() - start;
   LOG(INFO) << "Connection ready. Begin processing messages (dt="
             << elapsed << " microseconds)." << std::endl;
