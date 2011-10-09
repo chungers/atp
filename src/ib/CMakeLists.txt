@@ -50,3 +50,24 @@ set(IBAPIConnector_libs
 # Client implementation:
 cpp_library(IBAPIConnector)
 
+
+##########################################
+# Simple Log File Reader
+set(LogReader_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(LogReader_srcs
+  logreader_main.cpp
+)
+set(LogReader_libs
+  IBAPIConnector
+  boost_system
+  gflags
+  glog
+)
+# Client implementation:
+cpp_executable(LogReader)
+
+
+
