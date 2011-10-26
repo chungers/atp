@@ -20,7 +20,7 @@ t) TARGET="$OPTARG"; BUILD=1;;
 esac
 done
 
-DIR=$(dirname $0)
+DIR=$(dirname $0)/..
 
 pushd $DIR
 

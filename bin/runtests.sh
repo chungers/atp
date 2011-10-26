@@ -31,7 +31,7 @@ q) LOG="";;
 esac
 done
 
-DIR=$(dirname $0)
+DIR=$(dirname $0)/..
 
 pushd $DIR
 
