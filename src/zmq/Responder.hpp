@@ -5,6 +5,8 @@
 #include <boost/thread.hpp>
 #include <zmq.hpp>
 
+#include "common.hpp"
+
 namespace atp {
 namespace zmq {
 
@@ -17,13 +19,18 @@ class Responder
 
   struct Strategy : NoCopyAndAssign {
     virtual bool respond(::zmq::socket_t& socket) = 0;
+
+    /** should be either ZMQ_REP or ZMQ_PULL */
+    virtual int socketType() = 0;
   };
 
 
-  Responder(const string& addr, Strategy& strategy);
+  Responder(const std::string& addr, Strategy& strategy);
   ~Responder();
 
   const std::string& addr();
+
+  void block();
 
  protected:
 

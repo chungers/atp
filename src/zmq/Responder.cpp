@@ -43,6 +43,10 @@ const std::string& Responder::addr()
   return addr_;
 }
 
+void Responder::block()
+{
+  thread_->join();
+}
 
 void Responder::process()
 {
@@ -54,9 +58,17 @@ void Responder::process()
   // context and socket in one thread and then have another thread
   // receiving or sending on them.
   ::zmq::context_t context(1);
-  ::zmq::socket_t socket(context, ZMQ_REP);
+
+  int socketType = strategy_.socketType();
+  switch (socketType) {
+    case ZMQ_PULL : LOG(INFO) << "ZMQ_PULL"; break;
+    case ZMQ_REP : LOG(INFO) << "ZMQ_REP"; break;
+    default : LOG(ERROR) << "NOT SUPPORTED"; exit(-1);
+  }
+  ::zmq::socket_t socket(context, strategy_.socketType());
   socket.bind(addr_.c_str());
-  LOG(INFO) << "ZMQ_REP listening @ " << addr_ << std::endl;
+
+  LOG(INFO) << "listening @ " << addr_ << std::endl;
 
   {
     boost::lock_guard<boost::mutex> lock(mutex_);

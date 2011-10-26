@@ -24,6 +24,8 @@ struct TestStrategy : Responder::Strategy
 {
   TestStrategy(size_t howMany = 1) : howMany(howMany), reply_("") {}
 
+  int socketType() { return ZMQ_REP; }
+
   bool respond(zmq::socket_t& socket)
   {
     Message message;

@@ -103,6 +103,9 @@ class SocketConnectorImpl :
   }
 
   /// @see Responder::Strategy
+  int socketType() { return ZMQ_REP; }
+
+  /// @see Responder::Strategy
   /// This method is run from the Responder's thread.
   bool respond(zmq::socket_t& socket)
   {
