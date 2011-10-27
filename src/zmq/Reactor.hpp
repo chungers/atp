@@ -1,5 +1,5 @@
-#ifndef ATP_ZMQ_RESPONDER_H_
-#define ATP_ZMQ_RESPONDER_H_
+#ifndef ATP_ZMQ_REACTOR_H_
+#define ATP_ZMQ_REACTOR_H_
 
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
@@ -11,9 +11,9 @@ namespace atp {
 namespace zmq {
 
 
-/// By definition, a responder is required to send a reply to the
+/// By definition, a reactor is required to send a reply to the
 /// client on receiving the message.  This uses the ZMQ_REP / ZMQ_REQ pair.
-class Responder
+class Reactor
 {
  public:
 
@@ -25,8 +25,8 @@ class Responder
   };
 
 
-  Responder(const std::string& addr, Strategy& strategy);
-  ~Responder();
+  Reactor(const std::string& addr, Strategy& strategy);
+  ~Reactor();
 
   const std::string& addr();
 
@@ -50,4 +50,4 @@ class Responder
 } // namespace zmq
 } // namespace atp
 
-#endif //ATP_ZMQ_RESPONDER_H_
+#endif //ATP_ZMQ_REACTOR_H_

@@ -8,7 +8,7 @@ set(ZmqComponents_incs
   ${SRC_DIR}
 )
 set(ZmqComponents_srcs
-  Responder.cpp
+  Reactor.cpp
 )
 set(ZmqComponents_libs
   boost_system
@@ -20,18 +20,18 @@ set(ZmqComponents_libs
 cpp_library(ZmqComponents)
 
 ##########################################
-# Responder test client / server
-set(zmq_responder_incs
+# Reactor test client / server
+set(zmq_reactor_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(zmq_responder_srcs
-  responder_main.cpp
+set(zmq_reactor_srcs
+  reactor_main.cpp
 )
-set(zmq_responder_libs
+set(zmq_reactor_libs
   boost_system
   gflags
   glog
   ZmqComponents
 )
-cpp_executable(zmq_responder)
+cpp_executable(zmq_reactor)

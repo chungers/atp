@@ -8,7 +8,7 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "zmq/Responder.hpp"
+#include "zmq/Reactor.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 
@@ -20,7 +20,7 @@ DEFINE_bool(echo, false, "True to have server echo message received.");
 DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint");
 DEFINE_string(message, "k1=hello,k2=world", "Comma-delimited key=value pairs.");
 
-struct NoEchoStrategy : atp::zmq::Responder::Strategy
+struct NoEchoStrategy : atp::zmq::Reactor::Strategy
 {
   int socketType() { return ZMQ_PULL; }
   bool respond(zmq::socket_t& socket)
@@ -48,7 +48,7 @@ struct NoEchoStrategy : atp::zmq::Responder::Strategy
 typedef std::vector<std::string> Message;
 typedef std::vector<std::string>::iterator MessageFrames;
 
-struct EchoStrategy : atp::zmq::Responder::Strategy
+struct EchoStrategy : atp::zmq::Reactor::Strategy
 {
   int socketType() { return ZMQ_REP; }
   bool respond(zmq::socket_t& socket)
@@ -97,12 +97,12 @@ void OnTerminate(int param)
 }
 
 /**
- * Simple test server / client that uses the Responder where client can
+ * Simple test server / client that uses the Reactor where client can
  * send comma-delimited key=value pairs as a single dataframe message.
  */
 int main(int argc, char** argv)
 {
-  google::SetUsageMessage("ZMQ Responder server / client.");
+  google::SetUsageMessage("ZMQ Reactor server / client.");
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
@@ -124,13 +124,13 @@ int main(int argc, char** argv)
     // Start as a server listening at given endpoint.
     if (FLAGS_echo) {
       EchoStrategy strategy;
-      atp::zmq::Responder responder(FLAGS_endpoint, strategy);
+      atp::zmq::Reactor reactor(FLAGS_endpoint, strategy);
       LOG(INFO) << "Server started in ECHO mode." << std::endl;
-      responder.block();
+      reactor.block();
     } else {
       NoEchoStrategy strategy;
-      atp::zmq::Responder responder(FLAGS_endpoint, strategy);
-      responder.block();
+      atp::zmq::Reactor reactor(FLAGS_endpoint, strategy);
+      reactor.block();
     }
 
   } else {

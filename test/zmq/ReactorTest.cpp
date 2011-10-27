@@ -10,7 +10,7 @@
 #include <boost/thread.hpp>
 
 #include "common.hpp"
-#include "zmq/Responder.hpp"
+#include "zmq/Reactor.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 
@@ -20,7 +20,7 @@ typedef std::vector<std::string> Message;
 #define LOGGER VLOG(20)
 
 
-struct TestStrategy : Responder::Strategy
+struct TestStrategy : Reactor::Strategy
 {
   TestStrategy(size_t howMany = 1) : howMany(howMany), reply_("") {}
 
@@ -70,7 +70,7 @@ struct TestStrategy : Responder::Strategy
   std::string reply_;
 };
 
-TEST(ResponderTest, SimpleIPCSendReceiveTest)
+TEST(ReactorTest, SimpleIPCSendReceiveTest)
 {
   LOGGER << "Current TimeMicros = " << now_micros() << std::endl;
 
@@ -80,7 +80,7 @@ TEST(ResponderTest, SimpleIPCSendReceiveTest)
 
   const std::string& addr = atp::zmq::EndPoint::ipc("test1");
   // Immediately starts a listening thread at the given address.
-  Responder responder(addr, testStrategy);
+  Reactor reactor(addr, testStrategy);
 
   // For inproc endpoint, we need to use a shared context. Otherwise, the
   // program will crash.
@@ -112,7 +112,7 @@ TEST(ResponderTest, SimpleIPCSendReceiveTest)
   client.close();
 }
 
-TEST(ResponderTest, IPCMultiSendReceiveTest)
+TEST(ReactorTest, IPCMultiSendReceiveTest)
 {
   LOGGER << "Current TimeMicros = " << now_micros() << std::endl;
 
@@ -121,7 +121,7 @@ TEST(ResponderTest, IPCMultiSendReceiveTest)
 
   const std::string& addr = atp::zmq::EndPoint::ipc("test2");
 
-  Responder responder(addr, testStrategy);
+  Reactor reactor(addr, testStrategy);
 
   sleep(1);
 

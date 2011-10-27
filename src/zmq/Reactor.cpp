@@ -8,22 +8,22 @@
 
 #include "utils.hpp"
 #include "common.hpp"
-#include "zmq/Responder.hpp"
+#include "zmq/Reactor.hpp"
 
-#define LOGGER VLOG(VLOG_LEVEL_ZMQ_RESPONDER)
+#define LOGGER VLOG(VLOG_LEVEL_ZMQ_REACTOR)
 
 namespace atp {
 namespace zmq {
 
-Responder::Responder(const string& addr,
-                     Responder::Strategy& strategy) :
+Reactor::Reactor(const string& addr,
+                 Reactor::Strategy& strategy) :
     addr_(addr),
     strategy_(strategy),
     ready_(false)
 {
   // start thread
   thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
-      boost::bind(&Responder::process, this)));
+      boost::bind(&Reactor::process, this)));
 
   // Wait here for the connection to be ready.
   boost::unique_lock<boost::mutex> lock(mutex_);
@@ -31,24 +31,24 @@ Responder::Responder(const string& addr,
     isReady_.wait(lock);
   }
 
-  LOG(INFO) << "Responder is ready." << std::endl;
+  LOG(INFO) << "Reactor is ready." << std::endl;
 }
 
-Responder::~Responder()
+Reactor::~Reactor()
 {
 }
 
-const std::string& Responder::addr()
+const std::string& Reactor::addr()
 {
   return addr_;
 }
 
-void Responder::block()
+void Reactor::block()
 {
   thread_->join();
 }
 
-void Responder::process()
+void Reactor::process()
 {
   // Note that the context and socket are all local variables.
   // This is because this method is running in a separate thread
@@ -77,7 +77,7 @@ void Responder::process()
   isReady_.notify_all();
 
   while (strategy_.respond(socket)) {}
-  LOG(ERROR) << "Responder listening thread stopped." << std::endl;
+  LOG(ERROR) << "Reactor listening thread stopped." << std::endl;
 }
 
 

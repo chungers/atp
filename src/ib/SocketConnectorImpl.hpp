@@ -22,7 +22,7 @@
 #include "ib/EWrapperFactory.hpp"
 #include "ib/SocketConnector.hpp"
 
-#include "zmq/Responder.hpp"
+#include "zmq/Reactor.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 
@@ -37,18 +37,18 @@ namespace internal {
 
 
 class SocketConnectorImpl :
-      public atp::zmq::Responder::Strategy,
+      public atp::zmq::Reactor::Strategy,
       public ib::internal::EWrapperEventSink,
       public ib::internal::AsioEClientSocket::EventCallback
 {
 
  public:
   SocketConnectorImpl(Application& app, int timeout,
-                      const string& responderAddress) :
+                      const string& reactorAddress) :
       app_(app),
       timeoutSeconds_(timeout),
-      responder_(responderAddress, *this),
-      responderAddress_(responderAddress),
+      reactor_(reactorAddress, *this),
+      reactorAddress_(reactorAddress),
       socketConnector_(NULL)
   {
   }
@@ -102,11 +102,11 @@ class SocketConnectorImpl :
     return publishSocket_.get();
   }
 
-  /// @see Responder::Strategy
+  /// @see Reactor::Strategy
   int socketType() { return ZMQ_REP; }
 
-  /// @see Responder::Strategy
-  /// This method is run from the Responder's thread.
+  /// @see Reactor::Strategy
+  /// This method is run from the Reactor's thread.
   bool respond(zmq::socket_t& socket)
   {
     if (socket_.get() == 0 || !socket_->isConnected()) {
@@ -210,8 +210,8 @@ class SocketConnectorImpl :
   boost::shared_ptr<AsioEClientSocket> socket_;
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
-  atp::zmq::Responder responder_;
-  const std::string& responderAddress_;
+  atp::zmq::Reactor reactor_;
+  const std::string& reactorAddress_;
 
   boost::thread_specific_ptr<zmq::socket_t> publishSocket_;
 
