@@ -3,6 +3,7 @@
 function showHelp {
     echo "$0 <options>"
     echo " -c : clean (default = off)"
+    echo " -a : build all (default = off)"
     echo " -t <target> : for target"
     exit 0;
 }
@@ -12,10 +13,11 @@ CLEAN=0
 BUILD=0
 TARGET=""
 
-while getopts "t:v:cbrq" optionName; do
+while getopts "t:v:ca" optionName; do
 case "$optionName" in
 c) CLEAN=1;;
 t) TARGET="$OPTARG"; BUILD=1;;
+a) BUILD=1;;
 [?]) showHelp;;
 esac
 done
