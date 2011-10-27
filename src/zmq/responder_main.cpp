@@ -30,8 +30,10 @@ struct NoEchoStrategy : atp::zmq::Responder::Strategy
     int seq = 0;
     try {
       LOG(INFO) << "RECEIVE =====================================" << std::endl;
-      while (atp::zmq::receive(socket, &buff)) {
-        LOG(INFO) << "Part[" << seq++ << "]:" << buff << std::endl;
+      while (1) {
+        int more = atp::zmq::receive(socket, &buff);
+        LOG(INFO) << "Part[" << seq++ << "]:" << buff << ", more = " << more;
+        if (more == 0) break;
       }
       LOG(INFO) << "frames = " << seq;
       status = true;
@@ -57,9 +59,11 @@ struct EchoStrategy : atp::zmq::Responder::Strategy
     int seq = 0;
     try {
       LOG(INFO) << "RECEIVE =====================================" << std::endl;
-      while (atp::zmq::receive(socket, &buff)) {
-        LOG(INFO) << "Part[" << seq++ << "]:" << buff << std::endl;
+      while (1) {
+        int more = atp::zmq::receive(socket, &buff);
+        LOG(INFO) << "Part[" << seq++ << "]:" << buff << ", more = " << more;
         message.push_back(buff);
+        if (more == 0) break;
       }
 
       LOG(INFO) << "ECHO ========================================" << std::endl;
@@ -143,19 +147,20 @@ int main(int argc, char** argv)
     int seq = 0;
     LOG(INFO) << "SEND ==========================================" << std::endl;
     for (; f != message.end(); ++f, ++seq) {
-      bool more = true; //seq != total - 1;
+      bool more = seq != total - 1;
       LOG(INFO) << "Send[" << seq << "]:" << *f << " more = " << more;
       size_t sent = atp::zmq::send_copy(client , *f, more);
       LOG(INFO) << " size=" << sent << std::endl;
     }
-    atp::zmq::send_copy(client , "");  // Weird: terminating empty frame.
 
     if (FLAGS_echo) {
       LOG(INFO) << "RECEIVE =====================================" << std::endl;
       std::string buff;
       seq = 0;
-      while (atp::zmq::receive(client, &buff)) {
-        LOG(INFO) << "Part[" << seq++ << "]:" << buff << std::endl;
+      while (1) {
+        int more = atp::zmq::receive(client, &buff);
+        LOG(INFO) << "Part[" << seq++ << "]:" << buff << ", more = " << more;
+        if (more == 0) break;
       }
     }
 
