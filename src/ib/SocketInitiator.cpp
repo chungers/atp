@@ -38,13 +38,11 @@ class SocketInitiatorImpl : public SocketInitiator,
 
       SessionID sessionId = static_cast<SessionID>(itr->getConnectionId());
       boost::shared_ptr<SocketConnector> s = boost::shared_ptr<SocketConnector>(
-          new SocketConnector(application_, sessionId));
+          new SocketConnector(itr->getZmqInboundAddr(),
+                              application_, sessionId));
       socketConnectors_[sessionId] = s;
 
-      // Start the connection:
-      LOG(INFO) << "Connecting to " << itr->getIp() << ":"
-                << itr->getPort() << ", session = " << sessionId
-                << std::endl;
+      LOG(INFO) << "SocketConnector: " << *itr;
       s->connect(itr->getIp(), itr->getPort(), sessionId, this);
     }
   }

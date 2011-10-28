@@ -12,13 +12,16 @@
 namespace IBAPI {
 
 /// Models after the SocketConnector in the QuickFIX API.
+/// with extensions of using zmq for inbound (control) messages
+/// and outbound event collection.
 /// https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketConnector.h
 class SocketConnector : NoCopyAndAssign {
 
  public:
   class Strategy;
 
-  SocketConnector(Application& app, int timeout = 0);
+  SocketConnector(const std::string& zmqInboundAddr,
+                  Application& app, int timeout = 0);
   ~SocketConnector();
 
   /// Blocking connect, up to the timeout limit in seconds.

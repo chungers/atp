@@ -14,8 +14,11 @@ class SocketConnector::implementation :
       public ib::internal::SocketConnectorImpl
 {
  public:
-  implementation(Application& app, int timeout) :
-      SocketConnectorImpl(app, timeout, "") {}
+  implementation(const std::string& zmqInboundAddr,
+                 Application& app, int timeout) :
+      SocketConnectorImpl(zmqInboundAddr, app, timeout)
+  {
+  }
 
   ~implementation() {}
 
@@ -24,12 +27,12 @@ class SocketConnector::implementation :
 
 
 
-SocketConnector::SocketConnector(Application& app, int timeout)
-    : impl_(new SocketConnector::implementation(app, timeout))
+SocketConnector::SocketConnector(const std::string& zmqInboundAddr,
+                                 Application& app, int timeout) :
+    impl_(new SocketConnector::implementation(zmqInboundAddr, app, timeout))
 {
-    LOGGER << "SocketConnector started."
-           << std::endl;
-    impl_->socketConnector_ = this;
+  LOGGER << "SocketConnector started.";
+  impl_->socketConnector_ = this;
 }
 
 SocketConnector::~SocketConnector()

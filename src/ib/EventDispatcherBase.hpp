@@ -11,8 +11,8 @@ namespace internal {
 class EventDispatcherBase
 {
  public:
-  EventDispatcherBase(EWrapperEventSink& eventSink) :
-      eventSink_(eventSink)
+  EventDispatcherBase(EWrapperEventCollector& eventCollector) :
+      eventCollector_(eventCollector)
   {
   }
 
@@ -20,13 +20,13 @@ class EventDispatcherBase
 
  protected:
 
-  zmq::socket_t* getEventSink()
+  zmq::socket_t* getOutboundSocket()
   {
-    return eventSink_.getSink();
+    return eventCollector_.getOutboundSocket();
   }
 
  private:
-  EWrapperEventSink& eventSink_;
+  EWrapperEventCollector& eventCollector_;
 };
 
 

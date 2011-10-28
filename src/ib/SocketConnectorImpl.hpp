@@ -38,24 +38,24 @@ namespace internal {
 
 class SocketConnectorImpl :
       public atp::zmq::Reactor::Strategy,
-      public ib::internal::EWrapperEventSink,
+      public ib::internal::EWrapperEventCollector,
       public ib::internal::AsioEClientSocket::EventCallback
 {
 
  public:
-  SocketConnectorImpl(Application& app, int timeout,
-                      const string& reactorAddress) :
+  SocketConnectorImpl(const string& zmqInboundAddress,
+                      Application& app, int timeout) :
       app_(app),
       timeoutSeconds_(timeout),
-      reactor_(reactorAddress, *this),
-      reactorAddress_(reactorAddress),
+      reactor_(zmqInboundAddress, *this),
+      reactorAddress_(zmqInboundAddress),
       socketConnector_(NULL)
   {
   }
 
   virtual ~SocketConnectorImpl()
   {
-    if (socket_.get() != 0 || publishSocket_.get() != 0) {
+    if (socket_.get() != 0 || outboundSocket_.get() != 0) {
       CONNECTOR_IMPL_LOGGER << "Shutting down " << stop() << std::endl;
     }
   }
@@ -67,12 +67,12 @@ class SocketConnectorImpl :
     // for publishing events.
     // this must be from the same thread as the thread in the socket event
     // dispatcher.
-    zmq::socket_t* sink = createPublishSocket();
+    zmq::socket_t* sink = createOutboundSocket();
 
     CONNECTOR_IMPL_LOGGER
         << "Creating event sink zmq socket:" << sink << std::endl;
 
-    publishSocket_.reset(sink);
+    outboundSocket_.reset(sink);
   }
 
   /// @see AsioEClientSocket::EventCallback
@@ -96,10 +96,10 @@ class SocketConnectorImpl :
         << "EClient socket closed:" << success << std::endl;
   }
 
-  /// @see EWrapperEventSink
-  zmq::socket_t* getSink()
+  /// @see EWrapperEventCollector
+  zmq::socket_t* getOutboundSocket()
   {
-    return publishSocket_.get();
+    return outboundSocket_.get();
   }
 
   /// @see Reactor::Strategy
@@ -176,12 +176,12 @@ class SocketConnectorImpl :
       }
     }
     socket_.reset();
-    if (publishSocket_.get() != 0) {
+    if (outboundSocket_.get() != 0) {
       CONNECTOR_IMPL_LOGGER << "Stopping publish socket." << std::endl;
-      delete publishSocket_.get();
+      delete outboundSocket_.get();
     }
-    publishSocket_.reset();
-    bool status = publishSocket_.get() == 0 && socket_.get() == 0;
+    outboundSocket_.reset();
+    bool status = outboundSocket_.get() == 0 && socket_.get() == 0;
     CONNECTOR_IMPL_LOGGER
         << "Stopped all sockets (EClient + publish):" << status << std::endl;
     return status;
@@ -196,7 +196,7 @@ class SocketConnectorImpl :
   }
 
 
-  virtual zmq::socket_t* createPublishSocket()
+  virtual zmq::socket_t* createOutboundSocket()
   {
     LOG(WARNING) << "I shouldn't be here." << std::endl;
     return NULL;
@@ -210,10 +210,12 @@ class SocketConnectorImpl :
   boost::shared_ptr<AsioEClientSocket> socket_;
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
+
+  // For handling inbound requests.
   atp::zmq::Reactor reactor_;
   const std::string& reactorAddress_;
 
-  boost::thread_specific_ptr<zmq::socket_t> publishSocket_;
+  boost::thread_specific_ptr<zmq::socket_t> outboundSocket_;
 
  protected:
   SocketConnector* socketConnector_;

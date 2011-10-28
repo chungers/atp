@@ -12,13 +12,13 @@
 namespace ib {
 namespace internal {
 
-class EWrapperEventSink
+class EWrapperEventCollector
 {
  public:
-  ~EWrapperEventSink() {}
+  ~EWrapperEventCollector() {}
 
   /// Returns the ZMQ socket that will be written to.
-  virtual zmq::socket_t* getSink() = 0;
+  virtual zmq::socket_t* getOutboundSocket() = 0;
 
   // TODO: add a << operator
 };
@@ -42,7 +42,7 @@ class EWrapperFactory
 
  public:
   static EWrapper* getInstance(IBAPI::Application& app,
-                               EWrapperEventSink& sink,
+                               EWrapperEventCollector& eventCollector,
                                int clientId = 0);
 };
 

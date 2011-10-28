@@ -25,9 +25,9 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper {
  public:
 
   EventDispatcher(IBAPI::Application& app,
-                  EWrapperEventSink& eventSink,
+                  EWrapperEventCollector& eventCollector,
                   int clientId) :
-      EventDispatcherBase(eventSink),
+      EventDispatcherBase(eventCollector),
       app_(app),
       clientId_(clientId)
 

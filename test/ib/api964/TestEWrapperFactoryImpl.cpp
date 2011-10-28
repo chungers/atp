@@ -23,9 +23,9 @@ namespace internal {
 
 class TestEWrapper : public EventDispatcher, public TestHarness {
  public:
-  TestEWrapper(IBAPI::Application& app, EWrapperEventSink& eventSink,
+  TestEWrapper(IBAPI::Application& app, EWrapperEventCollector& eventCollector,
                int clientId)
-      : EventDispatcher(app, eventSink, clientId),
+      : EventDispatcher(app, eventCollector, clientId),
         TestHarness()
   {
     LOG(INFO) << "Initialized LoggingEWrapper." << std:: endl;
@@ -38,10 +38,10 @@ class TestEWrapper : public EventDispatcher, public TestHarness {
     EventDispatcher::nextValidId(orderId);
     incr(NEXT_VALID_ID);
 
-    zmq::socket_t* sink = getEventSink();
-    EXPECT_TRUE(sink != NULL);
+    zmq::socket_t* eventCollector = getOutboundSocket();
+    EXPECT_TRUE(eventCollector != NULL);
 
-    LOG(INFO) << "Event sink: " << sink << std::endl;
+    LOG(INFO) << "Event eventCollector: " << eventCollector << std::endl;
   }
 
   // @Override
@@ -107,13 +107,15 @@ class TestEWrapper : public EventDispatcher, public TestHarness {
   }
 };
 
+using ib::internal::EWrapperEventCollector;
 
-EWrapper* EWrapperFactory::getInstance(IBAPI::Application& app,
-                                       ib::internal::EWrapperEventSink& sink,
-                                       int clientId)
+EWrapper*
+EWrapperFactory::getInstance(IBAPI::Application& app,
+                             EWrapperEventCollector& eventCollector,
+                             int clientId)
 {
   LOG(INFO) << "Getting test EWrapper instance." << std::endl;
-  return new ib::internal::TestEWrapper(app, sink, clientId);
+  return new ib::internal::TestEWrapper(app, eventCollector, clientId);
 }
 
 

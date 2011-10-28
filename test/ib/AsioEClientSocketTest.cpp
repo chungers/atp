@@ -52,17 +52,17 @@ bool waitForConnection(AsioEClientSocket& ec, int attempts) {
   return ec.isConnected();
 }
 
-class TestEWrapperEventSink : public ib::internal::EWrapperEventSink
+class TestEWrapperEventCollector : public ib::internal::EWrapperEventCollector
 {
  public:
-  TestEWrapperEventSink() : context_(1), socket_(context_, ZMQ_PUB)
+  TestEWrapperEventCollector() : context_(1), socket_(context_, ZMQ_PUB)
   {
     std::string endpoint = "tcp://127.0.0.1:6666";
     LOG(INFO) << "Creating publish socket @ " << endpoint << std::endl;
     socket_.bind(endpoint.c_str());
   }
 
-  zmq::socket_t* getSink()
+  zmq::socket_t* getOutboundSocket()
   {
     return &socket_;
   }
@@ -81,8 +81,8 @@ TEST(AsioEClientSocketTest, ConnectionTest)
 
   ApplicationBase app;
 
-  TestEWrapperEventSink sink;
-  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
+  TestEWrapperEventCollector eventCollector;
+  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -112,8 +112,8 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
   boost::asio::io_service ioService;
   ApplicationBase app;
 
-  TestEWrapperEventSink sink;
-  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
+  TestEWrapperEventCollector eventCollector;
+  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -172,8 +172,8 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
   boost::asio::io_service ioService;
   ApplicationBase app;
 
-  TestEWrapperEventSink sink;
-  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
+  TestEWrapperEventCollector eventCollector;
+  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -232,8 +232,8 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
   boost::asio::io_service ioService;
   ApplicationBase app;
 
-  TestEWrapperEventSink sink;
-  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
+  TestEWrapperEventCollector eventCollector;
+  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -286,8 +286,8 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   boost::asio::io_service ioService;
   ApplicationBase app;
 
-  TestEWrapperEventSink sink;
-  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
+  TestEWrapperEventCollector eventCollector;
+  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);
@@ -404,8 +404,8 @@ TEST(AsioEClientSocketTest, RequestMarketDataLoadTest)
   boost::asio::io_service ioService;
   ApplicationBase app;
 
-  TestEWrapperEventSink sink;
-  EWrapper* ew = EWrapperFactory::getInstance(app, sink);
+  TestEWrapperEventCollector eventCollector;
+  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   AsioEClientSocket ec(ioService, *ew);

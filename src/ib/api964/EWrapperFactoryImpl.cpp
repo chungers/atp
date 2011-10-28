@@ -11,10 +11,10 @@ namespace internal {
 
 
 EWrapper* EWrapperFactory::getInstance(IBAPI::Application& app,
-                                       EWrapperEventSink& eventSink,
+                                       EWrapperEventCollector& eventCollector,
                                        int clientId)
 {
-  return new EventDispatcher(app, eventSink, clientId);
+  return new EventDispatcher(app, eventCollector, clientId);
 }
 
 

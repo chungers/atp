@@ -83,9 +83,9 @@ using ib::internal::EWrapperFactory;
 class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
 {
  public:
-  TestSocketConnectorImpl(Application& app, int timeout,
-                          const string& responderAddress) :
-      SocketConnectorImpl(app, timeout, responderAddress),
+  TestSocketConnectorImpl(const string& responderAddress,
+                          Application& app, int timeout) :
+      SocketConnectorImpl(responderAddress, app, timeout),
       publishContext_(1)
   {}
 
@@ -98,16 +98,16 @@ class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
 
     try {
 
-      zmq::socket_t* sink = getSink();
+      zmq::socket_t* socket = getOutboundSocket();
 
       // This is run in a thread separate from the AsioEClientSocket's
       // block() thread.  That thread has access to the publish socket.
       // We need to make sure that no other thread has access to the socket.
 
-      EXPECT_EQ(NULL, sink);
+      EXPECT_EQ(NULL, socket);
 
       // just echo back to the client
-      size_t sent = atp::zmq::send_zero_copy(socket, msg);
+      size_t sent = atp::zmq::send_zero_copy(*socket, msg);
 
       return sent > 0;
 
@@ -117,11 +117,11 @@ class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
     }
   }
 
-  zmq::socket_t* createPublishSocket()
+  zmq::socket_t* createOutboundSocket()
   {
     std::string endpoint = "tcp://127.0.0.1:5555";
 
-    LOG(INFO) << "Creating publish socket @ " << endpoint << std::endl;
+    LOG(INFO) << "Creating outbound socket @ " << endpoint << std::endl;
     zmq::socket_t* socket = new zmq::socket_t(publishContext_, ZMQ_PUB);
     socket->bind(endpoint.c_str());
     return socket;
@@ -140,7 +140,7 @@ TEST(SocketConnectorTest, SocketConnectorImplConnectionTest)
 
   const string& bindAddr = "ipc://SocketConnectorImplConnectionTest";
 
-  TestSocketConnectorImpl socketConnector(app, 10, bindAddr);
+  TestSocketConnectorImpl socketConnector(bindAddr, app, 10);
 
   int clientId = 1;
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,
@@ -169,7 +169,7 @@ TEST(SocketConnectorTest, SendMessageTest)
 
   const string& bindAddr = "ipc://SocketConnectorImplTest";
 
-  TestSocketConnectorImpl socketConnector(app, 10, bindAddr);
+  TestSocketConnectorImpl socketConnector(bindAddr, app, 10);
 
   LOG(INFO) << "Starting client."  << std::endl;
 
