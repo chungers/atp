@@ -1,6 +1,8 @@
 # Zmq
 #
 
+message(STATUS "ZeroMQ =======================================================")
+
 ##########################################
 # Zmq library
 set(ZmqComponents_incs

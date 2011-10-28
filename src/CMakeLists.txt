@@ -12,3 +12,6 @@ add_subdirectory(ib)
 
 # ZMQ
 add_subdirectory(zmq)
+
+# R extensions
+add_subdirectory(R)

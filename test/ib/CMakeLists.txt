@@ -1,7 +1,8 @@
 #
 # Tests for IB connector
 
-message(STATUS "Tests: IB API version ${IBAPI_VERSION} from ${IBAPI_ROOT}")
+message(STATUS "TESTS: IB Connetor ===========================================")
+message(STATUS "-- IB API version ${IBAPI_VERSION} from ${IBAPI_ROOT}")
 
 option(IB_USE_STD_STRING "Use standard c++ string (see Shared/IBString.h)." ON)
 if (IB_USE_STD_STRING)

@@ -3,9 +3,7 @@
 
 set(API_IMPL ${SRC_DIR}/ib/${IBAPI_IMPL_DIR})
 
-message(STATUS "Using IB API version ${IBAPI_VERSION} from ${IBAPI_ROOT}")
-message(STATUS "Implementation directory = ${API_IMPL}")
-
+message(STATUS "TESTS: ZeroMQ ================================================")
 
 # Complete Test Suite
 set(ZmqTestSuite_incs

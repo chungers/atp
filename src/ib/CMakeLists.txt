@@ -1,5 +1,7 @@
 # Interactive Broker API adapter
 #
+message(STATUS "IB API =======================================================")
+message(STATUS "-- IB API version ${IBAPI_VERSION} from ${IBAPI_ROOT}")
 
 ##########################################
 # Build the IB api as a library
@@ -11,7 +13,6 @@ if (IB_USE_STD_STRING)
 endif (IB_USE_STD_STRING)
 
 # Core classes in the IB api:
-message(STATUS "Using IB API version ${IBAPI_VERSION} from ${IBAPI_ROOT}")
 include_directories(${IBAPI_ROOT}/Shared ${IBAPI_ROOT}/PosixSocketClient)
 ext_library(IBAPI
   ${IBAPI_ROOT}/PosixSocketClient/EClientSocketBase.cpp
