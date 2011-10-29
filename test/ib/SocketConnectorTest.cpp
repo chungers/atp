@@ -91,7 +91,7 @@ class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
 
  protected:
 
-  bool readSocketAndProcess(zmq::socket_t& socket)
+  bool handleReactorInboundMessages(zmq::socket_t& socket)
   {
     int more = atp::zmq::receive(socket, &msg);
     LOG(INFO) << "Received " << msg << std::endl;
@@ -117,7 +117,7 @@ class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
     }
   }
 
-  zmq::socket_t* createOutboundSocket()
+  zmq::socket_t* createOutboundSocket(int channel = 0)
   {
     std::string endpoint = "tcp://127.0.0.1:5555";
 

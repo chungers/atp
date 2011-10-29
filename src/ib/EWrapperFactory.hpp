@@ -18,7 +18,7 @@ class EWrapperEventCollector
   ~EWrapperEventCollector() {}
 
   /// Returns the ZMQ socket that will be written to.
-  virtual zmq::socket_t* getOutboundSocket() = 0;
+  virtual zmq::socket_t* getOutboundSocket(int channel = 0) = 0;
 
   // TODO: add a << operator
 };

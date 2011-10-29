@@ -62,7 +62,7 @@ class TestEWrapperEventCollector : public ib::internal::EWrapperEventCollector
     socket_.bind(endpoint.c_str());
   }
 
-  zmq::socket_t* getOutboundSocket()
+  zmq::socket_t* getOutboundSocket(int channel = 0)
   {
     return &socket_;
   }

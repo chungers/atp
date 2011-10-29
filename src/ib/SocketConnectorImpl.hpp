@@ -97,7 +97,7 @@ class SocketConnectorImpl :
   }
 
   /// @see EWrapperEventCollector
-  zmq::socket_t* getOutboundSocket()
+  zmq::socket_t* getOutboundSocket(int channel = 0)
   {
     return outboundSocket_.get();
   }
@@ -114,7 +114,7 @@ class SocketConnectorImpl :
     }
 
     // Now we are connected.  Process the received messages.
-    return readSocketAndProcess(socket);
+    return handleReactorInboundMessages(socket);
   }
 
   /// @overload
@@ -188,19 +188,19 @@ class SocketConnectorImpl :
   }
 
  protected:
-  virtual bool readSocketAndProcess(zmq::socket_t& socket)
-  {
-    // TODO
-    LOG(WARNING) << "I shouldn't be here." << std::endl;
-    return true;
-  }
 
+  /**
+   * Process messages from the socket and return true if ok.  This
+   * is part of the Reactor implementation that handles any inbound
+   * control messages (e.g. market data requests, orders, etc.)
+   */
+  virtual bool handleReactorInboundMessages(zmq::socket_t& socket) = 0;
 
-  virtual zmq::socket_t* createOutboundSocket()
-  {
-    LOG(WARNING) << "I shouldn't be here." << std::endl;
-    return NULL;
-  }
+  /**
+   * Create outbound socket for the specified channel id.  This is
+   * for pushing events out to the event collector.
+   */
+  virtual zmq::socket_t* createOutboundSocket(int channel = 0) = 0;
 
  private:
 

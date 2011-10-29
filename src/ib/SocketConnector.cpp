@@ -22,6 +22,17 @@ class SocketConnector::implementation :
 
   ~implementation() {}
 
+ protected:
+  virtual bool handleReactorInboundMessages(zmq::socket_t& socket)
+  {
+    return false;
+  }
+
+  virtual zmq::socket_t* createOutboundSocket(int channel = 0)
+  {
+    return NULL;
+  }
+
   friend class SocketConnector;
 };
 
