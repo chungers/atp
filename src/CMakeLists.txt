@@ -13,5 +13,5 @@ add_subdirectory(ib)
 # ZMQ
 add_subdirectory(zmq)
 
-# R extensions
-add_subdirectory(R)
+# ATP R extensions
+add_subdirectory(raptor)
