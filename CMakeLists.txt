@@ -31,11 +31,45 @@ message(STATUS "InteractiveBrokers API version ${IBAPI_VERSION}, implDir=${IBAPI
 set(FIX_VERSION 4.2)
 set(QUICKFIX_ROOT ${THIRD_PARTY_DIR}/quickfix/src/C++)
 
+# R Integration
+execute_process(
+  COMMAND R CMD config --cppflags
+  OUTPUT_VARIABLE R_CPP_FLAGS
+)
+message(STATUS "R cppflags: " ${R_CPP_FLAGS})
+
+execute_process(
+  COMMAND R CMD config --ldflags
+  OUTPUT_VARIABLE R_LD_FLAGS
+)
+message(STATUS "R ldflags: " ${R_LD_FLAGS})
+
+execute_process(
+  COMMAND Rscript -e "Rcpp:::CxxFlags()"
+  OUTPUT_VARIABLE RCPP_CXX_FLAGS
+)
+message(STATUS "Rcpp cxxflags: " ${RCPP_CXX_FLAGS})
+
+execute_process(
+  COMMAND Rscript -e "Rcpp:::LdFlags()"  | sed -e 's/-l/g'
+  OUTPUT_VARIABLE RCPP_LD_FLAGS
+)
+message(STATUS "Rcpp ldflags: " ${RCPP_LD_FLAGS})
+
+execute_process(
+  COMMAND Rscript -e "Rcpp:::CxxFlags()"
+  COMMAND sed -e "s/-I//g"
+  OUTPUT_VARIABLE RCPP_INCLUDE_PATH
+)
+message(STATUS "Rcpp Include Path: " ${RCPP_INCLUDE_PATH})
+
+
 # Generate paths for Emacs
 list(APPEND emacs_includes
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
   ${IBAPI_ROOT}/PosixSocketClient
+  ${RCPP_INCLUDE_PATH}
 )
 
 #list(APPEND emacs_sys_includes
@@ -52,7 +86,6 @@ set(API_ROOT ${COMMON_DIR}/ib/api/${IBAPI_VERSION})
 third_party(gflags)
 set(glog_deps gflags)
 third_party(glog)
-
 
 # Include the subdirectories required for this project:
 add_subdirectory(src)

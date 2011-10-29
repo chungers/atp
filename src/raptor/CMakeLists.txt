@@ -1,4 +1,4 @@
-# r-atp
+# raptor
 #
 message(STATUS "ATP R Extensions ============================================")
 
