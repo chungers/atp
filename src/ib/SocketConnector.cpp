@@ -8,6 +8,7 @@ namespace IBAPI {
 using ib::internal::AbstractSocketConnector;
 using ib::internal::AsioEClientSocket;
 using ib::internal::EWrapperFactory;
+using ib::internal::EClientPtr;
 
 class SocketConnector::implementation :
       public ib::internal::AbstractSocketConnector
@@ -23,7 +24,7 @@ class SocketConnector::implementation :
 
  protected:
   virtual bool handleReactorInboundMessages(
-      zmq::socket_t& socket, EClientSocketPtr eclient)
+      zmq::socket_t& socket, EClientPtr eclient)
   {
     return false;
   }

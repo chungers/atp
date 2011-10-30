@@ -95,7 +95,7 @@ static bool Convert(std::map<std::string, std::string>& nv,
     return false;
   }
 
-  uint64_t ts;
+  uint64_t ts = 0;
   std::string symbol;
   std::string event;
   double value;

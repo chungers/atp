@@ -12,6 +12,7 @@
 #include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "ib/internal.hpp"
 #include "ib/Application.hpp"
 #include "ib/GenericTickRequest.hpp"
 #include "ib/AsioEClientSocket.hpp"
@@ -95,7 +96,7 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
  protected:
 
   bool handleReactorInboundMessages(
-      zmq::socket_t& socket, EClientSocketPtr eclient)
+      zmq::socket_t& socket, ib::internal::EClientPtr eclient)
   {
     int more = atp::zmq::receive(socket, &msg);
     LOG(INFO) << "Received " << msg << std::endl;

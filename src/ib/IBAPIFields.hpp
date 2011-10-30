@@ -33,12 +33,16 @@ DEFINE_STRING(Ext_OrigSendingTimeMicros);
 
 DEFINE_STRING(Symbol);
 DEFINE_STRING(SecurityID);
-DEFINE_BOOLEAN(PutOrCall);
+DEFINE_STRING(RoutingID);
+DEFINE_INT(PutOrCall);
 DEFINE_STRING(SecurityType);
 DEFINE_STRING(SecurityExchange);
 DEFINE_PRICE(StrikePrice);
+
 DEFINE_DAYOFMONTH(MaturityDay);
 DEFINE_MONTHYEAR(MaturityMonthYear);
+
+DEFINE_LOCALMKTDATE(MaturityDate);
 
 }
 

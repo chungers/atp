@@ -17,6 +17,7 @@
 #include "log_levels.h"
 #include "utils.hpp"
 
+#include "ib/internal.hpp"
 #include "ib/Application.hpp"
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
@@ -33,8 +34,6 @@ using namespace IBAPI;
 
 namespace ib {
 namespace internal {
-
-
 
 class AbstractSocketConnector :
       public atp::zmq::Reactor::Strategy,
@@ -193,10 +192,8 @@ class AbstractSocketConnector :
    * is part of the Reactor implementation that handles any inbound
    * control messages (e.g. market data requests, orders, etc.)
    */
-
-  typedef boost::shared_ptr<AsioEClientSocket> EClientSocketPtr;
   virtual bool handleReactorInboundMessages(
-      zmq::socket_t& socket, EClientSocketPtr eclient) = 0;
+      zmq::socket_t& socket, EClientPtr eclient) = 0;
 
   /**
    * Create outbound socket for the specified channel id.  This is
