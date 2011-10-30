@@ -1,5 +1,5 @@
 
-#include "ib/SocketConnectorImpl.hpp"
+#include "ib/AbstractSocketConnector.hpp"
 
 
 #define LOGGER VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR)
@@ -7,16 +7,16 @@
 
 namespace IBAPI {
 
-using ib::internal::SocketConnectorImpl;
+using ib::internal::AbstractSocketConnector;
 using ib::internal::EWrapperFactory;
 
 class SocketConnector::implementation :
-      public ib::internal::SocketConnectorImpl
+      public ib::internal::AbstractSocketConnector
 {
  public:
   implementation(const std::string& zmqInboundAddr,
                  Application& app, int timeout) :
-      SocketConnectorImpl(zmqInboundAddr, app, timeout)
+      AbstractSocketConnector(zmqInboundAddr, app, timeout)
   {
   }
 

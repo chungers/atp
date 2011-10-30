@@ -1,5 +1,5 @@
-#ifndef IB_SOCKET_CONNECTOR_IMPL_H_
-#define IB_SOCKET_CONNECTOR_IMPL_H_
+#ifndef IB_ABSTRACT_SOCKET_CONNECTOR_H_
+#define IB_ABSTRACT_SOCKET_CONNECTOR_H_
 
 #include <sstream>
 #include <sys/select.h>
@@ -26,7 +26,7 @@
 #include "zmq/ZmqUtils.hpp"
 
 
-#define CONNECTOR_IMPL_LOGGER VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR_IMPL)
+#define CONNECTOR_IMPL_LOGGER VLOG(VLOG_LEVEL_IBAPI_ABSTRACT_SOCKET_CONNECTOR)
 #define CONNECTOR_IMPL_WARNING LOG(WARNING)
 
 using namespace IBAPI;
@@ -36,14 +36,14 @@ namespace internal {
 
 
 
-class SocketConnectorImpl :
+class AbstractSocketConnector :
       public atp::zmq::Reactor::Strategy,
       public ib::internal::EWrapperEventCollector,
       public ib::internal::AsioEClientSocket::EventCallback
 {
 
  public:
-  SocketConnectorImpl(const string& zmqInboundAddress,
+  AbstractSocketConnector(const string& zmqInboundAddress,
                       Application& app, int timeout) :
       app_(app),
       timeoutSeconds_(timeout),
@@ -53,7 +53,7 @@ class SocketConnectorImpl :
   {
   }
 
-  virtual ~SocketConnectorImpl()
+  virtual ~AbstractSocketConnector()
   {
     if (socket_.get() != 0 || outboundSocket_.get() != 0) {
       CONNECTOR_IMPL_LOGGER << "Shutting down " << stop() << std::endl;
@@ -224,4 +224,4 @@ class SocketConnectorImpl :
 } // namespace internal
 } // namespace ib
 
-#endif  //IB_SOCKET_CONNECTOR_IMPL_H_
+#endif  //IB_ABSTRACT_SOCKET_CONNECTOR_H_

@@ -18,7 +18,7 @@
 #include "ib/EWrapperFactory.hpp"
 #include "ib/SessionSetting.hpp"
 #include "ib/SocketConnector.hpp"
-#include "ib/SocketConnectorImpl.hpp"
+#include "ib/AbstractSocketConnector.hpp"
 #include "ib/SocketInitiator.hpp"
 
 #include "ib/TestHarness.hpp"
@@ -80,12 +80,12 @@ class TestStrategy :
 
 using ib::internal::EWrapperFactory;
 
-class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
+class TestSocketConnector : public ib::internal::AbstractSocketConnector
 {
  public:
-  TestSocketConnectorImpl(const string& responderAddress,
+  TestSocketConnector(const string& responderAddress,
                           Application& app, int timeout) :
-      SocketConnectorImpl(responderAddress, app, timeout),
+      AbstractSocketConnector(responderAddress, app, timeout),
       publishContext_(1)
   {}
 
@@ -133,14 +133,14 @@ class TestSocketConnectorImpl : public ib::internal::SocketConnectorImpl
 };
 
 
-TEST(SocketConnectorTest, SocketConnectorImplConnectionTest)
+TEST(SocketConnectorTest, AbstractSocketConnectorConnectionTest)
 {
   TestApplication app;
   TestStrategy strategy;
 
-  const string& bindAddr = "ipc://SocketConnectorImplConnectionTest";
+  const string& bindAddr = "ipc://_zmq.AbstractSocketConnectorConnectionTest";
 
-  TestSocketConnectorImpl socketConnector(bindAddr, app, 10);
+  TestSocketConnector socketConnector(bindAddr, app, 10);
 
   int clientId = 1;
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,
@@ -167,9 +167,9 @@ TEST(SocketConnectorTest, SendMessageTest)
   TestApplication app;
   TestStrategy strategy;
 
-  const string& bindAddr = "ipc://SocketConnectorImplTest";
+  const string& bindAddr = "ipc://_zmq.AbstractSocketConnectorTest";
 
-  TestSocketConnectorImpl socketConnector(bindAddr, app, 10);
+  TestSocketConnector socketConnector(bindAddr, app, 10);
 
   LOG(INFO) << "Starting client."  << std::endl;
 
