@@ -91,7 +91,8 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
 
  protected:
 
-  bool handleReactorInboundMessages(zmq::socket_t& socket)
+  bool handleReactorInboundMessages(
+      zmq::socket_t& socket, EClientSocketPtr eclient)
   {
     int more = atp::zmq::receive(socket, &msg);
     LOG(INFO) << "Received " << msg << std::endl;

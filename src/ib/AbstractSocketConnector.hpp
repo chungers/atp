@@ -112,9 +112,8 @@ class AbstractSocketConnector :
     if (socket_.get() == 0 || !socket_->isConnected()) {
       return true; // No-op -- don't read the messages from socket yet.
     }
-
     // Now we are connected.  Process the received messages.
-    return handleReactorInboundMessages(socket);
+    return handleReactorInboundMessages(socket, socket_);
   }
 
   /// @overload
@@ -194,7 +193,10 @@ class AbstractSocketConnector :
    * is part of the Reactor implementation that handles any inbound
    * control messages (e.g. market data requests, orders, etc.)
    */
-  virtual bool handleReactorInboundMessages(zmq::socket_t& socket) = 0;
+
+  typedef boost::shared_ptr<AsioEClientSocket> EClientSocketPtr;
+  virtual bool handleReactorInboundMessages(
+      zmq::socket_t& socket, EClientSocketPtr eclient) = 0;
 
   /**
    * Create outbound socket for the specified channel id.  This is

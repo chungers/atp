@@ -20,9 +20,9 @@ class EventDispatcherBase
 
  protected:
 
-  zmq::socket_t* getOutboundSocket()
+  zmq::socket_t* getOutboundSocket(int channel = 0)
   {
-    return eventCollector_.getOutboundSocket();
+    return eventCollector_.getOutboundSocket(channel);
   }
 
  private:

@@ -1,13 +1,12 @@
 
 #include "ib/AbstractSocketConnector.hpp"
 
-
 #define LOGGER VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR)
-
 
 namespace IBAPI {
 
 using ib::internal::AbstractSocketConnector;
+using ib::internal::AsioEClientSocket;
 using ib::internal::EWrapperFactory;
 
 class SocketConnector::implementation :
@@ -23,7 +22,8 @@ class SocketConnector::implementation :
   ~implementation() {}
 
  protected:
-  virtual bool handleReactorInboundMessages(zmq::socket_t& socket)
+  virtual bool handleReactorInboundMessages(
+      zmq::socket_t& socket, EClientSocketPtr eclient)
   {
     return false;
   }

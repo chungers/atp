@@ -20,8 +20,8 @@ namespace internal {
  *
  * See https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketConnector.h
  */
-class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper {
-
+class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
+{
  public:
 
   EventDispatcher(IBAPI::Application& app,
@@ -30,7 +30,6 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper {
       EventDispatcherBase(eventCollector),
       app_(app),
       clientId_(clientId)
-
   {
   }
 
