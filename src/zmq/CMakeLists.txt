@@ -5,21 +5,21 @@ message(STATUS "ZeroMQ =======================================================")
 
 ##########################################
 # Zmq library
-set(ZmqComponents_incs
+set(zmq_components_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(ZmqComponents_srcs
+set(zmq_components_srcs
   Reactor.cpp
 )
-set(ZmqComponents_libs
+set(zmq_components_libs
   boost_system
   boost_thread
   gflags
   glog
   zmq
 )
-cpp_library(ZmqComponents)
+cpp_library(zmq_components)
 
 ##########################################
 # Reactor test client / server
@@ -34,6 +34,6 @@ set(zmq_reactor_libs
   boost_system
   gflags
   glog
-  ZmqComponents
+  zmq_components
 )
 cpp_executable(zmq_reactor)

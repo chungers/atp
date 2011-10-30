@@ -73,10 +73,10 @@ struct SocketReader : NoCopyAndAssign {
   virtual bool operator()(zmq::socket_t& socket) = 0;
 };
 
-class Responder
+class Reactor
 {
  public:
-  Responder(const string& addr, SocketReader& reader) :
+  Reactor(const string& addr, SocketReader& reader) :
       context_(1),
       socket_(context_, ZMQ_REP),
       running_(false),
@@ -85,10 +85,10 @@ class Responder
     socket_.bind(addr.c_str());
     // start thread
     thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
-        boost::bind(&Responder::processMessages, this)));
+        boost::bind(&Reactor::processMessages, this)));
     running_ = true;
 
-    LOG(INFO) << "Started responder. " << std::endl;
+    LOG(INFO) << "Started reactor. " << std::endl;
   }
 
   zmq::context_t& context()
@@ -227,11 +227,11 @@ TEST(MessageTest, ZmqSendTest)
 
   const std::string& addr = "inproc://ZmqSendTest";
 
-  Responder responder(addr, testReader);
+  Reactor reactor(addr, testReader);
 
   // For inproc endpoint, we need to use a shared context. Otherwise, the
   // program will crash.
-  zmq::socket_t client(responder.context(), ZMQ_REQ);
+  zmq::socket_t client(reactor.context(), ZMQ_REQ);
   client.connect(addr.c_str());
 
   MarketDataRequest request;
@@ -274,7 +274,7 @@ TEST(MessageTest, ZmqSendTest)
   message.getField(symbol);
   EXPECT_EQ(symbol.getString(), "GOOG");
 
-  LOG(INFO) << "Stopping responder." << std::endl;
-  responder.stop();
+  LOG(INFO) << "Stopping reactor." << std::endl;
+  reactor.stop();
 }
 

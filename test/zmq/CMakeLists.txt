@@ -19,7 +19,7 @@ set(ZmqTestSuite_srcs
 )
 set(ZmqTestSuite_libs
   IBAPIConnector
-  ZmqComponents
+  zmq_components
 )
 cpp_gtest(ZmqTestSuite)
 

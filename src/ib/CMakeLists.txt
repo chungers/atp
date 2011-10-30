@@ -40,7 +40,7 @@ set(IBAPIConnector_srcs
 )
 set(IBAPIConnector_libs
   IBAPI
-  ZmqComponents
+  zmq_components
   boost_system
   boost_thread
   gflags
