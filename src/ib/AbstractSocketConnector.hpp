@@ -44,7 +44,7 @@ class AbstractSocketConnector :
 
  public:
   AbstractSocketConnector(const string& zmqInboundAddress,
-                      Application& app, int timeout) :
+                          Application& app, int timeout) :
       app_(app),
       timeoutSeconds_(timeout),
       reactor_(zmqInboundAddress, *this),

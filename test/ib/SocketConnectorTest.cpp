@@ -84,10 +84,13 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
 {
  public:
   TestSocketConnector(const string& responderAddress,
-                          Application& app, int timeout) :
+                      const string& outboundAddr,
+                      Application& app, int timeout) :
       AbstractSocketConnector(responderAddress, app, timeout),
+      outboundAddr_(outboundAddr_),
       publishContext_(1)
-  {}
+  {
+  }
 
  protected:
 
@@ -120,7 +123,7 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
 
   zmq::socket_t* createOutboundSocket(int channel = 0)
   {
-    std::string endpoint = "tcp://127.0.0.1:5555";
+    std::string endpoint = outboundAddr_;
 
     LOG(INFO) << "Creating outbound socket @ " << endpoint << std::endl;
     zmq::socket_t* socket = new zmq::socket_t(publishContext_, ZMQ_PUB);
@@ -130,6 +133,7 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
 
  private:
   std::string msg;
+  std::string& outboundAddr_;
   zmq::context_t publishContext_;
 };
 
@@ -139,9 +143,11 @@ TEST(SocketConnectorTest, AbstractSocketConnectorConnectionTest)
   TestApplication app;
   TestStrategy strategy;
 
-  const string& bindAddr = "ipc://_zmq.AbstractSocketConnectorConnectionTest";
-
-  TestSocketConnector socketConnector(bindAddr, app, 10);
+  const string& bindAddr =
+      "ipc://_zmq.AbstractSocketConnectorConnectionTest.in";
+  const string& outboundAddr =
+      "ipc://_zmq.AbstractSocketConnectorConnectionTest.out";
+  TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10);
 
   int clientId = 1;
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,
@@ -168,9 +174,12 @@ TEST(SocketConnectorTest, SendMessageTest)
   TestApplication app;
   TestStrategy strategy;
 
-  const string& bindAddr = "ipc://_zmq.AbstractSocketConnectorTest";
+  const string& bindAddr =
+      "ipc://_zmq.AbstractSocketConnectorTest.in";
+  const string& outboundAddr =
+      "ipc://_zmq.AbstractSocketConnectorTest.out";
 
-  TestSocketConnector socketConnector(bindAddr, app, 10);
+  TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10);
 
   LOG(INFO) << "Starting client."  << std::endl;
 
