@@ -2,6 +2,7 @@
 #define IBAPI_MESSAGE_H_
 
 #include <quickfix/FieldMap.h>
+#include <quickfix/Fields.h>
 
 #include "ib/ib_common.hpp"
 #include "ib/IBAPIFields.hpp"
@@ -19,17 +20,17 @@ class Header : public FIX::FieldMap {
   Header(const std::string& version,
          const std::string& msgType)
   {
-    setField(IBAPI::MsgType(msgType));
-    setField(IBAPI::BeginString(version));
+    setField(FIX::MsgType(msgType));
+    setField(FIX::BeginString(version));
   }
 
   Header(const Header& copy) : FIX::FieldMap(copy)
   {
   }
 
-  FIELD_SET(*this, IBAPI::MsgType);
-  FIELD_SET(*this, IBAPI::BeginString);
-  FIELD_SET(*this, IBAPI::SendingTime);
+  FIELD_SET(*this, FIX::MsgType);
+  FIELD_SET(*this, FIX::BeginString);
+  FIELD_SET(*this, FIX::SendingTime);
 };
 
 class Trailer : public FIX::FieldMap {

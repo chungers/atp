@@ -1,8 +1,10 @@
 #ifndef IBAPI_FIELDS_H_
 #define IBAPI_FIELDS_H_
 
-#include <quickfix/Field.h>
-#include <quickfix/FieldMap.h>
+//#include <quickfix/Field.h>
+//#include <quickfix/FieldMap.h>
+#include <quickfix/FixFields.h>
+#include <quickfix/FixValues.h>
 
 
 /// See FixFieldNumbers.h in QuickFIX.
@@ -24,25 +26,8 @@ using namespace FIX;
 /// Where possbile, existing FIX fields are used.
 namespace IBAPI {
 
-DEFINE_STRING(BeginString);
-DEFINE_STRING(MsgType);
-DEFINE_STRING(SendingTime);
-
 DEFINE_STRING(Ext_SendingTimeMicros);
 DEFINE_STRING(Ext_OrigSendingTimeMicros);
-
-DEFINE_STRING(Symbol);
-DEFINE_STRING(SecurityID);
-DEFINE_STRING(RoutingID);
-DEFINE_INT(PutOrCall);
-DEFINE_STRING(SecurityType);
-DEFINE_STRING(SecurityExchange);
-DEFINE_PRICE(StrikePrice);
-
-DEFINE_DAYOFMONTH(MaturityDay);
-DEFINE_MONTHYEAR(MaturityMonthYear);
-
-DEFINE_LOCALMKTDATE(MaturityDate);
 
 }
 

@@ -6,6 +6,9 @@
 #include <zmq.hpp>
 #include <stdlib.h>
 
+#include <quickfix/FixFields.h>
+#include <quickfix/FixValues.h>
+
 #include "utils.hpp"
 #include "common.hpp"
 #include "ib/IBAPIFields.hpp"
@@ -21,13 +24,13 @@ class MarketDataRequest : public IBAPI::Message
   {
   }
 
-  FIELD_SET(*this, IBAPI::Symbol);
-  FIELD_SET(*this, IBAPI::SecurityID);
-  FIELD_SET(*this, IBAPI::SecurityType);
-  FIELD_SET(*this, IBAPI::PutOrCall);
-  FIELD_SET(*this, IBAPI::StrikePrice);
-  FIELD_SET(*this, IBAPI::RoutingID);
-  FIELD_SET(*this, IBAPI::MaturityDate);
+  FIELD_SET(*this, FIX::Symbol);
+  FIELD_SET(*this, FIX::SecurityID);
+  FIELD_SET(*this, FIX::SecurityType);
+  FIELD_SET(*this, FIX::PutOrCall);
+  FIELD_SET(*this, FIX::StrikePrice);
+  FIELD_SET(*this, FIX::RoutingID);
+  FIELD_SET(*this, FIX::MaturityDate);
 };
 
 TEST(MessageTest, ApiTest)
@@ -37,9 +40,14 @@ TEST(MessageTest, ApiTest)
   MarketDataRequest request;
 
   // Using set(X) as the type-safe way (instead of setField())
-  request.set(IBAPI::SecurityType(IBAPI::SecurityType_OPTION));
-  request.set(IBAPI::PutOrCall(IBAPI::PutOrCall_PUT));
-  request.set(IBAPI::Symbol("AAPL"));
+  request.set(FIX::SecurityType(FIX::SecurityType_OPTION));
+  request.set(FIX::PutOrCall(FIX::PutOrCall_PUT));
+  request.set(FIX::Symbol("AAPL"));
+
+  // See FieldTypes.h
+  FIX::LocalDate expiration(17, 11, 2011);
+  //request.set(FIX::MaturityDate(expiration));
+
 
   // This will not compile -- field is not defined.
   //request.set(IBAPI::SecurityExchange("SMART"));
@@ -56,13 +64,13 @@ TEST(MessageTest, ApiTest)
         << "\"" << itr->second.getString() << "\"]" ;
   }
 
-  IBAPI::PutOrCall putOrCall;
+  FIX::PutOrCall putOrCall;
   request.get(putOrCall);
-  EXPECT_EQ(IBAPI::PutOrCall_PUT, putOrCall);
+  EXPECT_EQ(FIX::PutOrCall_PUT, putOrCall);
 
   // Get header information
   const IBAPI::Header& header = request.getHeader();
-  IBAPI::MsgType msgType;
+  FIX::MsgType msgType;
   header.get(msgType);
 
   EXPECT_EQ(msgType.getString(), "MarketDataRequest");
@@ -80,9 +88,9 @@ TEST(MessageTest, CopyTest)
 
   MarketDataRequest request;
 
-  request.set(IBAPI::SecurityType(IBAPI::SecurityType_COMMON_STOCK));
-  request.set(IBAPI::Symbol("SPY"));
-  request.set(IBAPI::RoutingID(IBAPI::RoutingID_DEFAULT));
+  request.set(FIX::SecurityType(IBAPI::SecurityType_COMMON_STOCK));
+  request.set(FIX::Symbol("SPY"));
+  request.set(FIX::RoutingID(IBAPI::RoutingID_DEFAULT));
 
   for (FIX::FieldMap::iterator itr = request.begin();
        itr != request.end();
@@ -95,13 +103,13 @@ TEST(MessageTest, CopyTest)
         << "\"" << itr->second.getString() << "\"]" ;
   }
 
-  IBAPI::RoutingID routingId;
+  FIX::RoutingID routingId;
   request.get(routingId);
   EXPECT_EQ("SMART", routingId.getString());
 
   // Create a copy
   MarketDataRequest copy(request);
-  IBAPI::RoutingID copyRoutingId;
+  FIX::RoutingID copyRoutingId;
   copy.get(copyRoutingId);
   EXPECT_EQ(routingId.getString(), copyRoutingId.getString());
 
@@ -282,8 +290,8 @@ TEST(MessageTest, ZmqSendTest)
   client.connect(addr.c_str());
 
   MarketDataRequest request;
-  request.set(IBAPI::SecurityType(IBAPI::SecurityType_COMMON_STOCK));
-  request.set(IBAPI::Symbol("GOOG"));
+  request.set(FIX::SecurityType(IBAPI::SecurityType_COMMON_STOCK));
+  request.set(FIX::Symbol("GOOG"));
 
   // Sending out message
   const IBAPI::Header& header = request.getHeader();
@@ -305,9 +313,9 @@ TEST(MessageTest, ZmqSendTest)
     LOG(INFO) << "Got message field " << itr->second.getString() ;
   }
 
-  IBAPI::MsgType msgType1;
+  FIX::MsgType msgType1;
   request.getHeader().get(msgType1);
-  IBAPI::MsgType msgType2;
+  FIX::MsgType msgType2;
   message.getHeader().get(msgType2);
 
   EXPECT_EQ(msgType1.getString(), "MarketDataRequest");
@@ -317,7 +325,7 @@ TEST(MessageTest, ZmqSendTest)
   LOG(INFO) << "Len = " << msgType1.getString().length()
             << ", " << msgType2.getString().length() ;
 
-  IBAPI::Symbol symbol;
+  FIX::Symbol symbol;
   message.getField(symbol);
   EXPECT_EQ(symbol.getString(), "GOOG");
 
