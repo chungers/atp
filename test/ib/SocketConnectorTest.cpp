@@ -88,32 +88,32 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
                       const string& outboundAddr,
                       Application& app, int timeout) :
       AbstractSocketConnector(responderAddress, app, timeout),
-      outboundAddr_(outboundAddr_),
+      outboundAddr_(outboundAddr),
       publishContext_(1)
   {
+    LOG(INFO) << "TestConnector initialized.";
+    LOG(INFO) << "Inbound @ " << responderAddress;
+    LOG(INFO) << "Outbound @ " << outboundAddr_;
   }
 
  protected:
 
   bool handleReactorInboundMessages(
-      zmq::socket_t& socket, ib::internal::EClientPtr eclient)
+      zmq::socket_t& reactorSocket, ib::internal::EClientPtr eclient)
   {
-    int more = atp::zmq::receive(socket, &msg);
+    zmq::socket_t* outboundSocket = getOutboundSocket();
+
+    // This is run in a thread separate from the AsioEClientSocket's
+    // block() thread.  That thread has access to the publish socket.
+    // We need to make sure that no other thread has access to the socket.
+    EXPECT_EQ(NULL, outboundSocket);
+
+    int more = atp::zmq::receive(reactorSocket, &msg);
     LOG(INFO) << "Received " << msg << std::endl;
 
     try {
-
-      zmq::socket_t* socket = getOutboundSocket();
-
-      // This is run in a thread separate from the AsioEClientSocket's
-      // block() thread.  That thread has access to the publish socket.
-      // We need to make sure that no other thread has access to the socket.
-
-      EXPECT_EQ(NULL, socket);
-
       // just echo back to the client
-      size_t sent = atp::zmq::send_zero_copy(*socket, msg);
-
+      size_t sent = atp::zmq::send_zero_copy(reactorSocket, msg);
       return sent > 0;
 
     } catch (zmq::error_t e) {
@@ -124,7 +124,7 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
 
   zmq::socket_t* createOutboundSocket(int channel = 0)
   {
-    std::string endpoint = outboundAddr_;
+    std::string& endpoint = outboundAddr_;
 
     LOG(INFO) << "Creating outbound socket @ " << endpoint << std::endl;
     zmq::socket_t* socket = new zmq::socket_t(publishContext_, ZMQ_PUB);
@@ -134,7 +134,7 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
 
  private:
   std::string msg;
-  std::string& outboundAddr_;
+  std::string outboundAddr_;
   zmq::context_t publishContext_;
 };
 
@@ -150,7 +150,7 @@ TEST(SocketConnectorTest, AbstractSocketConnectorConnectionTest)
       "ipc://_zmq.AbstractSocketConnectorConnectionTest.out";
   TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10);
 
-  int clientId = 1;
+  int clientId = 14567;
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,
                                        &strategy);
 
@@ -191,9 +191,10 @@ TEST(SocketConnectorTest, SendMessageTest)
 
   LOG(INFO) << "Client connected."  << std::endl;
 
-  int status = socketConnector.connect("127.0.0.1", 4001, 0,
+  int clientId = 12456;
+  int status = socketConnector.connect("127.0.0.1", 4001, clientId,
                                        &strategy);
-  EXPECT_EQ(0, status); // Expected, actual
+  EXPECT_EQ(clientId, status); // Expected, actual
   EXPECT_EQ(1, strategy.getCount(ON_CONNECT));
 
   size_t messages = 10;
