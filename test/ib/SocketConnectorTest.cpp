@@ -101,6 +101,10 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
   bool handleReactorInboundMessages(
       zmq::socket_t& reactorSocket, ib::internal::EClientPtr eclient)
   {
+    // Make sure that the eclient pointer is not null
+    EClient* ptr = eclient.get();
+    EXPECT_TRUE(ptr != NULL);
+
     zmq::socket_t* outboundSocket = getOutboundSocket();
 
     // This is run in a thread separate from the AsioEClientSocket's
