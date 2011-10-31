@@ -37,6 +37,7 @@ set(IBAPIConnector_srcs
   ${IBAPI_IMPL_DIR}/ApiImpl.cpp
   ${IBAPI_IMPL_DIR}/ApiMessages.cpp
   ${IBAPI_IMPL_DIR}/EWrapperFactoryImpl.cpp
+  ${IBAPI_IMPL_DIR}/ReactorStrategyFactoryImpl.cpp
 )
 set(IBAPIConnector_libs
   IBAPI

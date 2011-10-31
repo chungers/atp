@@ -4,18 +4,19 @@
 #include <zmq.hpp>
 
 #include "ib/internal.hpp"
-
+#include "ib/Message.hpp"
 
 namespace ib {
 namespace internal {
+
+using IBAPI::Message;
 
 class ReactorStrategy
 {
  public:
   ~ReactorStrategy() {}
 
-  virtual bool handleInboundMessage(
-      zmq::socket_t& socket, EClientPtr eclient) = 0;
+  virtual bool handleInboundMessage(Message& message, EClientPtr eclient) = 0;
 };
 
 
