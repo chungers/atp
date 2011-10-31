@@ -42,7 +42,10 @@ TEST(MessageTest, ApiTest)
   // Using set(X) as the type-safe way (instead of setField())
   request.set(FIX::SecurityType(FIX::SecurityType_OPTION));
   request.set(FIX::PutOrCall(FIX::PutOrCall_PUT));
-  request.set(FIX::Symbol("AAPL"));
+
+  FIX::Symbol aapl("AAPL");
+  request.set(aapl);
+  request.set(FIX::StrikePrice(425.50));  // Not a valid strike but for testing
 
   // See FieldTypes.h
   FIX::LocalDate expiration(17, 11, 2011);
@@ -67,6 +70,11 @@ TEST(MessageTest, ApiTest)
   FIX::PutOrCall putOrCall;
   request.get(putOrCall);
   EXPECT_EQ(FIX::PutOrCall_PUT, putOrCall);
+
+  FIX::StrikePrice strike;
+  request.get(strike);
+  EXPECT_EQ("425.5", strike.getString());
+  EXPECT_EQ(425.5, strike);
 
   // Get header information
   const IBAPI::Header& header = request.getHeader();
