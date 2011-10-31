@@ -23,6 +23,10 @@ class Header : public FIX::FieldMap {
     setField(IBAPI::BeginString(version));
   }
 
+  Header(const Header& copy) : FIX::FieldMap(copy)
+  {
+  }
+
   FIELD_SET(*this, IBAPI::MsgType);
   FIELD_SET(*this, IBAPI::BeginString);
   FIELD_SET(*this, IBAPI::SendingTime);
@@ -37,6 +41,10 @@ class Trailer : public FIX::FieldMap {
     setField(IBAPI::Ext_SendingTimeMicros(time));
   }
 
+  Trailer(const Trailer& copy) : FIX::FieldMap(copy)
+  {
+  }
+
   FIELD_SET(*this, IBAPI::Ext_SendingTimeMicros);
   FIELD_SET(*this, IBAPI::Ext_OrigSendingTimeMicros);
 };
@@ -48,6 +56,13 @@ class Message : public FIX::FieldMap
   Message(const std::string& version,
           const std::string& msgType) : header_(version, msgType)
   {
+  }
+
+  Message(const Message& copy) :
+      FIX::FieldMap(copy),
+      header_(copy.header_), trailer_(copy.trailer_)
+  {
+
   }
 
   Header& getHeader()

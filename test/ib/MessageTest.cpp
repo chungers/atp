@@ -26,19 +26,24 @@ class MarketDataRequest : public IBAPI::Message
   FIELD_SET(*this, IBAPI::SecurityType);
   FIELD_SET(*this, IBAPI::PutOrCall);
   FIELD_SET(*this, IBAPI::StrikePrice);
-  FIELD_SET(*this, IBAPI::MaturityDay);
-  FIELD_SET(*this, IBAPI::MaturityMonthYear);
+  FIELD_SET(*this, IBAPI::RoutingID);
+  FIELD_SET(*this, IBAPI::MaturityDate);
 };
 
 TEST(MessageTest, ApiTest)
 {
-  LOG(INFO) << "Current TimeMicros = " << now_micros() << std::endl;
+  LOG(INFO) << "Current TimeMicros = " << now_micros() ;
 
   MarketDataRequest request;
 
-  request.setField(IBAPI::SecurityType("OPT"));
-  request.setField(IBAPI::PutOrCall(IBAPI::PutOrCall_PUT));
-  request.setField(IBAPI::Symbol("AAPL"));
+  // Using set(X) as the type-safe way (instead of setField())
+  request.set(IBAPI::SecurityType(IBAPI::SecurityType_OPTION));
+  request.set(IBAPI::PutOrCall(IBAPI::PutOrCall_PUT));
+  request.set(IBAPI::Symbol("AAPL"));
+
+  // This will not compile -- field is not defined.
+  //request.set(IBAPI::SecurityExchange("SMART"));
+
 
   for (FIX::FieldMap::iterator itr = request.begin();
        itr != request.end();
@@ -48,26 +53,68 @@ TEST(MessageTest, ApiTest)
         itr->second.getLength() << "/" << itr->second.getTotal()
         << "}" <<
         "[" << itr->second.getField() << ":"
-        << "\"" << itr->second.getString() << "\"]" << std::endl;
+        << "\"" << itr->second.getString() << "\"]" ;
   }
 
   IBAPI::PutOrCall putOrCall;
-  request.getField(putOrCall);
+  request.get(putOrCall);
   EXPECT_EQ(IBAPI::PutOrCall_PUT, putOrCall);
 
   // Get header information
   const IBAPI::Header& header = request.getHeader();
   IBAPI::MsgType msgType;
-  header.getField(msgType);
+  header.get(msgType);
 
   EXPECT_EQ(msgType.getString(), "MarketDataRequest");
 
   const IBAPI::Trailer& trailer = request.getTrailer();
   IBAPI::Ext_SendingTimeMicros sendingTimeMicros;
-  trailer.getField(sendingTimeMicros);
+  trailer.get(sendingTimeMicros);
 
-  LOG(INFO) << "Timestamp = " << sendingTimeMicros.getString() << std::endl;
+  LOG(INFO) << "Timestamp = " << sendingTimeMicros.getString() ;
 }
+
+TEST(MessageTest, CopyTest)
+{
+  LOG(INFO) << "Current TimeMicros = " << now_micros() ;
+
+  MarketDataRequest request;
+
+  request.set(IBAPI::SecurityType(IBAPI::SecurityType_COMMON_STOCK));
+  request.set(IBAPI::Symbol("SPY"));
+  request.set(IBAPI::RoutingID(IBAPI::RoutingID_DEFAULT));
+
+  for (FIX::FieldMap::iterator itr = request.begin();
+       itr != request.end();
+       ++itr) {
+    LOG(INFO)
+        << "{" << itr->second.getValue() << "," <<
+        itr->second.getLength() << "/" << itr->second.getTotal()
+        << "}" <<
+        "[" << itr->second.getField() << ":"
+        << "\"" << itr->second.getString() << "\"]" ;
+  }
+
+  IBAPI::RoutingID routingId;
+  request.get(routingId);
+  EXPECT_EQ("SMART", routingId.getString());
+
+  // Create a copy
+  MarketDataRequest copy(request);
+  IBAPI::RoutingID copyRoutingId;
+  copy.get(copyRoutingId);
+  EXPECT_EQ(routingId.getString(), copyRoutingId.getString());
+
+  const IBAPI::Trailer& trailer = request.getTrailer();
+  IBAPI::Ext_SendingTimeMicros sendingTimeMicros;
+  trailer.get(sendingTimeMicros);
+
+  const IBAPI::Trailer& trailer2 = copy.getTrailer();
+  IBAPI::Ext_SendingTimeMicros sendingTimeMicros2;
+  trailer.get(sendingTimeMicros2);
+  EXPECT_EQ(sendingTimeMicros.getString(), sendingTimeMicros2.getString());
+}
+
 
 struct SocketReader : NoCopyAndAssign {
   virtual bool operator()(zmq::socket_t& socket) = 0;
@@ -88,7 +135,7 @@ class Reactor
         boost::bind(&Reactor::processMessages, this)));
     running_ = true;
 
-    LOG(INFO) << "Started reactor. " << std::endl;
+    LOG(INFO) << "Started reactor. " ;
   }
 
   zmq::context_t& context()
@@ -105,7 +152,7 @@ class Reactor
   }
 
  private:
-  void processMessages()
+ void processMessages()
   {
     while (running_ && reader_(socket_)) {
     }
@@ -122,12 +169,12 @@ class Reactor
 
 void free_func(void* mem, void* mem2)
 {
-  LOG(INFO) << "free_func called" << std::endl;
+  LOG(INFO) << "free_func called" ;
 }
 
 void send(const FIX::FieldBase& f, zmq::socket_t& socket, int sendMore)
 {
-  LOG(INFO) << "Sending [" << f.getValue() << "]" << std::endl;
+  LOG(INFO) << "Sending [" << f.getValue() << "]" ;
   const std::string& fv = f.getValue();
   const char* buff = fv.c_str();
   // FIX field pads an extra '\001' byte.  In the case of zmq, we don't
@@ -152,7 +199,7 @@ static bool receive(zmq::socket_t & socket, std::string* output) {
   zmq::message_t message;
   socket.recv(&message);
   LOG(INFO) << "unpacking " << message.data() << " size = " << message.size()
-            << std::endl;
+            ;
 
   output->assign(static_cast<char*>(message.data()), message.size());
 
@@ -172,7 +219,7 @@ static bool parseField(const std::string& buff, IBAPI::Message& message)
     LOG(INFO) << "Code: " << code
               << ", Value: " << value
               << " (" << value.length() << ")"
-              << std::endl;
+              ;
     switch (code) {
       case FIX::FIELD::MsgType:
       case FIX::FIELD::BeginString:
@@ -192,7 +239,7 @@ static bool parseField(const std::string& buff, IBAPI::Message& message)
 
 TEST(MessageTest, ZmqSendTest)
 {
-  LOG(INFO) << "Current TimeMicros = " << now_micros() << std::endl;
+  LOG(INFO) << "Current TimeMicros = " << now_micros() ;
 
   struct TestReader : SocketReader
   {
@@ -211,10 +258,10 @@ TEST(MessageTest, ZmqSendTest)
         messages.push_back(message);
         hasReceivedMessage.notify_one();
 
-        LOG(INFO) << "Got the whole message" << std::endl;
+        LOG(INFO) << "Got the whole message" ;
         status = true;
       } catch (zmq::error_t e) {
-        LOG(WARNING) << "Got exception " << e.what() << std::endl;
+        LOG(WARNING) << "Got exception " << e.what() ;
         status = false;
       }
       return status;
@@ -235,8 +282,8 @@ TEST(MessageTest, ZmqSendTest)
   client.connect(addr.c_str());
 
   MarketDataRequest request;
-  request.setField(IBAPI::SecurityType(IBAPI::SecurityType_COMMON_STOCK));
-  request.setField(IBAPI::Symbol("GOOG"));
+  request.set(IBAPI::SecurityType(IBAPI::SecurityType_COMMON_STOCK));
+  request.set(IBAPI::Symbol("GOOG"));
 
   // Sending out message
   const IBAPI::Header& header = request.getHeader();
@@ -244,7 +291,7 @@ TEST(MessageTest, ZmqSendTest)
   send(request, client, ZMQ_SNDMORE);
   const IBAPI::Trailer& trailer = request.getTrailer();
   IBAPI::Ext_SendingTimeMicros sendingTimeMicros;
-  trailer.getField(sendingTimeMicros);
+  trailer.get(sendingTimeMicros);
   send(sendingTimeMicros, client, 0); // END
 
   // Waiting for the other side to receive it.
@@ -255,26 +302,26 @@ TEST(MessageTest, ZmqSendTest)
   for (FIX::FieldMap::iterator itr = message.begin();
        itr != message.end();
        ++itr) {
-    LOG(INFO) << "Got message field " << itr->second.getString() << std::endl;
+    LOG(INFO) << "Got message field " << itr->second.getString() ;
   }
 
   IBAPI::MsgType msgType1;
-  request.getHeader().getField(msgType1);
+  request.getHeader().get(msgType1);
   IBAPI::MsgType msgType2;
-  message.getHeader().getField(msgType2);
+  message.getHeader().get(msgType2);
 
   EXPECT_EQ(msgType1.getString(), "MarketDataRequest");
   EXPECT_EQ(msgType1.getString(), msgType2.getString());
 
 
   LOG(INFO) << "Len = " << msgType1.getString().length()
-            << ", " << msgType2.getString().length() << std::endl;
+            << ", " << msgType2.getString().length() ;
 
   IBAPI::Symbol symbol;
   message.getField(symbol);
   EXPECT_EQ(symbol.getString(), "GOOG");
 
-  LOG(INFO) << "Stopping reactor." << std::endl;
+  LOG(INFO) << "Stopping reactor." ;
   reactor.stop();
 }
 
