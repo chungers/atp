@@ -106,9 +106,14 @@ class MarketDataRequest : public IBAPI::ApiMessageBase
     // long
     //contract.conId =
 
+    beforeApiCall(contract, eclient);
 
   }
 
+  virtual void beforeApiCall(Contract& contract, EClientPtr eclient)
+  {
+    // NO-OP -- for testing.
+  }
 };
 
 const std::string& MarketDataRequest::MESSAGE_TYPE_NAME = "MarketDataRequest";

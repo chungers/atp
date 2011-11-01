@@ -118,3 +118,7 @@ set(utils_test_libs
   IBAPIConnector
 )
 cpp_gtest(utils_test)
+
+
+# Version specific unit tests.
+add_subdirectory(api964)
