@@ -15,8 +15,12 @@ const int PutOrCall_PUT = 0;
 const char SecurityType_OPTION[] = "OPT";
 const char SecurityType_COMMON_STOCK[] = "STK"; // Maps to IB's value
 
+const char SecurityExchange_DEFAULT[] = "SMART";
+const char SecurityExchange_SMART[] = "SMART";
 const char RoutingID_DEFAULT[] = "SMART";  // default for IB
 const char RoutingID_SMART[] = "SMART";
+
+const char Currency_USD[] = "USD";
 
 
 };

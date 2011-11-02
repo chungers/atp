@@ -1,17 +1,23 @@
 #ifndef IBAPI_API_MESSAGES_H_
 #define IBAPI_API_MESSAGES_H_
 
+#include <glog/logging.h>
+
+//#include <quickfix/FieldConverters.h>
+
 #include "Shared/Contract.h"
 #include "Shared/EClient.h"
+#include "ib/IBAPIValues.hpp"
 #include "ib/ApiMessageBase.hpp"
 
 
 using ib::internal::EClientPtr;
 
+
 namespace IBAPI {
 namespace V964 {
 
-static const std::string& MESSAGE_VERSION = "IBAPI964";
+static const std::string& API_VERSION = "IBAPI964";
 
 /** Example twsContract (see R/IBrokers module):
  $ conId          : chr "96099040"
@@ -35,10 +41,13 @@ class MarketDataRequest : public IBAPI::ApiMessageBase
 {
  public:
 
-  static const std::string& MESSAGE_TYPE_NAME;
+  static const std::string& MESSAGE_TYPE;
 
-  MarketDataRequest() :
-      IBAPI::ApiMessageBase(MESSAGE_VERSION, MESSAGE_TYPE_NAME)
+  MarketDataRequest():IBAPI::ApiMessageBase(API_VERSION, MESSAGE_TYPE)
+  {
+  }
+
+  MarketDataRequest(const IBAPI::Message& copy) : IBAPI::ApiMessageBase(copy)
   {
   }
 
@@ -61,62 +70,62 @@ class MarketDataRequest : public IBAPI::ApiMessageBase
   FIELD_SET(*this, FIX::MaturityDay);
 
 
-  bool callApi(EClientPtr eclient)
+  void marshall(Contract& contract)
   {
-    FIX::Symbol symbol;  get(symbol);
-    FIX::MDEntryRefID conId; get(conId);
-    FIX::SecurityID securityId; get(securityId);
-    FIX::SecurityType securityType; get(securityType);
-    FIX::DerivativeSecurityID localSymbol; get(localSymbol);
-    FIX::SecurityExchange exchange; get(exchange);
-    FIX::PutOrCall putOrCall; get(putOrCall);
-    FIX::StrikePrice strike; get(strike);
-    FIX::Currency currency; get(currency);
-    FIX::ContractMultiplier contractMultiplier; get(contractMultiplier);
-    FIX::MaturityMonthYear expiryMonthYear; get(expiryMonthYear);
-    FIX::MaturityDay expiryDay; get(expiryDay);
+    MAP_REQUIRED_FIELD(FIX::Symbol, contract.symbol);
 
+    REQUIRED_FIELD(FIX::SecurityType, securityType);
+    if (securityType == IBAPI::SecurityType_OPTION) {
 
-    // TWS Contract
-    Contract contract;
-    contract.symbol = symbol;
-    contract.localSymbol = localSymbol;
-    contract.exchange = exchange;
-    contract.strike = strike;
-    contract.currency = currency;
-    contract.multiplier = contractMultiplier;
+      MAP_REQUIRED_FIELD(FIX::StrikePrice, contract.strike);
 
-    if (securityType == FIX::SecurityType_COMMON_STOCK) {
-      contract.secType= "STK";
-    } else if (securityType == FIX::SecurityType_OPTION) {
+      REQUIRED_FIELD(FIX::MaturityMonthYear, expiryMonthYear);
+      REQUIRED_FIELD(FIX::MaturityDay, expiryDay);
+      contract.expiry = expiryMonthYear.getString() + expiryDay.getString();
+
+      REQUIRED_FIELD(FIX::PutOrCall, putOrCall);
       contract.secType = "OPT";
+      switch (putOrCall) {
+        case FIX::PutOrCall_PUT:
+          contract.right = "P";
+          break;
+        case FIX::PutOrCall_CALL:
+          contract.right = "C";
+          break;
+      }
+
+      MAP_OPTIONAL_FIELD(FIX::DerivativeSecurityID, contract.localSymbol);
+      OPTIONAL_FIELD_DEFAULT(FIX::ContractMultiplier, multiplier, 100);
+      // Type conversion from FIX INT to string
+      contract.multiplier = multiplier.getString();
+
+
+    } else if (securityType == IBAPI::SecurityType_COMMON_STOCK) {
+      contract.secType= "STK";
     }
 
-    switch (putOrCall) {
-      case FIX::PutOrCall_PUT:
-        contract.right = "P";
-        break;
-      case FIX::PutOrCall_CALL:
-        contract.right = "C";
-        break;
-    }
+    MAP_OPTIONAL_FIELD(FIX::SecurityID, contract.secId);
+    MAP_OPTIONAL_FIELD_DEFAULT(FIX::SecurityExchange, contract.exchange, SMART);
+    MAP_OPTIONAL_FIELD_DEFAULT(FIX::Currency, contract.currency, USD);
 
-    // TODO expiry
-
-    // long
-    //contract.conId =
-
-    beforeApiCall(contract, eclient);
-
+    //contract.conId, also used for tickerId
+    //OPTIONAL_FIELD_DEFAULT(FIX::MDEntryRefID, conId, "");
   }
 
-  virtual void beforeApiCall(Contract& contract, EClientPtr eclient)
+  bool callApi(EClientPtr eclient)
   {
-    // NO-OP -- for testing.
+    Contract contract;
+    try {
+      marshall(contract);
+    } catch (FIX::FieldNotFound e) {
+      return false;
+    }
+
+    return true;
   }
 };
 
-const std::string& MarketDataRequest::MESSAGE_TYPE_NAME = "MarketDataRequest";
+const std::string& MarketDataRequest::MESSAGE_TYPE = "MarketDataRequest";
 
 
 

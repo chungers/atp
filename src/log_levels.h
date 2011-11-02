@@ -24,6 +24,9 @@
 #define VLOG_LEVEL_ZMQ_MESSAGE 20
 
 
+// ApiMessageBase
+#define API_MESSAGE_STRATEGY_LOGGER VLOG(40)
+
 // LogReader
 #define LOG_READER_LOGGER VLOG(10)
 #define LOG_READER_DEBUG VLOG(20)
