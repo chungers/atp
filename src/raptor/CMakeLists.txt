@@ -2,6 +2,22 @@
 #
 message(STATUS "ATP R Extensions ============================================")
 
+# Generate raptor R module MakeVars
+configure_file(
+  ./src/Makevars.tpl
+  ./src/Makevars
+)
+
+set(raptor_incs
+)
+set(raptor_srcs
+)
+set(raptor_libs
+  IBAPIConnector
+  zmq_components
+)
+#cpp_library(raptor)
+
 set(R_PKG "raptor")
 set(R_BUNDLE "${R_PKG}_1.0.tar.gz")
 add_custom_target(bundle_raptor
@@ -20,13 +36,20 @@ COMMENT "Clean up ${R_PKG}",
 
 add_custom_target(compile_raptor
 COMMAND R CMD INSTALL --no-inst --build ${R_PKG}
+DEPENDS IBAPIConnector
 WORKING_DIRECTORY ${SRC_DIR}
 COMMENT "Compile R package ${R_PKG}",
 )
 
-add_custom_target(raptor
+add_custom_target(install_raptor
 COMMAND R CMD INSTALL ${R_PKG}
 WORKING_DIRECTORY ${SRC_DIR}
 COMMENT "Install R package ${R_PKG}",
 )
+
+#add_dependencies(bundle_raptor raptor)
+
+add_dependencies(bundle_raptor IBAPIConnector)
+add_dependencies(compile_raptor bundle_raptor)
+add_dependencies(install_raptor compile_raptor)
 
