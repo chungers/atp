@@ -18,6 +18,7 @@ class Reactor
  public:
 
   struct Strategy : NoCopyAndAssign {
+
     virtual bool respond(::zmq::socket_t& socket) = 0;
 
     /** should be either ZMQ_REP or ZMQ_PULL */

@@ -33,7 +33,8 @@ SEXP raptor_zmq_connect(SEXP addr, SEXP socketType)
 
   List result = List::create(Named("context", contextPtr),
                              Named("socket", socketPtr),
-                             Named("addr", zmqAddr));
+                             Named("addr", zmqAddr),
+                             Named("socket_type", zmqSocketType));
   return result;
 }
 

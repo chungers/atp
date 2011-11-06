@@ -8,19 +8,27 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "zmq/Publisher.hpp"
 #include "zmq/Reactor.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 
 using namespace std;
+using atp::zmq::Publisher;
+using atp::zmq::Reactor;
 
+static const string& NOT_SET = "___not_set___";
 
 DEFINE_bool(server, false, "Run as server.");
 DEFINE_bool(echo, false, "True to have server echo message received.");
+DEFINE_bool(pubsub, false, "True to use pub/sub");
 DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint");
-DEFINE_string(message, "k1=hello,k2=world", "Comma-delimited key=value pairs.");
+DEFINE_string(publishEndpoint, "tcp://127.0.0.1:7777", "Publish endpoint");
+DEFINE_string(message, NOT_SET, "Comma-delimited key=value pairs.");
+DEFINE_string(subscription, "", "Subscription");
 
-struct NoEchoStrategy : atp::zmq::Reactor::Strategy
+
+struct NoEchoStrategy : Reactor::Strategy
 {
   int socketType() { return ZMQ_PULL; }
   bool respond(zmq::socket_t& socket)
@@ -48,7 +56,7 @@ struct NoEchoStrategy : atp::zmq::Reactor::Strategy
 typedef std::vector<std::string> Message;
 typedef std::vector<std::string>::iterator MessageFrames;
 
-struct EchoStrategy : atp::zmq::Reactor::Strategy
+struct EchoStrategy : Reactor::Strategy
 {
   int socketType() { return ZMQ_REP; }
   bool respond(zmq::socket_t& socket)
@@ -121,46 +129,100 @@ int main(int argc, char** argv)
   zmq::context_t context(1);
 
   if (FLAGS_server) {
-    // Start as a server listening at given endpoint.
-    if (FLAGS_echo) {
-      EchoStrategy strategy;
-      atp::zmq::Reactor reactor(FLAGS_endpoint, strategy);
-      LOG(INFO) << "Server started in ECHO mode." << std::endl;
-      reactor.block();
+    // =========================== SERVER ==========================
+    if (FLAGS_pubsub) {
+
+      LOG(INFO) << "Publisher starting up at "
+                << "inbound @" << FLAGS_endpoint
+                << ",publish @" << FLAGS_publishEndpoint;
+
+      Publisher publisher(FLAGS_endpoint, FLAGS_publishEndpoint,
+                          &context);
+
+      publisher.block();
+
     } else {
-      NoEchoStrategy strategy;
-      atp::zmq::Reactor reactor(FLAGS_endpoint, strategy);
-      reactor.block();
-    }
 
+      // Start as a server listening at given endpoint.
+      if (FLAGS_echo) {
+        EchoStrategy strategy;
+        Reactor reactor(FLAGS_endpoint, strategy);
+        LOG(INFO) << "Server started in ECHO mode." << std::endl;
+        reactor.block();
+      } else {
+        NoEchoStrategy strategy;
+        Reactor reactor(FLAGS_endpoint, strategy);
+        reactor.block();
+      }
+
+    }
   } else {
+    // =========================== CLIENT ==========================
+
     // Start as a client sending message to the endpoint.
-    zmq::socket_t client(context, (FLAGS_echo) ? ZMQ_REQ : ZMQ_PUSH);
-    client.connect(FLAGS_endpoint.c_str());
-    LOG(INFO) << "Client connected." << std::endl;
-
-    Message message;
-    boost::split(message, FLAGS_message, boost::is_any_of(","));
-
-    MessageFrames f = message.begin();
-    int total = message.size();
-    int seq = 0;
-    LOG(INFO) << "SEND ==========================================" << std::endl;
-    for (; f != message.end(); ++f, ++seq) {
-      bool more = seq != total - 1;
-      LOG(INFO) << "Send[" << seq << "]:" << *f << " more = " << more;
-      size_t sent = atp::zmq::send_copy(client , *f, more);
-      LOG(INFO) << " size=" << sent << std::endl;
+    int socketType = ZMQ_PUSH;
+    if (FLAGS_echo) {
+      socketType = ZMQ_REQ;
+      LOG(INFO) << "Socket type = ZMQ_REQ";
+    }
+    // Special case -- if no message flag specified, then it's a subscriber
+    if (FLAGS_message == NOT_SET && FLAGS_pubsub) {
+      socketType = ZMQ_SUB;
+      LOG(INFO) << "Socket type = ZMQ_SUB";
     }
 
-    if (FLAGS_echo) {
-      LOG(INFO) << "RECEIVE =====================================" << std::endl;
+    zmq::socket_t client(context, socketType);
+    const string& ep = (socketType == ZMQ_SUB) ?
+        FLAGS_publishEndpoint : FLAGS_endpoint;
+
+    client.connect(ep.c_str());
+    LOG(INFO) << "Client connected to " << ep ;
+
+    // add subscription
+    if (socketType == ZMQ_SUB) {
+      LOG(INFO) << "Client subscribing to " << FLAGS_subscription;
+      client.setsockopt(ZMQ_SUBSCRIBE,
+                        FLAGS_subscription.c_str(),
+                        FLAGS_subscription.length());
+    }
+
+    if (socketType != ZMQ_SUB) {
+      Message message;
+      boost::split(message, FLAGS_message, boost::is_any_of(","));
+
+      MessageFrames f = message.begin();
+      int total = message.size();
+      int seq = 0;
+      LOG(INFO) << "SEND ==========================================";
+      for (; f != message.end(); ++f, ++seq) {
+        bool more = seq != total - 1;
+        LOG(INFO) << "Send[" << seq << "]:" << *f << " more = " << more;
+        size_t sent = atp::zmq::send_copy(client , *f, more);
+        LOG(INFO) << " size=" << sent << std::endl;
+      }
+    }
+    if (FLAGS_echo || socketType == ZMQ_SUB) {
       std::string buff;
-      seq = 0;
-      while (1) {
-        int more = atp::zmq::receive(client, &buff);
-        LOG(INFO) << "Part[" << seq++ << "]:" << buff << ", more = " << more;
-        if (more == 0) break;
+      int seq = 0;
+
+      if (socketType == ZMQ_SUB) {
+        while (1) {
+          LOG(INFO) << "SUBSCRIBE =====================================";
+          seq = 0;
+          while (1) {
+            int more = atp::zmq::receive(client, &buff);
+            LOG(INFO) << "Part[" << seq++ << "]:"
+                      << buff << ", more = " << more;
+            if (more == 0) break;
+          }
+        }
+      } else {
+        LOG(INFO) << "RECEIVE =====================================";
+        while (1) {
+          int more = atp::zmq::receive(client, &buff);
+          LOG(INFO) << "Part[" << seq++ << "]:" << buff << ", more = " << more;
+          if (more == 0) break;
+        }
       }
     }
 
