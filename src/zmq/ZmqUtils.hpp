@@ -1,9 +1,9 @@
 #ifndef ATP_ZMQ_UTILS_H_
 #define ATP_ZMQ_UTILS_H_
 
-#include <iostream>
 #include <stdio.h>
 #include <string>
+#include <sstream>
 #include <zmq.hpp>
 
 #include "log_levels.h"
@@ -23,7 +23,7 @@ struct EndPoint {
   }
 
   /// As of ZMQ 2.1.7, hostname must be resolvable (not '*')
-  static std::string tcp(int port, const std::string& host="localhost")
+  static std::string tcp(int port, const std::string& host="127.0.0.1")
   {
     std::ostringstream oss;
     oss << "tcp://" << host << ":" << port;

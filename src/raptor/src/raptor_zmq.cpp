@@ -1,7 +1,8 @@
+
+#include "zmq/ZmqUtils.hpp"
+
 #include <Rcpp.h>
 
-#include <stdio.h>
-#include <zmq.hpp>
 #include "raptor_zmq.h"
 
 
@@ -36,36 +37,13 @@ SEXP raptor_zmq_connect(SEXP addr, SEXP socketType){
   return result;
 }
 
-/// Send by memcpy.  This doesn't avoid the cost of memcpy but is safer
-/// because the buffer is copied to the zmq message buffer.
-inline static size_t send_copy(::zmq::socket_t& socket,
-                               const std::string& input,
-                               bool sendMore = false)
-{
-  size_t size = input.size();
-  ::zmq::message_t frame(size);
-  memcpy(frame.data(), input.data(), size);
-  int more = (sendMore) ? ZMQ_SNDMORE : 0;
-  socket.send(frame, more);
-  return size;
-}
-
-inline static size_t send(::zmq::socket_t& socket,
-                          const std::string& input)
-{
-  size_t size = input.size();
-  ::zmq::message_t frame(size);
-  memcpy(frame.data(), input.data(), size);
-  socket.send(frame);
-  return size;
-}
 
 SEXP raptor_zmq_send(SEXP handle, SEXP message){
   List handleList(handle);
   XPtr<zmq::socket_t> socket(handleList["socket"], R_NilValue, R_NilValue);
 
   std::string messageStr = Rcpp::as<std::string>(message);
-  size_t sent = send(*socket, messageStr);
+  size_t sent = atp::zmq::send_copy(*socket, messageStr, false);
   Rprintf("Sent %d bytes, message = %s\n", sent, messageStr.c_str());
 
   return R_NilValue;
