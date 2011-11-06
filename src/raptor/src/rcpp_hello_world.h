@@ -17,7 +17,7 @@
 RcppExport SEXP rcpp_hello_world() ;
 
 
-RcppExport SEXP raptor_ticker_id() ;
+RcppExport SEXP raptor_ticker_id(SEXP stringVector) ;
 
 
 
