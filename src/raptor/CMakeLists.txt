@@ -1,6 +1,6 @@
 # raptor
 #
-message(STATUS "ATP R Extensions ============================================")
+message(STATUS "ATP R Extensions =============================================")
 
 # Generate raptor R module MakeVars
 configure_file(

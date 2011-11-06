@@ -1,8 +1,7 @@
 
+#include <vector>
+
 #include "zmq/ZmqUtils.hpp"
-
-#include <Rcpp.h>
-
 #include "raptor_zmq.h"
 
 
@@ -10,7 +9,8 @@ using namespace std;
 using namespace Rcpp ;
 
 
-SEXP raptor_zmq_connect(SEXP addr, SEXP socketType){
+SEXP raptor_zmq_connect(SEXP addr, SEXP socketType)
+{
   std::string zmqAddr = Rcpp::as<std::string>(addr);
   std::string zmqSocketType = Rcpp::as<std::string>(socketType);
 
@@ -37,8 +37,8 @@ SEXP raptor_zmq_connect(SEXP addr, SEXP socketType){
   return result;
 }
 
-
-SEXP raptor_zmq_send(SEXP handle, SEXP message){
+SEXP raptor_zmq_send(SEXP handle, SEXP message)
+{
   List handleList(handle);
   XPtr<zmq::socket_t> socket(handleList["socket"], R_NilValue, R_NilValue);
 
@@ -46,7 +46,28 @@ SEXP raptor_zmq_send(SEXP handle, SEXP message){
   size_t sent = atp::zmq::send_copy(*socket, messageStr, false);
   Rprintf("Sent %d bytes, message = %s\n", sent, messageStr.c_str());
 
-  return R_NilValue;
+  return wrap(sent);
 }
 
+SEXP raptor_zmq_send_kv(SEXP handle, SEXP listKeys, SEXP list)
+{
+  List handleList(handle);
+  XPtr<zmq::socket_t> socket(handleList["socket"], R_NilValue, R_NilValue);
 
+  CharacterVector keys(listKeys);
+  List rList(list);
+  size_t fields = keys.size() - 1;
+  size_t total = 0;
+  for (CharacterVector::iterator key = keys.begin();
+       key != keys.end();
+       ++key, --fields) {
+    std::string k(static_cast<const char*>(*key));
+    std::string value = Rcpp::as<std::string>(rList[k]);
+    std::string messageStr = k + "=" + value;
+    size_t sent = atp::zmq::send_copy(*socket, messageStr, fields > 0);
+    total += sent;
+    Rprintf("Sent %d bytes, message = %s\n", sent, messageStr.c_str());
+  }
+
+  return wrap(total);
+}

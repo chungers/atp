@@ -57,8 +57,7 @@ execute_process(
 message(STATUS "Rcpp ldflags: " ${RCPP_LD_FLAGS})
 
 execute_process(
-  COMMAND Rscript -e "Rcpp:::CxxFlags()"
-  COMMAND sed -e "s/-I//g"
+  COMMAND Rscript -e "Rcpp:::CxxFlags()" | sed -e 's/-I/g'
   OUTPUT_VARIABLE RCPP_INCLUDE_PATH
 )
 message(STATUS "Rcpp Include Path: " ${RCPP_INCLUDE_PATH})
