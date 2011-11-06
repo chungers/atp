@@ -8,6 +8,3 @@ raptor.as.symbol <- function(tickerId) {
     .Call("raptor_to_symbol", as.numeric(tickerId), PACKAGE = "raptor");
 }
 
-
-
-

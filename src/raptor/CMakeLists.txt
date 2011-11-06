@@ -8,15 +8,6 @@ configure_file(
   ./src/Makevars
 )
 
-set(raptor_incs
-)
-set(raptor_srcs
-)
-set(raptor_libs
-  IBAPIConnector
-  zmq_components
-)
-#cpp_library(raptor)
 
 set(R_PKG "raptor")
 set(R_BUNDLE "${R_PKG}_1.0.tar.gz")
@@ -49,7 +40,7 @@ COMMENT "Install R package ${R_PKG}",
 
 #add_dependencies(bundle_raptor raptor)
 
-add_dependencies(bundle_raptor IBAPIConnector)
+add_dependencies(bundle_raptor IBAPIConnector zmq_components)
 add_dependencies(compile_raptor bundle_raptor)
 add_dependencies(install_raptor compile_raptor)
 

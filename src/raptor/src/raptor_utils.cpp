@@ -19,7 +19,6 @@ SEXP raptor_to_ticker_id(SEXP symbol){
   return result;
 }
 
-
 SEXP raptor_to_symbol(SEXP tickerId){
   int code = Rcpp::as<int>(tickerId);
   std::string symbol;
