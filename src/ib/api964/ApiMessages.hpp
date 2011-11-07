@@ -3,7 +3,7 @@
 
 #include <glog/logging.h>
 
-//#include <quickfix/FieldConverters.h>
+#include <quickfix/FieldConvertors.h>
 
 #include "Shared/Contract.h"
 #include "Shared/EClient.h"
@@ -109,7 +109,13 @@ class MarketDataRequest : public IBAPI::ApiMessageBase
     MAP_OPTIONAL_FIELD_DEFAULT(FIX::Currency, contract.currency, USD);
 
     //contract.conId, also used for tickerId
-    //OPTIONAL_FIELD_DEFAULT(FIX::MDEntryRefID, conId, "");
+    OPTIONAL_FIELD(FIX::MDEntryRefID, conId);
+    if (conId.getLength() > 0) {
+      long conIdLong = 0L;
+      if (FIX::IntConvertor::convert(conId.getValue(), conIdLong)) {
+        contract.conId = conIdLong;
+      }
+    }
   }
 
   bool callApi(EClientPtr eclient)

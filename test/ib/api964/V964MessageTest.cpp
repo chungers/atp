@@ -32,6 +32,7 @@ TEST(V964MessageTest, ApiTest)
   request.set(FIX::MaturityMonthYear("201111"));
   request.set(FIX::MaturityDay("19"));
   request.set(FIX::ContractMultiplier(200));
+  request.set(FIX::MDEntryRefID("123456"));
 
   for (FIX::FieldMap::iterator itr = request.begin();
        itr != request.end();
@@ -89,6 +90,8 @@ TEST(V964MessageTest, ApiTest)
   EXPECT_EQ("SMART", c.exchange);
   EXPECT_EQ("200", c.multiplier);
   EXPECT_EQ("AAPL 20111119C00450000", c.localSymbol);
+  EXPECT_EQ(123456, c.conId);
+  EXPECT_EQ("USD", c.currency);
 
   // Test by copy semantics
   MarketDataRequest copyRequest(request);
@@ -104,6 +107,7 @@ TEST(V964MessageTest, ApiTest)
   EXPECT_EQ("SMART", c2.exchange);
   EXPECT_EQ("200", c2.multiplier);
   EXPECT_EQ("AAPL 20111119C00450000", c2.localSymbol);
-
+  EXPECT_EQ(123456, c2.conId);
+  EXPECT_EQ("USD", c2.currency);
 }
 

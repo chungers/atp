@@ -14,7 +14,8 @@ using IBAPI::V964::MarketDataRequest;
 
 class ReactorStrategyImpl : public ReactorStrategy
 {
-  virtual bool handleInboundMessage(Message& message, EClientPtr eclient)
+  virtual bool handleInboundMessage(Message& message,
+                                    EClientPtr eclient)
   {
     FIX::MsgType msgType;
     message.getHeader().get(msgType);
