@@ -16,7 +16,7 @@
 
 // Macro for logging the event api call.
 #define LOG_EVENT                                     \
-  VLOG(VLOG_LEVEL_EWRAPPER)                           \
+  EWRAPPER_LOGGER                           \
   << "cid=" << connection_id_                         \
   << ",ts_utc=" << utc_micros().total_microseconds()  \
   << ",ts=" << now_micros()                           \
@@ -37,7 +37,7 @@ LoggingEWrapper::~LoggingEWrapper() {
 void LoggingEWrapper::set_connection_id(const unsigned int id)
 {
   connection_id_ = id;
-  VLOG(VLOG_LEVEL_EWRAPPER) << "Connection id updated to " << id;
+  EWRAPPER_LOGGER << "Connection id updated to " << id;
 }
 
 int LoggingEWrapper::get_connection_id() {
@@ -354,14 +354,14 @@ void LoggingEWrapper::error(const int id, const int errorCode,
 }
 
 #define LOG_START                                    \
-  VLOG(VLOG_LEVEL_ECLIENT)                           \
+  ECLIENT_LOGGER                           \
   << "cid=" << connection_id_                        \
   << ",ts=" << (call_start_ = now_micros())          \
   << ",ts_utc=" << utc_micros().total_microseconds() \
   << ",action=" << __func__
 
 #define LOG_END                                         \
-  VLOG(VLOG_LEVEL_ECLIENT)                              \
+  ECLIENT_LOGGER                              \
   << "cid=" << connection_id_                           \
   << ",ts=" << (call_start_)                            \
   << ",action=" << __func__                             \

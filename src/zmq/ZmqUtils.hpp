@@ -34,8 +34,8 @@ struct EndPoint {
 
 static void mem_free(void* mem, void* mem2)
 {
-  VLOG(VLOG_LEVEL_ZMQ_MEM_FREE) << "Freeing memory: " << mem
-                                 << ", " << mem2 << std::endl;
+  ZMQ_MEM_FREE_DEBUG << "Freeing memory: " << mem
+                     << ", " << mem2 << std::endl;
 }
 
 inline static bool receive(::zmq::socket_t & socket, std::string* output) {

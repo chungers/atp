@@ -16,8 +16,6 @@
 
 using boost::asio::ip::tcp;
 
-#define LOGGER VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET_DEBUG)
-
 
 namespace ib {
 namespace internal {
@@ -36,14 +34,14 @@ AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
 {
   // Schedule async read handler for incoming packets.
   assert(!thread_);
-  LOGGER << "Starting event listener thread." << std::endl;
+  ASIO_ECLIENT_SOCKET_DEBUG << "Starting event listener thread." << std::endl;
   thread_ = boost::shared_ptr<boost::thread>(
       new boost::thread(boost::bind(&AsioEClientSocket::block, this)));
 }
 
 AsioEClientSocket::~AsioEClientSocket()
 {
-  LOGGER << "Done" << std::endl;
+  ASIO_ECLIENT_SOCKET_DEBUG << "Done" << std::endl;
 }
 
 int AsioEClientSocket::getClientId()
@@ -66,7 +64,7 @@ bool AsioEClientSocket::eConnect(const char *host,
   // Connect synchronously
   try {
 
-    VLOG(VLOG_LEVEL_ASIO_ECLIENT_SOCKET) <<
+    ASIO_ECLIENT_SOCKET_LOGGER <<
         "Connecting to " << endpoint << std::endl;
 
     int64 start = now_micros();
@@ -232,7 +230,7 @@ void AsioEClientSocket::block() {
   if (callback_) {
     callback_->onEventThreadStop();
   }
-  LOGGER << "Event thread terminated." << std::endl;
+  ASIO_ECLIENT_SOCKET_DEBUG << "Event thread terminated." << std::endl;
 }
 
 } // internal

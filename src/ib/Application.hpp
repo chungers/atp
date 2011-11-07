@@ -6,7 +6,6 @@
 #include "ib/Message.hpp"
 #include "ib/SessionID.hpp"
 
-#define APP_LOGGER VLOG(VLOG_LEVEL_IBAPI_APPLICATION)
 
 namespace IBAPI {
 
@@ -56,42 +55,42 @@ class ApplicationBase : public Application {
 
   void onCreate( const SessionID& sessionId)
   {
-    APP_LOGGER << "onCreate(" << sessionId << ")" << std::endl;
+    IBAPI_APPLICATION_LOGGER << "onCreate(" << sessionId << ")";
   }
 
 
   void onLogon( const SessionID& sessionId)
   {
-    APP_LOGGER << "onLogon(" << sessionId << ")" << std::endl;
+    IBAPI_APPLICATION_LOGGER << "onLogon(" << sessionId << ")";
   }
 
 
   void onLogout( const SessionID& sessionId)
   {
-    APP_LOGGER << "onLogout(" << sessionId << ")" << std::endl;
+    IBAPI_APPLICATION_LOGGER << "onLogout(" << sessionId << ")";
   }
 
 
   void toAdmin( Message& message, const SessionID& sessionId)
   {
-    APP_LOGGER << "toAdmin(" << sessionId << ")" << std::endl;
+    IBAPI_APPLICATION_LOGGER << "toAdmin(" << sessionId << ")";
   }
 
   void toApp( Message& message, const SessionID& sessionId) throw( DoNotSend )
   {
-    APP_LOGGER << "toApp(" << sessionId << ")" << std::endl;
+    IBAPI_APPLICATION_LOGGER << "toApp(" << sessionId << ")";
   }
 
   void fromAdmin( const Message& message, const SessionID& sessionId)
       throw( IncorrectDataFormat, IncorrectTagValue, RejectLogon )
   {
-    APP_LOGGER << "fromAdmin(" << sessionId << ")" << std::endl;
+    IBAPI_APPLICATION_LOGGER << "fromAdmin(" << sessionId << ")";
   }
 
   void fromApp( const Message& message, const SessionID& sessionId)
       throw( IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType )
   {
-    APP_LOGGER << "fromApp(" << sessionId << ")" << std::endl;
+    IBAPI_APPLICATION_LOGGER << "fromApp(" << sessionId << ")";
   }
 
 };

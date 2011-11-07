@@ -27,7 +27,6 @@
 #include "zmq/ZmqUtils.hpp"
 
 
-#define CONNECTOR_IMPL_LOGGER VLOG(VLOG_LEVEL_IBAPI_ABSTRACT_SOCKET_CONNECTOR)
 #define CONNECTOR_IMPL_WARNING LOG(WARNING)
 
 using namespace IBAPI;
@@ -55,7 +54,7 @@ class AbstractSocketConnector :
   virtual ~AbstractSocketConnector()
   {
     if (socket_.get() != 0 || outboundSocket_.get() != 0) {
-      CONNECTOR_IMPL_LOGGER << "Shutting down " << stop() << std::endl;
+      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Shutting down " << stop();
     }
   }
 
@@ -68,8 +67,8 @@ class AbstractSocketConnector :
     // dispatcher.
     zmq::socket_t* sink = createOutboundSocket();
 
-    CONNECTOR_IMPL_LOGGER
-        << "Creating event sink zmq socket:" << sink << std::endl;
+    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+        << "Creating event sink zmq socket:" << sink;
 
     outboundSocket_.reset(sink);
   }
@@ -77,22 +76,22 @@ class AbstractSocketConnector :
   /// @see AsioEClientSocket::EventCallback
   void onEventThreadStop()
   {
-    CONNECTOR_IMPL_LOGGER << "EClient socket stopped." << std::endl;
+    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "EClient socket stopped.";
   }
 
   /// @see AsioEClientSocket::EventCallback
   void onSocketConnect(bool success)
   {
-    CONNECTOR_IMPL_LOGGER
-        << "EClient socket connected:" << success << std::endl;
+    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+        << "EClient socket connected:" << success;
   }
 
 
   /// @see AsioEClientSocket::EventCallback
   void onSocketClose(bool success)
   {
-    CONNECTOR_IMPL_LOGGER
-        << "EClient socket closed:" << success << std::endl;
+    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+        << "EClient socket closed:" << success;
   }
 
   /// @see EWrapperEventCollector
@@ -152,8 +151,8 @@ class AbstractSocketConnector :
 
     if (socket_->isConnected()) {
       int64 elapsed = now_micros() - start;
-      CONNECTOR_IMPL_LOGGER
-          << "Connected in " << elapsed << " microseconds." << std::endl;
+      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+          << "Connected in " << elapsed << " microseconds.";
 
       strategy->onConnect(*socketConnector_, clientId);
       return clientId;
@@ -168,20 +167,20 @@ class AbstractSocketConnector :
     if (socket_.get() != 0) {
       socket_->eDisconnect();
       for (int i = 0; i < timeoutSeconds_ && socket_->isConnected(); ++i) {
-        CONNECTOR_IMPL_LOGGER
-            << "Waiting for EClientSocket to stop." << std::endl;
+        IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+            << "Waiting for EClientSocket to stop.";
         sleep(1);
       }
     }
     socket_.reset();
     if (outboundSocket_.get() != 0) {
-      CONNECTOR_IMPL_LOGGER << "Stopping publish socket." << std::endl;
+      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Stopping publish socket.";
       delete outboundSocket_.get();
     }
     outboundSocket_.reset();
     bool status = outboundSocket_.get() == 0 && socket_.get() == 0;
-    CONNECTOR_IMPL_LOGGER
-        << "Stopped all sockets (EClient + publish):" << status << std::endl;
+    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+        << "Stopped all sockets (EClient + publish):" << status;
     return status;
   }
 

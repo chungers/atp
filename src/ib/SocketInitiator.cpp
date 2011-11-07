@@ -42,7 +42,7 @@ class SocketInitiatorImpl : public SocketInitiator,
                               application_, sessionId));
       socketConnectors_[sessionId] = s;
 
-      LOG(INFO) << "SocketConnector: " << *itr;
+      IBAPI_SOCKET_INITIATOR_LOGGER << "SocketConnector: " << *itr;
       s->connect(itr->getIp(), itr->getPort(), sessionId, this);
     }
   }
@@ -56,14 +56,14 @@ class SocketInitiatorImpl : public SocketInitiator,
   /// @overload Initiator
   void stop(double timeout)
   {
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR)
+    IBAPI_SOCKET_INITIATOR_LOGGER
         << "Stopping connector with timeout = "
         << timeout << std::endl;
   }
 
   /// @overload Initiator
   void stop(bool force) {
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR)
+    IBAPI_SOCKET_INITIATOR_LOGGER
         << "Stopping connector with force = "
         << force << std::endl;
   }
@@ -76,7 +76,7 @@ class SocketInitiatorImpl : public SocketInitiator,
   /// @implement SocketConnector::Strategy
   void onConnect(SocketConnector& connector, int clientId)
   {
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR)
+    IBAPI_SOCKET_INITIATOR_LOGGER
         << "Connection (" << clientId << ") established." << std::endl;
   }
 
@@ -95,7 +95,7 @@ class SocketInitiatorImpl : public SocketInitiator,
   /// @implement SocketConnector::Strategy
   void onDisconnect(SocketConnector& connector, int clientId)
   {
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_INITIATOR)
+    IBAPI_SOCKET_INITIATOR_LOGGER
         << "Connection (" << clientId << ") disconnected." << std::endl;
   }
 

@@ -53,19 +53,19 @@ class StrategyBase : public SocketConnector::Strategy
 
   void onConnect(SocketConnector& sc, int clientId)
   {
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR_STRATEGY)
+    IBAPI_SOCKET_CONNECTOR_STRATEGY_LOGGER
         << "onConnect(" << clientId << ")" << std::endl;
   }
 
   void onData(SocketConnector& sc, int clientId)
   {
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR_STRATEGY)
+    IBAPI_SOCKET_CONNECTOR_STRATEGY_LOGGER
         << "onData(" << clientId << ")" << std::endl;
   }
 
   void onDisconnect(SocketConnector& sc, int clientId)
   {
-    VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR_STRATEGY)
+    IBAPI_SOCKET_CONNECTOR_STRATEGY_LOGGER
         << "onDisconnect(" << clientId << ")" << std::endl;
   }
 

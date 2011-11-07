@@ -32,7 +32,7 @@ Publisher::Publisher(const string& addr,
     isReady_.wait(lock);
   }
 
-  LOGGER_ZMQ_PUBLISHER << "Publisher is ready.";
+  ZMQ_PUBLISHER_LOGGER << "Publisher is ready.";
 }
 
 Publisher::~Publisher()
@@ -70,7 +70,7 @@ void Publisher::process()
   ::zmq::socket_t publish(*context_, ZMQ_PUB);
   publish.bind(publishAddr_.c_str());
 
-  LOGGER_ZMQ_PUBLISHER
+  ZMQ_PUBLISHER_LOGGER
       << "Inbound @ " << addr_
       << ", Publish @ " << publishAddr_;
 
@@ -89,7 +89,7 @@ void Publisher::process()
       inbound.recv(&message);
       inbound.getsockopt( ZMQ_RCVMORE, &more, &more_size);
 
-      LOGGER_ZMQ_PUBLISHER << "Published " << message.size() << " bytes: "
+      ZMQ_PUBLISHER_LOGGER << "Published " << message.size() << " bytes: "
                            << static_cast<char*>(message.data());
 
       publish.send(message, more? ZMQ_SNDMORE: 0);

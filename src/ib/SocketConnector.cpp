@@ -8,8 +8,6 @@
 #include "zmq/ZmqUtils.hpp"
 
 
-#define SOCKET_CONNECTOR_LOGGER VLOG(VLOG_LEVEL_IBAPI_SOCKET_CONNECTOR)
-
 namespace IBAPI {
 
 using ib::internal::AbstractSocketConnector;
@@ -26,10 +24,11 @@ static bool parseMessageField(const std::string& buff, IBAPI::Message& message)
   if (pos != std::string::npos) {
     int code = atoi(buff.substr(0, pos).c_str());
     std::string value = buff.substr(pos+1);
-    LOG(INFO) << "Code: " << code
-              << ", Value: " << value
-              << " (" << value.length() << ")"
-              ;
+    IBAPI_SOCKET_CONNECTOR_LOGGER
+        << "Code: " << code
+        << ", Value: " << value
+        << " (" << value.length() << ")"
+        ;
     switch (code) {
       case FIX::FIELD::MsgType:
       case FIX::FIELD::BeginString:
@@ -74,7 +73,7 @@ class SocketConnector::implementation :
       while (1) {
         int more = atp::zmq::receive(socket, &buff);
         bool parsed = parseMessageField(buff, message);
-        SOCKET_CONNECTOR_LOGGER <<
+        IBAPI_SOCKET_CONNECTOR_LOGGER <<
             "RECEIVE[" << seq++ << "]:" << buff << ", parsed=" << parsed;
         if (!parsed) {
           LOG(WARNING) << "Failed to parse: " << buff;
@@ -111,7 +110,7 @@ SocketConnector::SocketConnector(const std::string& zmqInboundAddr,
                                  Application& app, int timeout) :
     impl_(new SocketConnector::implementation(zmqInboundAddr, app, timeout))
 {
-  SOCKET_CONNECTOR_LOGGER << "SocketConnector started.";
+  IBAPI_SOCKET_CONNECTOR_LOGGER << "SocketConnector started.";
   impl_->socketConnector_ = this;
 }
 
@@ -127,7 +126,7 @@ int SocketConnector::connect(const string& host,
                              unsigned int clientId,
                              Strategy* strategy)
 {
-  LOG(INFO) << "CONNECT" << std::endl;
+  IBAPI_SOCKET_CONNECTOR_LOGGER << "CONNECT " << host << ":" << port;
   return impl_->connect(host, port, clientId, strategy);
 }
 

@@ -10,8 +10,6 @@
 #include "common.hpp"
 #include "zmq/Reactor.hpp"
 
-#define LOGGER VLOG(VLOG_LEVEL_ZMQ_REACTOR)
-
 namespace atp {
 namespace zmq {
 
@@ -31,7 +29,7 @@ Reactor::Reactor(const string& addr,
     isReady_.wait(lock);
   }
 
-  LOG(INFO) << "Reactor is ready." << std::endl;
+  ZMQ_REACTOR_LOGGER << "Reactor is ready." << std::endl;
 }
 
 Reactor::~Reactor()
@@ -61,14 +59,14 @@ void Reactor::process()
 
   int socketType = strategy_.socketType();
   switch (socketType) {
-    case ZMQ_PULL : LOG(INFO) << "ZMQ_PULL"; break;
-    case ZMQ_REP : LOG(INFO) << "ZMQ_REP"; break;
+    case ZMQ_PULL : ZMQ_REACTOR_LOGGER << "ZMQ_PULL"; break;
+    case ZMQ_REP : ZMQ_REACTOR_LOGGER << "ZMQ_REP"; break;
     default : LOG(ERROR) << "NOT SUPPORTED"; exit(-1);
   }
   ::zmq::socket_t socket(context, strategy_.socketType());
   socket.bind(addr_.c_str());
 
-  LOG(INFO) << "listening @ " << addr_ << std::endl;
+  ZMQ_REACTOR_LOGGER << "listening @ " << addr_ << std::endl;
 
   {
     boost::lock_guard<boost::mutex> lock(mutex_);
