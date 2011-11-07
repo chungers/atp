@@ -37,17 +37,19 @@ static const std::string& API_VERSION = "IBAPI964";
  $ secIdType      : chr ""
  $ secId          : chr ""
 */
-class MarketDataRequest : public IBAPI::ApiMessageBase
+class MarketDataRequest : public ib::internal::ApiMessageBase
 {
  public:
 
   static const std::string& MESSAGE_TYPE;
 
-  MarketDataRequest():IBAPI::ApiMessageBase(API_VERSION, MESSAGE_TYPE)
+  MarketDataRequest() :
+      ib::internal::ApiMessageBase(API_VERSION, MESSAGE_TYPE)
   {
   }
 
-  MarketDataRequest(const IBAPI::Message& copy) : IBAPI::ApiMessageBase(copy)
+  MarketDataRequest(const IBAPI::Message& copy) :
+      ib::internal::ApiMessageBase(copy)
   {
   }
 

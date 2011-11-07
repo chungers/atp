@@ -2,6 +2,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "ib/AbstractSocketConnector.hpp"
+#include "ib/ApiMessageBase.hpp"
 #include "ib/Message.hpp"
 #include "ib/ReactorStrategyFactory.hpp"
 
@@ -16,35 +17,8 @@ using ib::internal::EWrapperFactory;
 using ib::internal::EClientPtr;
 using ib::internal::ReactorStrategyFactory;
 using ib::internal::ReactorStrategy;
+using ib::internal::ZmqMessage;
 
-static bool parseMessageField(const std::string& buff, IBAPI::Message& message)
-{
-  // parse the message string
-  size_t pos = buff.find('=');
-  if (pos != std::string::npos) {
-    int code = atoi(buff.substr(0, pos).c_str());
-    std::string value = buff.substr(pos+1);
-    IBAPI_SOCKET_CONNECTOR_LOGGER
-        << "Code: " << code
-        << ", Value: " << value
-        << " (" << value.length() << ")"
-        ;
-    switch (code) {
-      case FIX::FIELD::MsgType:
-      case FIX::FIELD::BeginString:
-      case FIX::FIELD::SendingTime:
-        message.getHeader().setField(code, value);
-        break;
-      case FIX::FIELD::Ext_SendingTimeMicros:
-      case FIX::FIELD::Ext_OrigSendingTimeMicros:
-        message.getTrailer().setField(code, value);
-      default:
-        message.setField(code, value);
-    }
-    return true;
-  }
-  return false;
-}
 
 class SocketConnector::implementation :
       public ib::internal::AbstractSocketConnector
@@ -65,34 +39,24 @@ class SocketConnector::implementation :
   virtual bool handleReactorInboundMessages(
       zmq::socket_t& socket, EClientPtr eclient)
   {
-    IBAPI::Message message;
-    std::string buff;
     bool status = false;
     int seq = 0;
+    ib::internal::ZmqMessage inboundMessage;
     try {
       while (1) {
-        int more = atp::zmq::receive(socket, &buff);
-        bool parsed = parseMessageField(buff, message);
-        IBAPI_SOCKET_CONNECTOR_LOGGER <<
-            "RECEIVE[" << seq++ << "]:" << buff << ", parsed=" << parsed;
-        if (!parsed) {
-          LOG(WARNING) << "Failed to parse: " << buff;
+        if (inboundMessage.receive(socket)) {
+          status = reactorStrategyPtr_->handleInboundMessage(
+              inboundMessage, eclient);
+          if (!status) {
+            break;
+          }
         }
-        if (more == 0) break;
       }
-      status = true;
     } catch (zmq::error_t e) {
       LOG(WARNING) << "Got exception: " << e.what() << std::endl;
       status = false;
     }
-
-    // After parsing successfully, actually turn the message into a
-    // EClient api call:
-    if (status) {
-      return reactorStrategyPtr_->handleInboundMessage(message, eclient);
-    } else {
-      return false;
-    }
+    return status;
   }
 
   virtual zmq::socket_t* createOutboundSocket(int channel = 0)

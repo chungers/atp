@@ -30,6 +30,7 @@ set(IBAPIConnector_incs
   ${IBAPI_IMPL_DIR}
 )
 set(IBAPIConnector_srcs
+  ApiMessageBase.cpp
   AsioEClientSocket.cpp
   SocketConnector.cpp
   SocketInitiator.cpp

@@ -2,9 +2,12 @@
 #define IB_API_MESSAGE_BASE_H_
 
 #include "log_levels.h"
-#include "ib/ib_common.hpp"
+
+//#include "ib/ib_common.hpp"
 #include "ib/internal.hpp"
 #include "ib/Message.hpp"
+
+#include <zmq.hpp>
 
 
 // Macros for mapping FIX fields to some variable / struct memebers:
@@ -39,7 +42,9 @@ fix varName; get(varName)
   }
 
 
-namespace IBAPI {
+namespace ib {
+namespace internal {
+
 
 using ib::internal::EClientPtr;
 
@@ -57,11 +62,40 @@ class ApiMessageBase : public IBAPI::Message
   {
   }
 
+ protected:
+  ApiMessageBase() : IBAPI::Message()
+  {
+  }
+
+ public:
+
   ~ApiMessageBase() {}
 
   virtual bool callApi(EClientPtr eclient) = 0;
+  virtual bool send(zmq::socket_t& detination);
+  virtual bool receive(zmq::socket_t& source);
 };
 
-}
+
+class ZmqMessage : public ib::internal::ApiMessageBase
+{
+
+ public:
+  ZmqMessage() : ApiMessageBase()
+  {
+  }
+
+  ~ZmqMessage() {}
+
+  virtual bool callApi(EClientPtr eclient)
+  { return false; }  // Invalid operation
+
+  virtual bool send(zmq::socket_t& destination)
+  { return false; }  // Invalid operation
+
+};
+
+} // namespace internal
+} // namespace ib
 
 #endif //IB_API_MESSAGE_BASE_H_
