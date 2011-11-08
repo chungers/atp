@@ -97,6 +97,7 @@ set(Message_test_incs
 set(Message_test_srcs
   AllTests.cpp
   MessageTest.cpp
+  ApiMessageBaseTest.cpp
 )
 set(Message_test_libs
   IBAPIConnector

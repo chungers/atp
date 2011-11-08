@@ -127,7 +127,7 @@ TEST(MessageTest, CopyTest)
 
   const IBAPI::Trailer& trailer2 = copy.getTrailer();
   IBAPI::Ext_SendingTimeMicros sendingTimeMicros2;
-  trailer.get(sendingTimeMicros2);
+  trailer2.get(sendingTimeMicros2);
   EXPECT_EQ(sendingTimeMicros.getString(), sendingTimeMicros2.getString());
 }
 

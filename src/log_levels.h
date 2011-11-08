@@ -24,6 +24,7 @@
 #define ZMQ_PUBLISHER_LOGGER VLOG(20)
 
 // ApiMessageBase
+#define API_MESSAGE_BASE_LOGGER VLOG(40)
 #define API_MESSAGE_STRATEGY_LOGGER VLOG(40)
 
 // LogReader

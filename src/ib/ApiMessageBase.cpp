@@ -1,4 +1,5 @@
 
+#include "log_levels.h"
 #include "ib/ApiMessageBase.hpp"
 #include "ib/internal.hpp"
 #include "zmq/ZmqUtils.hpp"
@@ -12,7 +13,8 @@ using FIX::FieldMap;
 using ib::internal::ApiMessageBase;
 
 
-static size_t send_map(zmq::socket_t& socket, const FieldMap& message)
+static size_t send_map(zmq::socket_t& socket, const FieldMap& message,
+                       bool more = true)
 {
   size_t fields = message.totalFields() - 1;
   size_t sent = 0;
@@ -22,9 +24,11 @@ static size_t send_map(zmq::socket_t& socket, const FieldMap& message)
     // encode by <field_id>=<field_value> where
     // field_id is a number and field_value is a string representation
     // of the typed value.
-    const std::string& frame =
-        f->second.getField() + "=" + f->second.getString();
-    sent += atp::zmq::send_copy(socket, frame, fields > 0);
+    const std::string& frame = f->second.getValue();
+    sent += atp::zmq::send_copy(socket, frame, fields > 0 || more);
+
+    API_MESSAGE_BASE_LOGGER << "Sent frame [" << frame << "], bytes = "
+                            << sent;
   }
   return sent;
 }
@@ -32,9 +36,9 @@ static size_t send_map(zmq::socket_t& socket, const FieldMap& message)
 bool ApiMessageBase::send(zmq::socket_t& destination)
 {
   size_t sent = 0;
-  sent += send_map(destination, getHeader());
-  sent += send_map(destination, *this);
-  sent += send_map(destination, getTrailer());
+  sent += send_map(destination, getHeader(), true);
+  sent += send_map(destination, *this, true);
+  sent += send_map(destination, getTrailer(), false); // terminating fieldmap
   return sent > 0;
 }
 
@@ -46,21 +50,20 @@ static bool parseMessageField(const std::string& buff, Message& message)
   if (pos != std::string::npos) {
     int code = atoi(buff.substr(0, pos).c_str());
     std::string value = buff.substr(pos+1);
-    IBAPI_SOCKET_CONNECTOR_LOGGER
-        << "Code: " << code
-        << ", Value: " << value
-        << " (" << value.length() << ")"
-        ;
     switch (code) {
       case FIX::FIELD::MsgType:
       case FIX::FIELD::BeginString:
       case FIX::FIELD::SendingTime:
+        API_MESSAGE_BASE_LOGGER << "Header-- [" << code << "][" << value << "]";
         message.getHeader().setField(code, value);
         break;
       case FIX::FIELD::Ext_SendingTimeMicros:
       case FIX::FIELD::Ext_OrigSendingTimeMicros:
+        API_MESSAGE_BASE_LOGGER << "Trailer- [" << code << "][" << value << "]";
         message.getTrailer().setField(code, value);
+        break;
       default:
+        API_MESSAGE_BASE_LOGGER << "Body---- [" << code << "][" << value << "]";
         message.setField(code, value);
     }
     return true;
