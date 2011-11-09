@@ -14,6 +14,21 @@ using FIX::FieldMap;
 
 using IBAPI::V964::MarketDataRequest;
 
+
+static void print(const FIX::FieldMap& request)
+{
+  for (FIX::FieldMap::iterator itr = request.begin();
+       itr != request.end();
+       ++itr) {
+    LOG(INFO)
+        << "{" << itr->second.getValue() << "," <<
+        itr->second.getLength() << "/" << itr->second.getTotal()
+        << "}" <<
+        "[" << itr->second.getField() << ":"
+        << "\"" << itr->second.getString() << "\"]" ;
+  }
+}
+
 TEST(V964MessageTest, ApiTest)
 {
   LOG(INFO) << "Current TimeMicros = " << now_micros() ;
@@ -34,16 +49,9 @@ TEST(V964MessageTest, ApiTest)
   request.set(FIX::ContractMultiplier(200));
   request.set(FIX::MDEntryRefID("123456"));
 
-  for (FIX::FieldMap::iterator itr = request.begin();
-       itr != request.end();
-       ++itr) {
-    LOG(INFO)
-        << "{" << itr->second.getValue() << "," <<
-        itr->second.getLength() << "/" << itr->second.getTotal()
-        << "}" <<
-        "[" << itr->second.getField() << ":"
-        << "\"" << itr->second.getString() << "\"]" ;
-  }
+  print(request.getHeader());
+  print(request);
+  print(request.getTrailer());
 
   FIX::PutOrCall putOrCall;
   request.get(putOrCall);
@@ -66,17 +74,20 @@ TEST(V964MessageTest, ApiTest)
 
   // Get header information
   const IBAPI::Header& header = request.getHeader();
+
+  FIX::BeginString msgMatchKey; // First field, for zmq subscription matching.
+  header.get(msgMatchKey);
+  EXPECT_EQ("MarketDataRequest.v964.ib", msgMatchKey.getString());
+
   FIX::MsgType msgType;
   header.get(msgType);
-
-  EXPECT_EQ(msgType.getString(), "MarketDataRequest");
+  EXPECT_EQ("MarketDataRequest", msgType.getString());
 
   const IBAPI::Trailer& trailer = request.getTrailer();
   IBAPI::Ext_SendingTimeMicros sendingTimeMicros;
   trailer.get(sendingTimeMicros);
 
   LOG(INFO) << "Timestamp = " << sendingTimeMicros.getString() ;
-
 
   // Test the actual Contract marshalling:
   Contract c;

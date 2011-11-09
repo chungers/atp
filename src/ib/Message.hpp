@@ -12,16 +12,18 @@ using namespace FIX;
 
 namespace IBAPI {
 
+typedef std::string MsgType;
+typedef std::string MsgKey;
 
 class Header : public FIX::FieldMap {
  public:
   Header() {}
 
-  Header(const std::string& version,
-         const std::string& msgType)
+  Header(const MsgType& msgType,
+         const MsgKey& msgKey)
   {
+    setField(FIX::BeginString(msgKey));
     setField(FIX::MsgType(msgType));
-    setField(FIX::BeginString(version));
   }
 
   Header(const Header& copy) : FIX::FieldMap(copy)
@@ -54,8 +56,8 @@ class Message : public FIX::FieldMap
 {
  public:
   Message() {}
-  Message(const std::string& version,
-          const std::string& msgType) : header_(version, msgType)
+  Message(const MsgType& msgType,
+          const MsgKey& msgKey) : header_(msgType, msgKey)
   {
   }
 

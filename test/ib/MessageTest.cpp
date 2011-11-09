@@ -20,7 +20,7 @@ using FIX::FieldMap;
 class MarketDataRequest : public IBAPI::Message
 {
  public:
-  MarketDataRequest() : Message("IBAPI964", "MarketDataRequest")
+  MarketDataRequest() : Message("MarketDataRequest", "ib.v964")
   {
   }
 
@@ -326,7 +326,7 @@ TEST(MessageTest, ZmqSendTest)
   FIX::MsgType msgType2;
   message.getHeader().get(msgType2);
 
-  EXPECT_EQ(msgType1.getString(), "MarketDataRequest");
+  EXPECT_EQ("MarketDataRequest", msgType1.getString());
   EXPECT_EQ(msgType1.getString(), msgType2.getString());
 
 

@@ -21,12 +21,13 @@ using FIX::FieldMap;
 using atp::zmq::Reactor;
 using ib::internal::ApiMessageBase;
 using ib::internal::ZmqMessage;
+using ib::internal::ZmqMessage;
 
 
 class TestMarketDataRequest : public ApiMessageBase
 {
  public:
-  TestMarketDataRequest() : ApiMessageBase("IBAPI964", "MarketDataRequest")
+  TestMarketDataRequest() : ApiMessageBase("MarketDataRequest", "ib.v964")
   {
   }
 
@@ -103,7 +104,7 @@ TEST(ApiMessageBaseTest, BuildMessageTest)
   FIX::MsgType msgType;
   header.get(msgType);
 
-  EXPECT_EQ(msgType.getString(), "MarketDataRequest");
+  EXPECT_EQ("MarketDataRequest", msgType.getString());
 
   const IBAPI::Trailer& trailer = request.getTrailer();
   IBAPI::Ext_SendingTimeMicros sendingTimeMicros;
@@ -140,8 +141,9 @@ TEST(ApiMessageBaseTest, SendMessageTest)
   LOG(INFO) << "Client connected.";
 
   TestMarketDataRequest *req = newRequest("SPY", FIX::PutOrCall_PUT, 120.);
-
   EXPECT_FALSE(req->isEmpty());
+
+
 
   req->send(client);
 

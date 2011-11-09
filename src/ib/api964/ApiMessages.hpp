@@ -13,11 +13,36 @@
 
 using ib::internal::EClientPtr;
 
+namespace ib {
+namespace internal {
+
+using ib::internal::ApiMessageBase;
+
+class V964Message : public ApiMessageBase
+{
+ public:
+  V964Message(const IBAPI::MsgType& msgType) :
+      ApiMessageBase(msgType, msgType + ".v964.ib")
+  {}
+
+  V964Message(const IBAPI::Message& copy) : ApiMessageBase(copy)
+  {}
+
+  ~V964Message() {}
+};
+
+} // internal
+} // ib
+
+
+
 
 namespace IBAPI {
 namespace V964 {
 
-static const std::string& API_VERSION = "IBAPI964";
+using ib::internal::V964Message;
+
+
 
 /** Example twsContract (see R/IBrokers module):
  $ conId          : chr "96099040"
@@ -37,19 +62,17 @@ static const std::string& API_VERSION = "IBAPI964";
  $ secIdType      : chr ""
  $ secId          : chr ""
 */
-class MarketDataRequest : public ib::internal::ApiMessageBase
+class MarketDataRequest : public V964Message
 {
  public:
 
   static const std::string& MESSAGE_TYPE;
 
-  MarketDataRequest() :
-      ib::internal::ApiMessageBase(API_VERSION, MESSAGE_TYPE)
+  MarketDataRequest() : V964Message(MESSAGE_TYPE)
   {
   }
 
-  MarketDataRequest(const IBAPI::Message& copy) :
-      ib::internal::ApiMessageBase(copy)
+  MarketDataRequest(const IBAPI::Message& copy) : V964Message(copy)
   {
   }
 

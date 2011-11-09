@@ -57,8 +57,8 @@ class ApiMessageBase : public IBAPI::Message
   {
   }
 
-  ApiMessageBase(const std::string& version, const std::string& name) :
-      IBAPI::Message(version, name)
+  ApiMessageBase(const IBAPI::MsgType& type, const IBAPI::MsgKey& key) :
+      IBAPI::Message(type, key)
   {
   }
 
