@@ -1,20 +1,10 @@
-//#include <boost/bind.hpp>
-//#include <boost/shared_ptr.hpp>
-//#include <boost/thread.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-//#include <zmq.hpp>
-//#include <stdlib.h>
 
-//#include <quickfix/FixFields.h>
-//#include <quickfix/FixValues.h>
+#include "utils.hpp"
+#include "common.hpp"
 
-//#include "utils.hpp"
-//#include "common.hpp"
-//#include "ib/IBAPIFields.hpp"
-//#include "ib/IBAPIValues.hpp"
 #include "ib/ApiMessageBase.hpp"
-#//include "ib/Message.hpp"
 #include "zmq/Reactor.hpp"
 
 using FIX::FieldMap;

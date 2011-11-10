@@ -6,9 +6,6 @@
 #include <zmq.hpp>
 #include <stdlib.h>
 
-#include <quickfix/FixFields.h>
-#include <quickfix/FixValues.h>
-
 #include "utils.hpp"
 #include "common.hpp"
 #include "ib/IBAPIFields.hpp"
@@ -340,4 +337,3 @@ TEST(MessageTest, ZmqSendTest)
   LOG(INFO) << "Stopping reactor." ;
   reactor.stop();
 }
-

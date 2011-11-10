@@ -8,10 +8,14 @@
 
 #include "utils.hpp"
 #include "common.hpp"
+#include "ib/ApiMessageBase.hpp"
+#include "zmq/Reactor.hpp"
+
 #include "ib/api964/ApiMessages.hpp"
 
 using FIX::FieldMap;
 
+using ib::internal::ZmqMessage;
 using IBAPI::V964::MarketDataRequest;
 
 
@@ -122,3 +126,65 @@ TEST(V964MessageTest, ApiTest)
   EXPECT_EQ("USD", c2.currency);
 }
 
+using atp::zmq::Reactor;
+
+struct ReceiveOneMessage : Reactor::Strategy
+{
+  ReceiveOneMessage() : done(false) {}
+
+  int socketType() { return ZMQ_PULL; }
+  bool respond(zmq::socket_t& socket)
+  {
+    LOG(INFO) << "Starting to receive.";
+    done = zmqMessage.receive(socket);
+    LOG(INFO) << "Done receive: " << done;
+    return done;
+  }
+  ZmqMessage zmqMessage;
+  bool done;
+};
+
+TEST(V964MessageTest, ZmqSendTest)
+{
+  // Set up the reactor
+  const std::string& addr =
+      "ipc://_zmq.V964MessageTest_zmqSendTest.in";
+  ReceiveOneMessage strategy;
+  Reactor reactor(addr, strategy);
+
+  LOG(INFO) << "Client connecting.";
+
+  // Now set up client to send
+  zmq::context_t context(1);
+  zmq::socket_t client(context, ZMQ_PUSH);
+  client.connect(addr.c_str());
+
+  LOG(INFO) << "Client connected.";
+
+  MarketDataRequest request;
+
+  // Using set(X) as the type-safe way (instead of setField())
+  request.set(FIX::Symbol("AAPL"));
+  request.set(FIX::SecurityType(FIX::SecurityType_OPTION));
+  request.set(FIX::PutOrCall(FIX::PutOrCall_PUT));
+  request.set(FIX::Symbol("AAPL"));
+  request.set(FIX::DerivativeSecurityID("AAPL 20111119C00450000"));
+  request.set(FIX::SecurityExchange(IBAPI::SecurityExchange_SMART));
+  request.set(FIX::StrikePrice(450.));
+  request.set(FIX::MaturityMonthYear("201111"));
+  request.set(FIX::MaturityDay("19"));
+  request.set(FIX::ContractMultiplier(200));
+  request.set(FIX::MDEntryRefID("123456"));
+
+  request.send(client);
+
+  LOG(INFO) << "Message sent";
+
+  while (!strategy.done) { sleep(1); }
+
+  EXPECT_FALSE(strategy.zmqMessage.isEmpty());
+  EXPECT_EQ(request.totalFields(), strategy.zmqMessage.totalFields());
+
+
+  LOG(INFO) << "Test finished.";
+}
