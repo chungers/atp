@@ -60,14 +60,17 @@ class TestApplication : public IBAPI::ApplicationBase,
 
 };
 
-class TestStrategy : public IBAPI::StrategyBase, public TestHarnessBase<Event>
+class TestInitiator : public IBAPI::SocketInitiator,
+                      public TestHarnessBase<Event>
 {
  public :
-  TestStrategy() {}
-  ~TestStrategy() {}
+  TestInitiator(Application& app, std::list<SessionSetting>& settings) :
+      IBAPI::SocketInitiator(app, settings)
+  {}
 
   void onConnect(SocketConnector& sc, int clientId)
   {
+    LOG(INFO) << "****** CONNECTED " << clientId;
     incr(ON_CONNECT);
   }
 };
@@ -76,8 +79,16 @@ class TestStrategy : public IBAPI::StrategyBase, public TestHarnessBase<Event>
 TEST(SocketInitiatorTest, SocketInitiatorStartTest)
 {
   TestApplication app;
-  IBAPI::SessionSetting setting1(1, "127.0.0.1", 4001);
-  IBAPI::SessionSetting setting2(2);
+
+  const std::string& zmqInbound1 = "tcp://127.0.0.1:15555";
+  const std::string& zmqInbound2 = "tcp://127.0.0.1:15556";
+  const std::string& zmqOutbound1 = "tcp://127.0.0.1:17777";
+  const std::string& zmqOutbound2 = "tcp://127.0.0.1:17778";
+
+  IBAPI::SessionSetting setting1(1, "127.0.0.1", 4001,
+                                 zmqInbound1, zmqOutbound1);
+  IBAPI::SessionSetting setting2(2, "127.0.0.1", 4001,
+                                 zmqInbound2, zmqOutbound2);
 
   std::list<SessionSetting> settings;
   settings.push_back(setting1);
@@ -88,11 +99,13 @@ TEST(SocketInitiatorTest, SocketInitiatorStartTest)
     LOG(INFO) << "Setting: " << *itr << std::endl;
   }
 
-  IBAPI::SocketInitiator initiator(app, settings);
+  TestInitiator initiator(app, settings);
 
   initiator.start();
 
-  app.waitForFirstOccurrence(ON_LOGON, 10);
+  app.waitForNOccurrences(ON_LOGON, 2, 10);
+  EXPECT_EQ(app.getCount(ON_LOGON), 2);
 
-  sleep(10);
+  initiator.waitForNOccurrences(ON_CONNECT, 2, 10);
+  EXPECT_EQ(initiator.getCount(ON_CONNECT), 2);
 }

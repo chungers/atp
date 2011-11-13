@@ -64,11 +64,22 @@ void Publisher::process()
 
   // start message receiver socket
   ::zmq::socket_t inbound(*context_, ZMQ_PULL);
-  inbound.bind(addr_.c_str());
 
+  try {
+    inbound.bind(addr_.c_str());
+  } catch (::zmq::error_t e) {
+    LOG(FATAL) << "Cannot bind inbound at " << addr_ << ":"
+               << e.what();
+  }
   // start publish socket
   ::zmq::socket_t publish(*context_, ZMQ_PUB);
-  publish.bind(publishAddr_.c_str());
+
+  try {
+    publish.bind(publishAddr_.c_str());
+  } catch (::zmq::error_t e) {
+    LOG(FATAL) << "Cannot bind publish at " << publishAddr_ << ":"
+               << e.what();
+  }
 
   ZMQ_PUBLISHER_LOGGER
       << "Inbound @ " << addr_

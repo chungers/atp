@@ -29,11 +29,15 @@ class TestHarnessBase
     }
   }
 
-  bool waitForFirstOccurrence(T event, int secondsTimeout) {
+  bool waitForNOccurrences(T event, int N, int secondsTimeout) {
     int64 start = now_micros();
     int64 limit = secondsTimeout * 1000000;
-    while (now_micros() - start < limit && getCount(event) < 1) {}
+    while (now_micros() - start < limit && getCount(event) < N) {}
     return getCount(event) > 0;
+  }
+
+  bool waitForFirstOccurrence(T event, int secondsTimeout) {
+    return waitForNOccurrences(event, 1, secondsTimeout);
   }
 
  protected:

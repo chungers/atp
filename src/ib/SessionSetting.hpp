@@ -14,7 +14,7 @@ class SessionSetting {
                  const string& gatewayIp = "127.0.0.1",
                  unsigned int gatewayPort = 4001,
                  const string& zmqInboundAddr = "tcp://127.0.0.1:5555",
-                 const string& zmqOutboundAddr = "inproc://connector_messages"
+                 const string& zmqOutboundAddr = "tcp://127.0.0.1:7777"
                  ) :
       id_(id), gatewayIp_(gatewayIp), gatewayPort_(gatewayPort),
       zmqInboundAddr_(zmqInboundAddr),

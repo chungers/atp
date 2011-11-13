@@ -59,14 +59,21 @@ void Reactor::process()
 
   int socketType = strategy_.socketType();
   switch (socketType) {
-    case ZMQ_PULL : ZMQ_REACTOR_LOGGER << "ZMQ_PULL"; break;
-    case ZMQ_REP : ZMQ_REACTOR_LOGGER << "ZMQ_REP"; break;
-    default : LOG(ERROR) << "NOT SUPPORTED"; exit(-1);
+    case ZMQ_PULL : ZMQ_REACTOR_LOGGER << "ZMQ_PULL/" << ZMQ_PULL;
+      break;
+    case ZMQ_REP : ZMQ_REACTOR_LOGGER << "ZMQ_REP/" << ZMQ_REP;
+      break;
+    default : LOG(FATAL) << "NOT SUPPORTED";
   }
-  ::zmq::socket_t socket(context, strategy_.socketType());
-  socket.bind(addr_.c_str());
 
-  ZMQ_REACTOR_LOGGER << "listening @ " << addr_ << std::endl;
+  ::zmq::socket_t socket(context, socketType);
+
+  try {
+    socket.bind(addr_.c_str());
+    ZMQ_REACTOR_LOGGER << "listening @ " << addr_;
+  } catch (::zmq::error_t e) {
+    LOG(FATAL) << "Cannot bind " << addr_ << ":" << e.what();
+  }
 
   {
     boost::lock_guard<boost::mutex> lock(mutex_);

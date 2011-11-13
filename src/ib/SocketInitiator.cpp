@@ -16,13 +16,15 @@ using ib::internal::EWrapperFactory;
 namespace IBAPI {
 
 
-class SocketInitiatorImpl : public SocketInitiator,
-                            public SocketConnector::Strategy {
+class SocketInitiatorImpl : public SocketInitiator {
 
  public :
-  SocketInitiatorImpl(Application& app, std::list<SessionSetting>& settings) :
+  SocketInitiatorImpl(Application& app,
+                      std::list<SessionSetting>& settings,
+                      SocketConnector::Strategy& strategy) :
       application_(app),
-      sessionSettings_(settings)
+      sessionSettings_(settings),
+      strategy_(strategy)
   { }
 
   ~SocketInitiatorImpl() {}
@@ -36,14 +38,20 @@ class SocketInitiatorImpl : public SocketInitiator,
          itr != sessionSettings_.end();
          ++itr) {
 
+      IBAPI_SOCKET_INITIATOR_LOGGER
+          << "Starting connector "
+          << itr->getConnectionId()
+          << ", inbound: " << itr->getZmqInboundAddr();
+
       SessionID sessionId = static_cast<SessionID>(itr->getConnectionId());
-      boost::shared_ptr<SocketConnector> s = boost::shared_ptr<SocketConnector>(
-          new SocketConnector(itr->getZmqInboundAddr(),
-                              application_, sessionId));
+      boost::shared_ptr<SocketConnector> s =
+          boost::shared_ptr<SocketConnector>(
+              new SocketConnector(itr->getZmqInboundAddr(),
+                                  application_, sessionId));
       socketConnectors_[sessionId] = s;
 
       IBAPI_SOCKET_INITIATOR_LOGGER << "SocketConnector: " << *itr;
-      s->connect(itr->getIp(), itr->getPort(), sessionId, this);
+      s->connect(itr->getIp(), itr->getPort(), sessionId, &strategy_);
     }
   }
 
@@ -73,49 +81,17 @@ class SocketInitiatorImpl : public SocketInitiator,
     return false;
   }
 
-  /// @implement SocketConnector::Strategy
-  void onConnect(SocketConnector& connector, int clientId)
-  {
-    IBAPI_SOCKET_INITIATOR_LOGGER
-        << "Connection (" << clientId << ") established." << std::endl;
-  }
-
-  /// @implement SocketConnector::Strategy
-  void onData(SocketConnector& connector, int clientId)
-  {
-
-  }
-
-  /// @implement SocketConnector::Strategy
-  void onError(SocketConnector& connector)
-  {
-
-  }
-
-  /// @implement SocketConnector::Strategy
-  void onDisconnect(SocketConnector& connector, int clientId)
-  {
-    IBAPI_SOCKET_INITIATOR_LOGGER
-        << "Connection (" << clientId << ") disconnected." << std::endl;
-  }
-
-  /// @implement SocketConnector::Strategy
-  void onTimeout(SocketConnector& connector)
-  {
-
-  }
-
-
  private:
   Application& application_;
   std::list<SessionSetting>& sessionSettings_;
+  SocketConnector::Strategy& strategy_;
   std::map< SessionID, boost::shared_ptr<SocketConnector> > socketConnectors_;
 };
 
 
 SocketInitiator::SocketInitiator(Application& app,
                                  std::list<SessionSetting>& settings)
-    : impl_(new SocketInitiatorImpl(app, settings))
+    : impl_(new SocketInitiatorImpl(app, settings, *this))
 {
 }
 
@@ -156,25 +132,37 @@ bool SocketInitiator::isLoggedOn()
 /// @implement SocketConnector::Strategy
 void SocketInitiator::onConnect(SocketConnector& connector, int clientId)
 {
-  impl_->onConnect(connector, clientId);
+  IBAPI_SOCKET_INITIATOR_LOGGER
+      << "Connection (" << clientId << ") established.";
 }
 
 /// @implement SocketConnector::Strategy
 void SocketInitiator::onData(SocketConnector& connector, int clientId)
 {
-  impl_->onData(connector, clientId);
+  IBAPI_SOCKET_INITIATOR_LOGGER
+      << "Connection (" << clientId << ") data.";
 }
 
 /// @implement SocketConnector::Strategy
 void SocketInitiator::onError(SocketConnector& connector)
 {
-  impl_->onError(connector);
+  IBAPI_SOCKET_INITIATOR_LOGGER
+      << "Connection error.";
 }
 
 /// @implement SocketConnector::Strategy
 void SocketInitiator::onTimeout(SocketConnector& connector)
 {
-  impl_->onTimeout(connector);
+  IBAPI_SOCKET_INITIATOR_LOGGER
+      << "Connection timeout.";
+}
+
+/// @implement SocketConnector::Strategy
+void SocketInitiator::onDisconnect(SocketConnector& connector,
+                                   int clientId)
+{
+  IBAPI_SOCKET_INITIATOR_LOGGER
+      << "Connection (" << clientId << ") disconnected.";
 }
 
 } // namespace ib

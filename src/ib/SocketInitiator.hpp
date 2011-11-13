@@ -19,7 +19,8 @@ namespace IBAPI {
 ///
 /// SocketInitiator manages one or more SocketConnector.
 /// Each SocketConnector has a AsioEClientSocket connection to the IB gateway.
-class SocketInitiator : Initiator {
+class SocketInitiator : public Initiator,
+                        public SocketConnector::Strategy {
 
  public:
 
