@@ -56,13 +56,14 @@ void Publisher::block()
 
 void Publisher::process()
 {
-  if (context_.get() == NULL) {
+  bool localContext = false;
+  if (context_ == NULL) {
     // Create own context
-    ::zmq::context_t context(1);
-    context_.reset(&context);
+    context_ = new ::zmq::context_t(1);
+    localContext = true;
+    ZMQ_PUBLISHER_LOGGER << "Created local context.";
   }
 
-  // start message receiver socket
   ::zmq::socket_t inbound(*context_, ZMQ_PULL);
 
   try {
@@ -109,7 +110,9 @@ void Publisher::process()
         break;      //  Last message part
     }
   }
-  LOG(ERROR) << "Publisher thread stopped." << std::endl;
+
+  if (localContext) delete context_;
+  LOG(ERROR) << "Publisher thread stopped.";
 }
 
 

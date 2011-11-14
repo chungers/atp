@@ -14,9 +14,11 @@ namespace atp {
 namespace zmq {
 
 Reactor::Reactor(const string& addr,
-                 Reactor::Strategy& strategy) :
+                 Reactor::Strategy& strategy,
+                 ::zmq::context_t* context) :
     addr_(addr),
     strategy_(strategy),
+    context_(context),
     ready_(false)
 {
   // start thread
@@ -48,14 +50,13 @@ void Reactor::block()
 
 void Reactor::process()
 {
-  // Note that the context and socket are all local variables.
-  // This is because this method is running in a separate thread
-  // from the caller of the constructor, and we want to dedicate
-  // one context and one socket per thread while making them
-  // hidden from the caller.  In general, we don't want to create
-  // context and socket in one thread and then have another thread
-  // receiving or sending on them.
-  ::zmq::context_t context(1);
+  bool localContext = false;
+  if (context_ == NULL) {
+    // Create own context
+    context_ = new ::zmq::context_t(1);
+    localContext = true;
+    ZMQ_REACTOR_LOGGER << "Created local context.";
+  }
 
   int socketType = strategy_.socketType();
   switch (socketType) {
@@ -66,7 +67,7 @@ void Reactor::process()
     default : LOG(FATAL) << "NOT SUPPORTED";
   }
 
-  ::zmq::socket_t socket(context, socketType);
+  ::zmq::socket_t socket(*context_, socketType);
 
   try {
     socket.bind(addr_.c_str());
@@ -82,7 +83,9 @@ void Reactor::process()
   isReady_.notify_all();
 
   while (strategy_.respond(socket)) {}
-  LOG(ERROR) << "Reactor listening thread stopped." << std::endl;
+
+  if (localContext) delete context_;
+  LOG(ERROR) << "Reactor listening thread stopped.";
 }
 
 

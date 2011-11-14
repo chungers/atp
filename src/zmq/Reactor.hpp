@@ -26,7 +26,8 @@ class Reactor
   };
 
 
-  Reactor(const std::string& addr, Strategy& strategy);
+  Reactor(const std::string& addr, Strategy& strategy,
+          ::zmq::context_t* context = NULL);
   ~Reactor();
 
   const std::string& addr();
@@ -42,6 +43,7 @@ class Reactor
   const std::string& addr_;
   boost::shared_ptr<boost::thread> thread_;
   Strategy& strategy_;
+  ::zmq::context_t* context_;
   bool ready_;
   boost::mutex mutex_;
   boost::condition_variable isReady_;

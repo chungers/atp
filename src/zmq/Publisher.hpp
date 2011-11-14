@@ -10,7 +10,6 @@
 namespace atp {
 namespace zmq {
 
-
 /// Simple publisher that runs in its own thread while
 /// exposing another socket that allows clients to push
 /// messages for publish.
@@ -36,7 +35,7 @@ class Publisher
   const std::string& addr_;
   const std::string& publishAddr_;
   boost::shared_ptr<boost::thread> thread_;
-  boost::shared_ptr< ::zmq::context_t > context_;
+  ::zmq::context_t* context_;
   bool ready_;
   boost::mutex mutex_;
   boost::condition_variable isReady_;
