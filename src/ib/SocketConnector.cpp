@@ -25,8 +25,9 @@ class SocketConnector::implementation :
 {
  public:
   implementation(const std::string& zmqInboundAddr,
+                 const std::string& zmqOutboundAddr,
                  Application& app, int timeout) :
-      AbstractSocketConnector(zmqInboundAddr, app, timeout),
+      AbstractSocketConnector(zmqInboundAddr, zmqOutboundAddr, app, timeout),
       reactorStrategyPtr_(ReactorStrategyFactory::getInstance())
   {
   }
@@ -59,11 +60,6 @@ class SocketConnector::implementation :
     return status;
   }
 
-  virtual zmq::socket_t* createOutboundSocket(int channel = 0)
-  {
-    return NULL;
-  }
-
   friend class SocketConnector;
   boost::scoped_ptr<ReactorStrategy> reactorStrategyPtr_;
 };
@@ -71,8 +67,10 @@ class SocketConnector::implementation :
 
 
 SocketConnector::SocketConnector(const std::string& zmqInboundAddr,
+                                 const std::string& zmqOutboundAddr,
                                  Application& app, int timeout) :
-    impl_(new SocketConnector::implementation(zmqInboundAddr, app, timeout))
+    impl_(new SocketConnector::implementation(zmqInboundAddr,
+                                              zmqOutboundAddr, app, timeout))
 {
   IBAPI_SOCKET_CONNECTOR_LOGGER << "SocketConnector started.";
   impl_->socketConnector_ = this;

@@ -47,6 +47,7 @@ class SocketInitiatorImpl : public SocketInitiator {
       boost::shared_ptr<SocketConnector> s =
           boost::shared_ptr<SocketConnector>(
               new SocketConnector(itr->getZmqInboundAddr(),
+                                  itr->getZmqOutboundAddr(),
                                   application_, sessionId));
       socketConnectors_[sessionId] = s;
 

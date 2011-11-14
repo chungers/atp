@@ -21,6 +21,7 @@ class SocketConnector : NoCopyAndAssign {
   class Strategy;
 
   SocketConnector(const std::string& zmqInboundAddr,
+                  const std::string& zmqOutboundAddr,
                   Application& app, int timeout = 0);
   ~SocketConnector();
 

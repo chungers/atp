@@ -87,13 +87,11 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
   TestSocketConnector(const string& responderAddress,
                       const string& outboundAddr,
                       Application& app, int timeout) :
-      AbstractSocketConnector(responderAddress, app, timeout),
-      outboundAddr_(outboundAddr),
-      publishContext_(1)
+      AbstractSocketConnector(responderAddress, outboundAddr, app, timeout)
   {
     LOG(INFO) << "TestConnector initialized.";
     LOG(INFO) << "Inbound @ " << responderAddress;
-    LOG(INFO) << "Outbound @ " << outboundAddr_;
+    LOG(INFO) << "Outbound @ " << outboundAddr;
   }
 
  protected:
@@ -126,20 +124,8 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
     }
   }
 
-  zmq::socket_t* createOutboundSocket(int channel = 0)
-  {
-    std::string& endpoint = outboundAddr_;
-
-    LOG(INFO) << "Creating outbound socket @ " << endpoint << std::endl;
-    zmq::socket_t* socket = new zmq::socket_t(publishContext_, ZMQ_PUB);
-    socket->bind(endpoint.c_str());
-    return socket;
-  }
-
  private:
   std::string msg;
-  std::string outboundAddr_;
-  zmq::context_t publishContext_;
 };
 
 
@@ -150,8 +136,8 @@ TEST(SocketConnectorTest, AbstractSocketConnectorConnectionTest)
 
   const string& bindAddr =
       "ipc://_zmq.AbstractSocketConnectorConnectionTest.in";
-  const string& outboundAddr =
-      "ipc://_zmq.AbstractSocketConnectorConnectionTest.out";
+  const string& outboundAddr ="tcp://127.0.0.1:5555";
+
   TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10);
 
   int clientId = 14567;
@@ -181,6 +167,10 @@ TEST(SocketConnectorTest, SendMessageTest)
 
   const string& bindAddr =
       "ipc://_zmq.AbstractSocketConnectorTest.in";
+
+  // In this case, the outbound socket for the connector is simply
+  // a domain socket file for IPC.  See above test case for actually
+  // connecting to a hub over tcp.
   const string& outboundAddr =
       "ipc://_zmq.AbstractSocketConnectorTest.out";
 

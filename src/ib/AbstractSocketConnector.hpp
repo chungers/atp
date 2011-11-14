@@ -42,11 +42,13 @@ class AbstractSocketConnector :
 
  public:
   AbstractSocketConnector(const string& zmqInboundAddress,
+                          const string& zmqOutboundAddress,
                           Application& app, int timeout) :
       app_(app),
       timeoutSeconds_(timeout),
       reactor_(zmqInboundAddress, *this),
       reactorAddress_(zmqInboundAddress),
+      outboundAddress_(zmqOutboundAddress),
       socketConnector_(NULL)
   {
   }
@@ -65,12 +67,21 @@ class AbstractSocketConnector :
     // for publishing events.
     // this must be from the same thread as the thread in the socket event
     // dispatcher.
-    zmq::socket_t* sink = createOutboundSocket();
+    zmq::socket_t* outbound = NULL;
 
-    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
-        << "Creating event sink zmq socket:" << sink;
+    if (outboundContext_.get() == NULL) {
+      outboundContext_.reset(new zmq::context_t(1));
+      outbound = new zmq::socket_t(*outboundContext_, ZMQ_PUSH);
 
-    outboundSocket_.reset(sink);
+      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+          << "Connecting to " << outboundAddress_;
+
+      outbound->connect(outboundAddress_.c_str());
+      outboundSocket_.reset(outbound);
+
+      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+          << "ZMQ_PUSH socket:" << outbound << " ready.";
+    }
   }
 
   /// @see AsioEClientSocket::EventCallback
@@ -194,11 +205,6 @@ class AbstractSocketConnector :
   virtual bool handleReactorInboundMessages(
       zmq::socket_t& socket, EClientPtr eclient) = 0;
 
-  /**
-   * Create outbound socket for the specified channel id.  This is
-   * for pushing events out to the event collector.
-   */
-  virtual zmq::socket_t* createOutboundSocket(int channel = 0) = 0;
 
  private:
 
@@ -213,7 +219,10 @@ class AbstractSocketConnector :
   atp::zmq::Reactor reactor_;
   const std::string& reactorAddress_;
 
+  // For outbound messages
+  const std::string& outboundAddress_;
   boost::thread_specific_ptr<zmq::socket_t> outboundSocket_;
+  boost::thread_specific_ptr<zmq::context_t> outboundContext_;
 
  protected:
   SocketConnector* socketConnector_;
