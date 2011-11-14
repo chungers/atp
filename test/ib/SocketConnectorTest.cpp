@@ -24,6 +24,7 @@
 
 #include "ib/TestHarness.hpp"
 #include "ib/ticker_id.hpp"
+#include "zmq/Publisher.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 
@@ -113,8 +114,6 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
     EXPECT_EQ(NULL, outboundSocket);
 
     int more = atp::zmq::receive(reactorSocket, &msg);
-    LOG(INFO) << "Received " << msg << std::endl;
-
     try {
       // just echo back to the client
       size_t sent = atp::zmq::send_zero_copy(reactorSocket, msg);
@@ -179,7 +178,6 @@ TEST(SocketConnectorTest, SendMessageTest)
   zmq::context_t context(1);
   TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10);
 
-
   LOG(INFO) << "Starting client."  << std::endl;
 
   // Client
@@ -188,13 +186,13 @@ TEST(SocketConnectorTest, SendMessageTest)
 
   LOG(INFO) << "Client connected."  << std::endl;
 
-  int clientId = 12456;
+  int clientId = 12455;
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,
                                        &strategy);
   EXPECT_EQ(clientId, status); // Expected, actual
   EXPECT_EQ(1, strategy.getCount(ON_CONNECT));
 
-  size_t messages = 10;
+  size_t messages = 5000;
   for (unsigned int i = 0; i < messages; ++i) {
     std::ostringstream oss;
     oss << "Message-" << i;
@@ -202,8 +200,66 @@ TEST(SocketConnectorTest, SendMessageTest)
     std::string message(oss.str());
     bool exception = false;
     try {
-      VLOG(40) << "sending " << message << std::endl;
+      atp::zmq::send_zero_copy(client, message);
+      std::string reply;
+      atp::zmq::receive(client, &reply);
 
+      ASSERT_EQ(message, reply);
+    } catch (zmq::error_t e) {
+      LOG(ERROR) << "Exception: " << e.what() << std::endl;
+      exception = true;
+    }
+    ASSERT_FALSE(exception);
+  }
+
+  LOG(INFO) << "Finishing." << std::endl;
+  socketConnector.stop();
+}
+
+TEST(SocketConnectorTest, SharedContextTest)
+{
+  TestApplication app;
+  TestStrategy strategy;
+
+  const string& bindAddr =
+      "ipc://_zmq.SharedContextTest.in";
+
+  // In this case, the outbound socket for the connector is simply
+  // a domain socket file for IPC.  See above test case for actually
+  // connecting to a hub over tcp.
+  const string& outboundAddr = "inproc://SharedContextTest";
+
+  zmq::context_t sharedContext(1);
+  LOG(INFO) << "Context = " << sharedContext;
+
+  // Start a publisher
+  atp::zmq::Publisher publisher(outboundAddr,
+                                "ipc://_zmq.SharedContextTest.pub",
+                                &sharedContext);
+
+  // Connector's outbound address is the publisher's inbound address.
+  TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10,
+                                      &sharedContext);
+
+  LOG(INFO) << "Starting client with context " << sharedContext;
+  // Client
+  zmq::socket_t client(sharedContext, ZMQ_REQ);
+  client.connect(bindAddr.c_str());
+
+  int clientId = 12456;
+  int status = socketConnector.connect("127.0.0.1", 4001, clientId,
+                                       &strategy);
+  EXPECT_EQ(clientId, status); // Expected, actual
+  EXPECT_EQ(1, strategy.getCount(ON_CONNECT));
+
+  size_t messages = 1000;
+  for (unsigned int i = 0; i < messages; ++i) {
+    std::ostringstream oss;
+    oss << "Message-" << i;
+
+    std::string message(oss.str());
+    bool exception = false;
+    try {
       atp::zmq::send_zero_copy(client, message);
 
       std::string reply;
@@ -219,5 +275,6 @@ TEST(SocketConnectorTest, SendMessageTest)
 
   LOG(INFO) << "Finishing." << std::endl;
   socketConnector.stop();
+  LOG(INFO) << "Stopped: " << sharedContext;
 }
 

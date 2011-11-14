@@ -50,16 +50,16 @@ class AbstractSocketConnector :
       reactor_(zmqInboundAddress, *this, context),
       reactorAddress_(zmqInboundAddress),
       outboundAddress_(zmqOutboundAddress),
-      outboundContext_(context),
+      outboundContextPtr_(context),
       socketConnector_(NULL)
   {
   }
 
-  virtual ~AbstractSocketConnector()
+  ~AbstractSocketConnector()
   {
-    if (socket_.get() != 0 || outboundSocket_.get() != 0) {
-      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Shutting down " << stop();
-    }
+    // if (socket_.get() != 0 || outboundSocket_.get() != 0) {
+    //   IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Shutting down " << stop();
+    // }
   }
 
   /// @see AsioEClientSocket::EventCallback
@@ -71,18 +71,24 @@ class AbstractSocketConnector :
     // dispatcher.
     zmq::socket_t* outbound = NULL;
 
-    if (outboundContext_.get() == NULL) {
+    if (outboundContextPtr_ == NULL) {
       outboundContext_.reset(new zmq::context_t(1));
       outbound = new zmq::socket_t(*outboundContext_, ZMQ_PUSH);
+    } else {
+      outbound = new zmq::socket_t(*outboundContextPtr_, ZMQ_PUSH);
+    }
+    outboundSocket_.reset(outbound);
 
-      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
-          << "Connecting to " << outboundAddress_;
+    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+        << "Connecting to " << outboundAddress_;
 
+    try {
       outbound->connect(outboundAddress_.c_str());
-      outboundSocket_.reset(outbound);
-
       IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
           << "ZMQ_PUSH socket:" << outbound << " ready.";
+    } catch (zmq::error_t e) {
+      LOG(FATAL) << "Unable to connecto to " << outboundAddress_ << ": "
+                 << e.what();
     }
   }
 
@@ -178,23 +184,21 @@ class AbstractSocketConnector :
   bool stop()
   {
     if (socket_.get() != 0) {
+      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Disconnecting from gateway.";
       socket_->eDisconnect();
-      for (int i = 0; i < timeoutSeconds_ && socket_->isConnected(); ++i) {
+      for (int i = 0; socket_->isConnected(); ++i) {
         IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
             << "Waiting for EClientSocket to stop.";
         sleep(1);
+        if (i > timeoutSeconds_) {
+          IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+              << "Timed out waiting for EClientSocket to stop.";
+          break;
+        }
       }
+      socket_.reset();
     }
-    socket_.reset();
-    if (outboundSocket_.get() != 0) {
-      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Stopping publish socket.";
-      delete outboundSocket_.get();
-    }
-    outboundSocket_.reset();
-    bool status = outboundSocket_.get() == 0 && socket_.get() == 0;
-    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
-        << "Stopped all sockets (EClient + publish):" << status;
-    return status;
+    return true;
   }
 
  protected:
@@ -224,7 +228,8 @@ class AbstractSocketConnector :
   // For outbound messages
   const std::string& outboundAddress_;
   boost::thread_specific_ptr<zmq::socket_t> outboundSocket_;
-  boost::shared_ptr<zmq::context_t> outboundContext_;
+  zmq::context_t* outboundContextPtr_;
+  boost::scoped_ptr<zmq::context_t> outboundContext_;
 
  protected:
   SocketConnector* socketConnector_;
