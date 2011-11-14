@@ -43,12 +43,14 @@ class AbstractSocketConnector :
  public:
   AbstractSocketConnector(const string& zmqInboundAddress,
                           const string& zmqOutboundAddress,
-                          Application& app, int timeout) :
+                          Application& app, int timeout,
+                          zmq::context_t* context = NULL) :
       app_(app),
       timeoutSeconds_(timeout),
-      reactor_(zmqInboundAddress, *this),
+      reactor_(zmqInboundAddress, *this, context),
       reactorAddress_(zmqInboundAddress),
       outboundAddress_(zmqOutboundAddress),
+      outboundContext_(context),
       socketConnector_(NULL)
   {
   }
@@ -222,7 +224,7 @@ class AbstractSocketConnector :
   // For outbound messages
   const std::string& outboundAddress_;
   boost::thread_specific_ptr<zmq::socket_t> outboundSocket_;
-  boost::thread_specific_ptr<zmq::context_t> outboundContext_;
+  boost::shared_ptr<zmq::context_t> outboundContext_;
 
  protected:
   SocketConnector* socketConnector_;

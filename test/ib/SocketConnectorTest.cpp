@@ -86,10 +86,12 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
  public:
   TestSocketConnector(const string& responderAddress,
                       const string& outboundAddr,
-                      Application& app, int timeout) :
-      AbstractSocketConnector(responderAddress, outboundAddr, app, timeout)
+                      Application& app, int timeout,
+                      zmq::context_t* context = NULL) :
+      AbstractSocketConnector(responderAddress, outboundAddr, app, timeout,
+                              context)
   {
-    LOG(INFO) << "TestConnector initialized.";
+    LOG(INFO) << "TestConnector initialized, context = " << context;
     LOG(INFO) << "Inbound @ " << responderAddress;
     LOG(INFO) << "Outbound @ " << outboundAddr;
   }
@@ -174,12 +176,13 @@ TEST(SocketConnectorTest, SendMessageTest)
   const string& outboundAddr =
       "ipc://_zmq.AbstractSocketConnectorTest.out";
 
+  zmq::context_t context(1);
   TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10);
+
 
   LOG(INFO) << "Starting client."  << std::endl;
 
   // Client
-  zmq::context_t context(1);
   zmq::socket_t client(context, ZMQ_REQ);
   client.connect(bindAddr.c_str());
 
