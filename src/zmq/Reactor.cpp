@@ -56,6 +56,8 @@ void Reactor::process()
     context_ = new ::zmq::context_t(1);
     localContext = true;
     ZMQ_REACTOR_LOGGER << "Created local context.";
+  } else {
+    ZMQ_REACTOR_LOGGER << "Using shared context: " << context_;
   }
 
   int socketType = strategy_.socketType();

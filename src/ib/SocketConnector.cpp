@@ -26,8 +26,10 @@ class SocketConnector::implementation :
  public:
   implementation(const std::string& zmqInboundAddr,
                  const std::string& zmqOutboundAddr,
-                 Application& app, int timeout) :
-      AbstractSocketConnector(zmqInboundAddr, zmqOutboundAddr, app, timeout),
+                 Application& app, int timeout,
+                 zmq::context_t* context = NULL) :
+      AbstractSocketConnector(zmqInboundAddr, zmqOutboundAddr,
+                              app, timeout, context),
       reactorStrategyPtr_(ReactorStrategyFactory::getInstance())
   {
   }
@@ -68,9 +70,11 @@ class SocketConnector::implementation :
 
 SocketConnector::SocketConnector(const std::string& zmqInboundAddr,
                                  const std::string& zmqOutboundAddr,
-                                 Application& app, int timeout) :
+                                 Application& app, int timeout,
+                                 ::zmq::context_t* context) :
     impl_(new SocketConnector::implementation(zmqInboundAddr,
-                                              zmqOutboundAddr, app, timeout))
+                                              zmqOutboundAddr, app, timeout,
+                                              context))
 {
   IBAPI_SOCKET_CONNECTOR_LOGGER << "SocketConnector started.";
   impl_->socketConnector_ = this;

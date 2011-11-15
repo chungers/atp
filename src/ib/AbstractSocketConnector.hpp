@@ -181,7 +181,7 @@ class AbstractSocketConnector :
     }
   }
 
-  bool stop()
+  bool stop(bool blockForReactor = false)
   {
     if (socket_.get() != 0) {
       IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Disconnecting from gateway.";
@@ -198,6 +198,12 @@ class AbstractSocketConnector :
       }
       socket_.reset();
     }
+    // Wait for the reactor to stop -- this potentially can block forever
+    // if the reactor doesn't not exit out of its processing loop.
+    if (blockForReactor) {
+      reactor_.block();
+    }
+
     return true;
   }
 

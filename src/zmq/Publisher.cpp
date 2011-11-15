@@ -92,19 +92,27 @@ void Publisher::process()
   }
   isReady_.notify_all();
 
-  while (1) {
-    while (1) {
+  bool stop = false;
+  while (!stop) {
+    while (!stop) {
       ::zmq::message_t message;
       int64_t more;
       size_t more_size = sizeof(more);
       //  Process all parts of the message
-      inbound.recv(&message);
-      inbound.getsockopt( ZMQ_RCVMORE, &more, &more_size);
+      try {
 
-      ZMQ_PUBLISHER_LOGGER << "Published " << message.size() << " bytes: "
-                           << static_cast<char*>(message.data());
+        inbound.recv(&message);
+        inbound.getsockopt( ZMQ_RCVMORE, &more, &more_size);
 
-      publish.send(message, more? ZMQ_SNDMORE: 0);
+        ZMQ_PUBLISHER_LOGGER << "Published " << message.size() << " bytes: "
+                             << static_cast<char*>(message.data());
+
+        publish.send(message, more? ZMQ_SNDMORE: 0);
+
+      } catch (::zmq::error_t e) {
+        ZMQ_PUBLISHER_LOGGER << "Stopping on exception: " << e.what();
+        stop = true;
+      }
 
       if (!more)
         break;      //  Last message part

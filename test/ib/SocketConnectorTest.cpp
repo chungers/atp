@@ -117,7 +117,13 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
     try {
       // just echo back to the client
       size_t sent = atp::zmq::send_zero_copy(reactorSocket, msg);
-      return sent > 0;
+
+      if (msg == "STOP") {
+        LOG(INFO) << "====> Stopping reactor.";
+        return false;
+      } else {
+        return sent > 0;
+      }
 
     } catch (zmq::error_t e) {
       LOG(ERROR) << "Exception " << e.what() << std::endl;
@@ -230,7 +236,7 @@ TEST(SocketConnectorTest, SharedContextTest)
   const string& outboundAddr = "inproc://SharedContextTest";
 
   zmq::context_t sharedContext(1);
-  LOG(INFO) << "Context = " << sharedContext;
+  LOG(INFO) << "Context = " << &sharedContext;
 
   // Start a publisher
   atp::zmq::Publisher publisher(outboundAddr,
@@ -241,7 +247,7 @@ TEST(SocketConnectorTest, SharedContextTest)
   TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10,
                                       &sharedContext);
 
-  LOG(INFO) << "Starting client with context " << sharedContext;
+  LOG(INFO) << "Starting client with context " << &sharedContext;
   // Client
   zmq::socket_t client(sharedContext, ZMQ_REQ);
   client.connect(bindAddr.c_str());
@@ -273,8 +279,12 @@ TEST(SocketConnectorTest, SharedContextTest)
     ASSERT_FALSE(exception);
   }
 
+  // Final message to stop the reactor:
+  atp::zmq::send_zero_copy(client, "STOP");
+
   LOG(INFO) << "Finishing." << std::endl;
-  socketConnector.stop();
-  LOG(INFO) << "Stopped: " << sharedContext;
+  socketConnector.stop(true);
+
+  LOG(INFO) << "Stopped: " << &sharedContext;
 }
 
