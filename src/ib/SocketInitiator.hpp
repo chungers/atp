@@ -1,6 +1,8 @@
 #ifndef IBAPI_SOCKET_INITIATOR_H_
 #define IBAPI_SOCKET_INITIATOR_H_
 
+#include <zmq.hpp>
+
 #include <list>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
@@ -24,7 +26,8 @@ class SocketInitiator : public Initiator,
 
  public:
 
-  SocketInitiator(Application& app, std::list<SessionSetting>& settings);
+  SocketInitiator(Application& app, std::list<SessionSetting>& settings,
+                  zmq::context_t* context = NULL);
   ~SocketInitiator();
 
   void start() throw ( ConfigError, RuntimeError );

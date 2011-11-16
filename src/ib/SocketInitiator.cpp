@@ -20,10 +20,12 @@ class SocketInitiatorImpl : public SocketInitiator {
  public :
   SocketInitiatorImpl(Application& app,
                       std::list<SessionSetting>& settings,
-                      SocketConnector::Strategy& strategy) :
+                      SocketConnector::Strategy& strategy,
+                      zmq::context_t* context = NULL) :
       application_(app),
       sessionSettings_(settings),
-      strategy_(strategy)
+      strategy_(strategy),
+      contextPtr_(context)
   { }
 
   ~SocketInitiatorImpl() {}
@@ -47,7 +49,9 @@ class SocketInitiatorImpl : public SocketInitiator {
           boost::shared_ptr<SocketConnector>(
               new SocketConnector(itr->getZmqInboundAddr(),
                                   itr->getZmqOutboundAddr(),
-                                  application_, sessionId));
+                                  application_, sessionId, contextPtr_));
+
+      // Register this in a map for clean up later.
       socketConnectors_[sessionId] = s;
 
       IBAPI_SOCKET_INITIATOR_LOGGER << "SocketConnector: " << *itr;
@@ -79,8 +83,11 @@ class SocketInitiatorImpl : public SocketInitiator {
     for (; itr != socketConnectors_.end(); ++itr) {
 
       IBAPI_SOCKET_INITIATOR_LOGGER << "Stopping connector (sessionID="
-                                    << itr->first;
-      (*itr).second->stop();
+                                    << itr->first << ")";
+      bool stopped = (*itr).second->stop();
+
+      IBAPI_SOCKET_INITIATOR_LOGGER << "Stopped connector (sessionID="
+                                    << itr->first << "): " << stopped;
     }
   }
 
@@ -93,6 +100,7 @@ class SocketInitiatorImpl : public SocketInitiator {
   Application& application_;
   std::list<SessionSetting>& sessionSettings_;
   SocketConnector::Strategy& strategy_;
+  zmq::context_t* contextPtr_;
 
   typedef std::map< SessionID, boost::shared_ptr<SocketConnector> > SocketConnectorMap;
   SocketConnectorMap socketConnectors_;
@@ -100,8 +108,9 @@ class SocketInitiatorImpl : public SocketInitiator {
 
 
 SocketInitiator::SocketInitiator(Application& app,
-                                 std::list<SessionSetting>& settings)
-    : impl_(new SocketInitiatorImpl(app, settings, *this))
+                                 std::list<SessionSetting>& settings,
+                                 zmq::context_t* context)
+    : impl_(new SocketInitiatorImpl(app, settings, *this, context))
 {
 }
 

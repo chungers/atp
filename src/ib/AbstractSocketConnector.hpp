@@ -50,7 +50,7 @@ class AbstractSocketConnector :
       reactor_(zmqInboundAddress, *this, context),
       reactorAddress_(zmqInboundAddress),
       outboundAddress_(zmqOutboundAddress),
-      outboundContextPtr_(context),
+      contextPtr_(context),
       socketConnector_(NULL)
   {
   }
@@ -71,11 +71,11 @@ class AbstractSocketConnector :
     // dispatcher.
     zmq::socket_t* outbound = NULL;
 
-    if (outboundContextPtr_ == NULL) {
+    if (contextPtr_ == NULL) {
       outboundContext_.reset(new zmq::context_t(1));
       outbound = new zmq::socket_t(*outboundContext_, ZMQ_PUSH);
     } else {
-      outbound = new zmq::socket_t(*outboundContextPtr_, ZMQ_PUSH);
+      outbound = new zmq::socket_t(*contextPtr_, ZMQ_PUSH);
     }
     outboundSocket_.reset(outbound);
 
@@ -251,7 +251,7 @@ class AbstractSocketConnector :
   // For outbound messages
   const std::string& outboundAddress_;
   boost::thread_specific_ptr<zmq::socket_t> outboundSocket_;
-  zmq::context_t* outboundContextPtr_;
+  zmq::context_t* contextPtr_;
   boost::scoped_ptr<zmq::context_t> outboundContext_;
 
  protected:
