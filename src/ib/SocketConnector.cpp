@@ -97,5 +97,11 @@ int SocketConnector::connect(const string& host,
   return impl_->connect(host, port, clientId, strategy, maxAttempts);
 }
 
+bool SocketConnector::stop()
+{
+  IBAPI_SOCKET_CONNECTOR_LOGGER << "STOP";
+  return impl_->stop();
+}
+
 } // namespace IBAPI
 

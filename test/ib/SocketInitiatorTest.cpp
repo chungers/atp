@@ -103,9 +103,15 @@ TEST(SocketInitiatorTest, SocketInitiatorStartTest)
 
   initiator.start();
 
-  app.waitForNOccurrences(ON_LOGON, 2, 10);
+  LOG(INFO) << "Waiting for LOGON events.";
+
+  app.waitForNOccurrences(ON_LOGON, 2, 5);
   EXPECT_EQ(app.getCount(ON_LOGON), 2);
 
-  initiator.waitForNOccurrences(ON_CONNECT, 2, 10);
+  LOG(INFO) << "Waiting for CONNECT events.";
+  initiator.waitForNOccurrences(ON_CONNECT, 2, 5);
   EXPECT_EQ(initiator.getCount(ON_CONNECT), 2);
+
+  initiator.stop();
+  LOG(INFO) << "Test finished.";
 }

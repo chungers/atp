@@ -15,7 +15,6 @@ using ib::internal::EWrapperFactory;
 
 namespace IBAPI {
 
-
 class SocketInitiatorImpl : public SocketInitiator {
 
  public :
@@ -75,6 +74,14 @@ class SocketInitiatorImpl : public SocketInitiator {
     IBAPI_SOCKET_INITIATOR_LOGGER
         << "Stopping connector with force = "
         << force << std::endl;
+
+    SocketConnectorMap::iterator itr = socketConnectors_.begin();
+    for (; itr != socketConnectors_.end(); ++itr) {
+
+      IBAPI_SOCKET_INITIATOR_LOGGER << "Stopping connector (sessionID="
+                                    << itr->first;
+      (*itr).second->stop();
+    }
   }
 
   /// @overload Initiator
@@ -86,7 +93,9 @@ class SocketInitiatorImpl : public SocketInitiator {
   Application& application_;
   std::list<SessionSetting>& sessionSettings_;
   SocketConnector::Strategy& strategy_;
-  std::map< SessionID, boost::shared_ptr<SocketConnector> > socketConnectors_;
+
+  typedef std::map< SessionID, boost::shared_ptr<SocketConnector> > SocketConnectorMap;
+  SocketConnectorMap socketConnectors_;
 };
 
 

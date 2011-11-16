@@ -30,6 +30,8 @@ class SocketConnector : NoCopyAndAssign {
   int connect(const std::string& host, unsigned int port, unsigned int clientId,
               Strategy* s, int maxAttempts = 60);
 
+  bool stop();
+
  private :
   class implementation;
   boost::scoped_ptr<implementation> impl_;

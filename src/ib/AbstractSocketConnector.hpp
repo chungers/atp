@@ -143,8 +143,8 @@ class AbstractSocketConnector :
     // Check on the state.
     if (socket_.get() != 0 && socket_->isConnected()) {
         CONNECTOR_IMPL_WARNING
-            << "Calling eConnect on already live connection."
-            << std::endl;
+            << "Calling eConnect when already connected.";
+
         return socket_->getClientId();
     }
 
