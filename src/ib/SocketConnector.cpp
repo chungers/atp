@@ -90,10 +90,11 @@ SocketConnector::~SocketConnector()
 int SocketConnector::connect(const string& host,
                              unsigned int port,
                              unsigned int clientId,
-                             Strategy* strategy)
+                             Strategy* strategy,
+                             int maxAttempts)
 {
   IBAPI_SOCKET_CONNECTOR_LOGGER << "CONNECT " << host << ":" << port;
-  return impl_->connect(host, port, clientId, strategy);
+  return impl_->connect(host, port, clientId, strategy, maxAttempts);
 }
 
 } // namespace IBAPI

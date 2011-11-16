@@ -137,7 +137,8 @@ class AbstractSocketConnector :
   int connect(const string& host,
               unsigned int port,
               unsigned int clientId,
-              SocketConnector::Strategy* strategy)
+              SocketConnector::Strategy* strategy,
+              int maxAttempts = 60)
   {
     // Check on the state.
     if (socket_.get() != 0 && socket_->isConnected()) {
@@ -160,25 +161,41 @@ class AbstractSocketConnector :
           new AsioEClientSocket(ioService_, *ew, this));
     }
 
-    int64 start = now_micros();
-    socket_->eConnect(host.c_str(), port, clientId);
+    for (int attempts = 0;
+         attempts < maxAttempts;
+         ++attempts, sleep(1)) {
 
-    // Spin until connected.  This is the part where some handshake
-    // occurs with the IB gateway.
-    int64 limit = timeoutSeconds_ * 1000000;
-    while (!socket_->isConnected() && now_micros() - start < limit) {}
+      int64 start = now_micros();
+      bool socketOk = socket_->eConnect(host.c_str(), port, clientId);
 
-    if (socket_->isConnected()) {
-      int64 elapsed = now_micros() - start;
-      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
-          << "Connected in " << elapsed << " microseconds.";
+      if (socketOk) {
+        // Spin until connected -- including the part where some handshake
+        // occurs with the IB gateway.
+        int64 limit = timeoutSeconds_ * 1000000;
+        while (!socket_->isConnected() && now_micros() - start < limit) { }
 
-      strategy->onConnect(*socketConnector_, clientId);
-      return clientId;
-    } else {
-      strategy->onTimeout(*socketConnector_);
-      return -1;
+        if (socket_->isConnected()) {
+
+          int64 elapsed = now_micros() - start;
+          IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+              << "Connected in " << elapsed << " microseconds.";
+
+          strategy->onConnect(*socketConnector_, clientId);
+          return clientId;
+
+        }
+      } else {
+
+        socket_->reset();
+        IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+            << "Unable to connect to gateway. Attempts = " << attempts;
+      }
     }
+
+    // When we reached here, we have exhausted all attempts:
+    strategy->onTimeout(*socketConnector_);
+
+    return -1;
   }
 
   bool stop(bool blockForReactor = false)

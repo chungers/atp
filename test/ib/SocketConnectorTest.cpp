@@ -157,11 +157,13 @@ TEST(SocketConnectorTest, AbstractSocketConnectorConnectionTest)
   LOG(INFO) << "Checked on_connect = " << strategy.getCount(ON_CONNECT)
             << std::endl;
 
-  app.waitForFirstOccurrence(ON_LOGON, 10);
+  if (status > 0) {
+    app.waitForFirstOccurrence(ON_LOGON, 10);
 
-  EXPECT_EQ(app.getCount(ON_LOGON), 1);
+    EXPECT_EQ(app.getCount(ON_LOGON), 1);
 
-  LOG(INFO) << "Test complete." << std::endl;
+    LOG(INFO) << "Test complete." << std::endl;
+  }
   socketConnector.stop();
 }
 

@@ -96,6 +96,18 @@ bool AsioEClientSocket::eConnect(const char *host,
   return result;
 }
 
+void AsioEClientSocket::reset()
+{
+  if (socket_.is_open()) {
+    boost::system::error_code ec;
+    socket_.close(ec);
+    if (ec) {
+      LOG(WARNING) << "Failed to close socket connection: " << ec;
+    } else {
+      LOG(INFO) << "Socket closed.";
+    }
+  }
+}
 bool AsioEClientSocket::closeSocket()
 {
   boost::unique_lock<boost::mutex> lock(socketMutex_);
@@ -104,15 +116,15 @@ bool AsioEClientSocket::closeSocket()
     boost::system::error_code ec;
     socket_.shutdown(tcp::socket::shutdown_both, ec);
     if (ec) {
-      LOG(WARNING) << "Failed to shutdown socket: " << ec << std::endl;
+      LOG(WARNING) << "Failed to shutdown socket: " << ec;
     }
 
     // Now close the socket.
     socket_.close(ec);
     if (ec) {
-      LOG(WARNING) << "Failed to close socket connection: " << ec << std::endl;
+      LOG(WARNING) << "Failed to close socket connection: " << ec;
     } else {
-      LOG(INFO) << "Socket closed." << std::endl;
+      LOG(INFO) << "Socket closed.";
       success = true;
     }
 

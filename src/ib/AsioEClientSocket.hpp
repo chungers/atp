@@ -55,6 +55,8 @@ class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
   /// Event loop that checks messages on the socket
   void block();
 
+  void reset();
+
  private:
 
   /// @overload EClientSocketBase

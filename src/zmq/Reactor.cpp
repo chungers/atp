@@ -84,7 +84,14 @@ void Reactor::process()
   }
   isReady_.notify_all();
 
-  while (strategy_.respond(socket)) {}
+  try {
+    while (strategy_.respond(socket)) {
+      // just loop
+    }
+  } catch (::zmq::error_t e) {
+    LOG(WARNING) << "Exception while processing messages: " << e.what()
+                 << ", stopping.";
+  }
 
   if (localContext) delete context_;
   LOG(ERROR) << "Reactor listening thread stopped.";
