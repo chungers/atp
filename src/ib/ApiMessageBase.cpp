@@ -54,16 +54,22 @@ static bool parseMessageField(const std::string& buff, Message& message)
       case FIX::FIELD::MsgType:
       case FIX::FIELD::BeginString:
       case FIX::FIELD::SendingTime:
-        API_MESSAGE_BASE_LOGGER << "Header-- [" << code << "][" << value << "]";
+        API_MESSAGE_BASE_LOGGER
+            << "H[" << code << "][" << value << "] = "
+            << value.size() << "/" << buff.size() << "/" << buff.length();
         message.getHeader().setField(code, value);
         break;
       case FIX::FIELD::Ext_SendingTimeMicros:
       case FIX::FIELD::Ext_OrigSendingTimeMicros:
-        API_MESSAGE_BASE_LOGGER << "Trailer- [" << code << "][" << value << "]";
+        API_MESSAGE_BASE_LOGGER
+            << "T[" << code << "][" << value << "] = "
+            << value.size() << "/" << buff.size() << "/" << buff.length();
         message.getTrailer().setField(code, value);
         break;
       default:
-        API_MESSAGE_BASE_LOGGER << "Body---- [" << code << "][" << value << "]";
+        API_MESSAGE_BASE_LOGGER
+            << "B[" << code << "][" << value << "] = "
+            << value.size() << "/" << buff.size() << "/" << buff.length();
         message.setField(code, value);
     }
     return true;

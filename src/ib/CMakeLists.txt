@@ -48,6 +48,7 @@ set(IBAPIConnector_libs
   gflags
   glog
   quickfix
+  QuantLib
   zmq
 )
 # Client implementation:

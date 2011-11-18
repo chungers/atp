@@ -2,8 +2,6 @@
 #define IB_API_MESSAGE_BASE_H_
 
 #include "log_levels.h"
-
-//#include "ib/ib_common.hpp"
 #include "ib/internal.hpp"
 #include "ib/Message.hpp"
 

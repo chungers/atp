@@ -17,7 +17,6 @@
 
 #include "ib/GenericTickRequest.hpp"
 
-
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/TestHarness.hpp"

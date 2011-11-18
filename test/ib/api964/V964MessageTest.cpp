@@ -3,6 +3,7 @@
 #include <boost/thread.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <ql/quantlib.hpp>
 #include <zmq.hpp>
 #include <stdlib.h>
 
@@ -50,7 +51,7 @@ TEST(V964MessageTest, ApiTest)
   request.set(FIX::StrikePrice(425.50));  // Not a valid strike but for testing
   request.set(FIX::MaturityMonthYear("201111"));
   request.set(FIX::MaturityDay("19"));
-  request.set(FIX::ContractMultiplier(200));
+  request.set(FIX::ContractMultiplier(100));
   request.set(FIX::MDEntryRefID("123456"));
 
   print(request.getHeader());
@@ -103,7 +104,7 @@ TEST(V964MessageTest, ApiTest)
   EXPECT_EQ(425.5, c.strike);
   EXPECT_EQ("USD", c.currency);
   EXPECT_EQ("SMART", c.exchange);
-  EXPECT_EQ("200", c.multiplier);
+  EXPECT_EQ("100", c.multiplier);
   EXPECT_EQ("AAPL 20111119C00450000", c.localSymbol);
   EXPECT_EQ(123456, c.conId);
   EXPECT_EQ("USD", c.currency);
@@ -120,7 +121,7 @@ TEST(V964MessageTest, ApiTest)
   EXPECT_EQ(425.5, c2.strike);
   EXPECT_EQ("USD", c2.currency);
   EXPECT_EQ("SMART", c2.exchange);
-  EXPECT_EQ("200", c2.multiplier);
+  EXPECT_EQ("100", c2.multiplier);
   EXPECT_EQ("AAPL 20111119C00450000", c2.localSymbol);
   EXPECT_EQ(123456, c2.conId);
   EXPECT_EQ("USD", c2.currency);
@@ -143,6 +144,15 @@ struct ReceiveOneMessage : Reactor::Strategy
   ZmqMessage zmqMessage;
   bool done;
 };
+
+static std::string FormatOptionExpiry(int year, int month, int day)
+{
+  std::ostringstream s1;
+  std::string fmt = (month > 9) ? "%4d%2d" : "%4d0%1d";
+  std::string fmt2 = (day > 9) ? "%2d" : "0%1d";
+  s1 << boost::format(fmt) % year % month << boost::format(fmt2) % day;
+  return s1.str();
+}
 
 TEST(V964MessageTest, ZmqSendTest)
 {
@@ -171,10 +181,19 @@ TEST(V964MessageTest, ZmqSendTest)
   request.set(FIX::DerivativeSecurityID("AAPL 20111119C00450000"));
   request.set(FIX::SecurityExchange(IBAPI::SecurityExchange_SMART));
   request.set(FIX::StrikePrice(450.));
-  request.set(FIX::MaturityMonthYear("201111"));
-  request.set(FIX::MaturityDay("19"));
-  request.set(FIX::ContractMultiplier(200));
-  request.set(FIX::MDEntryRefID("123456"));
+  request.set(FIX::ContractMultiplier(100));
+  request.set(FIX::MDEntryRefID("654321"));
+
+  using QuantLib::Date;
+  Date today = Date::todaysDate();
+  Date nextFriday = Date::nextWeekday(today, QuantLib::Friday);
+
+  IBAPI::V964::FormatExpiry(request, nextFriday);
+
+  std::string dateString = FormatOptionExpiry(
+      nextFriday.year(), nextFriday.month(), nextFriday.dayOfMonth());
+
+  LOG(INFO) << "Next Friday = " << nextFriday << ", " << dateString;
 
   request.send(client);
 
@@ -184,6 +203,57 @@ TEST(V964MessageTest, ZmqSendTest)
 
   EXPECT_FALSE(strategy.zmqMessage.isEmpty());
   EXPECT_EQ(request.totalFields(), strategy.zmqMessage.totalFields());
+
+  MarketDataRequest received(strategy.zmqMessage);
+
+  LOG(INFO) << "Frame by frame compare";
+
+  FIX::FieldMap::iterator itr1 = request.begin();
+  FIX::FieldMap::iterator itr2 = received.begin();
+  for (; itr1 != request.end(); ++itr1, ++itr2) {
+
+    int comp = strcmp(itr1->second.getValue().c_str(),
+                       itr2->second.getValue().c_str());
+
+    EXPECT_EQ(0, comp);
+
+    EXPECT_EQ(itr1->second.getValue(),
+              itr2->second.getValue());
+
+    EXPECT_EQ(itr1->second.getValue().size(), itr2->second.getValue().size());
+  }
+
+  LOG(INFO) << "Checking message sent.";
+
+  Contract c1;
+  request.marshall(c1);
+
+  EXPECT_EQ("AAPL", c1.symbol);
+  EXPECT_EQ("OPT", c1.secType);
+  EXPECT_EQ("P", c1.right);
+  EXPECT_EQ(dateString, c1.expiry);
+  EXPECT_EQ(450., c1.strike);
+  EXPECT_EQ("USD", c1.currency);
+  EXPECT_EQ("SMART", c1.exchange);
+  EXPECT_EQ("100", c1.multiplier);
+  EXPECT_EQ("AAPL 20111119C00450000", c1.localSymbol);
+  EXPECT_EQ(654321, c1.conId);
+
+  LOG(INFO) << "Checking received message.";
+
+  Contract c2;
+  received.marshall(c2);
+
+  EXPECT_EQ(c1.symbol, c2.symbol);
+  EXPECT_EQ(c1.secType, c2.secType);
+  EXPECT_EQ(c1.right, c2.right);
+  EXPECT_EQ(c1.expiry, c2.expiry);
+  EXPECT_EQ(c1.strike, c2.strike);
+  EXPECT_EQ(c1.currency, c2.currency);
+  EXPECT_EQ(c1.exchange, c2.exchange);
+  EXPECT_EQ(c1.multiplier, c2.multiplier);
+  EXPECT_EQ(c1.localSymbol, c2.localSymbol);
+  EXPECT_EQ(c1.conId, c2.conId);
 
 
   LOG(INFO) << "Test finished.";

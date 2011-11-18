@@ -24,6 +24,7 @@ set(V964Message_test_srcs
 )
 set(V964Message_test_libs
   IBAPIConnector
+  Quantlib
   zmq
 )
 cpp_gtest(V964Message_test)

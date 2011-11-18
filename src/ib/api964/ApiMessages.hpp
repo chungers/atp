@@ -1,9 +1,12 @@
 #ifndef IBAPI_API_MESSAGES_H_
 #define IBAPI_API_MESSAGES_H_
 
+#include <cstdio>
+#include <boost/format.hpp>
 #include <glog/logging.h>
 
 #include <quickfix/FieldConvertors.h>
+#include <ql/quantlib.hpp>
 
 #include "Shared/Contract.h"
 #include "Shared/EClient.h"
@@ -42,6 +45,32 @@ namespace V964 {
 
 using ib::internal::V964Message;
 
+
+static std::string FormatExpiry(int year, int month, int day)
+{
+  ostringstream s1;
+  string fmt = (month > 9) ? "%4d%2d" : "%4d0%1d";
+  string fmt2 = (day > 9) ? "%2d" : "0%1d";
+  s1 << boost::format(fmt) % year % month << boost::format(fmt2) % day;
+  return s1.str();
+}
+
+static void FormatExpiry(V964Message& message,
+                         int year, int month, int day)
+{
+  std::ostringstream yearMonth;
+  yearMonth << boost::format((month > 9) ? "%4d%2d" : "%4d0%1d") % year % month;
+  message.setField(FIX::MaturityMonthYear(yearMonth.str()));
+
+  std::ostringstream dayOfMonth;
+  dayOfMonth << boost::format((day > 9) ? "%2d" : "0%1d") % day;
+  message.setField(FIX::MaturityDay(dayOfMonth.str()));
+}
+
+static void FormatExpiry(V964Message& message, QuantLib::Date date)
+{
+  FormatExpiry(message, date.year(), date.month(), date.dayOfMonth());
+}
 
 
 /** Example twsContract (see R/IBrokers module):
@@ -124,9 +153,10 @@ class MarketDataRequest : public V964Message
       // Type conversion from FIX INT to string
       contract.multiplier = multiplier.getString();
 
-
     } else if (securityType == IBAPI::SecurityType_COMMON_STOCK) {
       contract.secType= "STK";
+    } else {
+      LOG(INFO) << "Security type " << securityType.getString();
     }
 
     MAP_OPTIONAL_FIELD(FIX::SecurityID, contract.secId);
@@ -139,6 +169,8 @@ class MarketDataRequest : public V964Message
       long conIdLong = 0L;
       if (FIX::IntConvertor::convert(conId.getValue(), conIdLong)) {
         contract.conId = conIdLong;
+      } else {
+        LOG(WARNING) << "CondId = " << conId.getValue() << ", " << conId.getString();
       }
     }
   }
