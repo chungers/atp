@@ -45,16 +45,6 @@ inline static bool receive(::zmq::socket_t & socket, std::string* output) {
 
     output->assign(static_cast<char*>(message.data()), message.size());
 
-    // char *buff = (char*) malloc(message.size() + 1);
-    // memcpy(buff, message.data(), message.size());
-    // buff[message.size()] = 0;
-    // output->assign(buff);
-
-    // {
-    // output->clear();
-    // output->insert(0, static_cast<char*>(message.data()), message.size());
-    // }
-
     int64_t more;           //  Multipart detection
     size_t more_size = sizeof (more);
     socket.getsockopt(ZMQ_RCVMORE, &more, &more_size);
@@ -71,7 +61,7 @@ inline static size_t send_zero_copy(::zmq::socket_t& socket,
                                     const std::string& input,
                                     bool sendMore = false)
 {
-  const char* buff = input.c_str();
+  const char* buff = input.data();
   size_t size = input.size();
   // Force zero copy by providing a mem free function that does
   // nothing (ownership of buffer still belongs to the input)
@@ -81,6 +71,20 @@ inline static size_t send_zero_copy(::zmq::socket_t& socket,
   return size;
 }
 
+/// Special zero copy send.  This uses a dummy memory free function.  Note
+/// the ownership of the data buffer belongs to the input string. The input
+/// string needs to be alive long enough for the network call to send to occur.
+inline static size_t send_zero_copy(::zmq::socket_t& socket,
+                                    const char* buff, size_t len,
+                                    bool sendMore = false)
+{
+  // Force zero copy by providing a mem free function that does
+  // nothing (ownership of buffer still belongs to the input)
+  ::zmq::message_t frame((void*)(buff), len, mem_free);
+  int more = (sendMore) ? ZMQ_SNDMORE : 0;
+  socket.send(frame, more);
+  return len;
+}
 
 /// Send by memcpy.  This doesn't avoid the cost of memcpy but is safer
 /// because the buffer is copied to the zmq message buffer.
@@ -96,6 +100,18 @@ inline static size_t send_copy(::zmq::socket_t& socket,
   return size;
 }
 
+/// Send by memcpy.  This doesn't avoid the cost of memcpy but is safer
+/// because the buffer is copied to the zmq message buffer.
+inline static size_t send_copy(::zmq::socket_t& socket,
+                               const char* buff, size_t len,
+                               bool sendMore = false)
+{
+  ::zmq::message_t frame(len);
+  memcpy(frame.data(), buff, len);
+  int more = (sendMore) ? ZMQ_SNDMORE : 0;
+  socket.send(frame, more);
+  return len;
+}
 } // zmq
 } // atp
 

@@ -24,11 +24,15 @@ static size_t send_map(zmq::socket_t& socket, const FieldMap& message,
     // encode by <field_id>=<field_value> where
     // field_id is a number and field_value is a string representation
     // of the typed value.
+    size_t len = f->second.getValue().length();
     const std::string& frame = f->second.getValue();
-    sent += atp::zmq::send_copy(socket, frame, fields > 0 || more);
 
-    API_MESSAGE_BASE_LOGGER << "Sent frame [" << frame << "], bytes = "
-                            << sent;
+    // Note that somehow FIX fields have an extra '\0' padded.
+    sent += atp::zmq::send_copy(
+        socket, frame.data(), len-1, fields > 0 || more);
+
+    API_MESSAGE_BASE_LOGGER << "Sent frame [" << frame << "], len = "
+                            << sent << "/" << len;
   }
   return sent;
 }
@@ -79,9 +83,11 @@ static bool parseMessageField(const std::string& buff, Message& message)
 
 bool ApiMessageBase::receive(zmq::socket_t& source)
 {
-  std::string buff;
   while (1) {
+    std::string buff;
     bool more = (atp::zmq::receive(source, &buff));
+    API_MESSAGE_BASE_LOGGER << "Received: " << buff << ", " << buff.length() << "/" << buff.size();
+
     parseMessageField(buff, *this);
     if (!more) break;
   }
