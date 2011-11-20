@@ -31,9 +31,10 @@ class TestHarnessBase
 
   bool waitForNOccurrences(T event, int N, int secondsTimeout) {
     for (int seconds = 0;
-         seconds < secondsTimeout && getCount(event) != N;
+         seconds < secondsTimeout && getCount(event) < N;
          ++seconds) {
       sleep(1);
+      if (getCount(event) >= N) return true;
     }
     return getCount(event) == N;
   }

@@ -429,6 +429,7 @@ IBString LoggingEClientSocket::TwsConnectionTime() {
 void LoggingEClientSocket::reqMktData(TickerId id, const Contract &contract,
                                       const IBString& genericTicks,
                                       bool snapshot) {
+  std::cerr << "I AM HERE";
   LOG_START
       << __f__(id)
       << __f__(&contract)

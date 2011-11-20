@@ -155,8 +155,6 @@ class MarketDataRequest : public V964Message
 
     } else if (securityType == IBAPI::SecurityType_COMMON_STOCK) {
       contract.secType= "STK";
-    } else {
-      LOG(INFO) << "Security type " << securityType.getString();
     }
 
     MAP_OPTIONAL_FIELD(FIX::SecurityID, contract.secId);
@@ -169,8 +167,6 @@ class MarketDataRequest : public V964Message
       long conIdLong = 0L;
       if (FIX::IntConvertor::convert(conId.getValue(), conIdLong)) {
         contract.conId = conIdLong;
-      } else {
-        LOG(WARNING) << "CondId = " << conId.getValue() << ", " << conId.getString();
       }
     }
   }

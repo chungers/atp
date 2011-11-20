@@ -21,6 +21,7 @@ set(V964Message_test_incs
 set(V964Message_test_srcs
   ../AllTests.cpp
   V964MessageTest.cpp
+  TestEWrapperFactoryImpl.cpp
 )
 set(V964Message_test_libs
   IBAPIConnector

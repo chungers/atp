@@ -9,14 +9,23 @@
 
 #include "utils.hpp"
 #include "common.hpp"
+
 #include "ib/ApiMessageBase.hpp"
+#include "ib/AsioEClientSocket.hpp"
+#include "ib/EWrapperFactory.hpp"
+#include "ib/TestHarness.hpp"
+#include "ib/ticker_id.hpp"
+#include "ib/api964/ApiMessages.hpp"
 #include "zmq/Reactor.hpp"
 
-#include "ib/api964/ApiMessages.hpp"
 
 using FIX::FieldMap;
 
-using ib::internal::ZmqMessage;
+
+using namespace ib::internal;
+using namespace IBAPI;
+using namespace QuantLib;
+using QuantLib::Date;
 using IBAPI::V964::MarketDataRequest;
 
 
@@ -184,7 +193,6 @@ TEST(V964MessageTest, ZmqSendTest)
   request.set(FIX::ContractMultiplier(100));
   request.set(FIX::MDEntryRefID("654321"));
 
-  using QuantLib::Date;
   Date today = Date::todaysDate();
   Date nextFriday = Date::nextWeekday(today, QuantLib::Friday);
 
@@ -258,3 +266,111 @@ TEST(V964MessageTest, ZmqSendTest)
 
   LOG(INFO) << "Test finished.";
 }
+
+
+
+/// How many seconds max to wait for certain data before timing out.
+const int MAX_WAIT = 20;
+
+// Spin around until connection is made.
+bool waitForConnection(AsioEClientSocket& ec, int attempts) {
+  int tries = 0;
+  for (int tries = 0; !ec.isConnected() && tries < attempts; ++tries) {
+    LOG(INFO) << "Waiting for connection setup." << std::endl;
+    sleep(1);
+  }
+  return ec.isConnected();
+}
+
+class TestEWrapperEventCollector : public ib::internal::EWrapperEventCollector
+{
+ public:
+  TestEWrapperEventCollector() : context_(1), socket_(context_, ZMQ_PUB)
+  {
+    std::string endpoint = "tcp://127.0.0.1:6666";
+    LOG(INFO) << "Creating publish socket @ " << endpoint << std::endl;
+    socket_.bind(endpoint.c_str());
+  }
+
+  zmq::socket_t* getOutboundSocket(int channel = 0)
+  {
+    return &socket_;
+  }
+
+ private:
+  zmq::context_t context_;
+  zmq::socket_t socket_;
+};
+
+
+TEST(V964MessageTest, EClientSocketTest)
+{
+  boost::asio::io_service ioService;
+
+  ApplicationBase app;
+
+  TestEWrapperEventCollector eventCollector;
+  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
+  TestHarness* th = dynamic_cast<TestHarness*>(ew);
+
+  AsioEClientSocket ec(ioService, *ew);
+
+  LOG(INFO) << "Started " << ioService.run() << std::endl;
+  EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 0));
+
+  bool connected = waitForConnection(ec, 5);
+  EXPECT_TRUE(connected);
+
+  MarketDataRequest request;
+
+  const string tickerId = "96099040";
+
+  // Using set(X) as the type-safe way (instead of setField())
+  request.set(FIX::Symbol("GOOG"));
+  request.set(FIX::SecurityType(FIX::SecurityType_OPTION));
+  request.set(FIX::PutOrCall(FIX::PutOrCall_CALL));
+  request.set(FIX::SecurityExchange(IBAPI::SecurityExchange_SMART));
+  request.set(FIX::ContractMultiplier(100));
+  request.set(FIX::StrikePrice(590.));
+
+  // For testing, since the contract is constructed (vs. retrieved from
+  // IB API calls), the conId field should not be set -- arbitrary values
+  // will not match the actual conId that IB uses.
+  //request.set(FIX::MDEntryRefID(tickerId));
+
+  Date today = Date::todaysDate();
+  Date nextFriday = Date::nextWeekday(today, QuantLib::Friday);
+
+  IBAPI::V964::FormatExpiry(request, nextFriday);
+
+  std::string dateString = FormatOptionExpiry(
+      nextFriday.year(), nextFriday.month(), nextFriday.dayOfMonth());
+
+  LOG(INFO) << "Next Friday = " << nextFriday << ", " << dateString;
+
+  Contract contract;
+  request.marshall(contract);
+
+  LOG(INFO) << "Created contract.";
+
+  long tid = atol(tickerId.c_str());
+
+  LOG(INFO) << "Request market data: " << tid;
+
+  ec.reqMktData(tid, contract, "", false);
+
+  LOG(INFO) << "Waiting for data.";
+  th->waitForFirstOccurrence(TICK_PRICE, MAX_WAIT);
+  th->waitForFirstOccurrence(TICK_SIZE, MAX_WAIT);
+
+  // Disconnect
+  ec.eDisconnect();
+
+  EXPECT_FALSE(ec.isConnected());
+
+  EXPECT_GE(th->getCount(TICK_PRICE), 1);
+  EXPECT_GE(th->getCount(TICK_SIZE), 1);
+  EXPECT_TRUE(th->hasSeenTickerId(tid));
+}
+
+
