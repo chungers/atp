@@ -5,9 +5,10 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
-#include <Shared/EClientSocketBase.h>
 
-#include "common.hpp"
+// All versioned implementation must provide the ApiImpl.hpp.
+#include "EClient.hpp"
+
 
 class EWrapper;
 
@@ -15,6 +16,7 @@ using boost::asio::ip::tcp;
 
 namespace ib {
 namespace internal {
+
 
 /**
    EClientSocket implementation using Boost ASIO socket.
@@ -24,7 +26,7 @@ namespace internal {
    the IB socket base implementation assumes an event loop where the socket
    data is continuously polled and read.
  */
-class AsioEClientSocket : public EClientSocketBase, NoCopyAndAssign {
+class AsioEClientSocket : public IBClient {
 
  public:
 

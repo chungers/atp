@@ -3,27 +3,16 @@
 message(STATUS "IB API =======================================================")
 message(STATUS "-- IB API version ${IBAPI_VERSION} from ${IBAPI_ROOT}")
 
-##########################################
-# Build the IB api as a library
-
-# Use standard string library instead of mvc foundation classes:
+# IB Specific compile options
 option(IB_USE_STD_STRING "Use standard c++ string (see Shared/IBString.h)." ON)
 if (IB_USE_STD_STRING)
   add_definitions('-DIB_USE_STD_STRING')
 endif (IB_USE_STD_STRING)
 
-# Core classes in the IB api:
-include_directories(${IBAPI_ROOT}/Shared ${IBAPI_ROOT}/PosixSocketClient)
-ext_library(IBAPI
-  ${IBAPI_ROOT}/PosixSocketClient/EClientSocketBase.cpp
-  ${IBAPI_ROOT}/PosixSocketClient/EPosixClientSocket.cpp
-)
-
 ##########################################
 # Connector to the IB API Gateway
 set(IBAPIConnector_incs
   ${IBAPI_ROOT}
-  ${IBAPI_ROOT}/PosixSocketClient
   ${IBAPI_ROOT}/Shared
   ${GEN_DIR}
   ${SRC_DIR}
@@ -35,22 +24,18 @@ set(IBAPIConnector_srcs
   SocketConnector.cpp
   SocketInitiator.cpp
   ticker_id.cpp
-  ${IBAPI_IMPL_DIR}/ApiImpl.cpp
-  ${IBAPI_IMPL_DIR}/ApiMessages.cpp
-  ${IBAPI_IMPL_DIR}/EWrapperFactoryImpl.cpp
-  ${IBAPI_IMPL_DIR}/ReactorStrategyFactoryImpl.cpp
 )
 set(IBAPIConnector_libs
-  IBAPI
-  zmq_components
-  boost_system
-  boost_thread
-  gflags
-  glog
-  quickfix
-  QuantLib
-  zmq
-)
+ ib_api   # version-specific: see IBAPI_IMPL_DIR
+ zmq_components
+ boost_system
+ boost_thread
+ gflags
+ glog
+ quickfix
+ QuantLib
+ zmq
+ )
 # Client implementation:
 cpp_library(IBAPIConnector)
 
@@ -73,5 +58,6 @@ set(LogReader_libs
 # Client implementation:
 cpp_executable(LogReader)
 
-
+# Add the versioned api subdirectory
+add_subdirectory(${IBAPI_IMPL_DIR})
 

@@ -17,14 +17,16 @@
 #define IB_USE_STD_STRING
 #endif
 
-//#include <sys/time.h>
 #include <boost/thread.hpp>
 
 #include <Shared/Contract.h>
 #include <Shared/EClient.h>
+#include <Shared/EClientSocketBase.h>
 #include <Shared/EWrapper.h>
 #include <Shared/Order.h>
-#include <PosixSocketClient/EPosixClientSocket.h>
+
+#include "common.hpp"
+
 
 using namespace std;
 
@@ -124,26 +126,31 @@ class LoggingEWrapper : public EWrapper {
 };
 
 
-class LoggingEClientSocket : public EPosixClientSocket {
+class LoggingEClientSocket : public EClientSocketBase {
  public:
 
-  LoggingEClientSocket(unsigned int connection_id, EWrapper* e_wrapper);
+  LoggingEClientSocket(EWrapper* e_wrapper);
   ~LoggingEClientSocket();
 
  private:
 
   boost::mutex socket_write_mutex_;  // For outbound messages only.
-  const unsigned int connection_id_;
+  unsigned int connection_id_;
   uint64_t call_start_;
+
+
+ protected:
+
+  void set_connection_id(const unsigned int id);
+  const unsigned int get_connection_id();
 
  public:
 
-  const unsigned int get_connection_id();
-
   // Methods from EPosixSocketClient
 
-  bool eConnect(const char *host, unsigned int port, int clientId=0);
-  void eDisconnect();
+  virtual bool eConnect(const char *host, unsigned int port, int clientId=0) = 0;
+  virtual void eDisconnect() = 0;
+
   int serverVersion();
   IBString TwsConnectionTime();
   void reqMktData(TickerId id, const Contract &contract,
@@ -191,6 +198,8 @@ class LoggingEClientSocket : public EPosixClientSocket {
                                   double optionPrice, double underPrice);
 
 };
-} // namespace adapter
+
+
+} // namespace internal
 }  // namespace ib
 #endif  // IBAPI964_API_IMPL_H_

@@ -19,6 +19,13 @@ struct Exception : public std::logic_error
   std::string detail;
 };
 
+/// Not implemented.
+struct NotImplemented : public Exception
+{
+  NotImplemented( const std::string& what = "" )
+    : Exception( "Feature not implemented.", what ) {}
+};
+
 /// %Application is not configured correctly
 struct ConfigError : public Exception
 {

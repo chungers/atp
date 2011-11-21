@@ -3,42 +3,19 @@
 
 message(STATUS "TESTS: IB Connetor ===========================================")
 message(STATUS "-- IB API version ${IBAPI_VERSION} from ${IBAPI_ROOT}")
+message(STATUS "-- Implementation from ${IBAPI_IMPL_DIR}")
 
 option(IB_USE_STD_STRING "Use standard c++ string (see Shared/IBString.h)." ON)
 if (IB_USE_STD_STRING)
   add_definitions('-DIB_USE_STD_STRING')
 endif (IB_USE_STD_STRING)
 
-include_directories(${IBAPI_ROOT}/Shared ${IBAPI_ROOT}/PosixSocketClient)
-
-# Complete Test Suite
-set(IBTestSuite_incs
-  ${IBAPI_ROOT}
-  ${GEN_DIR}
-  ${SRC_DIR}
-  ${IBAPI_IMPL_DIR}
-  ${TEST_DIR}
-)
-set(IBTestSuite_srcs
-  AllTests.cpp
-  AsioEClientSocketTest.cpp
-  SocketConnectorTest.cpp
-  SocketInitiatorTest.cpp
-  UtilsTest.cpp
-  ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
-)
-set(IBTestSuite_libs
-  IBAPIConnector
-  Quantlib
-  zmq
-)
-#cpp_gtest(IBTestSuite)
-
 # AsioEClientSocket test
 set(AsioEClientSocket_test_incs
   ${IBAPI_ROOT}
   ${GEN_DIR}
   ${SRC_DIR}
+  ${SRC_DIR}/ib/${IBAPI_IMPL_DIR}
   ${IBAPI_IMPL_DIR}
   ${TEST_DIR}
 )
@@ -75,6 +52,7 @@ set(SocketConnector_test_incs
   ${IBAPI_ROOT}
   ${GEN_DIR}
   ${SRC_DIR}
+  ${SRC_DIR}/ib/${IBAPI_IMPL_DIR}
   ${IBAPI_IMPL_DIR}
   ${TEST_DIR}
 )

@@ -2,7 +2,6 @@
 #include <iostream>
 #include <glog/logging.h>
 
-#include "common.hpp"
 #include "utils.hpp"
 #include "ib/tick_types.hpp"
 #include "ApiImpl.hpp"
@@ -11,17 +10,14 @@
 // Macro for writing field value.
 #define __f__(m) "," << #m << '=' << m
 
-
-
-
 // Macro for logging the event api call.
-#define LOG_EVENT                                     \
-  EWRAPPER_LOGGER                           \
-  << "cid=" << connection_id_                         \
-  << ",ts_utc=" << utc_micros().total_microseconds()  \
-  << ",ts=" << now_micros()                           \
-  << ",event=" << __func__                            \
-  
+#define LOG_EVENT                                       \
+  EWRAPPER_LOGGER                                       \
+  << "cid=" << connection_id_                           \
+  << ",ts_utc=" << utc_micros().total_microseconds()    \
+  << ",ts=" << now_micros()                             \
+  << ",event=" << __func__                              \
+
 // Macro for tick type enum to string conversion
 #define __tick_type_enum(m) ",field=" << TickTypeNames[m]
 
@@ -212,26 +208,26 @@ void LoggingEWrapper::execDetailsEnd(int reqId) {
 void LoggingEWrapper::updateMktDepth(TickerId id, int position,
                                      int operation, int side,
                                      double price, int size) {
-    LOG_EVENT
-        << __f__(id)
-        << __f__(position)
-        << __f__(operation)
-        << __f__(side)
-        << __f__(price)
-        << __f__(size);
-  }
+  LOG_EVENT
+      << __f__(id)
+      << __f__(position)
+      << __f__(operation)
+      << __f__(side)
+      << __f__(price)
+      << __f__(size);
+}
 void LoggingEWrapper::updateMktDepthL2(TickerId id, int position,
                                        IBString marketMaker, int operation,
                                        int side, double price, int size) {
-    LOG_EVENT
-        << __f__(id)
-        << __f__(position)
-        << __f__(marketMaker)
-        << __f__(operation)
-        << __f__(side)
-        << __f__(price)
-        << __f__(size);
-  }
+  LOG_EVENT
+      << __f__(id)
+      << __f__(position)
+      << __f__(marketMaker)
+      << __f__(operation)
+      << __f__(side)
+      << __f__(price)
+      << __f__(size);
+}
 void LoggingEWrapper::updateNewsBulletin(int msgId, int msgType,
                                          const IBString& newsMessage,
                                          const IBString& originExch) {
@@ -353,15 +349,15 @@ void LoggingEWrapper::error(const int id, const int errorCode,
       << __f__(errorString);
 }
 
-#define LOG_START                                    \
-  ECLIENT_LOGGER                           \
-  << "cid=" << connection_id_                        \
-  << ",ts=" << (call_start_ = now_micros())          \
-  << ",ts_utc=" << utc_micros().total_microseconds() \
+#define LOG_START                                       \
+  ECLIENT_LOGGER                                        \
+  << "cid=" << connection_id_                           \
+  << ",ts=" << (call_start_ = now_micros())             \
+  << ",ts_utc=" << utc_micros().total_microseconds()    \
   << ",action=" << __func__
 
 #define LOG_END                                         \
-  ECLIENT_LOGGER                              \
+  ECLIENT_LOGGER                                        \
   << "cid=" << connection_id_                           \
   << ",ts=" << (call_start_)                            \
   << ",action=" << __func__                             \
@@ -383,13 +379,17 @@ typedef boost::unique_lock<boost::mutex> write_lock;
 //////////////////////////////////////////////////////////////
 
 LoggingEClientSocket::LoggingEClientSocket(
-    unsigned int connection_id,
     EWrapper* e_wrapper)
-    : EPosixClientSocket::EPosixClientSocket(e_wrapper)
-    , connection_id_(connection_id) {
+    : EClientSocketBase(e_wrapper)
+    , connection_id_(-1) {
 }
 
 LoggingEClientSocket::~LoggingEClientSocket() {
+}
+
+void LoggingEClientSocket::set_connection_id(const unsigned int id)
+{
+  connection_id_ = id;;
 }
 
 const unsigned int LoggingEClientSocket::get_connection_id()
@@ -397,52 +397,34 @@ const unsigned int LoggingEClientSocket::get_connection_id()
   return connection_id_;
 }
 
-bool LoggingEClientSocket::eConnect(const char *host,
-                                    unsigned int port, int clientId) {
-  LOG_START <<
-      __f__(host) <<
-      __f__(port) <<
-      __f__(clientId);
-  LOCK
-  bool v = EPosixClientSocket::eConnect(host, port, clientId);
-  LOG_END;
-  return v;
-}
-void LoggingEClientSocket::eDisconnect() {
-  LOG_START;
-  LOCK
-  EPosixClientSocket::eDisconnect();
-  LOG_END;
-}
 int LoggingEClientSocket::serverVersion() {
   LOG_START;
-  int v = EPosixClientSocket::serverVersion();
+  int v = EClientSocketBase::serverVersion();
   LOG_END;
   return v;
 }
 IBString LoggingEClientSocket::TwsConnectionTime() {
   LOG_START;
-  IBString v = EPosixClientSocket::TwsConnectionTime();
+  IBString v = EClientSocketBase::TwsConnectionTime();
   LOG_END;
   return v;
 }
 void LoggingEClientSocket::reqMktData(TickerId id, const Contract &contract,
                                       const IBString& genericTicks,
                                       bool snapshot) {
-  std::cerr << "I AM HERE";
   LOG_START
       << __f__(id)
       << __f__(&contract)
       << __f__(genericTicks)
       << __f__(snapshot);
   LOCK
-  EPosixClientSocket::reqMktData(id, contract, genericTicks, snapshot);
+      EClientSocketBase::reqMktData(id, contract, genericTicks, snapshot);
   LOG_END;
 }
 void LoggingEClientSocket::cancelMktData(TickerId id) {
   LOG_START;
   LOCK
-  EPosixClientSocket::cancelMktData(id);
+      EClientSocketBase::cancelMktData(id);
   LOG_END;
 }
 void LoggingEClientSocket::placeOrder(OrderId id, const Contract &contract,
@@ -452,20 +434,20 @@ void LoggingEClientSocket::placeOrder(OrderId id, const Contract &contract,
       << __f__(&contract)
       << __f__(&order);
   LOCK
-  EPosixClientSocket::placeOrder(id, contract, order);
+      EClientSocketBase::placeOrder(id, contract, order);
   LOG_END;
 }
 void LoggingEClientSocket::cancelOrder(OrderId id) {
   LOG_START
       << __f__(id);
   LOCK
-  EPosixClientSocket::cancelOrder(id);
+      EClientSocketBase::cancelOrder(id);
   LOG_END;
 }
 void LoggingEClientSocket::reqOpenOrders() {
   LOG_START;
   LOCK
-  EPosixClientSocket::reqOpenOrders();
+      EClientSocketBase::reqOpenOrders();
   LOG_END;
 }
 void LoggingEClientSocket::reqAccountUpdates(bool subscribe,
@@ -474,7 +456,7 @@ void LoggingEClientSocket::reqAccountUpdates(bool subscribe,
       << __f__(subscribe)
       << __f__(acctCode);
   LOCK
-  EPosixClientSocket::reqAccountUpdates(subscribe, acctCode);
+      EClientSocketBase::reqAccountUpdates(subscribe, acctCode);
   LOG_END;
 }
 void LoggingEClientSocket::reqExecutions(int reqId,
@@ -483,14 +465,14 @@ void LoggingEClientSocket::reqExecutions(int reqId,
       << __f__(reqId)
       << __f__(&filter);
   LOCK
-  EPosixClientSocket::reqExecutions(reqId, filter);
+      EClientSocketBase::reqExecutions(reqId, filter);
   LOG_END;
 }
 void LoggingEClientSocket::reqIds(int numIds) {
   LOG_START
       << __f__(numIds);
   LOCK
-  EPosixClientSocket::reqIds(numIds);
+      EClientSocketBase::reqIds(numIds);
   LOG_END;
 }
 void LoggingEClientSocket::reqContractDetails(int reqId,
@@ -499,7 +481,7 @@ void LoggingEClientSocket::reqContractDetails(int reqId,
       << __f__(reqId)
       << __f__(&contract);
   LOCK
-  EPosixClientSocket::reqContractDetails(reqId, contract);
+      EClientSocketBase::reqContractDetails(reqId, contract);
   LOG_END;
 }
 void LoggingEClientSocket::reqMktDepth(TickerId id,
@@ -509,60 +491,60 @@ void LoggingEClientSocket::reqMktDepth(TickerId id,
       << __f__(&contract)
       << __f__(numRows);
   LOCK
-  EPosixClientSocket::reqMktDepth(id, contract, numRows);
+      EClientSocketBase::reqMktDepth(id, contract, numRows);
   LOG_END;
 }
 void LoggingEClientSocket::cancelMktDepth(TickerId id) {
   LOG_START
       << __f__(id);
   LOCK
-  EPosixClientSocket::cancelMktDepth(id);
+      EClientSocketBase::cancelMktDepth(id);
   LOG_END;
 }
 void LoggingEClientSocket::reqNewsBulletins(bool allMsgs) {
   LOG_START
       << __f__(allMsgs);
   LOCK
-  EPosixClientSocket::reqNewsBulletins(allMsgs);
+      EClientSocketBase::reqNewsBulletins(allMsgs);
   LOG_END;
 }
 void LoggingEClientSocket::cancelNewsBulletins() {
   LOG_START;
   LOCK
-  EPosixClientSocket::cancelNewsBulletins();
+      EClientSocketBase::cancelNewsBulletins();
   LOG_END;
 }
 void LoggingEClientSocket::setServerLogLevel(int level) {
   LOG_START
       << __f__(level);
   LOCK
-  EPosixClientSocket::setServerLogLevel(level);
+      EClientSocketBase::setServerLogLevel(level);
   LOG_END;
 }
 void LoggingEClientSocket::reqAutoOpenOrders(bool bAutoBind) {
   LOG_START
       << __f__(bAutoBind);
   LOCK
-  EPosixClientSocket::reqAutoOpenOrders(bAutoBind);
+      EClientSocketBase::reqAutoOpenOrders(bAutoBind);
   LOG_END;
 }
 void LoggingEClientSocket::reqAllOpenOrders() {
   LOG_START;
   LOCK
-  EPosixClientSocket::reqAllOpenOrders();
+      EClientSocketBase::reqAllOpenOrders();
   LOG_END;
 }
 void LoggingEClientSocket::reqManagedAccts() {
   LOG_START;
   LOCK
-  EPosixClientSocket::reqManagedAccts();
+      EClientSocketBase::reqManagedAccts();
   LOG_END;
 }
 void LoggingEClientSocket::requestFA(faDataType pFaDataType) {
   LOG_START
       << __f__(pFaDataType);
   LOCK
-  EPosixClientSocket::requestFA(pFaDataType);
+      EClientSocketBase::requestFA(pFaDataType);
   LOG_END;
 }
 void LoggingEClientSocket::replaceFA(faDataType pFaDataType,
@@ -571,7 +553,7 @@ void LoggingEClientSocket::replaceFA(faDataType pFaDataType,
       << __f__(pFaDataType)
       << __f__(cxml);
   LOCK
-  EPosixClientSocket::replaceFA(pFaDataType, cxml);
+      EClientSocketBase::replaceFA(pFaDataType, cxml);
   LOG_END;
 }
 void LoggingEClientSocket::reqHistoricalData(
@@ -589,10 +571,10 @@ void LoggingEClientSocket::reqHistoricalData(
       << __f__(useRTH)
       << __f__(formatDate);
   LOCK
-  EPosixClientSocket::reqHistoricalData(
-      id, contract, endDateTime,
-      durationStr, barSizeSetting,
-      whatToShow, useRTH, formatDate);
+      EClientSocketBase::reqHistoricalData(
+          id, contract, endDateTime,
+          durationStr, barSizeSetting,
+          whatToShow, useRTH, formatDate);
   LOG_END;
 }
 void LoggingEClientSocket::exerciseOptions(
@@ -607,17 +589,17 @@ void LoggingEClientSocket::exerciseOptions(
       << __f__(account)
       << __f__(override);
   LOCK
-  EPosixClientSocket::exerciseOptions(
-      id, contract,
-      exerciseAction, exerciseQuantity,
-      account, override);
+      EClientSocketBase::exerciseOptions(
+          id, contract,
+          exerciseAction, exerciseQuantity,
+          account, override);
   LOG_END;
 }
 void LoggingEClientSocket::cancelHistoricalData(TickerId tickerId ) {
   LOG_START
       << __f__(tickerId);
   LOCK
-  EPosixClientSocket::cancelHistoricalData(tickerId);
+      EClientSocketBase::cancelHistoricalData(tickerId);
   LOG_END;
 }
 void LoggingEClientSocket::reqRealTimeBars(TickerId id,
@@ -632,28 +614,28 @@ void LoggingEClientSocket::reqRealTimeBars(TickerId id,
       << __f__(whatToShow)
       << __f__(useRTH);
   LOCK
-  EPosixClientSocket::reqRealTimeBars(id, contract, barSize,
-                                      whatToShow, useRTH);
+      EClientSocketBase::reqRealTimeBars(id, contract, barSize,
+                                         whatToShow, useRTH);
   LOG_END;
 }
 void LoggingEClientSocket::cancelRealTimeBars(TickerId tickerId) {
   LOG_START
       << __f__(tickerId);
   LOCK
-  EPosixClientSocket::cancelRealTimeBars(tickerId);
+      EClientSocketBase::cancelRealTimeBars(tickerId);
   LOG_END;
 }
 void LoggingEClientSocket::cancelScannerSubscription(int tickerId) {
   LOG_START
       << __f__(tickerId);
   LOCK
-  EPosixClientSocket::cancelScannerSubscription(tickerId);
+      EClientSocketBase::cancelScannerSubscription(tickerId);
   LOG_END;
 }
 void LoggingEClientSocket::reqScannerParameters() {
   LOG_START;
   LOCK
-  EPosixClientSocket::reqScannerParameters();
+      EClientSocketBase::reqScannerParameters();
   LOG_END;
 }
 void LoggingEClientSocket::reqScannerSubscription(
@@ -662,13 +644,13 @@ void LoggingEClientSocket::reqScannerSubscription(
       << __f__(tickerId)
       << __f__(&subscription);
   LOCK
-  EPosixClientSocket::reqScannerSubscription(tickerId, subscription);
+      EClientSocketBase::reqScannerSubscription(tickerId, subscription);
   LOG_END;
 }
 void LoggingEClientSocket::reqCurrentTime() {
   LOG_START;
   LOCK
-  EPosixClientSocket::reqCurrentTime();
+      EClientSocketBase::reqCurrentTime();
   LOG_END;
 }
 void LoggingEClientSocket::reqFundamentalData(
@@ -678,14 +660,14 @@ void LoggingEClientSocket::reqFundamentalData(
       << __f__(&contract)
       << __f__(reportType);
   LOCK
-  EPosixClientSocket::reqFundamentalData(reqId, contract, reportType);
+      EClientSocketBase::reqFundamentalData(reqId, contract, reportType);
   LOG_END;
 }
 void LoggingEClientSocket::cancelFundamentalData(TickerId reqId) {
   LOG_START
       << __f__(reqId);
   LOCK
-  EPosixClientSocket::cancelFundamentalData(reqId);
+      EClientSocketBase::cancelFundamentalData(reqId);
   LOG_END;
 }
 void LoggingEClientSocket::calculateImpliedVolatility(
@@ -697,8 +679,8 @@ void LoggingEClientSocket::calculateImpliedVolatility(
       << __f__(optionPrice)
       << __f__(underPrice);
   LOCK
-  EPosixClientSocket::calculateImpliedVolatility(reqId, contract,
-                                                 optionPrice, underPrice);
+      EClientSocketBase::calculateImpliedVolatility(reqId, contract,
+                                                    optionPrice, underPrice);
   LOG_END;
 }
 

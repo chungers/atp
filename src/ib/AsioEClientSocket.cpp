@@ -1,6 +1,4 @@
 
-//#include <stdio.h>
-//#include <sstream>
 #include <glog/logging.h>
 
 #include <boost/bind.hpp>
@@ -20,11 +18,12 @@ using boost::asio::ip::tcp;
 namespace ib {
 namespace internal {
 
+class IBClient;
 
 AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
                                      EWrapper& wrapper,
                                      AsioEClientSocket::EventCallback* cb) :
-    EClientSocketBase(&wrapper),
+    IBClient(&wrapper),
     ioService_(ioService),
     socket_(ioService),
     callback_(cb),
