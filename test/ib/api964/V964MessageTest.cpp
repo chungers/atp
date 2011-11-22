@@ -1,3 +1,4 @@
+#include <vector>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
@@ -27,6 +28,7 @@ using namespace IBAPI;
 using namespace QuantLib;
 using QuantLib::Date;
 using IBAPI::V964::MarketDataRequest;
+using IBAPI::V964::OptionChainRequest;
 
 
 static void print(const FIX::FieldMap& request)
@@ -373,4 +375,77 @@ TEST(V964MessageTest, EClientSocketTest)
   EXPECT_TRUE(th->hasSeenTickerId(tid));
 }
 
+
+TEST(V964MessageTest, EClientSocketOptionChainMktDataRequestTest)
+{
+  boost::asio::io_service ioService;
+
+  ApplicationBase app;
+
+  TestEWrapperEventCollector eventCollector;
+  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
+  TestHarness* th = dynamic_cast<TestHarness*>(ew);
+
+  AsioEClientSocket ec(ioService, *ew);
+
+  LOG(INFO) << "Started " << ioService.run() << std::endl;
+  EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 100));
+
+  bool connected = waitForConnection(ec, 10);
+  EXPECT_TRUE(connected);
+
+  LOG(INFO) << "Option chain request";
+
+  OptionChainRequest request;
+
+  // Using set(X) as the type-safe way (instead of setField())
+  request.set(FIX::Symbol("AAPL"));
+  request.set(FIX::SecurityExchange(IBAPI::SecurityExchange_SMART));
+
+  // Filter for PUT only
+  request.set(FIX::PutOrCall(FIX::PutOrCall_PUT));
+
+  Date today = Date::todaysDate();
+  Date nextFriday = Date::nextWeekday(today, QuantLib::Friday);
+
+  // Filter by expiry
+  IBAPI::V964::FormatExpiry(request, nextFriday);
+  std::string dateString = FormatOptionExpiry(
+      nextFriday.year(), nextFriday.month(), nextFriday.dayOfMonth());
+  LOG(INFO) << "Next Friday = " << nextFriday << ", " << dateString;
+
+  Contract contract;
+  request.marshall(contract);
+
+  LOG(INFO) << "Created contract.";
+
+  EXPECT_EQ("OPT", contract.secType);
+  EXPECT_EQ("AAPL", contract.symbol);
+  EXPECT_EQ("SMART", contract.exchange);
+  EXPECT_EQ("USD", contract.currency);
+  EXPECT_EQ("P", contract.right);
+
+  long requestId = 10000;
+
+  std::vector<Contract> optionChain;
+  th->setOptionChain(&optionChain);
+
+  LOG(INFO) << "Request contract details: " << requestId;
+
+  ec.reqContractDetails(requestId, contract);
+
+  LOG(INFO) << "Waiting for data.";
+  th->waitForFirstOccurrence(CONTRACT_DETAILS_END, MAX_WAIT);
+
+  EXPECT_EQ(th->getCount(CONTRACT_DETAILS_END), 1);
+  EXPECT_TRUE(th->hasSeenTickerId(requestId));
+
+  // Check the option chain
+  EXPECT_GT(optionChain.size(), 0);
+
+  LOG(INFO) << "Got " << optionChain.size() << " contracts.";
+
+  // Disconnect
+  ec.eDisconnect();
+}
 

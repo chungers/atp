@@ -129,7 +129,7 @@ class MarketDataRequest : public V964Message
     MAP_REQUIRED_FIELD(FIX::Symbol, contract.symbol);
 
     REQUIRED_FIELD(FIX::SecurityType, securityType);
-    if (securityType == IBAPI::SecurityType_OPTION) {
+    if (securityType == FIX::SecurityType_OPTION) {
 
       MAP_REQUIRED_FIELD(FIX::StrikePrice, contract.strike);
 
@@ -153,7 +153,7 @@ class MarketDataRequest : public V964Message
       // Type conversion from FIX INT to string
       contract.multiplier = multiplier.getString();
 
-    } else if (securityType == IBAPI::SecurityType_COMMON_STOCK) {
+    } else if (securityType == FIX::SecurityType_COMMON_STOCK) {
       contract.secType= "STK";
     }
 
@@ -183,9 +183,79 @@ class MarketDataRequest : public V964Message
     return true;
   }
 };
-
 const std::string& MarketDataRequest::MESSAGE_TYPE = "MarketDataRequest";
 
+
+class OptionChainRequest : public V964Message
+{
+ public:
+
+  static const std::string& MESSAGE_TYPE;
+
+  OptionChainRequest() : V964Message(MESSAGE_TYPE)
+  {
+  }
+
+  OptionChainRequest(const IBAPI::Message& copy) : V964Message(copy)
+  {
+  }
+
+  ~OptionChainRequest()
+  {
+  }
+
+  FIELD_SET(*this, FIX::Symbol);
+  FIELD_SET(*this, FIX::SecurityExchange);
+
+  // If specified, filter by side
+  FIELD_SET(*this, FIX::PutOrCall);
+  FIELD_SET(*this, FIX::Currency);
+
+  // If specified, filter all contracts by expiry
+  FIELD_SET(*this, FIX::MaturityMonthYear);
+  FIELD_SET(*this, FIX::MaturityDay);
+
+
+  void marshall(Contract& contract)
+  {
+    MAP_REQUIRED_FIELD(FIX::Symbol, contract.symbol);
+
+    contract.secType = "OPT";
+
+    OPTIONAL_FIELD_DEFAULT(FIX::PutOrCall, putOrCall, -1);
+    switch (putOrCall) {
+      case FIX::PutOrCall_PUT:
+        contract.right = "P";
+        break;
+      case FIX::PutOrCall_CALL:
+        contract.right = "C";
+        break;
+    }
+
+    OPTIONAL_FIELD(FIX::MaturityMonthYear, expiryMonthYear);
+    OPTIONAL_FIELD(FIX::MaturityDay, expiryDay);
+
+    if (expiryMonthYear.getLength() > 0 && expiryDay.getLength() > 0) {
+      contract.expiry = expiryMonthYear.getString() + expiryDay.getString();
+    }
+
+    MAP_OPTIONAL_FIELD_DEFAULT(FIX::SecurityExchange, contract.exchange, SMART);
+    MAP_OPTIONAL_FIELD_DEFAULT(FIX::Currency, contract.currency, USD);
+  }
+
+  bool callApi(EClientPtr eclient)
+  {
+    Contract contract;
+    try {
+      marshall(contract);
+    } catch (FIX::FieldNotFound e) {
+      return false;
+    }
+
+    return true;
+  }
+};
+const std::string& OptionChainRequest::MESSAGE_TYPE = "OptionChainRequest";
 
 
 
