@@ -78,14 +78,13 @@ struct EchoStrategy : Reactor::Strategy
       // Now send everything back:
       MessageFrames f = message.begin();
       size_t frames = message.size();
-      for (; f != message.end(); ++f, --seq) {
-        bool more = true; //seq != 0;
+      for (; f != message.end(); ++f) {
+        bool more = --seq > 0;
         LOG(INFO)
             << "Reply[" << (frames-seq) << "]:" << *f << " more = " << more;
         size_t sent = atp::zmq::send_copy(socket , *f, more);
         LOG(INFO) << " size=" << sent << std::endl;
       }
-      atp::zmq::send_copy(socket ,"", false);
 
       status = true;
     } catch (zmq::error_t e) {
