@@ -47,7 +47,8 @@ struct PrintContract
   friend std::ostream& operator<<(std::ostream& os, const PrintContract& c)
   {
     os << "Contract["
-       << "symbol=" << c.c_.summary.symbol
+       << "conId=" << c.c_.summary.conId
+       << ",symbol=" << c.c_.summary.symbol
        << ",localSymbol=" << c.c_.summary.localSymbol
        << ",secType=" << c.c_.summary.secType
        << ",strike=" << c.c_.summary.strike

@@ -1,3 +1,4 @@
+#include <sstream>
 #include <vector>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
@@ -11,6 +12,7 @@
 #include "utils.hpp"
 #include "common.hpp"
 
+#include "ib/internal.hpp"
 #include "ib/ApiMessageBase.hpp"
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
@@ -275,7 +277,7 @@ TEST(V964MessageTest, ZmqSendTest)
 const int MAX_WAIT = 20;
 
 // Spin around until connection is made.
-bool waitForConnection(AsioEClientSocket& ec, int attempts) {
+bool waitForConnection(ib::internal::IBClient& ec, int attempts) {
   int tries = 0;
   for (int tries = 0; !ec.isConnected() && tries < attempts; ++tries) {
     LOG(INFO) << "Waiting for connection setup." << std::endl;
@@ -386,12 +388,13 @@ TEST(V964MessageTest, EClientSocketOptionChainMktDataRequestTest)
   EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
-  AsioEClientSocket ec(ioService, *ew);
+  boost::shared_ptr<ib::internal::IBClient> client(
+      new AsioEClientSocket(ioService, *ew));
 
   LOG(INFO) << "Started " << ioService.run() << std::endl;
-  EXPECT_TRUE(ec.eConnect("127.0.0.1", 4001, 100));
+  EXPECT_TRUE(client->eConnect("127.0.0.1", 4001, 100));
 
-  bool connected = waitForConnection(ec, 10);
+  bool connected = waitForConnection(*client, 10);
   EXPECT_TRUE(connected);
 
   LOG(INFO) << "Option chain request";
@@ -432,7 +435,7 @@ TEST(V964MessageTest, EClientSocketOptionChainMktDataRequestTest)
 
   LOG(INFO) << "Request contract details: " << requestId;
 
-  ec.reqContractDetails(requestId, contract);
+  client->reqContractDetails(requestId, contract);
 
   LOG(INFO) << "Waiting for data.";
   th->waitForFirstOccurrence(CONTRACT_DETAILS_END, MAX_WAIT);
@@ -445,7 +448,48 @@ TEST(V964MessageTest, EClientSocketOptionChainMktDataRequestTest)
 
   LOG(INFO) << "Got " << optionChain.size() << " contracts.";
 
+  // Get one of the contracts
+  Contract c = optionChain[optionChain.size() / 2];
+
+  // We already filtered by expiry...
+  MarketDataRequest mdr;
+
+  std::ostringstream tickerId;
+  tickerId << c.conId;
+
+  float multiplier = -1;
+  std::istringstream iss(c.multiplier);
+  iss >> multiplier;
+
+  // Using set(X) as the type-safe way (instead of setField())
+  mdr.set(FIX::Symbol(c.symbol));
+  mdr.set(FIX::SecurityType(FIX::SecurityType_OPTION));
+  mdr.set(FIX::PutOrCall(FIX::PutOrCall_PUT));
+  mdr.set(FIX::SecurityExchange(c.exchange));
+  mdr.set(FIX::ContractMultiplier(multiplier));
+  mdr.set(FIX::StrikePrice(c.strike));
+  mdr.set(FIX::MDEntryRefID(tickerId.str()));
+  mdr.set(FIX::DerivativeSecurityID(c.localSymbol));
+  mdr.set(FIX::Currency(c.currency));
+  IBAPI::V964::FormatExpiry(mdr, nextFriday);
+
+  print(mdr);
+
+  // reset the counters
+  th->resetCounters();
+
+  // Now make request.
+  bool called = mdr.callApi(client);
+  EXPECT_TRUE(called);
+
+  th->waitForFirstOccurrence(TICK_PRICE, MAX_WAIT);
+  th->waitForFirstOccurrence(TICK_SIZE, MAX_WAIT);
+
+  EXPECT_GE(th->getCount(TICK_PRICE), 1);
+  EXPECT_GE(th->getCount(TICK_SIZE), 1);
+  EXPECT_TRUE(th->hasSeenTickerId(c.conId));
+
   // Disconnect
-  ec.eDisconnect();
+  client->eDisconnect();
 }
 

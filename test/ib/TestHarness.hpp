@@ -29,6 +29,10 @@ class TestHarnessBase
     }
   }
 
+  void resetCounters() {
+    eventCount_.clear();
+  }
+
   bool waitForNOccurrences(T event, int N, int secondsTimeout) {
     for (int seconds = 0;
          seconds < secondsTimeout && getCount(event) < N;

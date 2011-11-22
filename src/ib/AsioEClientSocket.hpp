@@ -6,9 +6,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
 
-// All versioned implementation must provide the ApiImpl.hpp.
-#include "EClient.hpp"
-
+#include "ib/internal.hpp"
 
 class EWrapper;
 

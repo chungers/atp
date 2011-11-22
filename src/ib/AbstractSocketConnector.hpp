@@ -241,6 +241,7 @@ class AbstractSocketConnector :
   int timeoutSeconds_;
   boost::asio::io_service ioService_; // Dedicated per connector
   boost::shared_ptr<AsioEClientSocket> socket_;
+
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
 

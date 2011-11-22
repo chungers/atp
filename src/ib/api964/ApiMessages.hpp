@@ -6,10 +6,12 @@
 #include <glog/logging.h>
 
 #include <quickfix/FieldConvertors.h>
+#include <quickfix/FieldNumbers.h>
 #include <ql/quantlib.hpp>
 
-#include "Shared/Contract.h"
-#include "Shared/EClient.h"
+#include <Shared/Contract.h>
+#include "ib/internal.hpp"
+//#include "Shared/EClient.h"
 #include "ib/IBAPIValues.hpp"
 #include "ib/ApiMessageBase.hpp"
 
@@ -180,6 +182,12 @@ class MarketDataRequest : public V964Message
       return false;
     }
 
+    long tickerId = 1000;
+    if (isSetField(FIX::FIELD::MDEntryRefID)) {
+      // value is contract.conId
+      tickerId = contract.conId;
+    }
+    eclient->reqMktData(tickerId, contract, "", false);
     return true;
   }
 };
