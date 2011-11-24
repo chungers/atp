@@ -17,7 +17,7 @@
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/TestHarness.hpp"
-#include "ib/ticker_id.hpp"
+#include "ib/TickerMap.hpp"
 #include "ib/api964/ApiMessages.hpp"
 #include "zmq/Reactor.hpp"
 
@@ -451,6 +451,14 @@ TEST(V964MessageTest, EClientSocketOptionChainMktDataRequestTest)
   // Get one of the contracts
   Contract c = optionChain[optionChain.size() / 2];
 
+  TickerMap tm;
+  long id1 = tm.registerContract(c);
+  EXPECT_EQ(c.conId, id1);
+
+  std::string s1;
+  bool ok = tm.getSubscriptionKeyFromId(id1, &s1);
+  EXPECT_TRUE(ok);
+
   // We already filtered by expiry...
   MarketDataRequest mdr;
 
@@ -474,6 +482,24 @@ TEST(V964MessageTest, EClientSocketOptionChainMktDataRequestTest)
   IBAPI::V964::FormatExpiry(mdr, nextFriday);
 
   print(mdr);
+
+  TickerMap tm2;
+  Contract cc;
+  mdr.marshall(cc);
+  long id2 = tm2.registerContract(cc);
+  EXPECT_EQ(cc.conId, id2);
+
+  std::string s2;
+  bool ok2 = tm2.getSubscriptionKeyFromId(id2, &s2);
+  EXPECT_TRUE(ok2);
+
+  EXPECT_EQ(id1, id2);
+  EXPECT_EQ(s1, s2);
+  EXPECT_EQ(cc.conId, c.conId);
+  EXPECT_EQ(cc.conId, id2);
+
+  LOG(INFO) << "subscription symbol1 " << s1;
+  LOG(INFO) << "subscription symbol2 " << s2;
 
   // reset the counters
   th->resetCounters();

@@ -11,9 +11,9 @@
 
 #include <Shared/Contract.h>
 #include "ib/internal.hpp"
-//#include "Shared/EClient.h"
 #include "ib/IBAPIValues.hpp"
 #include "ib/ApiMessageBase.hpp"
+#include "ib/TickerMap.hpp"
 
 
 using ib::internal::EClientPtr;
@@ -182,13 +182,14 @@ class MarketDataRequest : public V964Message
       return false;
     }
 
-    long tickerId = 1000;
-    if (isSetField(FIX::FIELD::MDEntryRefID)) {
-      // value is contract.conId
-      tickerId = contract.conId;
+    ib::internal::TickerMap tm;
+    long tickerId = tm.registerContract(contract);
+
+    if (tickerId > 0) {
+      eclient->reqMktData(tickerId, contract, "", false);
+      return true;
     }
-    eclient->reqMktData(tickerId, contract, "", false);
-    return true;
+    return false;
   }
 };
 const std::string& MarketDataRequest::MESSAGE_TYPE = "MarketDataRequest";

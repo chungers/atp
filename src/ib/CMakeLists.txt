@@ -23,6 +23,7 @@ set(IBAPIConnector_srcs
   AsioEClientSocket.cpp
   SocketConnector.cpp
   SocketInitiator.cpp
+  TickerMap.cpp
   ticker_id.cpp
 )
 set(IBAPIConnector_libs
