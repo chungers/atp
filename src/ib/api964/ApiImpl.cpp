@@ -14,8 +14,8 @@
 #define LOG_EVENT                                       \
   EWRAPPER_LOGGER                                       \
   << "cid=" << connection_id_                           \
-  << ",ts_utc=" << utc_micros().total_microseconds()    \
-  << ",ts=" << now_micros()                             \
+  << ",ts_utc=" << setUtcMicros(utc_micros().total_microseconds())      \
+  << ",ts=" << setMicros(now_micros())                                  \
   << ",event=" << __func__                              \
 
 // Macro for tick type enum to string conversion
@@ -24,7 +24,7 @@
 namespace ib {
 namespace internal {
 
-LoggingEWrapper::LoggingEWrapper() {
+LoggingEWrapper::LoggingEWrapper() : TimeTracking() {
 }
 
 LoggingEWrapper::~LoggingEWrapper() {

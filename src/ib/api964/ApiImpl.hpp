@@ -34,7 +34,7 @@ namespace ib {
 namespace internal {
 
 
-class LoggingEWrapper : public EWrapper {
+class LoggingEWrapper : public TimeTracking, public EWrapper {
 
  public:
 

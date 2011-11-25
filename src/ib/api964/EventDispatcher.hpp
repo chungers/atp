@@ -124,14 +124,14 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
                  int canAutoExecute)
   {
     LoggingEWrapper::tickPrice(tickerId, field, price, canAutoExecute);
-    publish<double>(tickerId, field, price);
+    publish<double>(tickerId, field, price, *this);
   }
 
   /// @overload EWrapper
   void tickSize(TickerId tickerId, TickType field, int size)
   {
     LoggingEWrapper::tickSize(tickerId, field, size);
-    publish<int>(tickerId, field, size);
+    publish<int>(tickerId, field, size, *this);
   }
 
   /// @overload EWrapper
@@ -152,7 +152,7 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
    void tickGeneric(TickerId tickerId, TickType tickType, double value)
   {
     LoggingEWrapper::tickGeneric(tickerId, tickType, value);
-    publish<double>(tickerId, tickType, value);
+    publish<double>(tickerId, tickType, value, *this);
   }
 
   /// @overload EWrapper
@@ -160,7 +160,7 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
                    const IBString& value)
   {
     LoggingEWrapper::tickString(tickerId, tickType, value);
-    publish<std::string>(tickerId, tickType, value);
+    publish<std::string>(tickerId, tickType, value, *this);
   }
 
   /// @overload EWrapper

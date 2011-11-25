@@ -20,7 +20,7 @@
 #include "ib/tick_types.hpp"
 #include "zmq/ZmqUtils.hpp"
 
-
+DEFINE_bool(delay, true, "True to delay samples according to data when publishing.");
 DEFINE_string(logfile, "logfile", "The name of the log file.");
 DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
 DEFINE_bool(publish, false, "True to publish to endpoint.");
@@ -348,7 +348,7 @@ int main(int argc, char** argv)
           if (FLAGS_publish) {
 
             boost::int64_t dt = event.ts - last_ts;
-            if (last_ts > 0 && dt > 0) {
+            if (last_ts > 0 && dt > 0 && FLAGS_delay) {
               // wait dt micros
               usleep(dt);
             }
@@ -357,7 +357,8 @@ int main(int argc, char** argv)
             LOG_READER_DEBUG << "topic = " << event.symbol;
 
             std::ostringstream ss;
-            ss << event.event << '=' << event.value;
+            ss.imbue(std::locale(std::cout.getloc(), &facet));
+            ss << t << ',' << event.event << '=' << event.value;
             atp::zmq::send_copy(*socket, ss.str(), false);
 
             LOG_READER_DEBUG << "event = " << ss.str();

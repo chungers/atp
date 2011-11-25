@@ -2,6 +2,7 @@
 #define IB_INTERNAL_EVENT_DISPATCHER_BASE_
 
 #include <sstream>
+#include "common.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/TickerMap.hpp"
 #include "ib/tick_types.hpp"
@@ -29,14 +30,16 @@ class EventDispatcherBase
   }
 
   template <typename T>
-  void publish(TickerId tickerId, TickType tickType, const T& value)
+  void publish(TickerId tickerId, TickType tickType, const T& value,
+               TimeTracking& timed)
   {
     std::string tick = TickTypeNames[tickType];
     std::string topic;
 
     if (tickerMap_.getSubscriptionKeyFromId(tickerId, &topic)) {
       std::ostringstream ss;
-      ss << tick << '=' << value;
+      timed.formatTime(&ss);
+      ss << timed.getUtcMicros() << ',' << tick << '=' << value;
       zmq::socket_t* out = getOutboundSocket(0);
       atp::zmq::send_copy(*out, topic, true);
       atp::zmq::send_copy(*out, ss.str(), false);
