@@ -17,9 +17,13 @@
 
 #include "log_levels.h"
 #include "ib/ticker_id.hpp"
+#include "ib/tick_types.hpp"
+#include "zmq/ZmqUtils.hpp"
 
 
 DEFINE_string(logfile, "logfile", "The name of the log file.");
+DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
+DEFINE_bool(publish, false, "True to publish to endpoint.");
 
 namespace atp {
 namespace utils {
@@ -164,6 +168,7 @@ static bool MapActions(std::map<std::string, std::string>& nv)
   if (!GetField(nv, "contract", &contractString)) {
     // Use the computed symbol/id rule:
     ib::internal::SymbolFromTickerId(tickerId, &symbol);
+
   } else {
     // Build a symbol string from the contract spec.
     // This is a ; separate list of name:value pairs.
@@ -171,15 +176,16 @@ static bool MapActions(std::map<std::string, std::string>& nv)
     if (ParseMap(contractString, nv, ':', ";")) {
       // Build the symbol string here.
       std::ostringstream s;
+      s << nv["symbol"] << '.' << nv["secType"] << '.';
+
       if (nv["secType"] != "STK") {
-        s << nv["symbol"] << "."
-          << nv["strike"]
-          << nv["right"] << "."
+        s << nv["strike"]
+          << nv["right"]
+          << '.'
           << nv["expiry"];
-        symbol = s.str();
-      } else {
-        symbol = nv["symbol"];
       }
+      symbol = s.str();
+
     } else {
       LOG(FATAL) << "Failed to parse contract spec: " << contractString;
     }
@@ -302,10 +308,24 @@ int main(int argc, char** argv)
 
   std::cout.imbue(std::locale(std::cout.getloc(), &facet));
 
+  zmq::context_t* context = NULL;
+  zmq::socket_t* socket = NULL;
+  if (!FLAGS_publish) {
+    std::cout << "\"timestamp_utc\",\"symbol\",\"event\",\"value\""
+              << std::endl;
+  } else {
+    context = new zmq::context_t(1);
+    socket = new zmq::socket_t(*context, ZMQ_PUSH);
+    socket->connect(FLAGS_endpoint.c_str());
+
+    LOG(INFO) << "Pushing events to " << FLAGS_endpoint;
+  }
+
   boost::posix_time::ptime epoch(
       boost::gregorian::date(1970,boost::gregorian::Jan,1));
 
-  std::cout << "\"timestamp_utc\",\"symbol\",\"event\",\"value\"" << std::endl;
+
+  boost::int64_t last_ts = 0;
 
   // The lines are space separated, so we need to skip whitespaces.
   while (infile >> std::skipws >> line) {
@@ -325,10 +345,32 @@ int main(int argc, char** argv)
 
           t += micros;
 
-          std::cout << t << ","
-                    << event.symbol << ","
-                    << event.event << ","
-                    << event.value << std::endl;
+          if (FLAGS_publish) {
+
+            boost::int64_t dt = event.ts - last_ts;
+            if (last_ts > 0 && dt > 0) {
+              // wait dt micros
+              usleep(dt);
+            }
+            atp::zmq::send_copy(*socket, event.symbol, true);
+
+            LOG_READER_DEBUG << "topic = " << event.symbol;
+
+            std::ostringstream ss;
+            ss << event.event << '=' << event.value;
+            atp::zmq::send_copy(*socket, ss.str(), false);
+
+            LOG_READER_DEBUG << "event = " << ss.str();
+
+            last_ts = event.ts;
+
+          } else {
+
+            std::cout << t << ","
+                      << event.symbol << ","
+                      << event.event << ","
+                      << event.value << std::endl;
+          }
 
           matchedRecords++;
 
@@ -345,6 +387,11 @@ int main(int argc, char** argv)
   LOG_READER_LOGGER << "Finishing up -- closing file." << std::endl;
   infile.close();
   infile.clear();
+
+  if (FLAGS_publish) {
+    delete socket;
+    delete context;
+  }
   LOG_READER_LOGGER << "Completed." << std::endl;
   return 0;
 }

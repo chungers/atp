@@ -110,20 +110,100 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
     LOG(INFO) << "Connection confirmed wth next order id = "
               << orderId;
     app_.onLogon(clientId_);
-    //IBAPI::NextOrderIdMessage m(orderId);
-    //app_.fromAdmin(m, get_connection_id());
   }
 
   /// @overload EWrapper
   void currentTime(long time)
   {
     LoggingEWrapper::currentTime(time);
-
-    //IBAPI::HeartBeatMessage m;
-    //m.currentTime = time;
-    //app_.fromAdmin(m, get_connection_id());
+    // TODO send some application admin message??
   }
 
+  /// @overload EWrapper
+  void tickPrice(TickerId tickerId, TickType field, double price,
+                 int canAutoExecute)
+  {
+    LoggingEWrapper::tickPrice(tickerId, field, price, canAutoExecute);
+    publish<double>(tickerId, field, price);
+  }
+
+  /// @overload EWrapper
+  void tickSize(TickerId tickerId, TickType field, int size)
+  {
+    LoggingEWrapper::tickSize(tickerId, field, size);
+    publish<int>(tickerId, field, size);
+  }
+
+  /// @overload EWrapper
+  void tickOptionComputation(TickerId tickerId, TickType tickType,
+                             double impliedVol, double delta,
+                             double optPrice, double pvDividend,
+                             double gamma, double vega, double theta,
+                             double undPrice)
+  {
+    LoggingEWrapper::tickOptionComputation(tickerId, tickType,
+                                           impliedVol, delta,
+                                           optPrice, pvDividend,
+                                           gamma, vega, theta,
+                                           undPrice);
+  }
+
+  /// @overload EWrapper
+   void tickGeneric(TickerId tickerId, TickType tickType, double value)
+  {
+    LoggingEWrapper::tickGeneric(tickerId, tickType, value);
+    publish<double>(tickerId, tickType, value);
+  }
+
+  /// @overload EWrapper
+   void tickString(TickerId tickerId, TickType tickType,
+                   const IBString& value)
+  {
+    LoggingEWrapper::tickString(tickerId, tickType, value);
+    publish<std::string>(tickerId, tickType, value);
+  }
+
+  /// @overload EWrapper
+  void tickSnapshotEnd(int reqId)
+  {
+    LoggingEWrapper::tickSnapshotEnd(reqId);
+  }
+
+  /// @overload EWrapper
+  void updateMktDepth(TickerId id, int position, int operation, int side,
+                      double price, int size)
+  {
+    LoggingEWrapper::updateMktDepth(id, position, operation, side,
+                                    price, size);
+  }
+
+  /// @overload EWrapper
+  void updateMktDepthL2(TickerId id, int position,
+                        IBString marketMaker, int operation,
+                        int side, double price, int size)
+  {
+    LoggingEWrapper::updateMktDepthL2(id, position, marketMaker, operation,
+                                      side, price, size);
+  }
+
+  /// @overload EWrapper
+  void realtimeBar(TickerId reqId, long time,
+                   double open, double high, double low, double close,
+                   long volume, double wap, int count)
+  {
+    LoggingEWrapper::realtimeBar(reqId, time, open, high, low, close,
+                                 volume, wap, count);
+  }
+
+  /// @overload EWrapper
+    void historicalData(TickerId reqId, const IBString& date,
+                        double open, double high,
+                        double low, double close, int volume,
+                        int barCount, double WAP, int hasGaps)
+  {
+    LoggingEWrapper::historicalData(reqId, date, open, high, low, close,
+                                    volume, barCount, WAP, hasGaps);
+  }
 
 };
 

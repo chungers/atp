@@ -104,10 +104,12 @@ void Publisher::process()
         inbound.recv(&message);
         inbound.getsockopt( ZMQ_RCVMORE, &more, &more_size);
 
-        ZMQ_PUBLISHER_LOGGER << "Published " << message.size() << " bytes: "
-                             << static_cast<char*>(message.data());
-
         publish.send(message, more? ZMQ_SNDMORE: 0);
+
+        ZMQ_PUBLISHER_LOGGER
+            << "Publish: "
+            << std::string(static_cast<char*>(message.data()), message.size())
+            << ", size=" << message.size();
 
       } catch (::zmq::error_t e) {
         ZMQ_PUBLISHER_LOGGER << "Stopping on exception: " << e.what();

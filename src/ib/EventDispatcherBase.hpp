@@ -1,8 +1,11 @@
 #ifndef IB_INTERNAL_EVENT_DISPATCHER_BASE_
 #define IB_INTERNAL_EVENT_DISPATCHER_BASE_
 
+#include <sstream>
 #include "ib/EWrapperFactory.hpp"
-
+#include "ib/TickerMap.hpp"
+#include "ib/tick_types.hpp"
+#include "zmq/ZmqUtils.hpp"
 
 namespace ib {
 namespace internal {
@@ -25,8 +28,29 @@ class EventDispatcherBase
     return eventCollector_.getOutboundSocket(channel);
   }
 
+  template <typename T>
+  void publish(TickerId tickerId, TickType tickType, const T& value)
+  {
+    std::string tick = TickTypeNames[tickType];
+    std::string topic;
+
+    if (tickerMap_.getSubscriptionKeyFromId(tickerId, &topic)) {
+      std::ostringstream ss;
+      ss << tick << '=' << value;
+      zmq::socket_t* out = getOutboundSocket(0);
+      atp::zmq::send_copy(*out, topic, true);
+      atp::zmq::send_copy(*out, ss.str(), false);
+    } else {
+      LOG(ERROR) << "Cannot get subscription key / topic for " << tickerId
+                 << ", event = " << tickType << ", value " << value;
+    }
+  }
+
+
+
  private:
   EWrapperEventCollector& eventCollector_;
+  TickerMap tickerMap_;
 };
 
 

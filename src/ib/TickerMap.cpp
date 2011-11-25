@@ -31,6 +31,7 @@ ContractPtr clone_contract(const Contract& contract)
   c->strike = contract.strike;
   c->right = contract.right;
   c->exchange = contract.exchange;
+  c->primaryExchange = contract.primaryExchange;
   c->includeExpired = contract.includeExpired;
   c->expiry = contract.expiry;
   c->multiplier = contract.multiplier;
@@ -40,13 +41,13 @@ ContractPtr clone_contract(const Contract& contract)
 
 bool symbol_from_contract(const Contract& contract, std::string* output)
 {
-  if (contract.secType == "STK") {
-    *output = contract.symbol;
-    return true;
-  } else {
-    std::ostringstream ss;
-    ss << contract.symbol << '.'
-       << contract.strike << contract.right << '.'
+  std::ostringstream ss;
+  ss << contract.symbol << '.' << contract.secType << '.';
+
+  if (contract.secType != "STK") {
+    ss << contract.strike
+       << contract.right
+       << '.'
        << contract.expiry;
     *output = ss.str();
     return true;
