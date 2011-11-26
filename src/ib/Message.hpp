@@ -30,6 +30,20 @@ class Header : public FIX::FieldMap {
   {
   }
 
+  friend std::ostream& operator<<(std::ostream& os, const Header& m)
+  {
+    FIX::FieldMap::iterator itr = m.begin();
+    os << "HEADER{";
+    for (int i = 0; itr != m.end(); ++itr, ++i) {
+      if (i > 0) {
+        os << ",";
+      }
+      os << itr->second.getValue();
+    }
+    os << "}";
+    return os;
+  }
+
   FIELD_SET(*this, FIX::MsgType);
   FIELD_SET(*this, FIX::BeginString);
   FIELD_SET(*this, FIX::SendingTime);
@@ -46,6 +60,20 @@ class Trailer : public FIX::FieldMap {
 
   Trailer(const Trailer& copy) : FIX::FieldMap(copy)
   {
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const Trailer& m)
+  {
+    FIX::FieldMap::iterator itr = m.begin();
+    os << "TRAILER{";
+    for (int i = 0; itr != m.end(); ++itr, ++i) {
+      if (i > 0) {
+        os << ",";
+      }
+      os << itr->second.getValue();
+    }
+    os << "}";
+    return os;
   }
 
   FIELD_SET(*this, IBAPI::Ext_SendingTimeMicros);
@@ -65,7 +93,6 @@ class Message : public FIX::FieldMap
       FIX::FieldMap(copy),
       header_(copy.header_), trailer_(copy.trailer_)
   {
-
   }
 
   Header& getHeader()
@@ -73,6 +100,23 @@ class Message : public FIX::FieldMap
 
   Trailer& getTrailer()
   { return trailer_; }
+
+
+  friend std::ostream& operator<<(std::ostream& os, const Message& m)
+  {
+    os << m.header_;
+    FIX::FieldMap::iterator itr = m.begin();
+    os << "BODY{";
+    for (int i = 0; itr != m.end(); ++itr, ++i) {
+      if (i > 0) {
+        os << ",";
+      }
+      os << itr->second.getValue();
+    }
+    os << "}";
+    os << m.trailer_;
+    return os;
+  }
 
  protected:
   mutable Header header_;

@@ -51,6 +51,9 @@ class SocketConnector::implementation :
           status = reactorStrategyPtr_->handleInboundMessage(
               inboundMessage, eclient);
           if (!status) {
+            IBAPI_SOCKET_CONNECTOR_LOGGER
+                << "Handle inbound message failed: "
+                << inboundMessage;
             break;
           }
         }

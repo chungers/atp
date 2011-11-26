@@ -483,6 +483,8 @@ TEST(V964MessageTest, EClientSocketOptionChainMktDataRequestTest)
 
   print(mdr);
 
+  LOG(INFO) << "MarketDataRequest = " << mdr;
+
   TickerMap tm2;
   Contract cc;
   mdr.marshall(cc);

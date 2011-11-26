@@ -90,7 +90,6 @@ class ZmqMessage : public ib::internal::ApiMessageBase
 
   virtual bool send(zmq::socket_t& destination)
   { return false; }  // Invalid operation
-
 };
 
 } // namespace internal
