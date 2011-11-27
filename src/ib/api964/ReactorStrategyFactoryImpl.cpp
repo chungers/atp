@@ -12,6 +12,9 @@ using ib::internal::ReactorStrategyFactory;
 
 using IBAPI::V964::MarketDataRequest;
 
+
+
+
 class ReactorStrategyImpl : public ReactorStrategy
 {
   virtual bool handleInboundMessage(Message& message,
@@ -19,7 +22,7 @@ class ReactorStrategyImpl : public ReactorStrategy
   {
     FIX::MsgType msgType;
     message.getHeader().get(msgType);
-    if (msgType.getString() == MarketDataRequest::MESSAGE_TYPE) {
+    if (msgType.getString() == "MarketDataRequest") {
       MarketDataRequest copy(message);
       return copy.callApi(eclient);
     }

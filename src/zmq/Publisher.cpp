@@ -106,10 +106,12 @@ void Publisher::process()
 
         publish.send(message, more? ZMQ_SNDMORE: 0);
 
-        ZMQ_PUBLISHER_LOGGER
-            << "Publish: "
-            << std::string(static_cast<char*>(message.data()), message.size())
-            << ", size=" << message.size();
+        // ZMQ_PUBLISHER_LOGGER
+        //     << "Published: "
+        //     << ((message.size() > 0) ?
+        //     std::string(static_cast<char*>(message.data()), message.size()) :
+        //         static_cast<char*>(message.data()))
+        //     << ", size=" << message.size();
 
       } catch (::zmq::error_t e) {
         ZMQ_PUBLISHER_LOGGER << "Stopping on exception: " << e.what();

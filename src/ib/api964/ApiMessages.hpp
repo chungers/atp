@@ -1,5 +1,5 @@
-#ifndef IBAPI_API_MESSAGES_H_
-#define IBAPI_API_MESSAGES_H_
+#ifndef IBAPI_V964_API_MESSAGES_H_
+#define IBAPI_V964_API_MESSAGES_H_
 
 #include <cstdio>
 #include <boost/format.hpp>
@@ -97,9 +97,7 @@ class MarketDataRequest : public V964Message
 {
  public:
 
-  static const std::string& MESSAGE_TYPE;
-
-  MarketDataRequest() : V964Message(MESSAGE_TYPE)
+  MarketDataRequest() : V964Message("MarketDataRequest")
   {
   }
 
@@ -192,16 +190,13 @@ class MarketDataRequest : public V964Message
     return false;
   }
 };
-const std::string& MarketDataRequest::MESSAGE_TYPE = "MarketDataRequest";
 
 
 class OptionChainRequest : public V964Message
 {
  public:
 
-  static const std::string& MESSAGE_TYPE;
-
-  OptionChainRequest() : V964Message(MESSAGE_TYPE)
+  OptionChainRequest() : V964Message("OptionChainRequest")
   {
   }
 
@@ -264,9 +259,6 @@ class OptionChainRequest : public V964Message
     return true;
   }
 };
-const std::string& OptionChainRequest::MESSAGE_TYPE = "OptionChainRequest";
-
-
 
 
 } // V964
@@ -274,4 +266,4 @@ const std::string& OptionChainRequest::MESSAGE_TYPE = "OptionChainRequest";
 
 
 
-#endif // IBAPI_API_MESSAGES_H_
+#endif // IBAPI_V964_API_MESSAGES_H_

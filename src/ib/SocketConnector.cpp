@@ -103,7 +103,13 @@ int SocketConnector::connect(const string& host,
 bool SocketConnector::stop()
 {
   IBAPI_SOCKET_CONNECTOR_LOGGER << "STOP";
-  return impl_->stop();
+  // By default we don't wait for the reactor to stop.  This is because
+  // reactor will keep running in a loop and to properly stop it, we'd need
+  // a protocol to tell the reactor to exit the running loop.  This isn't
+  // worth the extra complexity.  Instead, just let the code continue to
+  // exit and eventually the zmq context will be destroyed and force the
+  // reactor loop to exit on exception.
+  return impl_->stop(false);
 }
 
 } // namespace IBAPI
