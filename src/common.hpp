@@ -11,7 +11,6 @@
 #include "log_levels.h"
 #include "utils.hpp"
 
-
 typedef boost::noncopyable NoCopyAndAssign;
 
 
@@ -28,8 +27,12 @@ static void ReportError(DieWhenReporting should_die, const char* format, ...) {
     exit(1);   // almost certainly exit()
 }
 
+
+
+
 namespace ib {
 namespace internal {
+
 
 class TimeTracking
 {
@@ -51,7 +54,10 @@ class TimeTracking
 
   void formatTime(std::ostream* outstream)
   {
-    outstream->imbue(std::locale(std::cout.getloc(), &facet_));
+    // dynamically allocate the locale since heap allocated locale will
+    // crash the program in the locale's ~Impl()
+    std::locale* l = new std::locale(std::cout.getloc(), &facet_);
+    outstream->imbue(*l);
   }
 
   boost::uint64_t getMicros()
@@ -79,7 +85,7 @@ class TimeTracking
   boost::uint64_t currentMicros_;
   boost::posix_time::time_facet facet_;
 };
-} // namespace internal
-} // namespace ib
+}
+}
 
 #endif // ATP_COMMON_H_

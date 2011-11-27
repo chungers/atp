@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 
+#include <glog/logging.h>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -42,32 +43,32 @@ ContractPtr clone_contract(const Contract& contract)
 bool symbol_from_contract(const Contract& contract, std::string* output)
 {
   std::ostringstream ss;
-  ss << contract.symbol << '.' << contract.secType << '.';
+  ss << contract.symbol << '.' << contract.secType;
 
   if (contract.secType != "STK") {
-    ss << contract.strike
+    ss << '.'
+       << contract.strike
        << contract.right
        << '.'
        << contract.expiry;
-    *output = ss.str();
-    return true;
   }
-  return false;
+  *output = ss.str();
+  return true;
 }
 
 long TickerMap::registerContract(const Contract& contract)
 {
+  boost::unique_lock<boost::mutex> lock(__ticker_map_mutex);
+
   // Use contract.conId as the key
   long tickerId = contract.conId;
 
+  if (tickerId == 0) {
+      tickerId = TICKER_ID_CONTRACT_MAP.size() + 1;
+  }
+
   if (TICKER_ID_SYMBOL_MAP.find(tickerId) == TICKER_ID_SYMBOL_MAP.end()) {
 
-    boost::unique_lock<boost::mutex> lock(__ticker_map_mutex);
-
-    if (tickerId == 0) {
-      // Need to assign an id.
-      tickerId = TICKER_ID_CONTRACT_MAP.size();
-    }
     ContractPtr clone = clone_contract(contract);
     clone->conId = tickerId;
     std::string symbol;
@@ -76,6 +77,7 @@ long TickerMap::registerContract(const Contract& contract)
       TICKER_ID_CONTRACT_MAP[tickerId] = clone;
     } else {
       // Error
+      LOG(ERROR) << "A ++++++++++++++++";
       tickerId = -1;
     }
   } else {
@@ -84,9 +86,11 @@ long TickerMap::registerContract(const Contract& contract)
     if (symbol_from_contract(contract, &check)) {
       if (TICKER_ID_SYMBOL_MAP[tickerId] != check) {
         tickerId = -1; // Error
+        LOG(ERROR) << "B ++++++++++++++++";
       }
     } else {
       tickerId = -1; // Error
+      LOG(ERROR) << "C ++++++++++++++++";
     }
   }
   return tickerId;

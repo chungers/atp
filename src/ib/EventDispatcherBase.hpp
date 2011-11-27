@@ -38,11 +38,14 @@ class EventDispatcherBase
 
     if (tickerMap_.getSubscriptionKeyFromId(tickerId, &topic)) {
       std::ostringstream ss;
+
       timed.formatTime(&ss);
       ss << timed.getUtcMicros() << ',' << tick << '=' << value;
       zmq::socket_t* out = getOutboundSocket(0);
-      atp::zmq::send_copy(*out, topic, true);
-      atp::zmq::send_copy(*out, ss.str(), false);
+      if (out) {
+        atp::zmq::send_copy(*out, topic, true);
+        atp::zmq::send_copy(*out, ss.str(), false);
+      }
     } else {
       LOG(ERROR) << "Cannot get subscription key / topic for " << tickerId
                  << ", event = " << tickType << ", value " << value;

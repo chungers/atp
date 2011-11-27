@@ -20,7 +20,7 @@
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/TestHarness.hpp"
-#include "ib/ticker_id.hpp"
+#include "ib/TickerMap.hpp"
 
 
 using namespace ib::internal;
@@ -30,6 +30,7 @@ using namespace QuantLib;
 /// How many seconds max to wait for certain data before timing out.
 const int MAX_WAIT = 20;
 
+static TickerMap tickerMap;
 
 static std::string FormatOptionExpiry(int year, int month, int day)
 {
@@ -129,7 +130,9 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
   c.secType = "STK";
   c.exchange = "SMART";
   c.currency = "USD";
-  TickerId tid = SymbolToTickerId("AAPL");
+
+  TickerId tid = tickerMap.registerContract(c);
+  EXPECT_GT(tid, 0);
 
   LOG(INFO) << "Requesting market data for " << c.symbol << " with id = "
             << tid << std::endl;
@@ -147,6 +150,7 @@ TEST(AsioEClientSocketTest, RequestMarketDataTest)
             << std::endl;
 
   bool snapShot = false;
+
   ec.reqMktData(tid, c, genericTickRequest.toString(), snapShot);
 
   // Spin and wait for data.
@@ -190,7 +194,9 @@ TEST(AsioEClientSocketTest, RequestIndexMarketDataTest)
   c.exchange = "CBOE";
   c.primaryExchange = "CBOE";
   c.currency = "USD";
-  TickerId tid = SymbolToTickerId("SPX");
+
+  TickerId tid = tickerMap.registerContract(c);
+  EXPECT_GT(tid, 0);
 
   LOG(INFO) << "Requesting market data for " << c.symbol << " with id = "
             << tid << std::endl;
@@ -249,7 +255,9 @@ TEST(AsioEClientSocketTest, RequestMarketDepthTest)
   c.secType = "STK";
   c.exchange = "SMART";
   c.currency = "USD";
-  TickerId tid = SymbolToTickerId("AAPL");
+
+  TickerId tid = tickerMap.registerContract(c);
+  EXPECT_GT(tid, 0);
 
   LOG(INFO) << "Requesting market depth for " << c.symbol << " with id = "
             << tid << std::endl;
@@ -350,13 +358,15 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
 
   // Iterate through the option chain and make market data request:
   std::vector<int> tids;
-  int tid = 10000;
+
   for (std::vector<Contract>::iterator itr = optionChain.begin();
        itr != optionChain.end();
        ++itr) {
     LOG(INFO) << "Requesting market data for contract / "
               << itr->localSymbol << std::endl;
-    ec.reqMktData(++tid, *itr, genericTickRequest.toString(), false);
+
+    TickerId tid = tickerMap.registerContract(*itr);
+    ec.reqMktData(tid, *itr, genericTickRequest.toString(), false);
     tids.push_back(tid);
   }
 
@@ -394,7 +404,7 @@ TickerId buildContract(Contract& c, const std::string& symbol)
 
   LOG(INFO) << "Requesting market data for " << c.symbol << " with id = "
             << tid << std::endl;
-  return tid;
+  return tickerMap.registerContract(c);
 }
 
 
@@ -438,6 +448,7 @@ TEST(AsioEClientSocketTest, RequestMarketDataLoadTest)
        ++symbol) {
     Contract c;
     TickerId tid = buildContract(c, *symbol);
+    EXPECT_GT(tid, 0);
 
     bool snapShot = false;
     ec.reqMktData(tid, c, genericTickRequest.toString(), snapShot);

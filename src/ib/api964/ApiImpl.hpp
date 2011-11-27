@@ -27,7 +27,6 @@
 
 #include "common.hpp"
 
-
 using namespace std;
 
 namespace ib {
