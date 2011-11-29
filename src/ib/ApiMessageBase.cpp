@@ -86,7 +86,9 @@ bool ApiMessageBase::receive(zmq::socket_t& source)
   while (1) {
     std::string buff;
     bool more = (atp::zmq::receive(source, &buff));
-    API_MESSAGE_BASE_LOGGER << "Received: " << buff << ", " << buff.length() << "/" << buff.size();
+    API_MESSAGE_BASE_LOGGER
+        << "Received: " << buff
+        << ", " << buff.length() << "/" << buff.size();
 
     parseMessageField(buff, *this);
     if (!more) break;

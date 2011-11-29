@@ -123,6 +123,11 @@ TEST(MarketDataTest, RequestMarketDataTest)
   bool sent = mdr->send(rClient);
   EXPECT_TRUE(sent);
 
+  // listen for reply
+  std::string reply;
+  atp::zmq::receive(rClient, &reply);
+  EXPECT_EQ("200", reply);
+
   // Now consumer receives the data:
   int count = 10; // Just 10 price/size ticks
   while (count--) {
@@ -130,7 +135,7 @@ TEST(MarketDataTest, RequestMarketDataTest)
     while (1) {
       std::string buff;
       int more = atp::zmq::receive(consumer, &buff);
-      oss << buff;
+      oss << buff << ' ';
       if (more == 0) break;
     }
     LOG(INFO) << "Subscriber: " << oss.str();

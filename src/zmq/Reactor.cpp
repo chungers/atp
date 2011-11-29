@@ -89,8 +89,8 @@ void Reactor::process()
       // just loop
     }
   } catch (::zmq::error_t e) {
-    LOG(WARNING) << "Exception while processing messages: " << e.what()
-                 << ", stopping.";
+    LOG(ERROR) << "Exception while processing messages: " << e.what()
+               << ", stopping.";
   }
 
   if (localContext) delete context_;

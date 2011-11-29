@@ -44,9 +44,10 @@ class SocketConnector::implementation :
   {
     bool status = false;
     int seq = 0;
-    ib::internal::ZmqMessage inboundMessage;
+
     try {
       while (1) {
+        ib::internal::ZmqMessage inboundMessage;
         if (inboundMessage.receive(socket)) {
           status = reactorStrategyPtr_->handleInboundMessage(
               inboundMessage, eclient);
@@ -55,11 +56,20 @@ class SocketConnector::implementation :
                 << "Handle inbound message failed: "
                 << inboundMessage;
             break;
+          } else {
+            // Send ok reply -- must write something on the ZMQ_REP
+            // socket or an invalid state exception will be thrown by zmq.
+
+            // For simplicity, just use HTTP status codes.
+            atp::zmq::send_copy(socket, "200");
           }
         }
       }
+      // If we broke out to here, an error occurred or handling failed.
+      // HTTP error code - server side error 500.
+      atp::zmq::send_copy(socket, "500");
     } catch (zmq::error_t e) {
-      LOG(WARNING) << "Got exception: " << e.what() << std::endl;
+      LOG(ERROR) << "Got exception: " << e.what() << std::endl;
       status = false;
     }
     return status;
