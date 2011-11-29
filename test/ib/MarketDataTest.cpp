@@ -129,7 +129,7 @@ TEST(MarketDataTest, RequestMarketDataTest)
   EXPECT_EQ("200", reply);
 
   // Now consumer receives the data:
-  int count = 10; // Just 10 price/size ticks
+  int count = 50; // Just 10 price/size ticks
   while (count--) {
     std::ostringstream oss;
     while (1) {
