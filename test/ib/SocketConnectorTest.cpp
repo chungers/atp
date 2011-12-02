@@ -85,16 +85,17 @@ using ib::internal::EWrapperFactory;
 class TestSocketConnector : public ib::internal::AbstractSocketConnector
 {
  public:
-  TestSocketConnector(const string& responderAddress,
-                      const string& outboundAddr,
+  TestSocketConnector(const SocketConnector::ZmqAddress& responderAddress,
+                      const SocketConnector::ZmqAddressMap& outboundChannels,
                       Application& app, int timeout,
-                      zmq::context_t* context = NULL) :
-      AbstractSocketConnector(responderAddress, outboundAddr, app, timeout,
-                              context)
+                      zmq::context_t* inboundContext = NULL,
+                      zmq::context_t* outboundContext = NULL) :
+      AbstractSocketConnector(responderAddress, outboundChannels, app, timeout,
+                              inboundContext, outboundContext)
   {
-    LOG(INFO) << "TestConnector initialized, context = " << context;
-    LOG(INFO) << "Inbound @ " << responderAddress;
-    LOG(INFO) << "Outbound @ " << outboundAddr;
+    LOG(INFO) << "TestConnector initialized.";
+    LOG(INFO) << "Inbound @ " << responderAddress
+              << ", context = " << inboundContext;
   }
 
  protected:
@@ -145,7 +146,10 @@ TEST(SocketConnectorTest, AbstractSocketConnectorConnectionTest)
       "ipc://_zmq.AbstractSocketConnectorConnectionTest.in";
   const string& outboundAddr ="tcp://127.0.0.1:5555";
 
-  TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10);
+  SocketConnector::ZmqAddressMap outboundChannels;
+  outboundChannels[0] = outboundAddr;
+
+  TestSocketConnector socketConnector(bindAddr, outboundChannels, app, 10);
 
   int clientId = 14567;
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,
@@ -182,13 +186,15 @@ TEST(SocketConnectorTest, SendMessageTest)
   // connecting to a hub over tcp.
   const string& outboundAddr =
       "ipc://_zmq.AbstractSocketConnectorTest.out";
+  SocketConnector::ZmqAddressMap outboundChannels;
+  outboundChannels[0] = outboundAddr;
 
-  zmq::context_t context(1);
-  TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10);
+  TestSocketConnector socketConnector(bindAddr, outboundChannels, app, 10);
 
   LOG(INFO) << "Starting client."  << std::endl;
 
   // Client
+  zmq::context_t context(1);
   zmq::socket_t client(context, ZMQ_REQ);
   client.connect(bindAddr.c_str());
 
@@ -236,6 +242,8 @@ TEST(SocketConnectorTest, SharedContextTest)
   // a domain socket file for IPC.  See above test case for actually
   // connecting to a hub over tcp.
   const string& outboundAddr = "inproc://SharedContextTest";
+  SocketConnector::ZmqAddressMap outboundChannels;
+  outboundChannels[0] = outboundAddr;
 
   zmq::context_t sharedContext(1);
   LOG(INFO) << "Context = " << &sharedContext;
@@ -246,8 +254,8 @@ TEST(SocketConnectorTest, SharedContextTest)
                                 &sharedContext);
 
   // Connector's outbound address is the publisher's inbound address.
-  TestSocketConnector socketConnector(bindAddr, outboundAddr, app, 10,
-                                      &sharedContext);
+  TestSocketConnector socketConnector(bindAddr, outboundChannels, app, 10,
+                                      &sharedContext, &sharedContext);
 
   LOG(INFO) << "Starting client with context " << &sharedContext;
   // Client

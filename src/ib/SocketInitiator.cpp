@@ -2,6 +2,8 @@
 #include <map>
 #include <list>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <Shared/EWrapper.h>
 
 #include "common.hpp"
@@ -13,6 +15,16 @@
 
 using ib::internal::EWrapperFactory;
 
+namespace ib {
+namespace internal {
+
+static bool isInProc(const std::string& address)
+{
+  return boost::starts_with(address, "inproc://");
+}
+
+} // namespace internal
+} // namespace ib
 namespace IBAPI {
 
 class SocketInitiatorImpl : public SocketInitiator {
@@ -20,19 +32,28 @@ class SocketInitiatorImpl : public SocketInitiator {
  public :
   SocketInitiatorImpl(Application& app,
                       std::list<SessionSetting>& settings,
-                      SocketConnector::Strategy& strategy,
-                      zmq::context_t* context = NULL) :
+                      SocketConnector::Strategy& strategy) :
       application_(app),
       sessionSettings_(settings),
-      strategy_(strategy),
-      contextPtr_(context)
+      strategy_(strategy)
   { }
 
   ~SocketInitiatorImpl() {}
 
+  /// Starts publisher at the given zmq address.
+  void startPublisher(const std::string& address)
+      throw ( ConfigError, RuntimeError)
+  {
+
+  }
+
   /// @overload Initiator
   void start() throw ( ConfigError, RuntimeError )
   {
+    const std::string& connectorOutboundAddr = "inproc://connectors";
+    SocketConnector::ZmqAddressMap outboundChannels;
+    outboundChannels[0] = connectorOutboundAddr;
+
     // Start up the socket connectors one by one.
     std::list<SessionSetting>::iterator itr;
     for (itr = sessionSettings_.begin();
@@ -48,8 +69,10 @@ class SocketInitiatorImpl : public SocketInitiator {
       boost::shared_ptr<SocketConnector> s =
           boost::shared_ptr<SocketConnector>(
               new SocketConnector(itr->getZmqInboundAddr(),
-                                  itr->getZmqOutboundAddr(),
-                                  application_, sessionId, contextPtr_));
+                                  outboundChannels,
+                                  application_, sessionId,
+                                  inboundContextPtr_,
+                                  outboundContextPtr_));
 
       // Register this in a map for clean up later.
       socketConnectors_[sessionId] = s;
@@ -100,7 +123,8 @@ class SocketInitiatorImpl : public SocketInitiator {
   Application& application_;
   std::list<SessionSetting>& sessionSettings_;
   SocketConnector::Strategy& strategy_;
-  zmq::context_t* contextPtr_;
+  zmq::context_t* inboundContextPtr_;
+  zmq::context_t* outboundContextPtr_;
 
   typedef std::map< SessionID, boost::shared_ptr<SocketConnector> > SocketConnectorMap;
   SocketConnectorMap socketConnectors_;
@@ -108,14 +132,19 @@ class SocketInitiatorImpl : public SocketInitiator {
 
 
 SocketInitiator::SocketInitiator(Application& app,
-                                 std::list<SessionSetting>& settings,
-                                 zmq::context_t* context)
-    : impl_(new SocketInitiatorImpl(app, settings, *this, context))
+                                 std::list<SessionSetting>& settings)
+    : impl_(new SocketInitiatorImpl(app, settings, *this))
 {
 }
 
 SocketInitiator::~SocketInitiator()
 {
+}
+
+void SocketInitiator::startPublisher(const std::string& address)
+    throw ( ConfigError, RuntimeError)
+{
+  impl_->startPublisher(address);
 }
 
 /// @overload Initiator

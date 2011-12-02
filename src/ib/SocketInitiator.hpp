@@ -26,10 +26,13 @@ class SocketInitiator : public Initiator,
 
  public:
 
-  SocketInitiator(Application& app, std::list<SessionSetting>& settings,
-                  zmq::context_t* context = NULL);
+  SocketInitiator(Application& app, std::list<SessionSetting>& settings);
   ~SocketInitiator();
 
+  void startPublisher(const std::string& address)
+      throw ( ConfigError, RuntimeError);
+
+  /** Starts connection to gateway */
   void start() throw ( ConfigError, RuntimeError );
   void block() throw ( ConfigError, RuntimeError );
 

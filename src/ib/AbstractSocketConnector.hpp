@@ -31,6 +31,7 @@
 
 using namespace IBAPI;
 
+
 namespace ib {
 namespace internal {
 
@@ -41,16 +42,19 @@ class AbstractSocketConnector :
 {
 
  public:
-  AbstractSocketConnector(const string& zmqInboundAddress,
-                          const string& zmqOutboundAddress,
-                          Application& app, int timeout,
-                          zmq::context_t* context = NULL) :
+  AbstractSocketConnector(
+      const SocketConnector::ZmqAddress& reactorAddress,
+      const SocketConnector::ZmqAddressMap& outboundChannels,
+      Application& app, int timeout,
+      zmq::context_t* inboundContext = NULL,
+      zmq::context_t* outboundContext = NULL) :
+
       app_(app),
       timeoutSeconds_(timeout),
-      reactor_(zmqInboundAddress, *this, context),
-      reactorAddress_(zmqInboundAddress),
-      outboundAddress_(zmqOutboundAddress),
-      contextPtr_(context),
+      reactorAddress_(reactorAddress),
+      reactor_(reactorAddress, *this, inboundContext),
+      outboundChannels_(outboundChannels),
+      contextPtr_(outboundContext),
       socketConnector_(NULL)
   {
   }
@@ -65,31 +69,42 @@ class AbstractSocketConnector :
   /// @see AsioEClientSocket::EventCallback
   void onEventThreadStart()
   {
-    // on successful connection. here we connect to the outbound socket
-    // for publishing events.
+    // on successful connection. here we connect to the outbound sockets
+    // for publishing events in different channels.
     // this must be from the same thread as the thread in the socket event
     // dispatcher.
-    zmq::socket_t* outbound = NULL;
 
+    // Start the zmq context if not provided.
     if (contextPtr_ == NULL) {
       outboundContext_.reset(new zmq::context_t(1));
-      outbound = new zmq::socket_t(*outboundContext_, ZMQ_PUSH);
-    } else {
-      outbound = new zmq::socket_t(*contextPtr_, ZMQ_PUSH);
     }
-    outboundSocket_.reset(outbound);
 
-    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
-        << "Connecting to " << outboundAddress_;
+    SocketConnector::ZmqAddressMap::const_iterator channelAddress =
+        outboundChannels_.begin();
 
-    try {
-      outbound->connect(outboundAddress_.c_str());
-      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
-          << "ZMQ_PUSH socket:" << outbound << " ready.";
-    } catch (zmq::error_t e) {
-      LOG(FATAL) << "Unable to connecto to " << outboundAddress_ << ": "
-                 << e.what();
+    for (; channelAddress != outboundChannels_.end(); ++channelAddress) {
+
+      int channel = channelAddress->first;
+      SocketConnector::ZmqAddress address = channelAddress->second;
+
+      zmq::socket_t* outbound = new zmq::socket_t(*contextPtr_, ZMQ_PUSH);
+      try {
+        IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+            << "Connecting to " << address;
+
+        outbound->connect(address.c_str());
+
+        IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+            << "ZMQ_PUSH socket:" << outbound << " ready.";
+      } catch (zmq::error_t e) {
+        LOG(FATAL) << "Unable to connecto to " << address << ": "
+                   << e.what();
+      }
+
+      (*outboundSockets_)[channel] = outbound;
     }
+
+
   }
 
   /// @see AsioEClientSocket::EventCallback
@@ -116,7 +131,10 @@ class AbstractSocketConnector :
   /// @see EWrapperEventCollector
   zmq::socket_t* getOutboundSocket(int channel = 0)
   {
-    return outboundSocket_.get();
+    if (outboundSockets_->find(channel) != outboundSockets_->end()) {
+      return (*outboundSockets_)[channel]; //.get();
+    }
+    return NULL;
   }
 
   /// @see Reactor::Strategy
@@ -246,12 +264,17 @@ class AbstractSocketConnector :
   boost::mutex mutex_;
 
   // For handling inbound requests.
+  const SocketConnector::ZmqAddress& reactorAddress_;
   atp::zmq::Reactor reactor_;
-  const std::string& reactorAddress_;
 
   // For outbound messages
-  const std::string& outboundAddress_;
-  boost::thread_specific_ptr<zmq::socket_t> outboundSocket_;
+  const SocketConnector::ZmqAddressMap& outboundChannels_;
+
+  typedef boost::thread_specific_ptr< std::map< int, zmq::socket_t* > >
+  SocketMap;
+
+  SocketMap outboundSockets_;
+
   zmq::context_t* contextPtr_;
   boost::scoped_ptr<zmq::context_t> outboundContext_;
 

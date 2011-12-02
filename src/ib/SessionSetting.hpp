@@ -13,20 +13,18 @@ class SessionSetting {
   SessionSetting(unsigned int id = 0,
                  const string& gatewayIp = "127.0.0.1",
                  unsigned int gatewayPort = 4001,
-                 const string& zmqInboundAddr = "tcp://127.0.0.1:5555",
-                 const string& zmqOutboundAddr = "tcp://127.0.0.1:7777"
-                 ) :
-      id_(id), gatewayIp_(gatewayIp), gatewayPort_(gatewayPort),
-      zmqInboundAddr_(zmqInboundAddr),
-      zmqOutboundAddr_(zmqOutboundAddr)
+                 const string& zmqInboundAddr = "tcp://127.0.0.1:5555") :
+      id_(id), gatewayIp_(gatewayIp),
+      gatewayPort_(gatewayPort),
+      zmqInboundAddr_(zmqInboundAddr)
   {
   }
 
   /// for STL container
   SessionSetting(const SessionSetting& rhs) :
-      id_(rhs.id_), gatewayIp_(rhs.gatewayIp_), gatewayPort_(rhs.gatewayPort_),
-      zmqInboundAddr_(rhs.zmqInboundAddr_),
-      zmqOutboundAddr_(rhs.zmqOutboundAddr_)
+      id_(rhs.id_), gatewayIp_(rhs.gatewayIp_),
+      gatewayPort_(rhs.gatewayPort_),
+      zmqInboundAddr_(rhs.zmqInboundAddr_)
   {
   }
 
@@ -40,7 +38,6 @@ class SessionSetting {
     gatewayIp_ = rhs.gatewayIp_;
     gatewayPort_ = rhs.gatewayPort_;
     zmqInboundAddr_ = rhs.zmqInboundAddr_;
-    zmqOutboundAddr_ = rhs.zmqOutboundAddr_;
     return *this;
   }
 
@@ -48,8 +45,7 @@ class SessionSetting {
                                          const SessionSetting& rhs)
   {
     out << rhs.id_ << "@" << rhs.gatewayIp_ << ":" << rhs.gatewayPort_;
-    out << "=>" << rhs.zmqOutboundAddr_;
-    out << "||" << rhs.zmqInboundAddr_;
+    out << "//" << rhs.zmqInboundAddr_;
     return out;
   }
 
@@ -73,17 +69,11 @@ class SessionSetting {
     return zmqInboundAddr_;
   }
 
-  const std::string& getZmqOutboundAddr()
-  {
-    return zmqOutboundAddr_;
-  }
-
  private:
   unsigned int id_;
   std::string gatewayIp_;
   unsigned int gatewayPort_;
   std::string zmqInboundAddr_;
-  std::string zmqOutboundAddr_;
 };
 
 } // namespace IBAPI

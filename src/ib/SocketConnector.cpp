@@ -24,12 +24,13 @@ class SocketConnector::implementation :
       public ib::internal::AbstractSocketConnector
 {
  public:
-  implementation(const std::string& zmqInboundAddr,
-                 const std::string& zmqOutboundAddr,
+  implementation(const ZmqAddress& reactorAddress,
+                 const ZmqAddressMap& outboundChannels,
                  Application& app, int timeout,
-                 zmq::context_t* context = NULL) :
-      AbstractSocketConnector(zmqInboundAddr, zmqOutboundAddr,
-                              app, timeout, context),
+                 zmq::context_t* inboundContext = NULL,
+                 zmq::context_t* outboundContext = NULL) :
+      AbstractSocketConnector(reactorAddress, outboundChannels,
+                              app, timeout, inboundContext, outboundContext),
       reactorStrategyPtr_(ReactorStrategyFactory::getInstance())
   {
   }
@@ -81,13 +82,14 @@ class SocketConnector::implementation :
 
 
 
-SocketConnector::SocketConnector(const std::string& zmqInboundAddr,
-                                 const std::string& zmqOutboundAddr,
+SocketConnector::SocketConnector(const ZmqAddress& reactorAddress,
+                                 const ZmqAddressMap& outboundChannels,
                                  Application& app, int timeout,
-                                 ::zmq::context_t* context) :
-    impl_(new SocketConnector::implementation(zmqInboundAddr,
-                                              zmqOutboundAddr, app, timeout,
-                                              context))
+                                 ::zmq::context_t* inboundContext,
+                                 ::zmq::context_t* outboundContext) :
+    impl_(new SocketConnector::implementation(reactorAddress,
+                                              outboundChannels, app, timeout,
+                                              inboundContext, outboundContext))
 {
   IBAPI_SOCKET_CONNECTOR_LOGGER << "SocketConnector started.";
   impl_->socketConnector_ = this;

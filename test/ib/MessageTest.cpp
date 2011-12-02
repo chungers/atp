@@ -93,7 +93,7 @@ TEST(MessageTest, CopyTest)
 
   MarketDataRequest request;
 
-  request.set(FIX::SecurityType(IBAPI::SecurityType_COMMON_STOCK));
+  request.set(FIX::SecurityType(FIX::SecurityType_COMMON_STOCK));
   request.set(FIX::Symbol("SPY"));
   request.set(FIX::RoutingID(IBAPI::RoutingID_DEFAULT));
 
@@ -295,7 +295,7 @@ TEST(MessageTest, ZmqSendTest)
   client.connect(addr.c_str());
 
   MarketDataRequest request;
-  request.set(FIX::SecurityType(IBAPI::SecurityType_COMMON_STOCK));
+  request.set(FIX::SecurityType(FIX::SecurityType_COMMON_STOCK));
   request.set(FIX::Symbol("GOOG"));
 
   // Sending out message

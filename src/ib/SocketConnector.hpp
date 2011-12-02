@@ -1,6 +1,7 @@
 #ifndef IBAPI_SOCKET_CONNECTOR_H_
 #define IBAPI_SOCKET_CONNECTOR_H_
 
+#include <map>
 #include <zmq.hpp>
 #include <boost/scoped_ptr.hpp>
 
@@ -20,10 +21,14 @@ class SocketConnector : NoCopyAndAssign {
  public:
   class Strategy;
 
-  SocketConnector(const std::string& zmqInboundAddr,
-                  const std::string& zmqOutboundAddr,
+  typedef std::string ZmqAddress;
+  typedef std::map<int, ZmqAddress > ZmqAddressMap;
+
+  SocketConnector(const ZmqAddress& reactorAddress,
+                  const ZmqAddressMap& outboundChannels,
                   Application& app, int timeout = 0,
-                  zmq::context_t* context = NULL);
+                  zmq::context_t* inboundContext = NULL,
+                  zmq::context_t* outboundContext = NULL);
   ~SocketConnector();
 
   /// Blocking connect, up to the timeout limit in seconds.

@@ -83,6 +83,8 @@ TEST(MarketDataTest, RequestMarketDataTest)
 
   // Use inproc for socketConnector and the publisher.
   const string& outboundAddr = "inproc://RequestMarketDataTest";
+  SocketConnector::ZmqAddressMap outboundChannels;
+  outboundChannels[0] = outboundAddr;
 
   // The market data feed address
   const string& marketDataAddr = "ipc://_zmq.RequestMarketDataTest.pub";
@@ -92,7 +94,7 @@ TEST(MarketDataTest, RequestMarketDataTest)
 
   LOG(INFO) << "Creating socket connector ==========================";
   // Connector's outbound address is the publisher's inbound address.
-  SocketConnector socketConnector(reactorAddr, outboundAddr, app, 10,
+  SocketConnector socketConnector(reactorAddr, outboundChannels, app, 10,
                                   &sharedContext);
 
   LOG(INFO) << "Starting publisher =================================";

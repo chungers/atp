@@ -66,10 +66,10 @@ class TestInitiator : public IBAPI::SocketInitiator,
                       public TestHarnessBase<Event>
 {
  public :
-  TestInitiator(Application& app, std::list<SessionSetting>& settings,
-                zmq::context_t* context = NULL) :
-      IBAPI::SocketInitiator(app, settings, context)
-  {}
+  TestInitiator(Application& app, std::list<SessionSetting>& settings) :
+      IBAPI::SocketInitiator(app, settings)
+  {
+  }
 
   void onConnect(SocketConnector& sc, int clientId)
   {
@@ -85,13 +85,9 @@ TEST(SocketInitiatorTest, SocketInitiatorStartTest)
 
   const std::string& zmqInbound1 = "tcp://127.0.0.1:15555";
   const std::string& zmqInbound2 = "tcp://127.0.0.1:15556";
-  const std::string& zmqOutbound1 = "tcp://127.0.0.1:17777";
-  const std::string& zmqOutbound2 = "tcp://127.0.0.1:17778";
 
-  IBAPI::SessionSetting setting1(1, "127.0.0.1", 4001,
-                                 zmqInbound1, zmqOutbound1);
-  IBAPI::SessionSetting setting2(2, "127.0.0.1", 4001,
-                                 zmqInbound2, zmqOutbound2);
+  IBAPI::SessionSetting setting1(1, "127.0.0.1", 4001, zmqInbound1);
+  IBAPI::SessionSetting setting2(2, "127.0.0.1", 4001, zmqInbound2);
 
   std::list<SessionSetting> settings;
   settings.push_back(setting1);
@@ -122,11 +118,8 @@ TEST(SocketInitiatorTest, SocketInitiatorStartTest)
 }
 
 
-TEST(SocketInitiatorTest, SocketInitiatorPublisherTest)
+TEST(SocketInitiatorTest, SocketInitiatorEmbeddedPublisherTest)
 {
-  // Shared context
-  zmq::context_t sharedContext(1);
-
   TestApplication app;
 
   const std::string& zmqInbound1 = "tcp://127.0.0.1:25555";
@@ -134,30 +127,19 @@ TEST(SocketInitiatorTest, SocketInitiatorPublisherTest)
   const std::string& zmqInbound3 = "tcp://127.0.0.1:25557";
 
 
-  const std::string& zmqOutbound = "inproc://publish";
-
-  IBAPI::SessionSetting setting1(10, "127.0.0.1", 4001,
-                                 zmqInbound1, zmqOutbound);
-  IBAPI::SessionSetting setting2(20, "127.0.0.1", 4001,
-                                 zmqInbound2, zmqOutbound);
-  IBAPI::SessionSetting setting3(30, "127.0.0.1", 4001,
-                                 zmqInbound3, zmqOutbound);
+  IBAPI::SessionSetting setting1(10, "127.0.0.1", 4001, zmqInbound1);
+  IBAPI::SessionSetting setting2(20, "127.0.0.1", 4001, zmqInbound2);
+  IBAPI::SessionSetting setting3(30, "127.0.0.1", 4001, zmqInbound3);
 
   std::list<SessionSetting> settings;
   settings.push_back(setting1);
   settings.push_back(setting2);
   settings.push_back(setting3);
 
-  LOG(INFO) << "Start the publisher =====================================";
-
-  // Start the publisher
-  atp::zmq::Publisher publisher(zmqOutbound,
-                                "tcp://127.0.0.1:17777", &sharedContext);
-
   LOG(INFO) << "Start the initiator =====================================";
 
   // Now the initiator that will connect to the gateway.
-  TestInitiator initiator(app, settings, &sharedContext);
+  TestInitiator initiator(app, settings);
 
   LOG(INFO) << "Connect to gateway  =====================================";
 
