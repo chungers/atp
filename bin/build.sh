@@ -30,7 +30,7 @@ if [[ $TARGET != "" ]]; then
     TARGETS=$TARGET
 else
     TARGETS=$(find src test -name 'CMakeLists.txt' \
--exec grep '^cpp_executable' '{}' \; | sed -e 's/cpp_executable(//g' -e 's/)//g')
+-exec grep '^cpp_executable' '{}' \; | sed -e 's/cpp_executable(//g' -e 's/)//g' | sort)
 fi
 
 echo "Targets are:"
