@@ -60,7 +60,7 @@ if [ $BUILD == 1 ]; then
         echo "BUILDING $t"
         make $t
         if [ $? != 0 ]; then
-            echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  Build failed. Exiting.";
+            echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  Build $t failed. Exiting.";
             exit -1;
         fi;
     done
@@ -71,6 +71,10 @@ if [ $RUN == 1 ]; then
         echo "****************************************************************"
         echo "RUNNING $t"
         ./build/$t $LOG --v=$VLEVEL
+        if [ $? != 0 ]; then
+            echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  Test $t failed. Exiting.";
+            exit -1;
+        fi;
     done
 fi
 
