@@ -39,7 +39,7 @@ if [[ $TEST != "" ]]; then
     TARGETS=$TEST
 else
     TARGETS=$(find src test -name 'CMakeLists.txt' \
--exec grep '^cpp_gtest' '{}' \; | sed -e 's/cpp_gtest(//g' -e 's/)//g')
+-exec grep '^cpp_gtest' '{}' \; | sed -e 's/cpp_gtest(//g' -e 's/)//g' | sort)
 fi
 
 echo "Targets are:"
