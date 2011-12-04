@@ -20,8 +20,7 @@ using ib::internal::ReactorStrategy;
 using ib::internal::ZmqMessage;
 
 
-class SocketConnector::implementation :
-      public ib::internal::AbstractSocketConnector
+class SocketConnector::implementation : public AbstractSocketConnector
 {
  public:
   implementation(const ZmqAddress& reactorAddress,
@@ -37,7 +36,6 @@ class SocketConnector::implementation :
 
   ~implementation()
   {
-    LOG(INFO) << "Impl destructor";
   }
 
  protected:
@@ -70,7 +68,8 @@ class SocketConnector::implementation :
       // HTTP error code - server side error 500.
       atp::zmq::send_copy(socket, "500");
     } catch (zmq::error_t e) {
-      LOG(ERROR) << "Got exception: " << e.what() << std::endl;
+      LOG(ERROR) << "Got exception while handling reactor inbound message: "
+                 << e.what();
       status = false;
     }
     return status;
@@ -108,7 +107,6 @@ int SocketConnector::connect(const string& host,
                              Strategy* strategy,
                              int maxAttempts)
 {
-  IBAPI_SOCKET_CONNECTOR_LOGGER << "CONNECT " << host << ":" << port;
   return impl_->connect(host, port, clientId, strategy, maxAttempts);
 }
 

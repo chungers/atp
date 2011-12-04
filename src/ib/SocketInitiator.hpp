@@ -35,8 +35,6 @@ class SocketInitiator : public Initiator,
   /** Starts connection to gateway */
   void start() throw ( ConfigError, RuntimeError );
   void block() throw ( ConfigError, RuntimeError );
-
-  void stop(double timeout);
   void stop(bool force = false);
 
   bool isLoggedOn();

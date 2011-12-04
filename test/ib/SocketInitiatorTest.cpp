@@ -114,9 +114,15 @@ TEST(SocketInitiatorTest, SocketInitiatorStartTest)
   initiator.stop();
   LOG(INFO) << "Test finished.";
 
-  sleep(5);
+  //sleep(5);
 }
 
+
+static void blockInSeparateThread(SocketInitiator* initiator)
+{
+  boost::thread th(boost::bind(&SocketInitiator::block, initiator));
+  LOG(INFO) << "Blocking in separate thread.";
+}
 
 TEST(SocketInitiatorTest, SocketInitiatorEmbeddedPublisherTest)
 {
@@ -154,6 +160,20 @@ TEST(SocketInitiatorTest, SocketInitiatorEmbeddedPublisherTest)
   initiator.waitForNOccurrences(ON_CONNECT, 3, 5);
   EXPECT_EQ(initiator.getCount(ON_CONNECT), 3);
 
+  // This tests that the block method on the initiator properly blocks
+  // synchronously until stop() on the initiator is called from another
+  // thread and properly shuts everything donw.
+  blockInSeparateThread(&initiator);
+
+  EXPECT_TRUE(initiator.isLoggedOn());
+
+  LOG(INFO) << "Sleep for a bit";
+  sleep(5);
+
+  LOG(INFO) << "Now stopping the initiator";
   initiator.stop();
+
+  EXPECT_FALSE(initiator.isLoggedOn());
+
   LOG(INFO) << "Test finished.";
 }

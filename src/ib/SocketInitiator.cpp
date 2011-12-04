@@ -39,12 +39,19 @@ class SocketInitiatorImpl : public SocketInitiator {
       application_(app),
       sessionSettings_(settings),
       strategy_(strategy),
-      inboundContextPtr_(NULL),
-      outboundContextPtr_(NULL)
-  { }
+      inboundContext_(NULL),
+      outboundContext_(NULL),
+      connectorsRunning_(false)
+  {
+    if (outboundContext_ == NULL) {
+      outboundContext_ = new zmq::context_t(1);
+    }
+  }
 
   ~SocketInitiatorImpl()
   {
+    IBAPI_SOCKET_INITIATOR_LOGGER <<  "Shutting down initiator.";
+    stop(true);
     std::map< int, ChannelPublisher >::iterator publisher =
         channelPublishers_.begin();
     for (; publisher != channelPublishers_.end(); ++publisher) {
@@ -62,10 +69,6 @@ class SocketInitiatorImpl : public SocketInitiator {
   {
     boost::unique_lock<boost::mutex> lock(mutex_);
 
-    if (outboundContextPtr_ == NULL) {
-      outboundContextPtr_ = new zmq::context_t(1);
-    }
-
     // If we are running the publisher, then use in process context
     // for the connector (outbound) and publisher.
     const std::string& connectorOutboundAddress = "inproc://connectors";
@@ -78,7 +81,7 @@ class SocketInitiatorImpl : public SocketInitiator {
 
       channelPublishers_[channel] = new atp::zmq::Publisher(
           connectorOutboundAddress,
-          address, outboundContextPtr_);
+          address, outboundContext_);
 
     } else {
       IBAPI_SOCKET_INITIATOR_LOGGER
@@ -94,83 +97,107 @@ class SocketInitiatorImpl : public SocketInitiator {
   {
     boost::unique_lock<boost::mutex> lock(mutex_);
 
-    if (outboundContextPtr_ == NULL) {
-      outboundContextPtr_ = new zmq::context_t(1);
-    }
-
     // Start up the socket connectors one by one.
     std::list<SessionSetting>::iterator itr;
     for (itr = sessionSettings_.begin();
          itr != sessionSettings_.end();
          ++itr) {
 
+      SessionID sessionId = static_cast<SessionID>(itr->getConnectionId());
+
+      if (socketConnectors_.find(sessionId) != socketConnectors_.end()) {
+        IBAPI_SOCKET_INITIATOR_LOGGER
+            << "Connector " << sessionId << ": "
+            << "Already exists " << socketConnectors_[sessionId];
+        continue;
+      }
+
       IBAPI_SOCKET_INITIATOR_LOGGER
           << "Starting connector "
           << itr->getConnectionId()
           << ", inbound: " << itr->getConnectorReactorAddress()
-          << ", inboundContext: " << inboundContextPtr_
-          << ", outboundContext: " << outboundContextPtr_;
+          << ", inboundContext: " << inboundContext_
+          << ", outboundContext: " << outboundContext_;
 
-      SessionID sessionId = static_cast<SessionID>(itr->getConnectionId());
-      boost::shared_ptr<SocketConnector> s =
+      boost::shared_ptr<SocketConnector> socketConnector =
           boost::shared_ptr<SocketConnector>(
               new SocketConnector(itr->getConnectorReactorAddress(),
                                   outboundChannels_,
                                   application_, sessionId,
-                                  inboundContextPtr_,
-                                  outboundContextPtr_));
+                                  inboundContext_,
+                                  outboundContext_));
 
       // Register this in a map for clean up later.
-      socketConnectors_[sessionId] = s;
+      socketConnectors_[sessionId] = socketConnector;
 
       IBAPI_SOCKET_INITIATOR_LOGGER << "SocketConnector: " << *itr;
-      s->connect(itr->getIp(), itr->getPort(), sessionId, &strategy_);
+      int id = socketConnector->connect(itr->getIp(), itr->getPort(),
+                                        sessionId, &strategy_);
+
+      if (id == sessionId) {
+        IBAPI_SOCKET_INITIATOR_LOGGER << "Session " << sessionId << " ready: "
+                                      << itr->getIp() << ":" << itr->getPort()
+                                      << " ==> "
+                                      << itr->getConnectorReactorAddress();
+      } else {
+        LOG(FATAL) << "Session " << sessionId << " cannot start.";
+      }
+      sleep(1); // Wait a bit.
     }
+
+    // Set the condition
+    connectorsRunning_ = true;
+    connectorsRunningCond_.notify_all();
   }
 
   /// @overload Initiator
   void block() throw ( ConfigError, RuntimeError )
   {
-
-  }
-
-  /// @overload Initiator
-  void stop(double timeout)
-  {
     IBAPI_SOCKET_INITIATOR_LOGGER
-        << "Stopping connector with timeout = "
-        << timeout << std::endl;
+        << "Begin blocking while connectors are running.";
+    boost::unique_lock<boost::mutex> lock(mutex_);
+    while (connectorsRunning_) {
+     connectorsRunningCond_.wait(lock);
+    }
+    IBAPI_SOCKET_INITIATOR_LOGGER
+        << "End blocking";
   }
 
   /// @overload Initiator
   void stop(bool force) {
+    boost::unique_lock<boost::mutex> lock(mutex_);
+
     IBAPI_SOCKET_INITIATOR_LOGGER
         << "Stopping connector with force = "
         << force << std::endl;
 
-    SocketConnectorMap::iterator itr = socketConnectors_.begin();
-    for (; itr != socketConnectors_.end(); ++itr) {
+    if (connectorsRunning_) {
+      SocketConnectorMap::iterator itr = socketConnectors_.begin();
+      for (; itr != socketConnectors_.end(); ++itr) {
 
-      IBAPI_SOCKET_INITIATOR_LOGGER << "Stopping connector (sessionID="
-                                    << itr->first << ")";
-      bool stopped = (*itr).second->stop();
+        bool stopped = (*itr).second->stop();
+        IBAPI_SOCKET_INITIATOR_LOGGER << "Stopped connector (sessionID="
+                                      << itr->first << "): " << stopped;
+        sleep(1); // Wait a bit.
+      }
 
-      IBAPI_SOCKET_INITIATOR_LOGGER << "Stopped connector (sessionID="
-                                    << itr->first << "): " << stopped;
+      // Set the condition
+      connectorsRunning_ = false;
+      connectorsRunningCond_.notify_all();
     }
   }
 
   /// @overload Initiator
   bool isLoggedOn() {
-    return false;
+    return connectorsRunning_;
   }
 
  private:
   Application& application_;
   std::list<SessionSetting>& sessionSettings_;
   SocketConnector::Strategy& strategy_;
-  zmq::context_t* inboundContextPtr_;
-  zmq::context_t* outboundContextPtr_;
+  zmq::context_t* inboundContext_;
+  zmq::context_t* outboundContext_;
 
   typedef std::map< SessionID, boost::shared_ptr<SocketConnector> >
   SocketConnectorMap;
@@ -182,6 +209,8 @@ class SocketInitiatorImpl : public SocketInitiator {
   std::map< int, ChannelPublisher > channelPublishers_;
 
   boost::mutex mutex_;
+  bool connectorsRunning_;
+  boost::condition_variable connectorsRunningCond_;
 };
 
 
@@ -211,12 +240,6 @@ void SocketInitiator::start() throw ( ConfigError, RuntimeError )
 void SocketInitiator::block() throw ( ConfigError, RuntimeError )
 {
   impl_->block();
-}
-
-/// @overload Initiator
-void SocketInitiator::stop(double timeout)
-{
-  impl_->stop(timeout);
 }
 
 /// @overload Initiator
