@@ -3,6 +3,8 @@
 #include <list>
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/scoped_ptr.hpp>
+#include <boost/thread.hpp>
 
 #include <Shared/EWrapper.h>
 
@@ -11,6 +13,7 @@
 #include "ib/SocketInitiator.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/SessionID.hpp"
+#include "zmq/Publisher.hpp"
 
 
 using ib::internal::EWrapperFactory;
@@ -38,21 +41,60 @@ class SocketInitiatorImpl : public SocketInitiator {
       strategy_(strategy)
   { }
 
-  ~SocketInitiatorImpl() {}
+  ~SocketInitiatorImpl()
+  {
+    std::map< int, ChannelPublisher >::iterator publisher =
+        channelPublishers_.begin();
+    for (; publisher != channelPublishers_.end(); ++publisher) {
+      if (publisher->second) {
+        IBAPI_SOCKET_INITIATOR_LOGGER
+            << "Destroying publisher for channel " << publisher->first;
+        delete publisher->second;
+      }
+    }
+  }
 
   /// Starts publisher at the given zmq address.
-  void startPublisher(const std::string& address)
-      throw ( ConfigError, RuntimeError)
+  void startPublisher(int channel, const std::string& address)
+      throw ( ConfigError, RuntimeError )
   {
+    boost::unique_lock<boost::mutex> lock(mutex_);
+
+    if (outboundContextPtr_ == NULL) {
+      outboundContextPtr_ = new zmq::context_t(1);
+    }
+
+    // If we are running the publisher, then use in process context
+    // for the connector (outbound) and publisher.
+    const std::string& connectorOutboundAddress = "inproc://connectors";
+    if (outboundChannels_.find(channel) == outboundChannels_.end()) {
+      // start publisher
+      IBAPI_SOCKET_INITIATOR_LOGGER
+          << "Starting embedded publisher for channel " << channel
+          << " at " << address;
+      outboundChannels_[channel] = connectorOutboundAddress;
+
+      channelPublishers_[channel] = new atp::zmq::Publisher(
+          connectorOutboundAddress,
+          address, outboundContextPtr_);
+
+    } else {
+      IBAPI_SOCKET_INITIATOR_LOGGER
+          << "Publisher for channel " << channel << " already running: "
+          << outboundChannels_[channel];
+    }
 
   }
+
 
   /// @overload Initiator
   void start() throw ( ConfigError, RuntimeError )
   {
-    const std::string& connectorOutboundAddr = "inproc://connectors";
-    SocketConnector::ZmqAddressMap outboundChannels;
-    outboundChannels[0] = connectorOutboundAddr;
+    boost::unique_lock<boost::mutex> lock(mutex_);
+
+    if (outboundContextPtr_ == NULL) {
+      outboundContextPtr_ = new zmq::context_t(1);
+    }
 
     // Start up the socket connectors one by one.
     std::list<SessionSetting>::iterator itr;
@@ -63,13 +105,14 @@ class SocketInitiatorImpl : public SocketInitiator {
       IBAPI_SOCKET_INITIATOR_LOGGER
           << "Starting connector "
           << itr->getConnectionId()
-          << ", inbound: " << itr->getZmqInboundAddr();
+          << ", inbound: " << itr->getConnectorReactorAddress()
+          << ", context: " << outboundContextPtr_;
 
       SessionID sessionId = static_cast<SessionID>(itr->getConnectionId());
       boost::shared_ptr<SocketConnector> s =
           boost::shared_ptr<SocketConnector>(
-              new SocketConnector(itr->getZmqInboundAddr(),
-                                  outboundChannels,
+              new SocketConnector(itr->getConnectorReactorAddress(),
+                                  outboundChannels_,
                                   application_, sessionId,
                                   inboundContextPtr_,
                                   outboundContextPtr_));
@@ -126,8 +169,16 @@ class SocketInitiatorImpl : public SocketInitiator {
   zmq::context_t* inboundContextPtr_;
   zmq::context_t* outboundContextPtr_;
 
-  typedef std::map< SessionID, boost::shared_ptr<SocketConnector> > SocketConnectorMap;
+  typedef std::map< SessionID, boost::shared_ptr<SocketConnector> >
+  SocketConnectorMap;
   SocketConnectorMap socketConnectors_;
+
+  SocketConnector::ZmqAddressMap outboundChannels_;
+
+  typedef atp::zmq::Publisher* ChannelPublisher;
+  std::map< int, ChannelPublisher > channelPublishers_;
+
+  boost::mutex mutex_;
 };
 
 
@@ -141,10 +192,10 @@ SocketInitiator::~SocketInitiator()
 {
 }
 
-void SocketInitiator::startPublisher(const std::string& address)
+void SocketInitiator::startPublisher(int channel, const std::string& address)
     throw ( ConfigError, RuntimeError)
 {
-  impl_->startPublisher(address);
+  impl_->startPublisher(channel, address);
 }
 
 /// @overload Initiator

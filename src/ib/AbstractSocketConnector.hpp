@@ -35,6 +35,7 @@ using namespace IBAPI;
 namespace ib {
 namespace internal {
 
+
 class AbstractSocketConnector :
       public atp::zmq::Reactor::Strategy,
       public ib::internal::EWrapperEventCollector,
@@ -42,6 +43,7 @@ class AbstractSocketConnector :
 {
 
  public:
+
   AbstractSocketConnector(
       const SocketConnector::ZmqAddress& reactorAddress,
       const SocketConnector::ZmqAddressMap& outboundChannels,
@@ -54,7 +56,7 @@ class AbstractSocketConnector :
       reactorAddress_(reactorAddress),
       reactor_(reactorAddress, *this, inboundContext),
       outboundChannels_(outboundChannels),
-      contextPtr_(outboundContext),
+      outboundContext_(outboundContext),
       socketConnector_(NULL)
   {
   }
@@ -66,6 +68,9 @@ class AbstractSocketConnector :
     // }
   }
 
+
+
+ public:
   /// @see AsioEClientSocket::EventCallback
   void onEventThreadStart()
   {
@@ -75,8 +80,13 @@ class AbstractSocketConnector :
     // dispatcher.
 
     // Start the zmq context if not provided.
-    if (contextPtr_ == NULL) {
-      outboundContext_.reset(new zmq::context_t(1));
+    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+        << "Outbound context = " << outboundContext_;
+
+    if (outboundContext_ == NULL) {
+      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+          << "Starting local context.";
+      outboundContext_ = new zmq::context_t(1);
     }
 
     SocketConnector::ZmqAddressMap::const_iterator channelAddress =
@@ -87,30 +97,68 @@ class AbstractSocketConnector :
       int channel = channelAddress->first;
       SocketConnector::ZmqAddress address = channelAddress->second;
 
-      zmq::socket_t* outbound = new zmq::socket_t(*contextPtr_, ZMQ_PUSH);
-      try {
-        IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
-            << "Connecting to " << address;
+      zmq::socket_t* outbound = new zmq::socket_t(*outboundContext_, ZMQ_PUSH);
 
-        outbound->connect(address.c_str());
+      int retry = 0;
+      do {
+        try {
 
-        IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
-            << "ZMQ_PUSH socket:" << outbound << " ready.";
-      } catch (zmq::error_t e) {
-        LOG(FATAL) << "Unable to connecto to " << address << ": "
-                   << e.what();
+          IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+              << "Channel " << channel << ": "
+              << "Connecting to " << address;
+
+          outbound->connect(address.c_str());
+
+          if (outboundSockets_.get() == NULL) {
+            IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+                << "Creating outbound socket map.";
+            outboundSockets_.reset(new SocketMap);
+          }
+          (*outboundSockets_)[channel] = outbound;
+
+          IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+              << "Channel " << channel << ": "
+              << "ZMQ_PUSH socket:" << outbound << " ready.";
+
+          retry = 0;
+        } catch (zmq::error_t e) {
+          LOG(WARNING)
+              << "Channel " << channel << ": "
+              << "Unable to connecto to " << address << ": "
+              << e.what();
+
+          retry++;
+          sleep(1);
+        }
       }
+      // Only up to 5 seconds.  This is part of the connection negotiation
+      // with the gateway.  Therefore, if we take too long, the gateway
+      // thinks the client is down.
+      while (retry > 0 && retry < 5);
 
-      (*outboundSockets_)[channel] = outbound;
+      if (retry != 0) {
+        // We failed to connect after so many attempts
+        LOG(ERROR)
+            << "Channel " << channel << ": "
+            << "Cannot connect to outbound destination after "
+            << retry << " attempts. Logging events only.";
+      }
     }
-
-
   }
 
   /// @see AsioEClientSocket::EventCallback
   void onEventThreadStop()
   {
-    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "EClient socket stopped.";
+    IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Closing outbound sockets.";
+    // Need to delete the outbound sockets
+    if (outboundSockets_.get() != NULL) {
+      SocketMap::iterator channelPair = outboundSockets_->begin();
+      for (; channelPair != outboundSockets_->end(); ++channelPair) {
+        IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+            << "Closing socket for channel " << channelPair->first;
+        delete channelPair->second;
+      }
+    }
   }
 
   /// @see AsioEClientSocket::EventCallback
@@ -131,8 +179,9 @@ class AbstractSocketConnector :
   /// @see EWrapperEventCollector
   zmq::socket_t* getOutboundSocket(int channel = 0)
   {
-    if (outboundSockets_->find(channel) != outboundSockets_->end()) {
-      return (*outboundSockets_)[channel]; //.get();
+    if (outboundSockets_.get() != NULL &&
+        outboundSockets_->find(channel) != outboundSockets_->end()) {
+      return (*outboundSockets_)[channel];
     }
     return NULL;
   }
@@ -270,13 +319,10 @@ class AbstractSocketConnector :
   // For outbound messages
   const SocketConnector::ZmqAddressMap& outboundChannels_;
 
-  typedef boost::thread_specific_ptr< std::map< int, zmq::socket_t* > >
-  SocketMap;
+  typedef std::map< int, zmq::socket_t* > SocketMap;
+  boost::thread_specific_ptr<SocketMap> outboundSockets_;
 
-  SocketMap outboundSockets_;
-
-  zmq::context_t* contextPtr_;
-  boost::scoped_ptr<zmq::context_t> outboundContext_;
+  zmq::context_t* outboundContext_;
 
  protected:
   SocketConnector* socketConnector_;

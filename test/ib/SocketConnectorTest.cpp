@@ -230,6 +230,18 @@ TEST(SocketConnectorTest, SendMessageTest)
   socketConnector.stop();
 }
 
+static void startPublisher(int delaySeconds,
+                           const std::string& inbound,
+                           const std::string& publish,
+                           zmq::context_t* context) {
+  LOG(INFO) << "Delay starting the publisher for " << delaySeconds;
+  sleep(delaySeconds);
+  LOG(INFO) << "Starting the publisher for connectors to connect to.";
+  atp::zmq::Publisher publisher(inbound, publish, context);
+  // need to keep this around.
+  publisher.block();
+}
+
 TEST(SocketConnectorTest, SharedContextTest)
 {
   TestApplication app;
@@ -248,26 +260,36 @@ TEST(SocketConnectorTest, SharedContextTest)
   zmq::context_t sharedContext(1);
   LOG(INFO) << "Context = " << &sharedContext;
 
-  // Start a publisher
-  atp::zmq::Publisher publisher(outboundAddr,
-                                "ipc://_zmq.SharedContextTest.pub",
-                                &sharedContext);
-
   // Connector's outbound address is the publisher's inbound address.
   TestSocketConnector socketConnector(bindAddr, outboundChannels, app, 10,
                                       &sharedContext, &sharedContext);
 
-  LOG(INFO) << "Starting client with context " << &sharedContext;
-  // Client
-  zmq::socket_t client(sharedContext, ZMQ_REQ);
-  client.connect(bindAddr.c_str());
+  // Start a publisher -- the connector outbound sockets will
+  // connect to the publisher's inbound socket.
+  // A separate thread is used to start this publisher with some delay.
+  // This will force the connector to retry.  The connector retries
+  // up to 5 seconds.
+  LOG(INFO) << "Starting the publisher for connectors to connect to.";
+  boost::thread th(boost::bind(&startPublisher, 2, outboundAddr,
+                               "ipc://_zmq.SharedContextTest.pub",
+                               &sharedContext));
 
+  // The socket connector now connects to the gateway.  On successful
+  // connection, it will try to connect to the outbound endpoint which
+  // is the publisher's inbound socket.  This will block (with retries)
+  // until successful.
   int clientId = 12456;
   int status = socketConnector.connect("127.0.0.1", 4001, clientId,
                                        &strategy);
   EXPECT_EQ(clientId, status); // Expected, actual
   EXPECT_EQ(1, strategy.getCount(ON_CONNECT));
 
+  // Now we connect to the connector as a client to send messages to
+  // the connector's reactor.
+  LOG(INFO) << "Starting client with context " << &sharedContext;
+  // Client
+  zmq::socket_t client(sharedContext, ZMQ_REQ);
+  client.connect(bindAddr.c_str());
   size_t messages = 1000;
   for (unsigned int i = 0; i < messages; ++i) {
     std::ostringstream oss;

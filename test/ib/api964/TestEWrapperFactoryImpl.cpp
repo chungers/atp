@@ -39,9 +39,9 @@ class TestEWrapper : public EventDispatcher, public TestHarness {
     incr(NEXT_VALID_ID);
 
     zmq::socket_t* eventCollector = getOutboundSocket();
-    EXPECT_TRUE(eventCollector != NULL);
+    //EXPECT_TRUE(eventCollector != NULL);
 
-    LOG(INFO) << "Event eventCollector: " << eventCollector << std::endl;
+    LOG(INFO) << "Event eventCollector: " << eventCollector;
   }
 
   // @Override

@@ -29,7 +29,7 @@ class SocketInitiator : public Initiator,
   SocketInitiator(Application& app, std::list<SessionSetting>& settings);
   ~SocketInitiator();
 
-  void startPublisher(const std::string& address)
+  void startPublisher(int channel, const std::string& address)
       throw ( ConfigError, RuntimeError);
 
   /** Starts connection to gateway */

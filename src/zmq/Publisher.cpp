@@ -20,11 +20,12 @@ Publisher::Publisher(const string& addr,
     addr_(addr),
     publishAddr_(publishAddr),
     context_(context),
+    localContext_(false),
     ready_(false)
 {
   // start thread
-  thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
-      boost::bind(&Publisher::process, this)));
+   thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
+       boost::bind(&Publisher::process, this)));
 
   // Wait here for the connection to be ready.
   boost::unique_lock<boost::mutex> lock(mutex_);
@@ -37,6 +38,10 @@ Publisher::Publisher(const string& addr,
 
 Publisher::~Publisher()
 {
+  if (localContext_) {
+    ZMQ_PUBLISHER_LOGGER << "Deleting local context " << context_;
+    delete context_;
+  }
 }
 
 const std::string& Publisher::addr()
@@ -56,11 +61,10 @@ void Publisher::block()
 
 void Publisher::process()
 {
-  bool localContext = false;
   if (context_ == NULL) {
     // Create own context
     context_ = new ::zmq::context_t(1);
-    localContext = true;
+    localContext_ = true;
     ZMQ_PUBLISHER_LOGGER << "Created local context.";
   }
 
@@ -122,8 +126,6 @@ void Publisher::process()
         break;      //  Last message part
     }
   }
-
-  if (localContext) delete context_;
   LOG(ERROR) << "Publisher thread stopped.";
 }
 

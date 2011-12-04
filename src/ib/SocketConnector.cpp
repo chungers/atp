@@ -37,6 +37,7 @@ class SocketConnector::implementation :
 
   ~implementation()
   {
+    LOG(INFO) << "Impl destructor";
   }
 
  protected:
@@ -60,7 +61,6 @@ class SocketConnector::implementation :
           } else {
             // Send ok reply -- must write something on the ZMQ_REP
             // socket or an invalid state exception will be thrown by zmq.
-
             // For simplicity, just use HTTP status codes.
             atp::zmq::send_copy(socket, "200");
           }
