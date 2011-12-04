@@ -150,7 +150,8 @@ class AbstractSocketConnector :
   void onEventThreadStop()
   {
     IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Closing outbound sockets.";
-    // Need to delete the outbound sockets
+    // Need to delete the outbound sockets here since this is running in the
+    // same thread as onEventThreadStart() which created the outbound sockets.
     if (outboundSockets_.get() != NULL) {
       SocketMap::iterator channelPair = outboundSockets_->begin();
       for (; channelPair != outboundSockets_->end(); ++channelPair) {

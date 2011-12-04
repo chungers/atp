@@ -38,7 +38,9 @@ class SocketInitiatorImpl : public SocketInitiator {
                       SocketConnector::Strategy& strategy) :
       application_(app),
       sessionSettings_(settings),
-      strategy_(strategy)
+      strategy_(strategy),
+      inboundContextPtr_(NULL),
+      outboundContextPtr_(NULL)
   { }
 
   ~SocketInitiatorImpl()
@@ -106,7 +108,8 @@ class SocketInitiatorImpl : public SocketInitiator {
           << "Starting connector "
           << itr->getConnectionId()
           << ", inbound: " << itr->getConnectorReactorAddress()
-          << ", context: " << outboundContextPtr_;
+          << ", inboundContext: " << inboundContextPtr_
+          << ", outboundContext: " << outboundContextPtr_;
 
       SessionID sessionId = static_cast<SessionID>(itr->getConnectionId());
       boost::shared_ptr<SocketConnector> s =
