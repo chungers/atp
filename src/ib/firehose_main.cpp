@@ -1,6 +1,4 @@
 
-#include <iostream>
-#include <fstream>
 #include <sstream>
 #include <map>
 #include <vector>
@@ -15,28 +13,23 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "log_levels.h"
-#include "ib/ticker_id.hpp"
-#include "ib/tick_types.hpp"
-#include "zmq/ZmqUtils.hpp"
+#include "ib/SocketInitiator.hpp"
+
 
 /// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
 const std::string CONNECTOR_SPECS =
     "100=127.0.0.1:4001@tcp://127.0.0.1:5555";
 
-const std::string PUSH_ENDPOINTS =
+const std::string OUTBOUND_ENDPOINTS =
     "0=tcp://127.0.0.1:6666,1=tcp://127.0.0.1:6667";
-
-const std::string PUBLISH_ENDPOINTS =
-    "0=tcp://127.0.0.1:7777,1=tcp://127.0.0.1:7778";
 
 
 DEFINE_string(connectors, CONNECTOR_SPECS,
               "Comma-delimited list of gateway ip/port @ control endpoints.");
-DEFINE_string(publish, PUBLISH_ENDPOINTS,
-              "Comma-delimited list of channel and publish endpoints");
-DEFINE_string(push, PUSH_ENDPOINTS,
-              "Comma-delimited list of channel and push endpoints");
+DEFINE_string(outbound, OUTBOUND_ENDPOINTS,
+              "Comma-delimited list of channel and outbound endpoints");
+DEFINE_bool(publish, true,
+            "True to publish at outbound endpoints, false to push to them");
 
 
 void OnTerminate(int param)
@@ -45,6 +38,12 @@ void OnTerminate(int param)
   LOG(INFO) << "Bye.";
   exit(1);
 }
+
+
+using std::vector;
+using std::string;
+using std::stringstream;
+using IBAPI::SocketInitiator;
 
 ////////////////////////////////////////////////////////
 //
@@ -64,6 +63,29 @@ int main(int argc, char** argv)
   if (terminate == SIG_IGN) {
     LOG(INFO) << "RESETTING SIGNAL SIGTERM";
     signal(SIGTERM, SIG_IGN);
+  }
+
+  // Get the connector specs
+  vector<string> connectorSpecs;
+  boost::split(connectorSpecs, FLAGS_connectors, boost::is_any_of(","));
+
+  SocketInitiator::SessionSettings settings;
+  for (vector<string>::iterator spec = connectorSpecs.begin();
+       spec != connectorSpecs.end(); ++spec) {
+
+    /// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
+    stringstream iss(*spec);
+
+    string sessionId;
+    std::getline(iss, sessionId, '=');
+    string gateway;
+    std::getline(iss, gateway, '@');
+    string reactor;
+    iss >> reactor;
+
+    LOG(INFO) << "session = " << sessionId << ", "
+              << "gateway = " << gateway << ", "
+              << "reactor = " << reactor;
   }
 
   return 0;
