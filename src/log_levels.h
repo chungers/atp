@@ -32,5 +32,8 @@
 #define LOG_READER_LOGGER VLOG(10)
 #define LOG_READER_DEBUG VLOG(20)
 
+// firehose
+#define FIREHOSE_LOGGER VLOG(10)
+#define FIREHOSE_DEBUG VLOG(20)
 
 #endif //ATP_LOG_LEVELS_H_

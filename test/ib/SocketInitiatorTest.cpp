@@ -178,7 +178,7 @@ TEST(SocketInitiatorTest, SocketInitiatorEmbeddedPublisherTest)
   EXPECT_TRUE(initiator.isLoggedOn());
 
   LOG(INFO) << "Sleep for a bit";
-  sleep(5);
+  sleep(3);
 
   // Try to connect to the publishing endpoint.
   if (publisherStarted) {
@@ -257,9 +257,8 @@ TEST(SocketInitiatorTest, SocketInitiatorPushExternalTest)
   EXPECT_TRUE(initiator.isLoggedOn());
   EXPECT_EQ(app.getCount(ON_LOGON), 2);
 
-
   LOG(INFO) << "Sleep for a bit";
-  sleep(5);
+  sleep(3);
 
   // Try to connect to the publishing endpoint.
   if (publisherStarted) {

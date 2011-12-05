@@ -92,6 +92,11 @@ class AbstractSocketConnector :
     SocketConnector::ZmqAddressMap::const_iterator channelAddress =
         outboundChannels_.begin();
 
+    // Simply loop through the map of channels and addresses and
+    // create a socket for each channel.  There is no check to see
+    // if the socket address are the same and sharing of sockets.
+    // This should be fine as these are PUSH sockets so multiple sockets
+    // connecting to the same address is permissible.
     for (; channelAddress != outboundChannels_.end(); ++channelAddress) {
 
       int channel = channelAddress->first;

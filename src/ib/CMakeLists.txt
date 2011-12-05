@@ -42,6 +42,23 @@ cpp_library(IBAPIConnector)
 
 
 ##########################################
+# Firehose - the IB Gateway connector
+set(firehose_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(firehose_srcs
+  firehose_main.cpp
+)
+set(firehose_libs
+  IBAPIConnector
+  boost_system
+  gflags
+  glog
+)
+cpp_executable(firehose)
+
+##########################################
 # Simple Log File Reader
 set(LogReader_incs
   ${GEN_DIR}
@@ -56,7 +73,6 @@ set(LogReader_libs
   gflags
   glog
 )
-# Client implementation:
 cpp_executable(LogReader)
 
 # Add the versioned api subdirectory
