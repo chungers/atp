@@ -73,24 +73,32 @@ class ApplicationBase : public Application {
 
   void toAdmin( Message& message, const SessionID& sessionId)
   {
-    IBAPI_APPLICATION_LOGGER << "toAdmin(" << sessionId << ")";
+    IBAPI_APPLICATION_LOGGER << "toAdmin(" << sessionId
+                             << "," << &message
+                             << ")";
   }
 
   void toApp( Message& message, const SessionID& sessionId) throw( DoNotSend )
   {
-    IBAPI_APPLICATION_LOGGER << "toApp(" << sessionId << ")";
+    IBAPI_APPLICATION_LOGGER << "toApp(" << sessionId
+                             << "," << &message
+                             << ")";
   }
 
   void fromAdmin( const Message& message, const SessionID& sessionId)
       throw( IncorrectDataFormat, IncorrectTagValue, RejectLogon )
   {
-    IBAPI_APPLICATION_LOGGER << "fromAdmin(" << sessionId << ")";
+    IBAPI_APPLICATION_LOGGER << "fromAdmin(" << sessionId
+                             << "," << &message
+                             << ")";
   }
 
   void fromApp( const Message& message, const SessionID& sessionId)
       throw( IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType )
   {
-    IBAPI_APPLICATION_LOGGER << "fromApp(" << sessionId << ")";
+    IBAPI_APPLICATION_LOGGER << "fromApp(" << sessionId
+                             << "," << &message
+                             << ")";
   }
 
 };

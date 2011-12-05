@@ -63,29 +63,36 @@ class StrategyBase : public SocketConnector::Strategy
   void onConnect(SocketConnector& sc, int clientId)
   {
     IBAPI_SOCKET_CONNECTOR_STRATEGY_LOGGER
-        << "onConnect(" << clientId << ")" << std::endl;
+        << "SocketConnector(" << &sc << ")::"
+        << "onConnect(" << clientId << ")";
   }
 
   void onData(SocketConnector& sc, int clientId)
   {
     IBAPI_SOCKET_CONNECTOR_STRATEGY_LOGGER
-        << "onData(" << clientId << ")" << std::endl;
+        << "SocketConnector(" << &sc << ")::"
+        << "onData(" << clientId << ")";
   }
 
   void onDisconnect(SocketConnector& sc, int clientId)
   {
     IBAPI_SOCKET_CONNECTOR_STRATEGY_LOGGER
-        << "onDisconnect(" << clientId << ")" << std::endl;
+        << "SocketConnector(" << &sc << ")::"
+        << "onDisconnect(" << clientId << ")";
   }
 
   void onError(SocketConnector& sc)
   {
-    LOG(ERROR) << "onError" << std::endl;
+    LOG(ERROR)
+        << "SocketConnector(" << &sc << ")::"
+        << "onError";
   }
 
   void onTimeout(SocketConnector& sc)
   {
-    LOG(ERROR) << "onTimeout" << std::endl;
+    LOG(ERROR)
+        << "SocketConnector(" << &sc << ")::"
+        << "onTimeout";
   }
 };
 

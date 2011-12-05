@@ -18,7 +18,9 @@ typedef boost::noncopyable NoCopyAndAssign;
 enum DieWhenReporting { DIE, DO_NOT_DIE };
 
 // Report Error and exit if requested.
-static void ReportError(DieWhenReporting should_die, const char* format, ...) {
+inline static void ReportError(DieWhenReporting should_die,
+                               const char* format, ...)
+{
   va_list ap;
   va_start(ap, format);
   vfprintf(stderr, format, ap);

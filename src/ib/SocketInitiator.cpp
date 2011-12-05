@@ -34,7 +34,7 @@ class SocketInitiatorImpl : public SocketInitiator {
 
  public :
   SocketInitiatorImpl(Application& app,
-                      std::list<SessionSetting>& settings,
+                      const SessionSettings& settings,
                       SocketConnector::Strategy& strategy) :
       application_(app),
       sessionSettings_(settings),
@@ -64,7 +64,7 @@ class SocketInitiatorImpl : public SocketInitiator {
   }
 
   /// Starts publisher at the given zmq address.
-  void startPublisher(int channel, const std::string& address)
+  void publish(int channel, const std::string& address)
       throw ( ConfigError, RuntimeError )
   {
     boost::unique_lock<boost::mutex> lock(mutex_);
@@ -91,6 +91,12 @@ class SocketInitiatorImpl : public SocketInitiator {
 
   }
 
+  /// Instead of running embedded publisher, push the messages for given
+  /// channel to the given endpoint.
+  void push(int channel, const std::string& address)
+      throw ( ConfigError, RuntimeError )
+  {
+  }
 
   /// @overload Initiator
   void start() throw ( ConfigError, RuntimeError )
@@ -131,7 +137,7 @@ class SocketInitiatorImpl : public SocketInitiator {
       socketConnectors_[sessionId] = socketConnector;
 
       IBAPI_SOCKET_INITIATOR_LOGGER << "SocketConnector: " << *itr;
-      int id = socketConnector->connect(itr->getIp(), itr->getPort(),
+      unsigned int id = socketConnector->connect(itr->getIp(), itr->getPort(),
                                         sessionId, &strategy_);
 
       if (id == sessionId) {
@@ -194,8 +200,9 @@ class SocketInitiatorImpl : public SocketInitiator {
 
  private:
   Application& application_;
-  std::list<SessionSetting>& sessionSettings_;
+  SessionSettings sessionSettings_;
   SocketConnector::Strategy& strategy_;
+
   zmq::context_t* inboundContext_;
   zmq::context_t* outboundContext_;
 
@@ -215,7 +222,7 @@ class SocketInitiatorImpl : public SocketInitiator {
 
 
 SocketInitiator::SocketInitiator(Application& app,
-                                 std::list<SessionSetting>& settings)
+                                 const SessionSettings& settings)
     : impl_(new SocketInitiatorImpl(app, settings, *this))
 {
 }
@@ -224,10 +231,16 @@ SocketInitiator::~SocketInitiator()
 {
 }
 
-void SocketInitiator::startPublisher(int channel, const std::string& address)
+void SocketInitiator::publish(int channel, const std::string& address)
     throw ( ConfigError, RuntimeError)
 {
-  impl_->startPublisher(channel, address);
+  impl_->publish(channel, address);
+}
+
+void SocketInitiator::push(int channel, const std::string& address)
+    throw ( ConfigError, RuntimeError)
+{
+  impl_->push(channel, address);
 }
 
 /// @overload Initiator
@@ -258,6 +271,7 @@ bool SocketInitiator::isLoggedOn()
 void SocketInitiator::onConnect(SocketConnector& connector, int clientId)
 {
   IBAPI_SOCKET_INITIATOR_LOGGER
+      << "Connector(" << &connector << "): "
       << "Connection (" << clientId << ") established.";
 }
 
@@ -265,6 +279,7 @@ void SocketInitiator::onConnect(SocketConnector& connector, int clientId)
 void SocketInitiator::onData(SocketConnector& connector, int clientId)
 {
   IBAPI_SOCKET_INITIATOR_LOGGER
+      << "Connector(" << &connector << "): "
       << "Connection (" << clientId << ") data.";
 }
 
@@ -272,6 +287,7 @@ void SocketInitiator::onData(SocketConnector& connector, int clientId)
 void SocketInitiator::onError(SocketConnector& connector)
 {
   IBAPI_SOCKET_INITIATOR_LOGGER
+      << "Connector(" << &connector << "): "
       << "Connection error.";
 }
 
@@ -279,6 +295,7 @@ void SocketInitiator::onError(SocketConnector& connector)
 void SocketInitiator::onTimeout(SocketConnector& connector)
 {
   IBAPI_SOCKET_INITIATOR_LOGGER
+      << "Connector(" << &connector << "): "
       << "Connection timeout.";
 }
 
@@ -287,6 +304,7 @@ void SocketInitiator::onDisconnect(SocketConnector& connector,
                                    int clientId)
 {
   IBAPI_SOCKET_INITIATOR_LOGGER
+      << "Connector(" << &connector << "): "
       << "Connection (" << clientId << ") disconnected.";
 }
 

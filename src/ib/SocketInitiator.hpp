@@ -22,17 +22,27 @@ namespace IBAPI {
 /// SocketInitiator manages one or more SocketConnector.
 /// Each SocketConnector has a AsioEClientSocket connection to the IB gateway.
 class SocketInitiator : public Initiator,
-                        public SocketConnector::Strategy {
+                        public SocketConnector::Strategy
+{
 
  public:
 
-  SocketInitiator(Application& app, std::list<SessionSetting>& settings);
+  typedef std::list< SessionSetting > SessionSettings;
+
+  SocketInitiator(Application& app, const SessionSettings& settings);
   ~SocketInitiator();
 
-  void startPublisher(int channel, const std::string& address)
+  /// Publish channel messages at given zmq address.  This
+  /// starts an embedded publisher at the given endpoint.
+  void publish(int channel, const std::string& address)
       throw ( ConfigError, RuntimeError);
 
-  /** Starts connection to gateway */
+  /// Push channel messages to the given endpoint, without running
+  /// an internal publisher.
+  void push(int channel, const std::string& address)
+      throw ( ConfigError, RuntimeError);
+
+  /// Starts connections to gateway
   void start() throw ( ConfigError, RuntimeError );
   void block() throw ( ConfigError, RuntimeError );
   void stop(bool force = false);

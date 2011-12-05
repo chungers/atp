@@ -43,7 +43,6 @@ class SocketConnector::implementation : public AbstractSocketConnector
       zmq::socket_t& socket, EClientPtr eclient)
   {
     bool status = false;
-    int seq = 0;
 
     try {
       while (1) {
