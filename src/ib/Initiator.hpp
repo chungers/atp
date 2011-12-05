@@ -1,19 +1,11 @@
 #ifndef IBAPI_INITIATOR_H_
 #define IBAPI_INITIATOR_H_
 
-#include <set>
-#include <boost/scoped_ptr.hpp>
-#include <boost/thread.hpp>
-
-
-#include <Shared/EWrapper.h>
-
 #include "common.hpp"
 #include "ib/Application.hpp"
 #include "ib/Exceptions.hpp"
 #include "ib/SocketConnector.hpp"
 #include "ib/SessionSetting.hpp"
-
 
 
 namespace IBAPI {

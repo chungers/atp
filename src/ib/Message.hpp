@@ -4,7 +4,7 @@
 #include <quickfix/FieldMap.h>
 #include <quickfix/Fields.h>
 
-#include "ib/ib_common.hpp"
+#include "utils.hpp"
 #include "ib/IBAPIFields.hpp"
 #include "ib/IBAPIValues.hpp"
 
