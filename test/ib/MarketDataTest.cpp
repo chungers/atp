@@ -95,7 +95,7 @@ TEST(MarketDataTest, RequestMarketDataTest)
   LOG(INFO) << "Creating socket connector ==========================";
   // Connector's outbound address is the publisher's inbound address.
   SocketConnector socketConnector(reactorAddr, outboundChannels, app, 10,
-                                  &sharedContext);
+                                  &sharedContext, &sharedContext);
 
   LOG(INFO) << "Starting publisher =================================";
   atp::zmq::Publisher publisher(outboundAddr, marketDataAddr,

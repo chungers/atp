@@ -84,9 +84,9 @@ class AbstractSocketConnector :
         << "Outbound context = " << outboundContext_;
 
     if (outboundContext_ == NULL) {
-      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
-          << "Starting local context.";
       outboundContext_ = new zmq::context_t(1);
+      IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
+          << "Starting local context: " << outboundContext_;
     }
 
     SocketConnector::ZmqAddressMap::const_iterator channelAddress =
@@ -129,7 +129,8 @@ class AbstractSocketConnector :
         } catch (zmq::error_t e) {
           LOG(WARNING)
               << "Channel " << channel << ": "
-              << "Unable to connecto to " << address << ": "
+              << "Unable to connecto to " << address << " using context "
+              << outboundContext_ << ": "
               << e.what();
 
           retry++;
