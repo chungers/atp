@@ -34,12 +34,12 @@ class SocketInitiator : public Initiator,
 
   /// Publish channel messages at given zmq address.  This
   /// starts an embedded publisher at the given endpoint.
-  void publish(int channel, const std::string& address)
+  virtual void publish(int channel, const std::string& address)
       throw ( ConfigError, RuntimeError);
 
   /// Push channel messages to the given endpoint, without running
   /// an internal publisher.
-  void push(int channel, const std::string& address)
+  virtual void push(int channel, const std::string& address)
       throw ( ConfigError, RuntimeError);
 
   /// Starts connections to gateway

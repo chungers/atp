@@ -46,19 +46,21 @@ class SocketInitiatorImpl : public SocketInitiator {
     if (outboundContext_ == NULL) {
       outboundContext_ = new zmq::context_t(1);
     }
+    IBAPI_SOCKET_INITIATOR_LOGGER <<  "Started Initiator.";
   }
 
   ~SocketInitiatorImpl()
   {
     IBAPI_SOCKET_INITIATOR_LOGGER <<  "Shutting down initiator.";
     stop(true);
-    std::map< int, ChannelPublisher >::iterator publisher =
-        channelPublishers_.begin();
-    for (; publisher != channelPublishers_.end(); ++publisher) {
-      if (publisher->second) {
+    std::map< SocketConnector::ZmqAddress, ChannelPublisher >::iterator pub =
+        publishers_.begin();
+    for (; pub != publishers_.end(); ++pub) {
+      if (pub->second) {
         IBAPI_SOCKET_INITIATOR_LOGGER
-            << "Destroying publisher for channel " << publisher->first;
-        delete publisher->second;
+            << "Destroying publisher for endpoint "
+            << pub->first << " @ " << pub->first;
+        delete pub->second;
       }
     }
   }
@@ -67,28 +69,50 @@ class SocketInitiatorImpl : public SocketInitiator {
   void publish(int channel, const std::string& address)
       throw ( ConfigError, RuntimeError )
   {
+    if (connectorsRunning_) {
+      throw RuntimeError("SocketConnectors are already running.");
+    }
+
     boost::unique_lock<boost::mutex> lock(mutex_);
 
     // If we are running the publisher, then use in process context
     // for the connector (outbound) and publisher.
     const std::string& connectorOutboundAddress = "inproc://connectors";
-    if (outboundChannels_.find(channel) == outboundChannels_.end()) {
-      // start publisher
-      IBAPI_SOCKET_INITIATOR_LOGGER
-          << "Starting embedded publisher for channel " << channel
-          << " at " << address;
-      outboundChannels_[channel] = connectorOutboundAddress;
 
-      channelPublishers_[channel] = new atp::zmq::Publisher(
-          connectorOutboundAddress,
-          address, outboundContext_);
+    if (outboundChannels_.find(channel) == outboundChannels_.end()) {
+
+      // Check if we have already created this publisher before:
+      ChannelPublisher publisher = NULL;
+      if (publishers_.find(address) == publishers_.end()) {
+        // start publisher
+        IBAPI_SOCKET_INITIATOR_LOGGER
+            << "Starting embedded publisher for channel " << channel
+            << " at " << address;
+        publisher = new atp::zmq::Publisher(
+            connectorOutboundAddress,
+            address, outboundContext_);
+
+        publishers_[address] = publisher;
+
+      } else {
+
+        publisher = publishers_[address];
+        IBAPI_SOCKET_INITIATOR_LOGGER
+            << "Publisher @ " << address << " already started. "
+            << "Sharing " << publisher;
+      }
+
+      // Bind the connector's outbound channels to the internal
+      // socket address to communicate with the publisher.
+      // The SocketConnector will create its own socket inside the
+      // appropriate event thread.
+      outboundChannels_[channel] = connectorOutboundAddress;
 
     } else {
       IBAPI_SOCKET_INITIATOR_LOGGER
           << "Publisher for channel " << channel << " already running: "
           << outboundChannels_[channel];
     }
-
   }
 
   /// Instead of running embedded publisher, push the messages for given
@@ -96,6 +120,22 @@ class SocketInitiatorImpl : public SocketInitiator {
   void push(int channel, const std::string& address)
       throw ( ConfigError, RuntimeError )
   {
+    if (connectorsRunning_) {
+      throw RuntimeError("SocketConnectors are already running.");
+    }
+
+    // This is simply a way to set up the channel at the specified
+    // outbound address.  There is no need to create sockets since
+    // that is managed by the SocketConnector itself.
+    if (outboundChannels_.find(channel) == outboundChannels_.end()) {
+      outboundChannels_[channel] = address;
+      IBAPI_SOCKET_INITIATOR_LOGGER
+          << "Channel " << channel << " routed to " << address;
+    } else {
+      IBAPI_SOCKET_INITIATOR_LOGGER
+          << "Channel " << channel << " already routed to "
+          << outboundChannels_[channel];
+    }
   }
 
   /// @overload Initiator
@@ -145,8 +185,10 @@ class SocketInitiatorImpl : public SocketInitiator {
                                       << itr->getIp() << ":" << itr->getPort()
                                       << " ==> "
                                       << itr->getConnectorReactorAddress();
+
       } else {
         LOG(FATAL) << "Session " << sessionId << " cannot start.";
+        strategy_.onError(*socketConnector);
       }
       sleep(1); // Wait a bit.
     }
@@ -184,6 +226,12 @@ class SocketInitiatorImpl : public SocketInitiator {
         bool stopped = (*itr).second->stop();
         IBAPI_SOCKET_INITIATOR_LOGGER << "Stopped connector (sessionID="
                                       << itr->first << "): " << stopped;
+
+        if (stopped) {
+          strategy_.onDisconnect(*(itr->second), itr->first);
+        } else {
+          strategy_.onError(*(itr->second));
+        }
         sleep(1); // Wait a bit.
       }
 
@@ -213,7 +261,7 @@ class SocketInitiatorImpl : public SocketInitiator {
   SocketConnector::ZmqAddressMap outboundChannels_;
 
   typedef atp::zmq::Publisher* ChannelPublisher;
-  std::map< int, ChannelPublisher > channelPublishers_;
+  std::map< SocketConnector::ZmqAddress, ChannelPublisher > publishers_;
 
   boost::mutex mutex_;
   bool connectorsRunning_;
