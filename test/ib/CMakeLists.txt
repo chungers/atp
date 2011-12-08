@@ -26,7 +26,7 @@ set(AsioEClientSocket_test_srcs
 )
 set(AsioEClientSocket_test_libs
   IBAPIConnector
-  Quantlib
+  QuantLib
 )
 cpp_gtest(AsioEClientSocket_test)
 
