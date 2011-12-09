@@ -18,6 +18,7 @@ set(IBAPIConnector_incs
   ${SRC_DIR}
   ${IBAPI_IMPL_DIR}
 )
+FILE(GLOB IMPL_FILES "${IBAPI_IMPL_DIR}/*.cpp")
 set(IBAPIConnector_srcs
   ApiMessageBase.cpp
   AsioEClientSocket.cpp
@@ -25,6 +26,7 @@ set(IBAPIConnector_srcs
   SocketInitiator.cpp
   TickerMap.cpp
   ticker_id.cpp
+  ${IMPL_FILES}
 )
 set(IBAPIConnector_libs
  ib_api   # version-specific: see IBAPI_IMPL_DIR

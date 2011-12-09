@@ -44,7 +44,6 @@ set(SocketInitiator_test_srcs
 )
 set(SocketInitiator_test_libs
   IBAPIConnector
-  ib_api
 )
 cpp_gtest(SocketInitiator_test)
 
