@@ -10,8 +10,10 @@ namespace internal {
 /**
  * Interface for mapping ticker ids to contracts and symbols.
  */
-struct TickerMap
+class TickerMap
 {
+ public:
+
   /// Registers the contract and assigns a unique id for use with reqMktData.
   long registerContract(const Contract& contract);
 

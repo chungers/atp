@@ -246,7 +246,7 @@ TEST(SocketInitiatorTest, SocketInitiatorPushExternalTest)
   initiator.push(0, pushTo);
   initiator.push(1, pushTo);
 
-  LOG(INFO) << "Connect to gateway  =========================+============";
+  LOG(INFO) << "Connect to gateway  ======================================";
 
   initiator.start();
 

@@ -9,7 +9,7 @@
 #include "ib/Message.hpp"
 #include "ApiImpl.hpp"
 #include "ib/EventDispatcherBase.hpp"
-#include "ib/ticker_id.hpp"
+
 
 namespace ib {
 namespace internal {
@@ -48,8 +48,6 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
     msg << "IBAPI_ERROR[" << errorCode << "]: ";
 
     bool terminate = false;
-    std::string symbol;
-    SymbolFromTickerId(id, &symbol);
 
     switch (errorCode) {
 
@@ -57,8 +55,8 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
       // will force the event loop to terminate.
       case 200:
         terminate = false;
-        msg << "No security definition has been found for the request, symbol="
-            << symbol;
+        msg << "No security definition has been found for the request, id="
+            << id;
         break;
       case 326:
         terminate = true;
