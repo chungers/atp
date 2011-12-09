@@ -34,4 +34,4 @@ class ReactorStrategyFactory
 
 } // internal
 } // ib
-#endif IBAPI_REACTOR_STRATEGY_FACTORY_H_
+#endif //IBAPI_REACTOR_STRATEGY_FACTORY_H_
