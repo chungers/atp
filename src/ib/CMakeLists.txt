@@ -36,7 +36,7 @@ set(IBAPIConnector_libs
  quickfix
  QuantLib
  zmq
- )
+)
 # Client implementation:
 cpp_library(IBAPIConnector)
 

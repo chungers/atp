@@ -22,7 +22,7 @@ static const int SCALE[] = {
 };
 
 static const int OFFSET = 11;
-static const int MAX_OPTION_PART = 1 << (OFFSET + 1) - 1;
+static const int MAX_OPTION_PART = (1 << (OFFSET + 1)) - 1;
 static const int MID = 1 << (OFFSET - 1);
 // Max code value representing ZZZZ << 11.
 // Max option value on either side (call or put) is 1023.
