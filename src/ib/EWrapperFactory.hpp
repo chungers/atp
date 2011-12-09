@@ -50,4 +50,4 @@ class EWrapperFactory
 
 } // internal
 } // ib
-#endif IBAPI_EWRAPPER_FACTORY_H_
+#endif //IBAPI_EWRAPPER_FACTORY_H_
