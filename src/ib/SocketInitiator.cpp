@@ -75,21 +75,23 @@ class SocketInitiatorImpl : public SocketInitiator {
 
     boost::unique_lock<boost::mutex> lock(mutex_);
 
-    // If we are running the publisher, then use in process context
-    // for the connector (outbound) and publisher.
-    const std::string& connectorOutboundAddress = "inproc://connectors";
-
     if (outboundChannels_.find(channel) == outboundChannels_.end()) {
+
+      // If we are running the publisher, then use in process context
+      // for the connector (outbound) and publisher.
+      std::stringstream connectorOutboundAddress;
+      connectorOutboundAddress << "inproc://channel-" << channel;
 
       // Check if we have already created this publisher before:
       ChannelPublisher publisher = NULL;
       if (publishers_.find(address) == publishers_.end()) {
+
         // start publisher
         IBAPI_SOCKET_INITIATOR_LOGGER
             << "Starting embedded publisher for channel " << channel
             << " at " << address;
         publisher = new atp::zmq::Publisher(
-            connectorOutboundAddress,
+            connectorOutboundAddress.str(),
             address, outboundContext_);
 
         publishers_[address] = publisher;
@@ -106,7 +108,7 @@ class SocketInitiatorImpl : public SocketInitiator {
       // socket address to communicate with the publisher.
       // The SocketConnector will create its own socket inside the
       // appropriate event thread.
-      outboundChannels_[channel] = connectorOutboundAddress;
+      outboundChannels_[channel] = connectorOutboundAddress.str();
 
     } else {
       IBAPI_SOCKET_INITIATOR_LOGGER
