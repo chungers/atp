@@ -28,7 +28,7 @@ if [[ $(which vncserver) != "" ]]; then
     fi
 fi
 
-echo "Starting IBG"
+echo "Starting IBG with DISPLAY= ${DISPLAY}"
 CLASSPATH=$IBG_DIR/jts.jar:$IBG_DIR/hsqldb.jar:$IBG_DIR/jcommon-1.0.12.jar:$IBG_DIR/jhall.jar:$IBG_DIR/other.jar:$IBG_DIR/rss.jar
 nohup java -cp $CLASSPATH  -Dsun.java2d.noddraw=true -Xmx512M ibgateway.GWClient $RUNTIME_DIR &>$RUNTIME_DIR/ibg.log &
 
