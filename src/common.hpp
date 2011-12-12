@@ -63,15 +63,21 @@ class TimeTracking
     outstream->imbue(*l);
   }
 
-  boost::uint64_t getMicros()
+  inline boost::uint64_t getMicros()
   {
     return currentMicros_;
   }
 
  protected:
-  boost::uint64_t setMicros(boost::uint64_t t)
+  inline boost::uint64_t setMicros(boost::uint64_t t)
   {
     currentMicros_ = t;
+    return currentMicros_;
+  }
+
+  inline boost::uint64_t now()
+  {
+    currentMicros_ = now_micros();
     return currentMicros_;
   }
 

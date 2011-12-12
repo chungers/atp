@@ -11,8 +11,7 @@
 #define __f__(m) "," << #m << '=' << m
 
 #define LOG_EVENT                                       \
-  boost::uint64_t t = setMicros(now_micros());          \
-  EWRAPPER_LOGGER                                       \
+  boost::uint64_t t = now(); EWRAPPER_LOGGER            \
   << "cid=" << connection_id_                           \
   << ",ts_utc=" << t                                    \
   << ",event=" << __func__                              \
