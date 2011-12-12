@@ -11,6 +11,7 @@
 #include "ib/Application.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/SocketConnector.hpp"
+#include "ib/SocketInitiator.hpp"
 
 #include "ib/TestHarness.hpp"
 #include "ib/VersionSpecific.hpp"
@@ -147,5 +148,73 @@ TEST(MarketDataTest, RequestMarketDataTest)
   socketConnector.stop();
 
   LOG(INFO) << "Stopped: " << &sharedContext;
+}
+
+
+
+
+using IBAPI::SocketInitiator;
+using IBAPI::SessionSetting;
+
+TEST(MarketDataTest, SocketInitiatorRequestMarketDataTest)
+{
+  TestApplication app;
+
+  SocketInitiator::SessionSettings settings;
+  SessionSetting setting1(1000, "127.0.0.1", 4001, "ipc://_zmq.connector1.in");
+  SessionSetting setting2(1001, "127.0.0.1", 4001, "ipc://_zmq.connector2.in");
+
+  settings.push_back(setting1);
+  settings.push_back(setting2);
+
+  SocketInitiator initiator(app, settings);
+  initiator.publish(0, "ipc://_zmq.marketdata");
+  initiator.publish(1, "ipc://_zmq.account");
+
+  initiator.start();
+
+  app.waitForFirstOccurrence(ON_LOGON, 2);
+  EXPECT_EQ(app.getCount(ON_LOGON), 2);
+
+  // Subscriber client
+  zmq::context_t consumerCtx(1);
+  zmq::socket_t consumer(consumerCtx, ZMQ_SUB);
+  consumer.connect("ipc://_zmq.marketdata");
+  consumer.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+
+  // R client
+  zmq::context_t rClientCtx(1);
+  zmq::socket_t rClient(rClientCtx, ZMQ_REQ);
+  rClient.connect("ipc://_zmq.connector1.in");
+
+  // Get a version specific market data request
+  ib::internal::ApiMessageBase* mdr =
+      ib::testing::VersionSpecific::getMarketDataRequestForTest();
+
+  bool sent = mdr->send(rClient);
+  EXPECT_TRUE(sent);
+
+  // listen for reply
+  std::string reply;
+  atp::zmq::receive(rClient, &reply);
+  EXPECT_EQ("200", reply);
+
+  // Now consumer receives the data:
+  int count = 50; // Just 10 price/size ticks
+  while (count--) {
+    std::ostringstream oss;
+    while (1) {
+      std::string buff;
+      int more = atp::zmq::receive(consumer, &buff);
+      oss << buff << ' ';
+      if (more == 0) break;
+    }
+    LOG(INFO) << "Subscriber: " << oss.str();
+  }
+
+  LOG(INFO) << "Finishing." << std::endl;
+  initiator.stop();
+
+  LOG(INFO) << "Stopped.";
 }
 
