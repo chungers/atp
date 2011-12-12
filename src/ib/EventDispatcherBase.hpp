@@ -39,7 +39,7 @@ class EventDispatcherBase
     if (tickerMap_.getSubscriptionKeyFromId(tickerId, &topic)) {
       std::ostringstream ss;
       // output timestamp as a long (no ISO format)
-      ss << timed.getUtcMicros() << ',' << tick << '=' << value;
+      ss << timed.getMicros() << ',' << tick << '=' << value;
       zmq::socket_t* out = getOutboundSocket(0);
       if (out) {
         atp::zmq::send_copy(*out, topic, true);

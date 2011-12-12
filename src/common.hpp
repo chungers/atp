@@ -40,7 +40,7 @@ namespace internal {
 class TimeTracking
 {
  public:
-  TimeTracking() : currentUtcMicros_(0), currentMicros_(0),
+  TimeTracking() : currentMicros_(0),
                    facet_("%Y-%m-%d %H:%M:%S%F%Q")
   {
   }
@@ -51,7 +51,7 @@ class TimeTracking
   {
     std::ostringstream ss;
     formatTime(&ss);
-    ss << currentUtcMicros_;
+    ss << currentMicros_;
     output->assign(ss.str());
   }
 
@@ -68,23 +68,14 @@ class TimeTracking
     return currentMicros_;
   }
 
-  boost::uint64_t getUtcMicros()
-  {
-    return currentUtcMicros_;
-  }
-
  protected:
-  boost::uint64_t setUtcMicros(boost::uint64_t utc)
-  {
-    return currentUtcMicros_ = utc;
-  }
-
   boost::uint64_t setMicros(boost::uint64_t t)
   {
-    return currentMicros_ = t;
+    currentMicros_ = t;
+    return currentMicros_;
   }
+
  private:
-  boost::uint64_t currentUtcMicros_;
   boost::uint64_t currentMicros_;
   boost::posix_time::time_facet facet_;
 };

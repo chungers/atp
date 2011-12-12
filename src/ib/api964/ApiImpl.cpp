@@ -10,12 +10,11 @@
 // Macro for writing field value.
 #define __f__(m) "," << #m << '=' << m
 
-// Macro for logging the event api call.
 #define LOG_EVENT                                       \
+  boost::uint64_t t = setMicros(now_micros());          \
   EWRAPPER_LOGGER                                       \
   << "cid=" << connection_id_                           \
-  << ",ts_utc=" << setUtcMicros(utc_micros().total_microseconds())      \
-  << ",ts=" << setMicros(now_micros())                                  \
+  << ",ts_utc=" << t                                    \
   << ",event=" << __func__                              \
 
 // Macro for tick type enum to string conversion
