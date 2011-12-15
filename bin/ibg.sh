@@ -22,14 +22,16 @@ done
 
 if [[ $(which vncserver) != "" ]]; then
     if [[ $DISPLAY_NUM != "" ]]; then
-	echo "Start vncserver.";
-	vncserver -geometry 800x600 -depth 16 :${DISPLAY_NUM}
-	export DISPLAY=localhost:${DISPLAY_NUM}
+        echo "Start vncserver.";
+        vncserver -geometry 800x600 -depth 16 :${DISPLAY_NUM}
+        export DISPLAY=localhost:${DISPLAY_NUM}
     fi
 fi
 
-echo "Starting IBG with DISPLAY= ${DISPLAY} and RUNTIME_DIR=${RUNTIME_DIR}"
+LOG=$RUNTIME_DIR/ibg-${DISPLAY_NUM}.log
+
+echo "Starting IBG with DISPLAY= ${DISPLAY} and RUNTIME_DIR=${RUNTIME_DIR}, logfile = $LOG"
 CLASSPATH=$IBG_DIR/jts.jar:$IBG_DIR/hsqldb.jar:$IBG_DIR/jcommon-1.0.12.jar:$IBG_DIR/jhall.jar:$IBG_DIR/other.jar:$IBG_DIR/rss.jar
-nohup java -cp $CLASSPATH  -Dsun.java2d.noddraw=true -Xmx512M ibgateway.GWClient $RUNTIME_DIR &>$RUNTIME_DIR/ibg.log &
+nohup java -cp $CLASSPATH  -Dsun.java2d.noddraw=true -Xmx512M ibgateway.GWClient $RUNTIME_DIR &>$LOG &
 
 echo "IBG started."
