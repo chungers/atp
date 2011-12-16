@@ -13,7 +13,7 @@
 PKG_CPPFLAGS = -I@SRC_DIR@ -I@IBAPI_ROOT@ -I@IBAPI_ROOT@/Shared -I@SRC_DIR@/ib/@IBAPI_IMPL_DIR@ -DIB_USE_STD_STRING
 
 ## Use the R_HOME indirection to support installations of multiple R version
-PKG_LIBS = `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` -L@SRC_DIR@/ib -lIBAPIConnector -L@SRC_DIR@/zmq -lzmq_components -lzmq -lQuantLib -lquickfix
+PKG_LIBS = `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` -L@SRC_DIR@/ib -lgflags -lglog -lIBAPIConnector -L@SRC_DIR@/zmq -lzmq_components -lzmq -lQuantLib -lquickfix
 
 
 

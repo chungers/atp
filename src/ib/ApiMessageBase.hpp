@@ -70,7 +70,7 @@ class ApiMessageBase : public IBAPI::Message
   ~ApiMessageBase() {}
 
   virtual bool callApi(EClientPtr eclient) = 0;
-  virtual bool send(zmq::socket_t& detination);
+  virtual size_t send(zmq::socket_t& detination);
   virtual bool receive(zmq::socket_t& source);
 };
 
@@ -88,8 +88,8 @@ class ZmqMessage : public ib::internal::ApiMessageBase
   virtual bool callApi(EClientPtr eclient)
   { return false; }  // Invalid operation
 
-  virtual bool send(zmq::socket_t& destination)
-  { return false; }  // Invalid operation
+  virtual size_t send(zmq::socket_t& destination)
+  { return 0; }  // Invalid operation
 };
 
 } // namespace internal

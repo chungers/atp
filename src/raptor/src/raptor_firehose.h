@@ -3,8 +3,7 @@
 
 #include <Rcpp.h>
 
-RcppExport SEXP raptor_firehose_req_marketdata(
-    SEXP handle, SEXP keys, SEXP list) ;
+RcppExport SEXP raptor_firehose_marketdata(SEXP handle, SEXP list) ;
 
 
 #endif // _raptor_RAPTOR_FIREHOSE_H

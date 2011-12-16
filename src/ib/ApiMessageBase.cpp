@@ -37,13 +37,13 @@ static size_t send_map(zmq::socket_t& socket, const FieldMap& message,
   return sent;
 }
 
-bool ApiMessageBase::send(zmq::socket_t& destination)
+size_t ApiMessageBase::send(zmq::socket_t& destination)
 {
   size_t sent = 0;
   sent += send_map(destination, getHeader(), true);
   sent += send_map(destination, *this, true);
   sent += send_map(destination, getTrailer(), false); // terminating fieldmap
-  return sent > 0;
+  return sent;
 }
 
 using IBAPI::Message;

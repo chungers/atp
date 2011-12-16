@@ -9,26 +9,56 @@
 using namespace std;
 using namespace Rcpp ;
 
+using IBAPI::V964::MarketDataRequest;
 
-SEXP raptor_firehose_req_marketdata(SEXP handle, SEXP listKeys, SEXP list)
+#define R_STRING Rcpp::as<std::string>
+
+SEXP raptor_firehose_marketdata(SEXP handle, SEXP list)
 {
   List handleList(handle);
   XPtr<zmq::socket_t> socket(handleList["socket"], R_NilValue, R_NilValue);
 
-  CharacterVector keys(listKeys);
   List rList(list);
-  size_t fields = keys.size() - 1;
-  size_t total = 0;
-  for (CharacterVector::iterator key = keys.begin();
-       key != keys.end();
-       ++key, --fields) {
-    std::string k(static_cast<const char*>(*key));
-    std::string value = Rcpp::as<std::string>(rList[k]);
-    std::string messageStr = k + "=" + value;
-    size_t sent = atp::zmq::send_copy(*socket, messageStr, fields > 0);
-    total += sent;
-    Rprintf("Sent %d bytes, message = %s\n", sent, messageStr.c_str());
+
+  MarketDataRequest mdr;
+
+  mdr.set(FIX::MDEntryRefID(R_STRING(rList["conId"])));
+  mdr.set(FIX::Symbol(R_STRING(rList["symbol"])));
+  mdr.set(FIX::SecurityExchange(R_STRING(rList["exch"])));
+  mdr.set(FIX::Currency(R_STRING(rList["currency"])));
+
+
+  if (R_STRING(rList["sectype"]) == "STK") {
+    mdr.set(FIX::SecurityType(FIX::SecurityType_COMMON_STOCK));
+  } else if (R_STRING(rList["sectype"]) == "OPT") {
+    mdr.set(FIX::SecurityType(FIX::SecurityType_OPTION));
+    if (R_STRING(rList["right"]) == "P") {
+      mdr.set(FIX::PutOrCall(FIX::PutOrCall_PUT));
+    } else if (R_STRING(rList["right"]) == "C") {
+      mdr.set(FIX::PutOrCall(FIX::PutOrCall_CALL));
+    }
+    float strike = 0;
+    std::istringstream iss(R_STRING(rList["strike"]));
+    iss >> strike;
+    mdr.set(FIX::StrikePrice(strike));
+
+    float multiplier = 0;
+    std::istringstream iss2(R_STRING(rList["multiplier"]));
+    iss2 >> multiplier;
+    mdr.set(FIX::ContractMultiplier(multiplier));
+
+    mdr.set(FIX::DerivativeSecurityID(R_STRING(rList["local"])));
+
+    // TODO(fix this)
+    std::string expiry = R_STRING(rList["expiry"]);
+    int year = 2011;
+    int month = 12;
+    int day = 16;
+    IBAPI::V964::FormatExpiry(mdr, year, month, day);
   }
 
-  return wrap(total);
+  size_t sent = mdr.send(*socket);
+  std::string buff;
+  atp::zmq::receive(*socket, &buff);
+  return wrap(buff);
 }

@@ -2,9 +2,8 @@
 
 raptor.firehose.req_marketdata <- function(handle, contract) {
   # contract is a list.
-  result <- .Call("raptor_firehose_req_marketdata",
+  result <- .Call("raptor_firehose_marketdata",
             handle,
-            names(contract),
             lapply(contract, function(f) { as.character(f) }),
             PACKAGE = "raptor");
   result
