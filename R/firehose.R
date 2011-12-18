@@ -18,6 +18,7 @@ symbols <- c(
 'CROX',
 'DECK',
 'DDM',
+'DXD',
 'ERX',
 'ERY',
 'FAS',
