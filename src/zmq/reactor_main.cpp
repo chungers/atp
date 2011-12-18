@@ -8,6 +8,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "utils.hpp"
 #include "zmq/Publisher.hpp"
 #include "zmq/Reactor.hpp"
 #include "zmq/ZmqUtils.hpp"
@@ -217,7 +218,7 @@ int main(int argc, char** argv)
             oss << " " << buff;
             if (more == 0) break;
           }
-          LOG(INFO) << oss.str();
+          LOG(INFO) << oss.str() << " " << now_micros();
         }
       } else {
         DEBUG_LOG << "RECEIVE =====================================";
