@@ -1,25 +1,73 @@
+source("env.R")
+source("loadContractDetails.R")
+
+# load contract details for all the symbols and store them in a RData file
+# as database of contracts for market data requests later on.
+symbols <- c(
+'AAPL',
+'AKAM',
+'AMZN',
+'APC',
+'BAC',
+'BIDU',
+'BMC',
+'C',
+'CAT',
+'CMG',
+'CRM',
+'CROX',
+'DECK',
+'DDM',
+'ERX',
+'ERY',
+'FAS',
+'FAZ',
+'FFIV',
+'IBM',
+'INTC',
+'ISRG',
+'JPM',
+'GLD',
+'GLL',
+'GOOG',
+'GRPN',
+'GS',
+'LNKD',
+'MS',
+'MSFT',
+'NFLX',
+'OPEN',
+'ORCL',
+'PCLN',
+'QID',
+'QLD',
+'REW',
+'RIMM',
+'RTH',
+'SMN',
+'SOHU',
+'SPY',
+'URE',
+'VMW',
+'WFM',
+'WYNN',
+'XLE',
+'XLV',
+"ZNGA")
+
 library(IBrokers)
-library(raptor)
 
-davidc415 <- twsConnect(clientId=4444, port=4001)
-goog <- twsSTK(symbol='GOOG')
-goog_details <- reqContractDetails(davidc415, goog)
-goog <- goog_details[[1]]$contract
+ibg <- twsConnect(host="localhost", port=5001, clientId=9999)
 
-znga <- twsSTK(symbol='ZNGA')
-znga_details <- reqContractDetails(davidc415, znga)
-znga <- znga_details[[1]]$contract
+message("Loading contractDetails for symbols, count = ", length(symbols))
 
-aapl <- twsSTK(symbol='AAPL')
-aapl_details <- reqContractDetails(davidc415, aapl)
-aapl <- aapl_details[[1]]$contract
+contractDetails <- fh_load_stk_contract_details(ibg, symbols)
 
-lnkd <- twsSTK(symbol='LNKD')
-lnkd_details <- reqContractDetails(davidc415, lnkd)
-linkd <- lnkd_details[[1]]$contract
+message("Found contractDetails, count = ", length(contractDetails))
 
-save.image('firehose.RData')
+save.image('firehose_contracts.RData')
 
+twsDisconnect(ibg)
 
 
 
