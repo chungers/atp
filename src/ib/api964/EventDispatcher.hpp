@@ -63,13 +63,13 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
         msg << "Conflicting connection id. Disconnecting.";
         break;
       case 502:
-        terminate = true;
+        terminate = false; // Set to false to avoid hanging connection on linux
         msg << "Couldn't connect to TWS.  "
             << "Confirm that \"Enable ActiveX and Socket Clients\" is enabled on the TWS "
             << "\"Configure->API\" menu.";
         break;
       case 509:
-        terminate = true;
+        terminate = false; // Set to false to avoid hanging connection on linux
         msg << "Connection reset. Disconnecting.";
         break;
       case 1100:

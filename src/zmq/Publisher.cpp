@@ -118,8 +118,9 @@ void Publisher::process()
         //     << ", size=" << message.size();
 
       } catch (::zmq::error_t e) {
-        LOG(ERROR) << "Stopping on exception: " << e.what();
-        stop = true;
+        // Ignore signal 4 on linux which causes the publisher/ connector to hang.
+        LOG(ERROR) << "Stopping on error " << e.num() << ", exception: " << e.what();
+        //stop = true;
         break;
       }
 
