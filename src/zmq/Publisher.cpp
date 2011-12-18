@@ -118,7 +118,7 @@ void Publisher::process()
         //     << ", size=" << message.size();
 
       } catch (::zmq::error_t e) {
-        ZMQ_PUBLISHER_LOGGER << "Stopping on exception: " << e.what();
+        LOG(ERROR) << "Stopping on exception: " << e.what();
         stop = true;
       }
 
