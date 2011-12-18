@@ -12,6 +12,7 @@
 #include "zmq/Reactor.hpp"
 #include "zmq/ZmqUtils.hpp"
 
+#define DEBUG_LOG VLOG(20)
 
 using namespace std;
 using atp::zmq::Publisher;
@@ -37,13 +38,13 @@ struct NoEchoStrategy : Reactor::Strategy
     bool status = false;
     int seq = 0;
     try {
-      LOG(INFO) << "RECEIVE =====================================" << std::endl;
+      DEBUG_LOG << "RECEIVE =====================================" << std::endl;
       while (1) {
         int more = atp::zmq::receive(socket, &buff);
-        LOG(INFO) << "Part[" << seq++ << "]:" << buff << ", more = " << more;
+        DEBUG_LOG << "Part[" << seq++ << "]:" << buff << ", more = " << more;
         if (more == 0) break;
       }
-      LOG(INFO) << "frames = " << seq;
+      DEBUG_LOG << "frames = " << seq;
       status = true;
     } catch (zmq::error_t e) {
       LOG(WARNING) << "Got exception: " << e.what() << std::endl;
@@ -66,24 +67,24 @@ struct EchoStrategy : Reactor::Strategy
     bool status = false;
     int seq = 0;
     try {
-      LOG(INFO) << "RECEIVE =====================================" << std::endl;
+      DEBUG_LOG << "RECEIVE =====================================" << std::endl;
       while (1) {
         int more = atp::zmq::receive(socket, &buff);
-        LOG(INFO) << "Part[" << seq++ << "]:" << buff << ", more = " << more;
+        DEBUG_LOG << "Part[" << seq++ << "]:" << buff << ", more = " << more;
         message.push_back(buff);
         if (more == 0) break;
       }
 
-      LOG(INFO) << "ECHO ========================================" << std::endl;
+      DEBUG_LOG << "ECHO ========================================" << std::endl;
       // Now send everything back:
       MessageFrames f = message.begin();
       size_t frames = message.size();
       for (; f != message.end(); ++f) {
         bool more = --seq > 0;
-        LOG(INFO)
+        DEBUG_LOG
             << "Reply[" << (frames-seq) << "]:" << *f << " more = " << more;
         size_t sent = atp::zmq::send_copy(socket , *f, more);
-        LOG(INFO) << " size=" << sent << std::endl;
+        DEBUG_LOG << " size=" << sent << std::endl;
       }
 
       status = true;
@@ -98,8 +99,8 @@ struct EchoStrategy : Reactor::Strategy
 
 void OnTerminate(int param)
 {
-  LOG(INFO) << "===================== SHUTTING DOWN =======================";
-  LOG(INFO) << "Bye.";
+  DEBUG_LOG << "===================== SHUTTING DOWN =======================";
+  DEBUG_LOG << "Bye.";
   exit(1);
 }
 
@@ -119,11 +120,11 @@ int main(int argc, char** argv)
   void (*terminate)(int);
   terminate = signal(SIGTERM, OnTerminate);
   if (terminate == SIG_IGN) {
-    LOG(INFO) << "********** RESETTING SIGNAL SIGTERM";
+    DEBUG_LOG << "********** RESETTING SIGNAL SIGTERM";
     signal(SIGTERM, SIG_IGN);
   }
 
-  LOG(INFO) << "Starting context." << std::endl;
+  DEBUG_LOG << "Starting context." << std::endl;
 
   zmq::context_t context(1);
 
@@ -131,7 +132,7 @@ int main(int argc, char** argv)
     // =========================== SERVER ==========================
     if (FLAGS_pubsub) {
 
-      LOG(INFO) << "Publisher starting up at "
+      DEBUG_LOG << "Publisher starting up at "
                 << "inbound @" << FLAGS_endpoint
                 << ",publish @" << FLAGS_publishEndpoint;
 
@@ -146,7 +147,7 @@ int main(int argc, char** argv)
       if (FLAGS_echo) {
         EchoStrategy strategy;
         Reactor reactor(FLAGS_endpoint, strategy);
-        LOG(INFO) << "Server started in ECHO mode." << std::endl;
+        DEBUG_LOG << "Server started in ECHO mode." << std::endl;
         reactor.block();
       } else {
         NoEchoStrategy strategy;
@@ -162,12 +163,12 @@ int main(int argc, char** argv)
     int socketType = ZMQ_PUSH;
     if (FLAGS_echo) {
       socketType = ZMQ_REQ;
-      LOG(INFO) << "Socket type = ZMQ_REQ";
+      DEBUG_LOG << "Socket type = ZMQ_REQ";
     }
     // Special case -- if no message flag specified, then it's a subscriber
     if (FLAGS_message == NOT_SET && FLAGS_pubsub) {
       socketType = ZMQ_SUB;
-      LOG(INFO) << "Socket type = ZMQ_SUB";
+      DEBUG_LOG << "Socket type = ZMQ_SUB";
     }
 
     zmq::socket_t client(context, socketType);
@@ -175,11 +176,11 @@ int main(int argc, char** argv)
         FLAGS_publishEndpoint : FLAGS_endpoint;
 
     client.connect(ep.c_str());
-    LOG(INFO) << "Client connected to " << ep ;
+    DEBUG_LOG << "Client connected to " << ep ;
 
     // add subscription
     if (socketType == ZMQ_SUB) {
-      LOG(INFO) << "Client subscribing to " << FLAGS_subscription;
+      DEBUG_LOG << "Client subscribing to " << FLAGS_subscription;
       client.setsockopt(ZMQ_SUBSCRIBE,
                         FLAGS_subscription.c_str(),
                         FLAGS_subscription.length());
@@ -192,12 +193,12 @@ int main(int argc, char** argv)
       MessageFrames f = message.begin();
       int total = message.size();
       int seq = 0;
-      LOG(INFO) << "SEND ==========================================";
+      DEBUG_LOG << "SEND ==========================================";
       for (; f != message.end(); ++f, ++seq) {
         bool more = seq != total - 1;
-        LOG(INFO) << "Send[" << seq << "]:" << *f << " more = " << more;
+        DEBUG_LOG << "Send[" << seq << "]:" << *f << " more = " << more;
         size_t sent = atp::zmq::send_copy(client , *f, more);
-        LOG(INFO) << " size=" << sent << std::endl;
+        DEBUG_LOG << " size=" << sent << std::endl;
       }
     }
     if (FLAGS_echo || socketType == ZMQ_SUB) {
@@ -206,25 +207,28 @@ int main(int argc, char** argv)
 
       if (socketType == ZMQ_SUB) {
         while (1) {
-          LOG(INFO) << "SUBSCRIBE =====================================";
+          DEBUG_LOG << "SUBSCRIBE =====================================";
           seq = 0;
+          std::ostringstream oss;
           while (1) {
             int more = atp::zmq::receive(client, &buff);
-            LOG(INFO) << "Part[" << seq++ << "]:"
+            DEBUG_LOG << "Part[" << seq++ << "]:"
                       << buff << ", more = " << more;
+            oss << " " << buff;
             if (more == 0) break;
           }
+          LOG(INFO) << oss.str();
         }
       } else {
-        LOG(INFO) << "RECEIVE =====================================";
+        DEBUG_LOG << "RECEIVE =====================================";
         while (1) {
           int more = atp::zmq::receive(client, &buff);
-          LOG(INFO) << "Part[" << seq++ << "]:" << buff << ", more = " << more;
+          DEBUG_LOG << "Part[" << seq++ << "]:" << buff << ", more = " << more;
           if (more == 0) break;
         }
       }
     }
 
-    LOG(INFO) << "Client finished. Exiting." << std::endl;
+    DEBUG_LOG << "Client finished. Exiting." << std::endl;
   }
 }

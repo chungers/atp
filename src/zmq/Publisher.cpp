@@ -98,7 +98,7 @@ void Publisher::process()
 
   bool stop = false;
   while (!stop) {
-    while (!stop) {
+    while (true) {
       ::zmq::message_t message;
       int64_t more;
       size_t more_size = sizeof(more);
@@ -120,6 +120,7 @@ void Publisher::process()
       } catch (::zmq::error_t e) {
         LOG(ERROR) << "Stopping on exception: " << e.what();
         stop = true;
+        break;
       }
 
       if (!more)
