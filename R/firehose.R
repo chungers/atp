@@ -1,74 +1,19 @@
-source("env.R")
-source("loadContractDetails.R")
+source("utils.R")
 
-# load contract details for all the symbols and store them in a RData file
-# as database of contracts for market data requests later on.
-symbols <- c(
-'AAPL',
-'AKAM',
-'AMZN',
-'APC',
-'BAC',
-'BIDU',
-'BMC',
-'C',
-'CAT',
-'CMG',
-'CRM',
-'CROX',
-'DECK',
-'DDM',
-'DXD',
-'ERX',
-'ERY',
-'FAS',
-'FAZ',
-'FFIV',
-'IBM',
-'INTC',
-'ISRG',
-'JPM',
-'GLD',
-'GLL',
-'GOOG',
-'GRPN',
-'GS',
-'LNKD',
-'MS',
-'MSFT',
-'NFLX',
-'OPEN',
-'ORCL',
-'PCLN',
-'QID',
-'QLD',
-'REW',
-'RIMM',
-'RTH',
-'SMN',
-'SOHU',
-'SPY',
-'URE',
-'VMW',
-'WFM',
-'WYNN',
-'XLE',
-'XLV',
-"ZNGA")
+library(raptor)
 
-library(IBrokers)
+load('firehose_contracts.RData')
 
-ibg <- twsConnect(host="localhost", port=5001, clientId=9999)
+#zmq <- raptor.zmq.connect(addr='tcp://127.0.0.1:6666', type='ZMQ_REQ')
+zmq <- raptor.zmq.connect(addr='tcp://69.164.211.61:6666', type='ZMQ_REQ')
+# request market data for all symbols
+stopifnot(is.vector(symbols))
+result <- fh_marketData(zmq=zmq, symbols=symbols)
+raptor.zmq.disconnect(zmq)
 
-message("Loading contractDetails for symbols, count = ", length(symbols))
 
-contractDetails <- fh_load_stk_contract_details(ibg, symbols)
-
-message("Found contractDetails, count = ", length(contractDetails))
-
-save.image('firehose_contracts.RData')
-
-twsDisconnect(ibg)
-
+zmq <- raptor.zmq.connect(addr='tcp://69.164.211.61:6666', type='ZMQ_REQ')
+result <- fh_cancel_marketData(zmq=zmq, symbols=symbols)
+raptor.zmq.disconnect(zmq)
 
 

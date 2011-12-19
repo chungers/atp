@@ -6,6 +6,14 @@ raptor.zmq.connect <- function(addr, type) {
   handle
 }
 
+raptor.zmq.disconnect <- function(handle) {
+  result <- .Call("raptor_zmq_disconnect",
+                  handle,
+                  PACKAGE = "raptor");
+  rm(handle)
+  result
+}
+
 raptor.zmq.send <- function(handle, message) {
   # Check the input mode and peform conversion if necessary.
   result <- switch (

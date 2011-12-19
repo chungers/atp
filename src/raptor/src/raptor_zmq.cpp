@@ -26,7 +26,7 @@ SEXP raptor_zmq_connect(SEXP addr, SEXP socketType)
   }
 
   socket->connect(zmqAddr.c_str());
-  Rprintf(" connected @ %s", zmqAddr.c_str());
+  Rprintf(" connected @ %s\n", zmqAddr.c_str());
 
   XPtr<zmq::context_t> contextPtr(context);
   XPtr<zmq::socket_t> socketPtr(socket);
@@ -36,6 +36,17 @@ SEXP raptor_zmq_connect(SEXP addr, SEXP socketType)
                              Named("addr", zmqAddr),
                              Named("socket_type", zmqSocketType));
   return result;
+}
+
+SEXP raptor_zmq_disconnect(SEXP handle)
+{
+  List handleList(handle);
+  XPtr<zmq::socket_t> socket(handleList["socket"], R_NilValue, R_NilValue);
+  XPtr<zmq::context_t> context(handleList["context"], R_NilValue, R_NilValue);
+
+  socket.setDeleteFinalizer();
+  context.setDeleteFinalizer();
+  return wrap(true);
 }
 
 SEXP raptor_zmq_send(SEXP handle, SEXP message)
