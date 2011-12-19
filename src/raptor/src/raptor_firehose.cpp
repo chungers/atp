@@ -14,7 +14,8 @@ using IBAPI::V964::MarketDataRequest;
 
 #define R_STRING Rcpp::as<std::string>
 
-SEXP raptor_firehose_marketdata(SEXP handle, SEXP list)
+
+SEXP firehose_marketdata(SEXP handle, SEXP list)
 {
   List handleList(handle);
   XPtr<zmq::socket_t> socket(handleList["socket"], R_NilValue, R_NilValue);
@@ -64,7 +65,7 @@ SEXP raptor_firehose_marketdata(SEXP handle, SEXP list)
   return wrap(buff);
 }
 
-SEXP raptor_firehose_cancel_marketdata(SEXP handle, SEXP list)
+SEXP firehose_cancel_marketdata(SEXP handle, SEXP list)
 {
   List handleList(handle);
   XPtr<zmq::socket_t> socket(handleList["socket"], R_NilValue, R_NilValue);
