@@ -9,6 +9,7 @@
 using namespace std;
 using namespace Rcpp ;
 
+using IBAPI::V964::CancelMarketDataRequest;
 using IBAPI::V964::MarketDataRequest;
 
 #define R_STRING Rcpp::as<std::string>
@@ -58,6 +59,25 @@ SEXP raptor_firehose_marketdata(SEXP handle, SEXP list)
   }
 
   size_t sent = mdr.send(*socket);
+  std::string buff;
+  atp::zmq::receive(*socket, &buff);
+  return wrap(buff);
+}
+
+SEXP raptor_firehose_cancel_marketdata(SEXP handle, SEXP list)
+{
+  List handleList(handle);
+  XPtr<zmq::socket_t> socket(handleList["socket"], R_NilValue, R_NilValue);
+
+  List rList(list);
+
+  CancelMarketDataRequest cmdr;
+
+  cmdr.set(FIX::MDEntryRefID(R_STRING(rList["conId"])));
+  cmdr.set(FIX::Symbol(R_STRING(rList["symbol"])));
+  cmdr.set(FIX::DerivativeSecurityID(R_STRING(rList["local"])));
+
+  size_t sent = cmdr.send(*socket);
   std::string buff;
   atp::zmq::receive(*socket, &buff);
   return wrap(buff);

@@ -231,9 +231,11 @@ void AsioEClientSocket::block() {
       processMessageDt_ = now_micros() - start;
     } catch (...) {
       // Implementation taken from http://goo.gl/aiOKm
-      getWrapper()->error(NO_VALID_ID, CONNECT_FAIL.code(), CONNECT_FAIL.msg());
+      getWrapper()->error(NO_VALID_ID,
+                          CONNECT_FAIL.code(),
+                          CONNECT_FAIL.msg());
       processed = false;
-      LOG(WARNING) << "Exception while processing event." << std::endl;
+      LOG(ERROR) << "Setting state to STOPPING and closing socket.";
       state_ = STOPPING;
       closeSocket();
     }

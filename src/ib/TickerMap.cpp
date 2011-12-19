@@ -16,6 +16,7 @@ namespace internal {
 typedef boost::shared_ptr< Contract > ContractPtr;
 
 static std::map< long, std::string > TICKER_ID_SYMBOL_MAP;
+static std::map< std::string, long > SYMBOL_TICKER_ID_MAP;
 static std::map< long, ContractPtr > TICKER_ID_CONTRACT_MAP;
 
 static boost::mutex __ticker_map_mutex;
@@ -74,10 +75,10 @@ long TickerMap::registerContract(const Contract& contract)
     std::string symbol;
     if (symbol_from_contract(contract, &symbol)) {
       TICKER_ID_SYMBOL_MAP[tickerId] = symbol;
+      SYMBOL_TICKER_ID_MAP[symbol] = tickerId;
       TICKER_ID_CONTRACT_MAP[tickerId] = clone;
     } else {
       // Error
-      LOG(ERROR) << "A ++++++++++++++++";
       tickerId = -1;
     }
   } else {
@@ -86,11 +87,9 @@ long TickerMap::registerContract(const Contract& contract)
     if (symbol_from_contract(contract, &check)) {
       if (TICKER_ID_SYMBOL_MAP[tickerId] != check) {
         tickerId = -1; // Error
-        LOG(ERROR) << "B ++++++++++++++++";
       }
     } else {
       tickerId = -1; // Error
-      LOG(ERROR) << "C ++++++++++++++++";
     }
   }
   return tickerId;
@@ -108,6 +107,17 @@ bool TickerMap::getSubscriptionKeyFromId(long tickerId, std::string* output)
   }
 }
 
+bool TickerMap::getTickerIdFromSubscriptionKey(const std::string& key, long* id)
+{
+  if (SYMBOL_TICKER_ID_MAP.find(key) == SYMBOL_TICKER_ID_MAP.end()) {
+    // Use conversion
+    *id = ib::internal::SymbolToTickerId(key);
+    return false; // Since we don't have any mappings.
+  } else {
+    *id = SYMBOL_TICKER_ID_MAP[key];
+    return true;
+  }
+}
 } // namespace internal
 } // namespace ib
 

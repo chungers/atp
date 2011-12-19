@@ -20,11 +20,10 @@ static IBAPI::SocketInitiator* INITIATOR_INSTANCE;
 
 /// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
 const std::string CONNECTOR_SPECS =
-    "100=127.0.0.1:4001@tcp://127.0.0.1:5555";
+    "100=127.0.0.1:4001@tcp://127.0.0.1:5551";
 
 const std::string OUTBOUND_ENDPOINTS =
     "0=tcp://127.0.0.1:6666,1=tcp://127.0.0.1:6667";
-
 
 DEFINE_string(connectors, CONNECTOR_SPECS,
               "Comma-delimited list of gateway ip/port @ control endpoints.");

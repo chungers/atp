@@ -192,6 +192,70 @@ class MarketDataRequest : public V964Message
 };
 
 
+class CancelMarketDataRequest : public V964Message
+{
+ public:
+
+  CancelMarketDataRequest() : V964Message("CancelMarketDataRequest")
+  {
+  }
+
+  CancelMarketDataRequest(const IBAPI::Message& copy) : V964Message(copy)
+  {
+  }
+
+  ~CancelMarketDataRequest()
+  {
+  }
+
+  // The following maps as subset of FIX41 MarketDataRequest::NoRelatedSym group
+  FIELD_SET(*this, FIX::Symbol);
+  FIELD_SET(*this, FIX::MDEntryRefID); // --> conId
+  FIELD_SET(*this, FIX::DerivativeSecurityID); // --> local
+
+
+  long marshall()
+  {
+    ib::internal::TickerMap tm;
+
+    std::string symbol("");
+    std::string localSymbol("");
+
+    MAP_OPTIONAL_FIELD(FIX::Symbol, symbol);
+    MAP_OPTIONAL_FIELD(FIX::DerivativeSecurityID, localSymbol);
+
+    long tickerId = -1;
+    OPTIONAL_FIELD(FIX::MDEntryRefID, conId);
+    if (conId.getLength() > 0) {
+      long conIdLong = 0L;
+      if (FIX::IntConvertor::convert(conId.getValue(), conIdLong)) {
+        tickerId = conIdLong;
+      }
+    } else if (localSymbol != "") {
+      tm.getTickerIdFromSubscriptionKey(localSymbol, &tickerId);
+    } else if (symbol != "") {
+      tm.getTickerIdFromSubscriptionKey(symbol, &tickerId);
+    }
+    return tickerId;
+  }
+
+  bool callApi(EClientPtr eclient)
+  {
+    long tickerId = 0;
+    try {
+      tickerId = marshall();
+    } catch (FIX::FieldNotFound e) {
+      return false;
+    }
+    if (tickerId > 0) {
+      eclient->cancelMktData(tickerId);
+      return true;
+    }
+    return false;
+  }
+};
+
+
 class OptionChainRequest : public V964Message
 {
  public:

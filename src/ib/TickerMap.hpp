@@ -19,6 +19,9 @@ class TickerMap
 
   /// Given the id, get a contract symbol.
   bool getSubscriptionKeyFromId(long tickerId, std::string* output);
+
+  /// Given the subscription key, get the tickerId.
+  bool getTickerIdFromSubscriptionKey(const std::string& key, long* id);
 };
 
 } // namespace internal

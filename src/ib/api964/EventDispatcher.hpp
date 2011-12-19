@@ -42,10 +42,12 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
   /// @overload EWrapper
   void error(const int id, const int errorCode, const IBString errorString)
   {
-
     LoggingEWrapper::error(id, errorCode, errorString);
+    LOG(ERROR) << "ERROR(" << errorCode << "): " << errorString;
+
     std::ostringstream msg;
-    msg << "IBAPI_ERROR[" << errorCode << "]: ";
+    msg << "IBAPI_ERROR[" << errorCode << "]: " << errorString
+        << " -- ";
 
     bool terminate = false;
 

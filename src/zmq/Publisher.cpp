@@ -2,6 +2,7 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
+#include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <zmq.hpp>
 #include <stdlib.h>
@@ -10,6 +11,9 @@
 #include "common.hpp"
 #include "zmq/Publisher.hpp"
 
+
+DEFINE_bool(publisherIgnoreSignalInterrupt, true,
+            "Ignores interrupt signal (zmq 2.0 default behavior).");
 
 namespace atp {
 namespace zmq {
@@ -118,10 +122,18 @@ void Publisher::process()
         //     << ", size=" << message.size();
 
       } catch (::zmq::error_t e) {
-        // Ignore signal 4 on linux which causes the publisher/ connector to hang.
-        LOG(ERROR) << "Stopping on error " << e.num() << ", exception: " << e.what();
-        //stop = true;
-        break;
+        // Ignore signal 4 on linux which causes
+        // the publisher/ connector to hang.  Ignoring the interrupts is
+        // ZMQ 2.0 behavior which changed in 2.1.
+        stop = !FLAGS_publisherIgnoreSignalInterrupt;
+        if (stop) {
+          LOG(ERROR) << "Stopping on error "
+                     << e.num() << ", exception: " << e.what();
+          break;
+        } else {
+          LOG(ERROR) << "Ignoring error "
+                     << e.num() << ", exception: " << e.what();
+        }
       }
 
       if (!more)
