@@ -5,7 +5,8 @@
 0 18 * * 1,2,3,4,5 sh /Users/david/gyokuro/lab616/cpp-ib/bin/run_logger.sh --stop
 
 # firehose setup
-45 0 * * 1,2,3,4,5 sh curl -i "http://build.lab616.com:8080/job/firehose-start/buildWithParameters?token=fhstart&cause=cron"
+45 0 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/firehose-start/buildWithParameters?token=fhstart&cause=cron"
 59 0 * * 1,2,3,4,5 sh /Users/david/github/lab616/atp/bin/firehose.sh -r
 30 17 * * 1,2,3,4,5 sh /Users/david/github/lab616/atp/bin/firehose.sh -c
-45 17 * * 1,2,3,4,5 sh curl -i "http://build.lab616.com:8080/job/firehose-stop/build?token=fhstop&cause=cron"
+45 17 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/firehose-stop/build?token=fhstop&cause=cron"
+
