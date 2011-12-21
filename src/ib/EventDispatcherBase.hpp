@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include "common.hpp"
+#include "marketdata.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/TickerMap.hpp"
 #include "ib/tick_types.hpp"
@@ -38,31 +39,27 @@ class EventDispatcherBase
 
     if (tickerMap_.getSubscriptionKeyFromId(tickerId, &topic)) {
 
-      // Frame sequence:
-      // 1. topic
-      // 2. timestamp as a long (no ISO format)
-      // 3. key=value
-      // 4. latency
+      atp::MarketData<T> marketData(topic, timed.getMicros(), tick, value);
+      size_t sent = marketData.dispatch(getOutboundSocket(0));
 
-      zmq::socket_t* out = getOutboundSocket(0);
-      if (out) {
+      // zmq::socket_t* out = getOutboundSocket(0);
+      // if (out) {
 
-        boost::uint64_t t = timed.getMicros();
-        std::ostringstream ts;
-        ts << t;
+      //   boost::uint64_t t = timed.getMicros();
+      //   std::ostringstream ts;
+      //   ts << t;
 
-        std::ostringstream nv;
-        nv << tick << '=' << value;
+      //   std::ostringstream nv;
+      //   nv << tick << '=' << value;
 
-        std::ostringstream latency;
-        latency << now_micros() - t;
+      //   std::ostringstream latency;
+      //   latency << now_micros() - t;
 
-        atp::zmq::send_copy(*out, topic, true);
-        atp::zmq::send_copy(*out, ts.str(), true);
-        atp::zmq::send_copy(*out, nv.str(), true);
-        atp::zmq::send_copy(*out, latency.str(), false);
-
-      }
+      //   atp::zmq::send_copy(*out, topic, true);
+      //   atp::zmq::send_copy(*out, ts.str(), true);
+      //   atp::zmq::send_copy(*out, nv.str(), true);
+      //   atp::zmq::send_copy(*out, latency.str(), false);
+      // }
     } else {
       LOG(ERROR) << "Cannot get subscription key / topic for " << tickerId
                  << ", event = " << tickType << ", value " << value;

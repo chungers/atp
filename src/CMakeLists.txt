@@ -26,6 +26,23 @@ set(firehose_libs
 cpp_executable(firehose)
 
 
+##########################################
+# Marketdata subscriber
+set(marketdata_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(marketdata_srcs
+  marketdata_main.cpp
+)
+set(marketdata_libs
+  IBAPIConnector
+  boost_system
+  gflags
+  glog
+)
+cpp_executable(marketdata)
+
 
 # Interactive Brokers adapter
 add_subdirectory(ib)
