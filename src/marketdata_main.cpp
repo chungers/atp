@@ -29,10 +29,16 @@ class ConsoleMarketDataSubscriber : public atp::MarketDataSubscriber
   }
 
  protected:
-  virtual bool process(boost::uint64_t ts, const string& topic,
+  virtual bool process(const boost::posix_time::ptime& ts, const string& topic,
                        const string& key, const string& value)
   {
-    LOG(INFO) << topic << ' ' << ts << ' ' << key << ' ' << value;
+    using namespace boost::posix_time;
+    ptime now = microsec_clock::universal_time();
+    time_duration latency = now - ts;
+
+    LOG(INFO) << topic << ' '
+              << us_eastern::utc_to_local(ts)
+              << ' ' << key << ' ' << value << ' ' << latency;
     return true;
   }
 

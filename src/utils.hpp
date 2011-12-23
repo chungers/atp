@@ -6,7 +6,10 @@
 #include <string>
 #include <sstream>
 #include <sys/time.h>
+#include <boost/cstdint.hpp>
 #include <boost/date_time.hpp>
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/date_time/local_time_adjustor.hpp"
 
 using namespace std;
 
@@ -30,7 +33,7 @@ inline const string to_lower(const string& s)
   return copy;
 }
 
-typedef uint64_t int64;
+typedef boost::uint64_t int64;
 
 inline int64 now_micros()
 {
@@ -48,13 +51,24 @@ inline void now_micros(string* str)
   str->assign(ss.str());
 }
 
-static const boost::posix_time::ptime utc_epoch(
-    boost::gregorian::date(1970, 1, 1));
+static const boost::posix_time::ptime
+utc_epoch(boost::gregorian::date(1970, 1, 1));
+
+static const boost::posix_time::time_facet
+iso_time_facet("%Y-%m-%d %H:%M:%S%F%Q");
 
 inline boost::posix_time::time_duration utc_micros()
 {
   using namespace boost::posix_time;
   return microsec_clock::universal_time() - utc_epoch;
 }
+
+
+using namespace boost::posix_time;
+using namespace boost::gregorian;
+
+//eastern timezone is utc-5
+typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
+
 
 #endif // ATP_UTILS_H_

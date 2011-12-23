@@ -1,11 +1,17 @@
 #ifndef IB_INTERNAL_TICKER_MAP_H_
 #define IB_INTERNAL_TICKER_MAP_H_
 
-
+#include <map>
+#include <string>
 #include <Shared/Contract.h>
 
 namespace ib {
 namespace internal {
+
+bool symbol_from_contract(const Contract& contract, std::string* output);
+
+bool symbol_from_contract(const std::map<std::string, std::string>& contract,
+                          std::string* output);
 
 /**
  * Interface for mapping ticker ids to contracts and symbols.

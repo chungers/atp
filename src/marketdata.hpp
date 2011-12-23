@@ -4,6 +4,9 @@
 
 #include <sstream>
 #include <boost/cstdint.hpp>
+#include <boost/date_time/gregorian/greg_month.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
 
 #include "log_levels.h"
 #include "utils.hpp"
@@ -69,6 +72,7 @@ class MarketData
 class MarketDataSubscriber
 {
  public:
+
   MarketDataSubscriber(const string& endpoint,
                        const string& subscription,
                        ::zmq::context_t* context = NULL) :
@@ -128,20 +132,31 @@ class MarketDataSubscriber
       istringstream s_ts(frame2);  s_ts >> ts;
       istringstream s_latency(frame5); s_latency >> latency;
 
-      boost::uint64_t final_latency = now_micros() - ts;
+      // Convert timestamp to posix time.
+      using namespace boost::posix_time;
+      ptime t = from_time_t(ts / 1000000LL);
+      time_duration micros(0, 0, 0, ts % 1000000LL);
+      t += micros;
 
-      bool processed = process(ts, frame1, frame3, frame4);
+      process(t, frame1, frame3, frame4);
     }
   }
 
  protected:
-  virtual bool process(boost::uint64_t ts, const string& topic,
+
+  /// Process an incoming event.
+  /// utc - timestamp in UTC
+  /// topic - the topic of the event e.g. AAPL.STK
+  /// key - the event name e.g. ASK
+  /// value - string value. Subclasses perform proper conversion based on event.
+  virtual bool process(const boost::posix_time::ptime& utc, const string& topic,
                        const string& key, const string& value)
   {
     // override this to remove the warning
-    LOG(WARNING) << topic << ' ' << ts << ' ' << key << '=' << value;
+    LOG(WARNING) << topic << ' ' << utc << ' ' << key << '=' << value;
     return true;
   }
+
 
  private:
   string endpoint_;

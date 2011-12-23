@@ -18,6 +18,7 @@
 #include "log_levels.h"
 #include "ib/ticker_id.hpp"
 #include "ib/tick_types.hpp"
+#include "ib/TickerMap.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 DEFINE_bool(delay, true, "True to delay samples according to data when publishing.");
@@ -174,17 +175,13 @@ static bool MapActions(std::map<std::string, std::string>& nv)
     // This is a ; separate list of name:value pairs.
     std::map<std::string, std::string> nv; // basic name /value pair
     if (ParseMap(contractString, nv, ':', ";")) {
-      // Build the symbol string here.
-      std::ostringstream s;
-      s << nv["symbol"] << '.' << nv["secType"] << '.';
 
-      if (nv["secType"] != "STK") {
-        s << nv["strike"]
-          << nv["right"]
-          << '.'
-          << nv["expiry"];
+      bool ok = ib::internal::symbol_from_contract(nv, &symbol);
+
+      if (!ok) {
+        LOG(FATAL) << "Failed to generate symbol from parsed contract spec: "
+                   << contractString;
       }
-      symbol = s.str();
 
     } else {
       LOG(FATAL) << "Failed to parse contract spec: " << contractString;
