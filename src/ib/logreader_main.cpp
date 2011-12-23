@@ -18,6 +18,7 @@
 #include "log_levels.h"
 #include "ib/ticker_id.hpp"
 #include "ib/tick_types.hpp"
+#include "ib/EventDispatcherBase.hpp"
 #include "ib/TickerMap.hpp"
 #include "zmq/ZmqUtils.hpp"
 
@@ -234,7 +235,6 @@ static bool Convert(std::map<std::string, std::string>& nv,
   if (!GetField(nv, "tickerId", &code)) {
     return false;
   }
-  //ib::internal::SymbolFromTickerId(code, &symbol);
   GetSymbol(code, &symbol);
   nv["symbol"] = symbol;
   LOG_READER_DEBUG << "symbol ==> " << symbol << "(" << code << ")" << endl;
@@ -274,6 +274,34 @@ static bool Convert(std::map<std::string, std::string>& nv,
 } // namespace utils
 } // namespace atp
 
+using namespace ib::internal;
+
+class PublisherSocket : public EWrapperEventCollector
+{
+ public:
+  PublisherSocket(zmq::socket_t* socket) : socket_(socket) {}
+
+  virtual zmq::socket_t* getOutboundSocket(int channel = 0)
+  { return socket_; }
+
+ private:
+  zmq::socket_t* socket_;
+};
+
+class MarketDataPublisher : public EventDispatcherBase
+{
+ public:
+
+  MarketDataPublisher(zmq::socket_t* socket) :
+      collector_(socket),
+      EventDispatcherBase(collector_)
+  {
+  }
+
+ private:
+  PublisherSocket collector_;
+};
+
 ////////////////////////////////////////////////////////
 //
 // MAIN
@@ -305,6 +333,7 @@ int main(int argc, char** argv)
 
   std::cout.imbue(std::locale(std::cout.getloc(), &facet));
 
+  MarketDataPublisher* publisher = NULL;
   zmq::context_t* context = NULL;
   zmq::socket_t* socket = NULL;
   if (!FLAGS_publish) {
@@ -314,6 +343,7 @@ int main(int argc, char** argv)
     context = new zmq::context_t(1);
     socket = new zmq::socket_t(*context, ZMQ_PUSH);
     socket->connect(FLAGS_endpoint.c_str());
+    publisher = new MarketDataPublisher(socket);
 
     LOG(INFO) << "Pushing events to " << FLAGS_endpoint;
   }
@@ -349,16 +379,9 @@ int main(int argc, char** argv)
               // wait dt micros
               usleep(dt);
             }
-            atp::zmq::send_copy(*socket, event.symbol, true);
-
-            LOG_READER_DEBUG << "topic = " << event.symbol;
-
-            std::ostringstream ss;
-            ss.imbue(std::locale(std::cout.getloc(), &facet));
-            ss << t << ',' << event.event << '=' << event.value;
-            atp::zmq::send_copy(*socket, ss.str(), false);
-
-            LOG_READER_DEBUG << "event = " << ss.str();
+            atp::MarketData<double> marketData(event.symbol, event.ts,
+                                               event.event, event.value);
+            size_t sent = marketData.dispatch(socket);
 
             last_ts = event.ts;
 

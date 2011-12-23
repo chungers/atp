@@ -13,6 +13,14 @@
 
 using namespace std;
 
+template<typename T>
+inline bool from_string(const string& s, T* out)
+{
+  std::istringstream ss(s);
+  ss >> *out;
+  return true;
+}
+
 // Converts the input string to all upper-case.
 // Returns a transformed version without mutating input.
 inline const string to_upper(const string& s)

@@ -37,29 +37,11 @@ class EventDispatcherBase
     std::string tick = TickTypeNames[tickType];
     std::string topic;
 
-    if (tickerMap_.getSubscriptionKeyFromId(tickerId, &topic)) {
+    if (TickerMap::getSubscriptionKeyFromId(tickerId, &topic)) {
 
       atp::MarketData<T> marketData(topic, timed.getMicros(), tick, value);
       size_t sent = marketData.dispatch(getOutboundSocket(0));
 
-      // zmq::socket_t* out = getOutboundSocket(0);
-      // if (out) {
-
-      //   boost::uint64_t t = timed.getMicros();
-      //   std::ostringstream ts;
-      //   ts << t;
-
-      //   std::ostringstream nv;
-      //   nv << tick << '=' << value;
-
-      //   std::ostringstream latency;
-      //   latency << now_micros() - t;
-
-      //   atp::zmq::send_copy(*out, topic, true);
-      //   atp::zmq::send_copy(*out, ts.str(), true);
-      //   atp::zmq::send_copy(*out, nv.str(), true);
-      //   atp::zmq::send_copy(*out, latency.str(), false);
-      // }
     } else {
       LOG(ERROR) << "Cannot get subscription key / topic for " << tickerId
                  << ", event = " << tickType << ", value " << value;
@@ -70,7 +52,6 @@ class EventDispatcherBase
 
  private:
   EWrapperEventCollector& eventCollector_;
-  TickerMap tickerMap_;
 };
 
 

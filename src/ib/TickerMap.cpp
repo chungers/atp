@@ -7,6 +7,8 @@
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "log_levels.h"
+#include "utils.hpp"
 #include "ib/TickerMap.hpp"
 #include "ib/ticker_id.hpp"
 
@@ -77,6 +79,30 @@ bool symbol_from_contract(const Contract& contract, std::string* output)
        << contract.expiry;
   }
   *output = ss.str();
+  return true;
+}
+
+bool convert_to_contract(const std::map<std::string, std::string> input,
+                         Contract* output)
+{
+  try {
+    ::from_string(input.at("conId"), &(output->conId));
+    output->symbol = input.at("symbol");
+    output->secType = input.at("secType");
+    output->currency = input.at("currency");
+    output->localSymbol = input.at("localSymbol");
+
+    if (output->secType != "STK") {
+      output->right = input.at("right");
+      ::from_string(input.at("strike"), &(output->strike));
+      output->multiplier = input.at("multiplier");
+      output->expiry = input.at("expiry");
+    }
+
+  } catch (std::out_of_range e) {
+    TICKERMAP_ERROR << "Exception converting to contract: " << e.what();
+    return false;
+  }
   return true;
 }
 

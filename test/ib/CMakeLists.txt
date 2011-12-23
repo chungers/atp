@@ -110,6 +110,7 @@ set(utils_test_incs
 )
 set(utils_test_srcs
   AllTests.cpp
+  TickerMapTest.cpp
   UtilsTest.cpp
 )
 set(utils_test_libs

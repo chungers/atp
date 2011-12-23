@@ -180,8 +180,7 @@ class MarketDataRequest : public V964Message
       return false;
     }
 
-    ib::internal::TickerMap tm;
-    long tickerId = tm.registerContract(contract);
+    long tickerId = ib::internal::TickerMap::registerContract(contract);
 
     if (tickerId > 0) {
       eclient->reqMktData(tickerId, contract, "", false);
@@ -216,7 +215,7 @@ class CancelMarketDataRequest : public V964Message
 
   long marshall()
   {
-    ib::internal::TickerMap tm;
+    using ib::internal::TickerMap;
 
     std::string symbol("");
     std::string localSymbol("");
@@ -232,9 +231,9 @@ class CancelMarketDataRequest : public V964Message
         tickerId = conIdLong;
       }
     } else if (localSymbol != "") {
-      tm.getTickerIdFromSubscriptionKey(localSymbol, &tickerId);
+      TickerMap::getTickerIdFromSubscriptionKey(localSymbol, &tickerId);
     } else if (symbol != "") {
-      tm.getTickerIdFromSubscriptionKey(symbol, &tickerId);
+      TickerMap::getTickerIdFromSubscriptionKey(symbol, &tickerId);
     }
     return tickerId;
   }

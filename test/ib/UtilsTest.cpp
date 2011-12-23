@@ -23,7 +23,6 @@ DEFINE_int32(iter, 1000000, "Iterations");
 
 namespace {
 
-
 TEST(UtilsTest, Test1)
 {
   int iterations = FLAGS_iter;

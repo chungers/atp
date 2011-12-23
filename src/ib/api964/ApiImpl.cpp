@@ -4,6 +4,7 @@
 
 #include "utils.hpp"
 #include "ib/tick_types.hpp"
+#include "ib/TickerMap.hpp"
 #include "ApiImpl.hpp"
 
 
@@ -38,26 +39,7 @@ int LoggingEWrapper::get_connection_id() {
   return connection_id_;
 }
 
-struct PrintContract
-{
-  PrintContract(const Contract& c) : c_(c) {}
-  const Contract& c_;
-  friend std::ostream& operator<<(std::ostream& os, const PrintContract& c)
-  {
-    os << ","
-       << "contract="
-       << "conId:" << c.c_.conId
-       << ";symbol:" << c.c_.symbol
-       << ";secType:" << c.c_.secType
-       << ";right:" << c.c_.right
-       << ";strike:" << c.c_.strike
-       << ";currency:" << c.c_.currency
-       << ";multiplier:" << c.c_.multiplier
-       << ";expiry:" << c.c_.expiry
-       << ";localSymbol:" << c.c_.localSymbol;
-    return os;
-  }
-};
+using ib::internal::PrintContract;
 
 ////////////////////////////////////////////////////////////////////////////////
 // EWrapper Methods
@@ -379,6 +361,8 @@ typedef boost::unique_lock<boost::mutex> write_lock;
 #endif
 
 //////////////////////////////////////////////////////////////
+
+using ib::internal::PrintContract;
 
 LoggingEClientSocket::LoggingEClientSocket(
     EWrapper* e_wrapper)
