@@ -14,7 +14,7 @@ set(ZmqTestSuite_incs
   ${API_IMPL}
 )
 set(ZmqTestSuite_srcs
-  AllTests.cpp
+  ${TEST_DIR}/AllTests.cpp
   ReactorTest.cpp
 )
 set(ZmqTestSuite_libs

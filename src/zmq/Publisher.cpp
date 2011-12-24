@@ -114,25 +114,19 @@ void Publisher::process()
 
         publish.send(message, more? ZMQ_SNDMORE: 0);
 
-        // ZMQ_PUBLISHER_LOGGER
-        //     << "Published: "
-        //     << ((message.size() > 0) ?
-        //     std::string(static_cast<char*>(message.data()), message.size()) :
-        //         static_cast<char*>(message.data()))
-        //     << ", size=" << message.size();
-
       } catch (::zmq::error_t e) {
         // Ignore signal 4 on linux which causes
         // the publisher/ connector to hang.  Ignoring the interrupts is
         // ZMQ 2.0 behavior which changed in 2.1.
-        stop = !FLAGS_publisherIgnoreSignalInterrupt;
-        if (stop) {
-          LOG(ERROR) << "Stopping on error "
-                     << e.num() << ", exception: " << e.what();
-          break;
-        } else {
+        if (e.num() == 4 && FLAGS_publisherIgnoreSignalInterrupt) {
           LOG(ERROR) << "Ignoring error "
                      << e.num() << ", exception: " << e.what();
+          stop = false;
+        } else {
+          LOG(ERROR) << "Stopping on error "
+                     << e.num() << ", exception: " << e.what();
+          stop = true;
+          break;
         }
       }
 

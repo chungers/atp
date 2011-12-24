@@ -20,7 +20,7 @@ set(AsioEClientSocket_test_incs
   ${TEST_DIR}
 )
 set(AsioEClientSocket_test_srcs
-  AllTests.cpp
+  ${TEST_DIR}/AllTests.cpp
   AsioEClientSocketTest.cpp
   ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
 )
@@ -39,7 +39,7 @@ set(SocketInitiator_test_incs
   ${TEST_DIR}
 )
 set(SocketInitiator_test_srcs
-  AllTests.cpp
+  ${TEST_DIR}/AllTests.cpp
   SocketInitiatorTest.cpp
 )
 set(SocketInitiator_test_libs
@@ -57,7 +57,7 @@ set(SocketConnector_test_incs
   ${TEST_DIR}
 )
 set(SocketConnector_test_srcs
-  AllTests.cpp
+  ${TEST_DIR}/AllTests.cpp
   SocketConnectorTest.cpp
   ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
 )
@@ -76,7 +76,7 @@ set(MarketData_test_incs
   ${TEST_DIR}
 )
 set(MarketData_test_srcs
-  AllTests.cpp
+  ${TEST_DIR}/AllTests.cpp
   MarketDataTest.cpp
   ${IBAPI_IMPL_DIR}/VersionSpecific.cpp
 )
@@ -92,7 +92,7 @@ set(Message_test_incs
   ${TEST_DIR}
 )
 set(Message_test_srcs
-  AllTests.cpp
+  ${TEST_DIR}/AllTests.cpp
   MessageTest.cpp
   ApiMessageBaseTest.cpp
 )
@@ -109,8 +109,8 @@ set(utils_test_incs
   ${TEST_DIR}
 )
 set(utils_test_srcs
-  AllTests.cpp
-  TickerMapTest.cpp
+  ${TEST_DIR}/AllTests.cpp
+  #TickerMapTest.cpp
   UtilsTest.cpp
 )
 set(utils_test_libs

@@ -19,7 +19,7 @@ set(V964Message_test_incs
   ${TEST_DIR}
 )
 set(V964Message_test_srcs
-  ../AllTests.cpp
+  ${TEST_DIR}/AllTests.cpp
   V964MessageTest.cpp
   TestEWrapperFactoryImpl.cpp
 )

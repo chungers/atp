@@ -47,6 +47,9 @@ cpp_executable(marketdata)
 # Interactive Brokers adapter
 add_subdirectory(ib)
 
+# VARZ
+add_subdirectory(varz)
+
 # ZMQ
 add_subdirectory(zmq)
 

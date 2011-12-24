@@ -359,9 +359,12 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   // Iterate through the option chain and make market data request:
   std::vector<int> tids;
 
+  // Just request a few
+  int max = 5;
+  int i = 0;
   for (std::vector<Contract>::iterator itr = optionChain.begin();
-       itr != optionChain.end();
-       ++itr) {
+       itr != optionChain.end() && i < max;
+       ++itr, ++i) {
     LOG(INFO) << "Requesting market data for contract / "
               << itr->localSymbol << std::endl;
 
@@ -371,6 +374,8 @@ TEST(AsioEClientSocketTest, RequestOptionChainTest)
   }
 
   // Wait until all the data has come through for all the contracts.
+  LOG(INFO) << "Waiting for data to come in.";
+
   for (std::vector<int>::iterator itr = tids.begin();
        itr != tids.end();
        ++itr) {
