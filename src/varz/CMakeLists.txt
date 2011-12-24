@@ -16,6 +16,7 @@ set(varz_components_srcs
   ${THIRD_PARTY_DIR}/mongoose/mongoose.c
 )
 set(varz_components_libs
+  dl
   boost_system
   gflags
   glog
