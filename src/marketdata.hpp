@@ -74,10 +74,10 @@ class MarketDataSubscriber
  public:
 
   MarketDataSubscriber(const string& endpoint,
-                       const string& subscription,
+                       const vector<string>& subscriptions,
                        ::zmq::context_t* context = NULL) :
       endpoint_(endpoint),
-      subscription_(subscription),
+      subscriptions_(subscriptions),
       contextPtr_(context),
       ownContext_(context == NULL)
   {
@@ -86,9 +86,14 @@ class MarketDataSubscriber
     }
     socketPtr_ = new ::zmq::socket_t(*contextPtr_, ZMQ_SUB);
     socketPtr_->connect(endpoint_.c_str());
-    // Set subscription
-    socketPtr_->setsockopt(ZMQ_SUBSCRIBE,
-                           subscription_.c_str(), subscription_.length());
+    // Set subscriptions
+    for (vector<string>::iterator sub = subscriptions_.begin();
+         sub != subscriptions_.end();
+         ++sub) {
+      socketPtr_->setsockopt(ZMQ_SUBSCRIBE,
+                             sub->c_str(), sub->length());
+      MARKET_DATA_SUBSCRIBER_LOGGER << "subscribed to topic = " << *sub;
+    }
   }
 
   ~MarketDataSubscriber()
@@ -138,7 +143,11 @@ class MarketDataSubscriber
       time_duration micros(0, 0, 0, ts % 1000000LL);
       t += micros;
 
-      process(t, frame1, frame3, frame4);
+      // Compute the latency from the initial timestamp to now,
+      // accounting for network transport, parsing, etc.
+      ptime now = microsec_clock::universal_time();
+      time_duration total_latency = now - t;
+      process(t, frame1, frame3, frame4, total_latency);
     }
   }
 
@@ -150,7 +159,8 @@ class MarketDataSubscriber
   /// key - the event name e.g. ASK
   /// value - string value. Subclasses perform proper conversion based on event.
   virtual bool process(const boost::posix_time::ptime& utc, const string& topic,
-                       const string& key, const string& value)
+                       const string& key, const string& value,
+                       const boost::posix_time::time_duration& latency)
   {
     // override this to remove the warning
     LOG(WARNING) << topic << ' ' << utc << ' ' << key << '=' << value;
@@ -160,7 +170,7 @@ class MarketDataSubscriber
 
  private:
   string endpoint_;
-  string subscription_;
+  vector<string> subscriptions_;
   ::zmq::context_t* contextPtr_;
   ::zmq::socket_t* socketPtr_;
   bool ownContext_;

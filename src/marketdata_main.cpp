@@ -1,7 +1,10 @@
 
+#include <vector>
 #include <signal.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+
+#include <boost/algorithm/string.hpp>
 
 #include "marketdata.hpp"
 
@@ -14,7 +17,7 @@ void OnTerminate(int param)
 }
 
 DEFINE_string(ep, "tcp://127.0.0.1:7777", "Marketdata endpoint");
-DEFINE_string(topic, "", "Subscription topic");
+DEFINE_string(topics, "", "Commad delimited subscription topics");
 
 using namespace std;
 
@@ -22,20 +25,17 @@ class ConsoleMarketDataSubscriber : public atp::MarketDataSubscriber
 {
  public :
   ConsoleMarketDataSubscriber(const string& endpoint,
-                              const string& subscription,
+                              const vector<string>& subscriptions,
                               ::zmq::context_t* context) :
-      MarketDataSubscriber(endpoint, subscription, context)
+      MarketDataSubscriber(endpoint, subscriptions, context)
   {
   }
 
  protected:
   virtual bool process(const boost::posix_time::ptime& ts, const string& topic,
-                       const string& key, const string& value)
+                       const string& key, const string& value,
+                       const boost::posix_time::time_duration& latency)
   {
-    using namespace boost::posix_time;
-    ptime now = microsec_clock::universal_time();
-    time_duration latency = now - ts;
-
     LOG(INFO) << topic << ' '
               << us_eastern::utc_to_local(ts)
               << ' ' << key << ' ' << value << ' ' << latency;
@@ -62,7 +62,10 @@ int main(int argc, char** argv)
   LOG(INFO) << "Starting context.";
   zmq::context_t context(1);
 
-  ::ConsoleMarketDataSubscriber subscriber(FLAGS_ep, FLAGS_topic, &context);
+  vector<string> subscriptions;
+  boost::split(subscriptions, FLAGS_topics, boost::is_any_of(","));
+
+  ::ConsoleMarketDataSubscriber subscriber(FLAGS_ep, subscriptions, &context);
 
   LOG(INFO) << "Start handling inbound messages.";
   subscriber.processInbound();
