@@ -21,7 +21,6 @@ namespace varz {
 
 namespace internal {
 
-
 static void get_qsvar(const struct mg_request_info *request_info,
                       const char *name, char *dst, size_t dst_len) {
   const char *qs = request_info->query_string;
@@ -71,7 +70,10 @@ static void *event_handler(enum mg_event event,
       for (vector<VarzInfo>::iterator varz = varzs.begin();
            varz != varzs.end();
            ++varz) {
-        mg_printf(conn, "%s\"%s\" : \"%s\"",
+
+        const std::string fmt = (varz->type == "string") ?
+            "%s\"%s\" : \"%s\"" : "%s\"%s\" : %s";
+        mg_printf(conn, fmt.c_str(),
                   ((i++ == 0) ? "\n" : ",\n"),
                   varz->name.c_str(), varz->current_value.c_str());
       }

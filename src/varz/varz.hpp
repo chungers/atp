@@ -5,12 +5,20 @@
 #include <vector>
 #include <stdint.h>             // the normal place uint16_t is defined
 #include <sys/types.h>          // the normal place u_int16_t is defined
-//#include <inttypes.h>           // a third place for uint16_t or u_int16_t
 #include <boost/cstdint.hpp>
 
 namespace atp {
 namespace varz {
 
+class Varz
+{
+ public:
+
+  // Initializes the varz framework. Call this before any program
+  // threads start to avoid problems with the singleton problems with
+  // DCLP (double-checked locking pattern) implementation of singleton.
+  static void initialize();
+};
 
 // C99 format
 typedef boost::int32_t int32;
@@ -66,7 +74,7 @@ class VarzRegisterer {
     static const type VARZ_nono##name = value;                   \
     type VARZ_##name = VARZ_nono##name;                          \
     type VARZ_no##name = VARZ_nono##name;                       \
-    static ::lab616::VarzRegisterer o_##name(                   \
+    static atp::varz::VarzRegisterer o_##name(                   \
         #name, #type, help, __FILE__,                           \
         &VARZ_##name, &VARZ_no##name);                          \
   }                                                             \
@@ -86,6 +94,7 @@ class VarzRegisterer {
 // that the compiler have different sizes for bool & double. Since
 // this is not guaranteed by the standard, we check it with a
 // compile-time assert (msg[-1] will give a compile-time error).
+/*
 namespace vARZB {
 struct CompileAssert {};
 typedef CompileAssert expected_sizeof_double_neq_sizeof_bool[
@@ -93,23 +102,26 @@ typedef CompileAssert expected_sizeof_double_neq_sizeof_bool[
 template<typename From> double IsBoolFlag(const From& from);
 bool IsBoolFlag(bool from);
 }  // namespace vARZB
+*/
+/*
+#define DEFINE_VARZ_bool(name, val, txt) namespace vARZB { \
+  typedef CompileAssert VARZ_##name##_value_is_not_a_bool[ \
+      (sizeof(IsBoolFlag(val)) != sizeof(double)) ? 1 : -1]; \
+  } \
+  DEFINE_VARZ(bool, B, name, val, txt)
+*/
 
 #define DECLARE_VARZ_bool(name)          DECLARE_VARZ(bool, B, name)
-#define DEFINE_VARZ_bool(name, val, txt)                                       \
-  namespace vARZB {                                                         \
-    typedef CompileAssert VARZ_##name##_value_is_not_a_bool[              \
-            (sizeof(::vARZB::IsBoolFlag(val)) != sizeof(double)) ? 1 : -1]; \
-  }                                                                       \
-  DEFINE_VARZ(bool, B, name, val, txt)
+#define DEFINE_VARZ_bool(name, val, txt) DEFINE_VARZ(bool, B, name, val, txt)
 
-#define DECLARE_VARZ_int32(name)    DECLARE_VARZ(::lab616::int32, I, name)
-#define DEFINE_VARZ_int32(name,val,txt)  DEFINE_VARZ(::lab616::int32, I, name, val, txt)
+#define DECLARE_VARZ_int32(name)    DECLARE_VARZ(atp::varz::int32, I, name)
+#define DEFINE_VARZ_int32(name,val,txt)  DEFINE_VARZ(atp::varz::int32, I, name, val, txt)
 
-#define DECLARE_VARZ_int64(name)    DECLARE_VARZ(::lab616::int64, I64, name)
-#define DEFINE_VARZ_int64(name,val,txt)  DEFINE_VARZ(::lab616::int64, I64, name, val, txt)
+#define DECLARE_VARZ_int64(name)    DECLARE_VARZ(atp::varz::int64, I64, name)
+#define DEFINE_VARZ_int64(name,val,txt)  DEFINE_VARZ(atp::varz::int64, I64, name, val, txt)
 
-#define DECLARE_VARZ_uint64(name)        DECLARE_VARZ(::lab616::uint64, U64, name)
-#define DEFINE_VARZ_uint64(name,val,txt) DEFINE_VARZ(::lab616::uint64, U64, name, val, txt)
+#define DECLARE_VARZ_uint64(name)        DECLARE_VARZ(atp::varz::uint64, U64, name)
+#define DEFINE_VARZ_uint64(name,val,txt) DEFINE_VARZ(atp::varz::uint64, U64, name, val, txt)
 
 #define DECLARE_VARZ_double(name)          DECLARE_VARZ(double, D, name)
 #define DEFINE_VARZ_double(name, val, txt) DEFINE_VARZ(double, D, name, val, txt)
@@ -134,7 +146,7 @@ bool IsBoolFlag(bool from);
   namespace vARZS {                                                         \
     static union { void* align; char s[sizeof(std::string)]; } s_##name[2]; \
     const std::string* const VARZ_no##name = new (s_##name[0].s) std::string(val); \
-    static ::lab616::VarzRegisterer o_##name(                \
+    static atp::varz::VarzRegisterer o_##name(                \
       #name, "string", txt, __FILE__,                \
       s_##name[0].s, new (s_##name[1].s) std::string(*VARZ_no##name));   \
     extern std::string& VARZ_##name;                                     \

@@ -35,6 +35,8 @@ namespace varz {
 
 using namespace std;
 
+
+
 // --------------------------------------------------------------------
 // VarzValue
 //    This represent the value a single varz might have.  The major
@@ -259,6 +261,9 @@ class VarzRegistry {
   static VarzRegistry* GlobalRegistry();   // returns a singleton registry
 
  private:
+
+  boost::mutex mutex_;
+
   friend void atp::varz::GetAllVarzs(vector<VarzInfo>*);
 
   // The map from name to varz, for FindVarzLocked().
@@ -278,8 +283,6 @@ class VarzRegistry {
   VarzRegistry& operator=(const VarzRegistry&);
 };
 
-static boost::mutex global_registry_lock_;
-
 // Global singleton.
 VarzRegistry* VarzRegistry::global_registry_ = NULL;
 
@@ -295,16 +298,22 @@ VarzRegistry* VarzRegistry::global_registry_ = NULL;
 // varz occurs far more often than the access via the registry by a
 // sampling application.
 VarzRegistry* VarzRegistry::GlobalRegistry() {
-  boost::mutex::scoped_lock lock(global_registry_lock_);
-  if (!global_registry_) {
+   if (!global_registry_) {
     global_registry_ = new VarzRegistry;
   }
   return global_registry_;
 }
 
+// Performs eager initialization - this avoids the problem of non-threadsafe
+// singleton problem from GlobalRegistry()
+void Varz::initialize()
+{
+  VarzRegistry::GlobalRegistry();
+}
+
 void VarzRegistry::RegisterVarz(VarzHolder* varz) {
   using namespace boost;
-  //unique_lock<mutex> acquire_lock(global_registry_lock_);
+  unique_lock<mutex> acquire_lock(mutex_);
 
   pair<VarzIterator, bool> ins =
     varzs_.insert(pair<const char*, VarzHolder*>(varz->name(), varz));
