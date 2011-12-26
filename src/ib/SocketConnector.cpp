@@ -6,8 +6,15 @@
 #include "ib/Message.hpp"
 #include "ib/ReactorStrategyFactory.hpp"
 
+#include "varz/varz.hpp"
 #include "zmq/ZmqUtils.hpp"
 
+
+DEFINE_VARZ_int64(socket_connector_instances, 0, "");
+DEFINE_VARZ_int64(socket_connector_inbound_requests, 0, "");
+DEFINE_VARZ_int64(socket_connector_inbound_requests_ok, 0, "");
+DEFINE_VARZ_int64(socket_connector_inbound_requests_errors, 0, "");
+DEFINE_VARZ_int64(socket_connector_inbound_requests_exceptions, 0, "");
 
 namespace IBAPI {
 
@@ -32,6 +39,7 @@ class SocketConnector::implementation : public AbstractSocketConnector
                               app, timeout, inboundContext, outboundContext),
       reactorStrategyPtr_(ReactorStrategyFactory::getInstance())
   {
+    VARZ_socket_connector_instances++;
   }
 
   ~implementation()
@@ -48,14 +56,24 @@ class SocketConnector::implementation : public AbstractSocketConnector
       while (1) {
         ib::internal::ZmqMessage inboundMessage;
         if (inboundMessage.receive(socket)) {
+
+          VARZ_socket_connector_inbound_requests++;
+
           status = reactorStrategyPtr_->handleInboundMessage(
               inboundMessage, eclient);
           if (!status) {
+
+            VARZ_socket_connector_inbound_requests_errors++;
+
             IBAPI_SOCKET_CONNECTOR_LOGGER
                 << "Handle inbound message failed: "
                 << inboundMessage;
+
             break;
           } else {
+
+            VARZ_socket_connector_inbound_requests_ok++;
+
             // Send ok reply -- must write something on the ZMQ_REP
             // socket or an invalid state exception will be thrown by zmq.
             // For simplicity, just use HTTP status codes.
@@ -67,6 +85,9 @@ class SocketConnector::implementation : public AbstractSocketConnector
       // HTTP error code - server side error 500.
       atp::zmq::send_copy(socket, "500");
     } catch (zmq::error_t e) {
+
+      VARZ_socket_connector_inbound_requests_exceptions++;
+
       LOG(ERROR) << "Got exception while handling reactor inbound message: "
                  << e.what();
       status = false;
