@@ -5,14 +5,17 @@
 #include "utils.hpp"
 #include "ib/tick_types.hpp"
 #include "ib/TickerMap.hpp"
+#include "varz/varz.hpp"
 #include "ApiImpl.hpp"
 
+DEFINE_VARZ_int64(api_events, 0, "");
+DEFINE_VARZ_int64(api_requests, 0, "");
 
 // Macro for writing field value.
 #define __f__(m) "," << #m << '=' << m
 
 #define LOG_EVENT                                       \
-  boost::uint64_t t = now(); EWRAPPER_LOGGER            \
+  boost::uint64_t t = now(); VARZ_api_events++; EWRAPPER_LOGGER  \
   << "cid=" << connection_id_                           \
   << ",ts_utc=" << t                                    \
   << ",event=" << __func__                              \
@@ -334,7 +337,7 @@ void LoggingEWrapper::error(const int id, const int errorCode,
 }
 
 #define LOG_START                                       \
-  ECLIENT_LOGGER                                        \
+  VARZ_api_requests++; ECLIENT_LOGGER                    \
   << "cid=" << connection_id_                           \
   << ",ts=" << (call_start_ = now_micros())             \
   << ",ts_utc=" << utc_micros().total_microseconds()    \

@@ -14,9 +14,12 @@
 #include <glog/logging.h>
 
 #include "ib/SocketInitiator.hpp"
-
+#include "varz/varz.hpp"
+#include "varz/VarzServer.hpp"
 
 static IBAPI::SocketInitiator* INITIATOR_INSTANCE;
+static atp::varz::VarzServer* VARZ_INSTANCE;
+
 
 /// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
 const std::string CONNECTOR_SPECS =
@@ -31,15 +34,23 @@ DEFINE_string(outbound, OUTBOUND_ENDPOINTS,
               "Comma-delimited list of channel and outbound endpoints");
 DEFINE_bool(publish, true,
             "True to publish at outbound endpoints, false to push to them");
+DEFINE_int32(varz, 9999, "The port varz server runs on.");
 
+DEFINE_VARZ_bool(fh_as_publisher, false, "if instance is also a publisher.");
+DEFINE_VARZ_string(fh_connector_specs, "", "Connector specs");
+DEFINE_VARZ_string(fh_outbound_endpoints, "", "Outbound endpoints");
 
 void OnTerminate(int param)
 {
   LOG(INFO) << "===================== SHUTTING DOWN =======================";
   if (INITIATOR_INSTANCE) {
     INITIATOR_INSTANCE->stop();
+    LOG(INFO) << "Stopped initiator.";
   }
-
+  if (VARZ_INSTANCE) {
+    VARZ_INSTANCE->stop();
+    LOG(INFO) << "Stopped varz.";
+  }
   LOG(INFO) << "Bye.";
   exit(1);
 }
@@ -79,6 +90,7 @@ int main(int argc, char** argv)
   google::SetUsageMessage("Firehose connecting message queue and IB gateways.");
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
+  atp::varz::Varz::initialize();
 
   // Signal handler: Ctrl-C
   signal(SIGINT, OnTerminate);
@@ -89,6 +101,15 @@ int main(int argc, char** argv)
     LOG(INFO) << "RESETTING SIGNAL SIGTERM";
     signal(SIGTERM, SIG_IGN);
   }
+
+  VARZ_fh_as_publisher = FLAGS_publish;
+  VARZ_fh_connector_specs = FLAGS_connectors;
+  VARZ_fh_outbound_endpoints = FLAGS_outbound;
+
+  LOG(INFO) << "Starting varz at " << FLAGS_varz;
+  atp::varz::VarzServer varz(FLAGS_varz, 2);
+  VARZ_INSTANCE = &varz;
+  varz.start();
 
   // Get the connector specs
   vector<string> connectorSpecs;

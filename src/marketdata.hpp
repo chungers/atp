@@ -68,7 +68,6 @@ class MarketData
 };
 
 
-
 class MarketDataSubscriber
 {
  public:

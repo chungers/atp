@@ -30,6 +30,7 @@ set(IBAPIConnector_srcs
 )
 set(IBAPIConnector_libs
  ib_api   # version-specific: see IBAPI_IMPL_DIR
+ varz_components
  zmq_components
  boost_system
  boost_thread

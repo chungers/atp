@@ -18,6 +18,7 @@ set(zmq_components_libs
   boost_thread
   gflags
   glog
+  varz_components
   zmq
 )
 cpp_library(zmq_components)

@@ -9,11 +9,17 @@
 
 #include "utils.hpp"
 #include "common.hpp"
+#include "varz/varz.hpp"
 #include "zmq/Publisher.hpp"
 
 
 DEFINE_bool(publisherIgnoreSignalInterrupt, true,
             "Ignores interrupt signal (zmq 2.0 default behavior).");
+
+DEFINE_VARZ_bool(publisher_ignores_sig_interrupt, true, "");
+DEFINE_VARZ_int32(publisher_sig_interrupts, 0, "");
+DEFINE_VARZ_int64(publisher_bytes_sent, 0, "");
+DEFINE_VARZ_int64(publisher_messages_sent, 0, "");
 
 namespace atp {
 namespace zmq {
@@ -27,6 +33,8 @@ Publisher::Publisher(const string& addr,
     localContext_(false),
     ready_(false)
 {
+  VARZ_publisher_ignores_sig_interrupt = FLAGS_publisherIgnoreSignalInterrupt;
+
   // start thread
    thread_ = boost::shared_ptr<boost::thread>(new boost::thread(
        boost::bind(&Publisher::process, this)));
@@ -112,13 +120,16 @@ void Publisher::process()
         inbound.recv(&message);
         inbound.getsockopt( ZMQ_RCVMORE, &more, &more_size);
 
-        publish.send(message, more? ZMQ_SNDMORE: 0);
+        VARZ_publisher_bytes_sent +=
+            publish.send(message, more? ZMQ_SNDMORE: 0);
+        VARZ_publisher_messages_sent++;
 
       } catch (::zmq::error_t e) {
         // Ignore signal 4 on linux which causes
         // the publisher/ connector to hang.  Ignoring the interrupts is
         // ZMQ 2.0 behavior which changed in 2.1.
         if (e.num() == 4 && FLAGS_publisherIgnoreSignalInterrupt) {
+          VARZ_publisher_sig_interrupts++;
           LOG(ERROR) << "Ignoring error "
                      << e.num() << ", exception: " << e.what();
           stop = false;
