@@ -16,10 +16,12 @@
 DEFINE_bool(publisherIgnoreSignalInterrupt, true,
             "Ignores interrupt signal (zmq 2.0 default behavior).");
 
+DEFINE_VARZ_bool(publisher_event_loop_stopped, false, "");
 DEFINE_VARZ_bool(publisher_ignores_sig_interrupt, true, "");
 DEFINE_VARZ_int32(publisher_sig_interrupts, 0, "");
 DEFINE_VARZ_int64(publisher_bytes_sent, 0, "");
 DEFINE_VARZ_int64(publisher_messages_sent, 0, "");
+
 
 namespace atp {
 namespace zmq {
@@ -145,6 +147,9 @@ void Publisher::process()
         break;      //  Last message part
     }
   }
+
+  VARZ_publisher_event_loop_stopped = true;
+
   LOG(ERROR) << "Publisher thread stopped.";
 }
 

@@ -10,10 +10,34 @@
 
 #include "common.hpp"
 #include "ib/AsioEClientSocket.hpp"
+#include "varz/varz.hpp"
 
 
 using boost::asio::ip::tcp;
 
+DEFINE_VARZ_int64(asio_socket_connection_exceptions, 0, "");
+DEFINE_VARZ_int64(asio_socket_connection_resets, 0, "");
+DEFINE_VARZ_int64(asio_socket_connection_closes, 0, "");
+DEFINE_VARZ_int64(asio_socket_connects, 0, "");
+DEFINE_VARZ_int64(asio_socket_disconnects, 0, "");
+
+DEFINE_VARZ_int64(asio_socket_send_errors, 0, "");
+DEFINE_VARZ_int64(asio_socket_send_latency_micros, 0, "");
+DEFINE_VARZ_int64(asio_socket_send_latency_micros_total, 0, "");
+DEFINE_VARZ_int64(asio_socket_send_latency_micros_count, 0, "");
+
+DEFINE_VARZ_int64(asio_socket_receive_errors, 0, "");
+DEFINE_VARZ_int64(asio_socket_receive_latency_micros, 0, "");
+DEFINE_VARZ_int64(asio_socket_receive_latency_micros_total, 0, "");
+DEFINE_VARZ_int64(asio_socket_receive_latency_micros_count, 0, "");
+
+DEFINE_VARZ_int64(asio_socket_event_loop_latency_micros, 0, "");
+DEFINE_VARZ_int64(asio_socket_event_loop_latency_micros_total, 0, "");
+DEFINE_VARZ_int64(asio_socket_event_loop_latency_micros_count, 0, "");
+
+DEFINE_VARZ_int64(asio_socket_event_loop_errors, 0, "");
+
+DEFINE_VARZ_int64(asio_socket_event_loop_stopped, false, "");
 
 namespace ib {
 namespace internal {
@@ -63,6 +87,8 @@ bool AsioEClientSocket::eConnect(const char *host,
   // Connect synchronously
   try {
 
+    VARZ_asio_socket_connects++;
+
     ASIO_ECLIENT_SOCKET_LOGGER <<
         "Connecting to " << endpoint << std::endl;
 
@@ -86,20 +112,29 @@ bool AsioEClientSocket::eConnect(const char *host,
 
   } catch (boost::system::system_error e) {
     LOG(WARNING) << "Exception while connecting: " << e.what() << std::endl;
+
+    VARZ_asio_socket_connection_exceptions++;
     socketOk_ = false;
   }
   bool result = socketOk_ && state_ == RUNNING;
   if (callback_ && socketOk_) {
     callback_->onSocketConnect(result);
   }
+
   return result;
 }
 
 void AsioEClientSocket::reset()
 {
+  boost::unique_lock<boost::mutex> lock(socketMutex_);
+
   if (socket_.is_open()) {
+
+    VARZ_asio_socket_connection_resets++;
+
     boost::system::error_code ec;
     socket_.close(ec);
+
     if (ec) {
       LOG(WARNING) << "Failed to close socket connection: " << ec;
     } else {
@@ -110,6 +145,7 @@ void AsioEClientSocket::reset()
 bool AsioEClientSocket::closeSocket()
 {
   boost::unique_lock<boost::mutex> lock(socketMutex_);
+
   if (socket_.is_open()) {
     bool success = false;
     boost::system::error_code ec;
@@ -128,6 +164,9 @@ bool AsioEClientSocket::closeSocket()
     }
 
     if (callback_ && success) {
+
+      VARZ_asio_socket_connection_closes++;
+
       callback_->onSocketClose(success);
     }
     return success;
@@ -142,6 +181,8 @@ bool AsioEClientSocket::closeSocket()
 void AsioEClientSocket::eDisconnect()
 {
   eDisconnectBase();
+
+  VARZ_asio_socket_disconnects++;
 
   // Wait for the event thread to stop
   LOG(INFO) << "Stopping..." << std::endl;
@@ -170,7 +211,13 @@ int AsioEClientSocket::send(const char* buf, size_t sz) {
     sent = socket_.send(boost::asio::buffer(buf, sz));
     sendDt_ = now_micros() - start;
 
+    VARZ_asio_socket_send_latency_micros = sendDt_;
+    VARZ_asio_socket_send_latency_micros_total += sendDt_;
+    VARZ_asio_socket_send_latency_micros_count++;
+
   } catch (boost::system::system_error e) {
+
+    VARZ_asio_socket_send_errors++;
 
     if (state_ == RUNNING) {
       LOG(WARNING) << "Send failed: " << e.what() << std::endl;
@@ -192,7 +239,13 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
     read = socket_.receive(boost::asio::buffer(buf, sz));
     receiveDt_ = now_micros() - start;
 
+    VARZ_asio_socket_receive_latency_micros = receiveDt_;
+    VARZ_asio_socket_receive_latency_micros_total += receiveDt_;
+    VARZ_asio_socket_receive_latency_micros_count++;
+
   } catch (boost::system::system_error e) {
+
+    VARZ_asio_socket_receive_errors++;
 
     if (state_ == RUNNING) {
       LOG(WARNING) << "Receive failed: " << e.what() << std::endl;
@@ -226,11 +279,20 @@ void AsioEClientSocket::block() {
   bool processed = true;
   while (isSocketOK() && processed) {
     try {
+
       int64 start = now_micros();
       processed = checkMessages();
       processMessageDt_ = now_micros() - start;
+
+      VARZ_asio_socket_event_loop_latency_micros = processMessageDt_;
+      VARZ_asio_socket_event_loop_latency_micros_total += processMessageDt_;
+      VARZ_asio_socket_event_loop_latency_micros_count++;
+
+
     } catch (...) {
       // Implementation taken from http://goo.gl/aiOKm
+      VARZ_asio_socket_event_loop_errors++;
+
       getWrapper()->error(NO_VALID_ID,
                           CONNECT_FAIL.code(),
                           CONNECT_FAIL.msg());
@@ -240,6 +302,9 @@ void AsioEClientSocket::block() {
       closeSocket();
     }
   }
+
+  VARZ_asio_socket_event_loop_stopped = true;
+
   if (callback_) {
     callback_->onEventThreadStop();
   }

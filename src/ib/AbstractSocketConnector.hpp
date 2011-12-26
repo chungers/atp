@@ -23,6 +23,8 @@
 #include "ib/EWrapperFactory.hpp"
 #include "ib/SocketConnector.hpp"
 
+#include "varz/varz.hpp"
+
 #include "zmq/Reactor.hpp"
 #include "zmq/ZmqUtils.hpp"
 
@@ -31,6 +33,8 @@
 
 using namespace IBAPI;
 
+DEFINE_VARZ_int64(socket_connector_connection_retries, 0, "");
+DEFINE_VARZ_int64(socket_connector_connection_timeouts, 0, "");
 
 namespace ib {
 namespace internal {
@@ -264,9 +268,12 @@ class AbstractSocketConnector :
         IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
             << "Unable to connect to gateway. Attempts = " << attempts;
       }
+
+      VARZ_socket_connector_connection_retries++;
     }
 
     // When we reached here, we have exhausted all attempts:
+    VARZ_socket_connector_connection_timeouts++;
     strategy->onTimeout(*socketConnector_);
 
     return -1;
