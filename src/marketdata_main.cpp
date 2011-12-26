@@ -18,6 +18,7 @@ void OnTerminate(int param)
 
 DEFINE_string(ep, "tcp://127.0.0.1:7777", "Marketdata endpoint");
 DEFINE_string(topics, "", "Commad delimited subscription topics");
+DEFINE_bool(playback, false, "True if data is playback from logs");
 
 using namespace std;
 
@@ -66,6 +67,7 @@ int main(int argc, char** argv)
   boost::split(subscriptions, FLAGS_topics, boost::is_any_of(","));
 
   ::ConsoleMarketDataSubscriber subscriber(FLAGS_ep, subscriptions, &context);
+  subscriber.setOffsetLatency(FLAGS_playback);
 
   LOG(INFO) << "Start handling inbound messages.";
   subscriber.processInbound();

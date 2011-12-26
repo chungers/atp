@@ -22,10 +22,11 @@
 #include "ib/TickerMap.hpp"
 #include "zmq/ZmqUtils.hpp"
 
-DEFINE_bool(delay, true, "True to delay samples according to data when publishing.");
+DEFINE_bool(rth, true, "Regular trading hours");
+DEFINE_bool(delay, true, "True to simulate sample delays when publishing");
 DEFINE_string(logfile, "logfile", "The name of the log file.");
 DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
-DEFINE_bool(publish, false, "True to publish to endpoint.");
+DEFINE_bool(publish, true, "True to publish to endpoint.");
 
 namespace atp {
 namespace utils {
@@ -52,6 +53,20 @@ struct Event
   boost::int64_t ts;
   T value;
 };
+
+static std::map<long,std::string> TickerIdSymbolMap;
+
+static void GetSymbol(long code, std::string* symbol)
+{
+  if (TickerIdSymbolMap.find(code) == TickerIdSymbolMap.end()) {
+    LOG(WARNING) << "No mapping exists for ticker id " << code;
+    std::string sym;
+    ib::internal::SymbolFromTickerId(code, &sym);
+    TickerIdSymbolMap[code] = sym + ".STK";
+    LOG(INFO) << "Mapping " << code << " to " << TickerIdSymbolMap[code];
+  }
+  *symbol = TickerIdSymbolMap[code];
+}
 
 static bool checkEvent(std::map<std::string, std::string>& event)
 {
@@ -131,7 +146,7 @@ inline static bool ParseMap(const std::string& line,
                             std::map<std::string, std::string>& result,
                             const char nvDelim,
                             const std::string& pDelim) {
-  LOG(INFO) << "Parsing " << line;
+  VLOG(20) << "Parsing " << line;
 
   // Split by the '=' into name-value pairs:
   vector<std::string> nvpairs_vec;
@@ -156,8 +171,6 @@ inline static bool ParseMap(const std::string& line,
 }
 
 
-static std::map<long,std::string> TickerIdSymbolMap;
-
 static bool MapActions(std::map<std::string, std::string>& nv)
 {
   // Get id and contract and store the mapping.
@@ -169,7 +182,7 @@ static bool MapActions(std::map<std::string, std::string>& nv)
   std::string contractString;
   if (!GetField(nv, "contract", &contractString)) {
     // Use the computed symbol/id rule:
-    ib::internal::SymbolFromTickerId(tickerId, &symbol);
+    GetSymbol(tickerId, &symbol);
 
   } else {
     // Build a symbol string from the contract spec.
@@ -178,10 +191,21 @@ static bool MapActions(std::map<std::string, std::string>& nv)
     if (ParseMap(contractString, nv, ':', ";")) {
 
       bool ok = ib::internal::symbol_from_contract(nv, &symbol);
-
+      LOG(INFO) << "Using symbol from contract " << symbol;
       if (!ok) {
         LOG(FATAL) << "Failed to generate symbol from parsed contract spec: "
                    << contractString;
+      }
+      if (TickerIdSymbolMap.find(tickerId) == TickerIdSymbolMap.end()) {
+        TickerIdSymbolMap[tickerId] = symbol;
+        LOG(INFO) << "Created mapping of " << tickerId << " to " << symbol;
+      } else {
+        // We may have a collision!
+        if (TickerIdSymbolMap[tickerId] != symbol) {
+          LOG(FATAL) << "collision for " << tickerId << ": "
+                     << symbol << " and " << TickerIdSymbolMap[tickerId];
+          return false;
+        }
       }
 
     } else {
@@ -189,31 +213,7 @@ static bool MapActions(std::map<std::string, std::string>& nv)
     }
   }
 
-  if (TickerIdSymbolMap.find(tickerId) == TickerIdSymbolMap.end()) {
-    TickerIdSymbolMap[tickerId] = symbol;
-    LOG(INFO) << "Created mapping of " << tickerId << " to " << symbol;
-  } else {
-    // We may have a collision!
-    if (TickerIdSymbolMap[tickerId] != symbol) {
-      LOG(FATAL) << "collision for " << tickerId << ": "
-                 << symbol << " and " << TickerIdSymbolMap[tickerId];
-      return false;
-    }
-  }
   return true;
-}
-
-static void GetSymbol(long code, std::string* symbol)
-{
-  if (TickerIdSymbolMap.find(code) == TickerIdSymbolMap.end()) {
-    LOG(WARNING) << "No mapping exists for ticker id " << code;
-    std::string sym;
-    ib::internal::SymbolFromTickerId(code, &sym);
-    TickerIdSymbolMap[code] = sym;
-    *symbol = sym;
-  } else {
-    *symbol = TickerIdSymbolMap[code];
-  }
 }
 
 static bool Convert(std::map<std::string, std::string>& nv,
@@ -302,6 +302,9 @@ class MarketDataPublisher : public EventDispatcherBase
   PublisherSocket collector_;
 };
 
+static boost::posix_time::time_duration RTH_START(9, 30, 0, 0);
+static boost::posix_time::time_duration RTH_END(16, 0, 0, 0);
+
 ////////////////////////////////////////////////////////
 //
 // MAIN
@@ -348,9 +351,9 @@ int main(int argc, char** argv)
     LOG(INFO) << "Pushing events to " << FLAGS_endpoint;
   }
 
-  boost::posix_time::ptime epoch(
-      boost::gregorian::date(1970,boost::gregorian::Jan,1));
+  using namespace boost::posix_time;
 
+  ptime epoch(boost::gregorian::date(1970,boost::gregorian::Jan,1));
 
   boost::int64_t last_ts = 0;
 
@@ -369,9 +372,16 @@ int main(int argc, char** argv)
               event.ts / 1000000LL);
           boost::posix_time::time_duration micros(
               0, 0, 0, event.ts % 1000000LL);
-
           t += micros;
 
+          boost::posix_time::time_duration eastern =
+              us_eastern::utc_to_local(t).time_of_day();
+
+          bool rth = eastern >= RTH_START and eastern < RTH_END;
+          if (!rth && FLAGS_rth) {
+            // Skip if not RTH and we want only data during trading hours.
+            continue;
+          }
           if (FLAGS_publish) {
 
             boost::int64_t dt = event.ts - last_ts;
@@ -382,7 +392,7 @@ int main(int argc, char** argv)
             atp::MarketData<double> marketData(event.symbol, event.ts,
                                                event.event, event.value);
             size_t sent = marketData.dispatch(socket);
-
+            //std::cerr << event.symbol << " " << sent << std::endl;
             last_ts = event.ts;
 
           } else {

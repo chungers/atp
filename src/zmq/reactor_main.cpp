@@ -21,10 +21,10 @@ using atp::zmq::Reactor;
 
 static const string& NOT_SET = "___not_set___";
 
-DEFINE_bool(server, false, "Run as server.");
+DEFINE_bool(server, true, "Run as server.");
 DEFINE_bool(echo, false, "True to have server echo message received.");
-DEFINE_bool(pubsub, false, "True to use pub/sub");
-DEFINE_string(endpoint, "tcp://127.0.0.1:6666", "Endpoint");
+DEFINE_bool(pubsub, true, "True to use pub/sub");
+DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint");
 DEFINE_string(publishEndpoint, "tcp://127.0.0.1:7777", "Publish endpoint");
 DEFINE_string(message, NOT_SET, "Comma-delimited key=value pairs.");
 DEFINE_string(subscription, "", "Subscription");

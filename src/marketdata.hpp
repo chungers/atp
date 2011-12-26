@@ -79,7 +79,8 @@ class MarketDataSubscriber
       endpoint_(endpoint),
       subscriptions_(subscriptions),
       contextPtr_(context),
-      ownContext_(context == NULL)
+      ownContext_(context == NULL),
+      offsetLatency_(false)
   {
     if (ownContext_) {
       contextPtr_ = new ::zmq::context_t(1);
@@ -106,9 +107,18 @@ class MarketDataSubscriber
     }
   }
 
+  void setOffsetLatency(bool value)
+  {
+    offsetLatency_ = value;
+  }
+
   // The event loop.
   void processInbound()
   {
+    using namespace boost::posix_time;
+    long count = 0;
+    time_duration latencyOffset;
+
     while (1) {
 
       string frame1; // topic
@@ -138,7 +148,6 @@ class MarketDataSubscriber
       istringstream s_latency(frame5); s_latency >> latency;
 
       // Convert timestamp to posix time.
-      using namespace boost::posix_time;
       ptime t = from_time_t(ts / 1000000LL);
       time_duration micros(0, 0, 0, ts % 1000000LL);
       t += micros;
@@ -147,6 +156,18 @@ class MarketDataSubscriber
       // accounting for network transport, parsing, etc.
       ptime now = microsec_clock::universal_time();
       time_duration total_latency = now - t;
+
+      if (offsetLatency_) {
+        if (++count == 1) {
+          // compute the offset
+          latencyOffset = total_latency;
+          LOG(INFO) << "Using latency offset " << latencyOffset;
+        } else {
+          // compute the true latency with the offset
+          total_latency -= latencyOffset;
+        }
+      }
+
       process(t, frame1, frame3, frame4, total_latency);
     }
   }
@@ -174,6 +195,7 @@ class MarketDataSubscriber
   ::zmq::context_t* contextPtr_;
   ::zmq::socket_t* socketPtr_;
   bool ownContext_;
+  bool offsetLatency_;
 };
 
 
