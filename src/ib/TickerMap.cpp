@@ -51,9 +51,10 @@ bool symbol_from_contract(const std::map<std::string, std::string>& nv,
     std::ostringstream s;
     s << nv.at("symbol") << '.' << nv.at("secType");
 
-    if (nv.at("secType") != "STK") {
+    if (nv.at("secType") != "STK" || nv.at("secType") != "IND") {
       s << '.'
         << nv.at("strike")
+        << '.'
         << nv.at("right")
         << '.'
         << nv.at("expiry");
@@ -71,9 +72,10 @@ bool symbol_from_contract(const Contract& contract, std::string* output)
   std::ostringstream ss;
   ss << contract.symbol << '.' << contract.secType;
 
-  if (contract.secType != "STK") {
+  if (contract.secType != "STK" || contract.secType != "IND") {
     ss << '.'
        << contract.strike
+       << '.'
        << contract.right
        << '.'
        << contract.expiry;

@@ -22,6 +22,8 @@ DEFINE_VARZ_int64(marketdata_process_latency_micros, 0, "");
 DEFINE_VARZ_int64(marketdata_process_latency_micros_total, 0, "");
 DEFINE_VARZ_int64(marketdata_process_latency_micros_count, 0, "");
 
+DEFINE_VARZ_bool(marketdata_process_stopped, false, "");
+
 namespace atp {
 
 using namespace std;
@@ -120,6 +122,26 @@ class MarketDataSubscriber
     }
   }
 
+  bool subscribe(const string& topic)
+  {
+    if (socketPtr_ != NULL) {
+      socketPtr_->setsockopt(ZMQ_SUBSCRIBE,
+                             topic.c_str(), topic.length());
+      return true;
+    }
+    return false;
+  }
+
+  bool unsubscribe(const string& topic)
+  {
+    if (socketPtr_ != NULL) {
+      socketPtr_->setsockopt(ZMQ_UNSUBSCRIBE,
+                             topic.c_str(), topic.length());
+      return true;
+    }
+    return false;
+  }
+
   void setOffsetLatency(bool value)
   {
     offsetLatency_ = value;
@@ -182,13 +204,17 @@ class MarketDataSubscriber
       }
 
       boost::uint64_t dt = now_micros();
-      process(t, frame1, frame3, frame4, total_latency);
+      bool continueProcess = process(t, frame1, frame3, frame4, total_latency);
       dt = now_micros() - dt;
 
       VARZ_marketdata_process_latency_micros = dt;
       VARZ_marketdata_process_latency_micros_total += dt;
       VARZ_marketdata_process_latency_micros_count++;
 
+      if (!continueProcess) {
+        VARZ_marketdata_process_stopped = true;
+        break;
+      }
     }
   }
 
