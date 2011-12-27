@@ -7,6 +7,7 @@
 #include <boost/date_time/gregorian/greg_month.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <boost/thread.hpp>
 
 #include "log_levels.h"
 #include "utils.hpp"
@@ -122,8 +123,20 @@ class MarketDataSubscriber
     }
   }
 
+  /// Connect to another endpoint IN ADDITION to the current connection(s).
+  bool connect(const string& endpoint)
+  {
+    boost::unique_lock<boost::mutex> lock(mutex_);
+    if (socketPtr_ != NULL) {
+      socketPtr_->connect(endpoint.c_str());
+      return true;
+    }
+    return false;
+  }
+
   bool subscribe(const string& topic)
   {
+    boost::unique_lock<boost::mutex> lock(mutex_);
     if (socketPtr_ != NULL) {
       socketPtr_->setsockopt(ZMQ_SUBSCRIBE,
                              topic.c_str(), topic.length());
@@ -134,6 +147,7 @@ class MarketDataSubscriber
 
   bool unsubscribe(const string& topic)
   {
+    boost::unique_lock<boost::mutex> lock(mutex_);
     if (socketPtr_ != NULL) {
       socketPtr_->setsockopt(ZMQ_UNSUBSCRIBE,
                              topic.c_str(), topic.length());
@@ -242,6 +256,7 @@ class MarketDataSubscriber
   ::zmq::socket_t* socketPtr_;
   bool ownContext_;
   bool offsetLatency_;
+  boost::mutex mutex_;
 };
 
 
