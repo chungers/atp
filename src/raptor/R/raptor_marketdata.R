@@ -32,14 +32,15 @@ marketdata.default_handler <- function(source, t, topic, event, value) {
 
 
 marketdata.subscribe <- function(endpoint, contractDetails,
-                                 handler = marketdata.default_handler) {
+                                 handler = marketdata.default_handler,
+                                 varz = 9999) {
   # contractDetails is a list of contractDetails from IBroker
   # reqContractDetails() call.
   topics <- marketdata.get_topics(contractDetails)
 
   options(digits.secs=6)
   result <- .Call("firehose_subscribe_marketdata",
-                  endpoint, topics, handler,
+                  endpoint, topics, handler, varz,
                   PACKAGE = "raptor")
   result
 }

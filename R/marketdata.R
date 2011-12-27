@@ -4,10 +4,18 @@ library(raptor)
 
 options(digits.secs=6)
 
+
+# if invoked with R --vanilla --slave --args local
+# then use the localhost address.
+fh <- commandArgs()[5]
+ep <- ifelse(!is.na(fh) && fh == 'local',
+             'tcp://127.0.0.1:7777',
+             'tcp://69.164.211.61:7777')
+
 load('firehose_contracts.RData')
 
-endpoint <- 'tcp://127.0.0.1:7777'
+message('endpoint = ', ep)
 
-marketdata.subscribe(endpoint,
+marketdata.subscribe(ep,
                      list(contractDetails$AAPL,
                           contractDetails$GOOG))

@@ -3,6 +3,7 @@
 
 #include "utils.hpp"
 #include "marketdata.hpp"
+#include "varz/VarzServer.hpp"
 #include "zmq/ZmqUtils.hpp"
 #include "raptor_marketdata.h"
 
@@ -16,14 +17,18 @@ class Subscriber : public atp::MarketDataSubscriber
 {
  public:
   Subscriber(const string& endpoint, const vector<string>& subscriptions,
-             ::zmq::context_t* context, Function& callback) :
+             ::zmq::context_t* context, Function& callback, int varz) :
       atp::MarketDataSubscriber(endpoint, subscriptions, context),
       callback_(callback)
   {
     XPtr<zmq::context_t> contextPtr(context);
     XPtr<atp::MarketDataSubscriber> marketDataSubscriberPtr(this);
+    atp::varz::VarzServer* varzServer = new atp::varz::VarzServer(varz, 1);
+    XPtr<atp::varz::VarzServer> varzPtr(varzServer);
+    varzServer->start();
     handle_ = List::create(Named("context", contextPtr),
-                           Named("marketdata", marketDataSubscriberPtr));
+                           Named("marketdata", marketDataSubscriberPtr),
+                           Named("varzServer", varzPtr));
   }
 
  protected:
@@ -54,7 +59,8 @@ class Subscriber : public atp::MarketDataSubscriber
 /// given handler function which processes inbound market data messages.
 SEXP firehose_subscribe_marketdata(SEXP endpoint,
                                    SEXP topics,
-                                   SEXP handler)
+                                   SEXP handler,
+                                   SEXP varz)
 {
   zmq::context_t *context = new zmq::context_t(1);
   string ep = as<string>(endpoint);
@@ -70,8 +76,9 @@ SEXP firehose_subscribe_marketdata(SEXP endpoint,
   }
 
   Function callback(handler);
+  int varzPort = as<int>(varz);
   raptor::Subscriber* subscriber =
-      new raptor::Subscriber(ep, subscriptions, context, callback);
+      new raptor::Subscriber(ep, subscriptions, context, callback, varzPort);
 
   subscriber->processInbound();
   return wrap(true);

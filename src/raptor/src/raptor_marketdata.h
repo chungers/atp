@@ -11,7 +11,8 @@
 /// market data.
 RcppExport SEXP firehose_subscribe_marketdata(SEXP endpoint,
                                               SEXP topics,
-                                              SEXP handler);
+                                              SEXP handler,
+                                              SEXP varzPort);
 
 /// Unsubscribe marketdata for the given contracts.
 /// Handle is the rerturn valued from subscribe call.
