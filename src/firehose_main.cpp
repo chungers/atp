@@ -23,18 +23,18 @@ static atp::varz::VarzServer* VARZ_INSTANCE;
 
 /// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
 const std::string CONNECTOR_SPECS =
-    "100=127.0.0.1:4001@tcp://127.0.0.1:5551";
+    "100=127.0.0.1:4001@tcp://127.0.0.1:6666";
 
 const std::string OUTBOUND_ENDPOINTS =
-    "0=tcp://127.0.0.1:6666,1=tcp://127.0.0.1:6667";
+    "0=tcp://127.0.0.1:5555,1=tcp://127.0.0.1:5556";
 
 DEFINE_string(connectors, CONNECTOR_SPECS,
               "Comma-delimited list of gateway ip/port @ control endpoints.");
 DEFINE_string(outbound, OUTBOUND_ENDPOINTS,
               "Comma-delimited list of channel and outbound endpoints");
-DEFINE_bool(publish, true,
+DEFINE_bool(publish, false,
             "True to publish at outbound endpoints, false to push to them");
-DEFINE_int32(varz, 9999, "The port varz server runs on.");
+DEFINE_int32(varz, 9990, "The port varz server runs on.");
 
 DEFINE_VARZ_bool(fh_as_publisher, false, "if instance is also a publisher.");
 DEFINE_VARZ_string(fh_connector_specs, "", "Connector specs");

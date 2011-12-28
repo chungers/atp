@@ -1,12 +1,10 @@
-
 options(digits.secs=6)
 
-# Given a list contract details (e.g. list(c1, c2, c3, ...)
-# extracts the topics based on the contract information such as
-# the security type, strike, right, and expiry, etc.
 marketdata.get_topics <- function(listOfContractDetails) {
+  # Given a list contract details (e.g. list(c1, c2, c3, ...)
+  # extracts the topics based on the contract information such as
+  # the security type, strike, right, and expiry, etc.
   sapply(listOfContractDetails,
-         # contract is a member of contractDetail
          function(cDetail) {
            ifelse(cDetail$contract$sectype == 'STK' ||
                   cDetail$contract$sectype == 'IND',
@@ -20,10 +18,10 @@ marketdata.get_topics <- function(listOfContractDetails) {
                         cDetail$contract$strike,
                         cDetail$contract$right,
                         cDetail$contract$expiry))
-               })
+         })
 }
 
- marketdata.default_handler <- function(topic, t, event, value, delay) {
+marketdata.default_handler <- function(topic, t, event, value, delay) {
   utc <- as.POSIXct(t, origin='1970-01-01', tz='GMT');
   nyc <- as.POSIXlt(utc, 'America/New_York');
   message(paste(nyc, topic, event, value, delay, sep=' '));
@@ -35,7 +33,7 @@ marketdata.newSubscriber <- function(endpoint, varz = 9999) {
   result <- .Call("marketdata_create_subscriber",
                   endpoint, varz,
                   PACKAGE = "raptor")
-  result
+  return(result)
 }
 
 marketdata.start <- function(subscriber,
@@ -43,14 +41,14 @@ marketdata.start <- function(subscriber,
   result <- .Call("marketdata_start_subscriber",
                   subscriber, handler,
                   PACKAGE = "raptor");
-  result
+  return(result)
 }
 
 marketdata.stop <- function(subscriber) {
   result <- .Call("marketdata_stop_subscriber",
                   subscriber,
                   PACKAGE = "raptor");
-  result
+  return(result)
 }
 
 marketdata.subscribe <- function(subscriber, contractDetails) {
@@ -62,7 +60,7 @@ marketdata.subscribe <- function(subscriber, contractDetails) {
   result <- .Call("marketdata_subscribe",
                   subscriber, topics,
                   PACKAGE = "raptor")
-  result
+  return(result)
 }
 
 marketdata.unsubscribe <- function(subscriber, contractDetails) {
@@ -73,6 +71,6 @@ marketdata.unsubscribe <- function(subscriber, contractDetails) {
   result <- .Call("marketdata_unsubscribe",
                   subscriber, topics,
                   PACKAGE = "raptor");
-  result
+  return(result)
 }
 
