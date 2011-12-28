@@ -16,6 +16,9 @@ load('firehose_contracts.RData')
 
 message('endpoint = ', ep)
 
-marketdata.subscribe(ep,
-                     list(contractDetails$AAPL,
-                          contractDetails$GOOG))
+subscriber <- marketdata.newSubscriber(ep)
+
+marketdata.subscribe(subscriber, list(contractDetails$AAPL,
+                                      contractDetails$GOOG))
+
+marketdata.start(subscriber)

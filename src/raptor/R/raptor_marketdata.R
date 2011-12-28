@@ -23,32 +23,56 @@ marketdata.get_topics <- function(listOfContractDetails) {
                })
 }
 
-marketdata.default_handler <- function(source, t, topic, event, value) {
+ marketdata.default_handler <- function(topic, t, event, value, delay) {
   utc <- as.POSIXct(t, origin='1970-01-01', tz='GMT');
   nyc <- as.POSIXlt(utc, 'America/New_York');
-  message(paste(nyc, topic, event, value, sep=' '));
+  message(paste(nyc, topic, event, value, delay, sep=' '));
   return(TRUE)
 }
 
+marketdata.newSubscriber <- function(endpoint, varz = 9999) {
+  options(digits.secs=6)
+  result <- .Call("marketdata_create_subscriber",
+                  endpoint, varz,
+                  PACKAGE = "raptor")
+  result
+}
 
-marketdata.subscribe <- function(endpoint, contractDetails,
-                                 handler = marketdata.default_handler,
-                                 varz = 9999) {
+marketdata.start <- function(subscriber,
+                             handler = marketdata.default_handler) {
+  result <- .Call("marketdata_start_subscriber",
+                  subscriber, handler,
+                  PACKAGE = "raptor");
+  result
+}
+
+marketdata.stop <- function(subscriber) {
+  result <- .Call("marketdata_stop_subscriber",
+                  subscriber,
+                  PACKAGE = "raptor");
+  result
+}
+
+marketdata.subscribe <- function(subscriber, contractDetails) {
   # contractDetails is a list of contractDetails from IBroker
   # reqContractDetails() call.
   topics <- marketdata.get_topics(contractDetails)
 
   options(digits.secs=6)
-  result <- .Call("firehose_subscribe_marketdata",
-                  endpoint, topics, handler, varz,
+  result <- .Call("marketdata_subscribe",
+                  subscriber, topics,
                   PACKAGE = "raptor")
   result
 }
 
-marketdata.cancel_marketdata <- function(handle, contracts) {
-  # contract is a list.
-  result <- .Call("firehose_unsubscribe_marketdata",
-                  handle, contracts,
+marketdata.unsubscribe <- function(subscriber, contractDetails) {
+  # contractDetails is a list of contractDetails from IBroker
+  # reqContractDetails() call.
+  topics <- marketdata.get_topics(contractDetails)
+
+  result <- .Call("marketdata_unsubscribe",
+                  subscriber, topics,
                   PACKAGE = "raptor");
   result
 }
+

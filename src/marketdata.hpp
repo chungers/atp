@@ -25,6 +25,9 @@ DEFINE_VARZ_int64(marketdata_process_latency_micros_count, 0, "");
 
 DEFINE_VARZ_bool(marketdata_process_stopped, false, "");
 
+DEFINE_VARZ_string(marketdata_subscribes, "", "");
+DEFINE_VARZ_string(marketdata_unsubscribes, "", "");
+
 namespace atp {
 
 using namespace std;
@@ -107,8 +110,7 @@ class MarketDataSubscriber
     for (vector<string>::iterator sub = subscriptions_.begin();
          sub != subscriptions_.end();
          ++sub) {
-      socketPtr_->setsockopt(ZMQ_SUBSCRIBE,
-                             sub->c_str(), sub->length());
+      subscribe(*sub);
       MARKET_DATA_SUBSCRIBER_LOGGER << "subscribed to topic = " << *sub;
     }
   }
@@ -140,6 +142,8 @@ class MarketDataSubscriber
     if (socketPtr_ != NULL) {
       socketPtr_->setsockopt(ZMQ_SUBSCRIBE,
                              topic.c_str(), topic.length());
+      VARZ_marketdata_subscribes += topic;
+      VARZ_marketdata_subscribes += " ";
       return true;
     }
     return false;
@@ -151,6 +155,8 @@ class MarketDataSubscriber
     if (socketPtr_ != NULL) {
       socketPtr_->setsockopt(ZMQ_UNSUBSCRIBE,
                              topic.c_str(), topic.length());
+      VARZ_marketdata_unsubscribes += topic;
+      VARZ_marketdata_unsubscribes += " ";
       return true;
     }
     return false;
