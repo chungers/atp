@@ -21,4 +21,12 @@ subscriber <- marketdata.newSubscriber(ep)
 marketdata.subscribe(subscriber, list(contractDetails$AAPL,
                                       contractDetails$GOOG))
 
-marketdata.start(subscriber)
+count <- 0
+handler <- function(topic, t, event, value, delay) {
+
+  message(paste(topic, t, event, value, sep=' '))
+  count <- count + 1
+  return(count < 10)
+}
+
+marketdata.start(subscriber, handler=handler)

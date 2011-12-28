@@ -31,8 +31,9 @@ class Subscriber : public atp::MarketDataSubscriber
     stop();
   }
 
-  void start(Function& callback)
+  void start(Environment& environment, Function& callback)
   {
+    environment_ = &environment;
     callback_ = &callback;
     processInbound();
   }
@@ -58,7 +59,7 @@ class Subscriber : public atp::MarketDataSubscriber
     if (shutdown_) {
       return false;
     }
-    if (callback_ != NULL) {
+    if (callback_ != NULL && environment_ != NULL) {
       double t =
           static_cast<double>((utc - utc_epoch).total_microseconds())
           / 1000000.0f;
@@ -75,6 +76,7 @@ class Subscriber : public atp::MarketDataSubscriber
 
  private:
   Function* callback_;
+  Environment* environment_;
   atp::varz::VarzServer varz_;
   bool shutdown_;
 };
@@ -101,16 +103,20 @@ SEXP marketdata_create_subscriber(SEXP endpoint,
   // the actual subscriber object.
   XPtr<zmq::context_t> contextPtr(context);
   XPtr<raptor::Subscriber> subscriberPtr(subscriber);
-  List handle = List::create(Named("context", contextPtr),
-                             Named("mdClient", subscriberPtr));
+
+  // Create a new new environment for storing any state associated with
+  // this subscriber.
+  Environment handle = Environment::base_env().new_child(true);
+  handle.assign("context", contextPtr);
+  handle.assign("mdClient", subscriberPtr);
   return handle;
 }
 
 /// Starts the subscriber.  This will block.
 SEXP marketdata_start_subscriber(SEXP subscriber, SEXP handler)
 {
-  List subscriberList(subscriber);
-  XPtr<raptor::Subscriber> md_sub(subscriberList["mdClient"],
+  Environment subscriberEnv(subscriber);
+  XPtr<raptor::Subscriber> md_sub(subscriberEnv["mdClient"],
                                   R_NilValue, R_NilValue);
   // Callback handler
   Function callback(handler);
@@ -118,7 +124,7 @@ SEXP marketdata_start_subscriber(SEXP subscriber, SEXP handler)
   assert(callback);
 
   // Starts the event loop.
-  md_sub->start(callback);
+  md_sub->start(subscriberEnv, callback);
 
   return wrap(R_NilValue);
 }
@@ -126,8 +132,8 @@ SEXP marketdata_start_subscriber(SEXP subscriber, SEXP handler)
 /// Stops the subscriber.  Returns control to the main caller.
 SEXP marketdata_stop_subscriber(SEXP subscriber)
 {
-  List subscriberList(subscriber);
-  XPtr<raptor::Subscriber> md_sub(subscriberList["mdClient"],
+  Environment subscriberEnv(subscriber);
+  XPtr<raptor::Subscriber> md_sub(subscriberEnv["mdClient"],
                                   R_NilValue, R_NilValue);
   md_sub->stop();
   return wrap(true);
@@ -137,8 +143,8 @@ SEXP marketdata_stop_subscriber(SEXP subscriber)
 /// given handler function which processes inbound market data messages.
 SEXP marketdata_subscribe(SEXP subscriber, SEXP topics)
 {
-  List subscriberList(subscriber);
-  XPtr<raptor::Subscriber> md_sub(subscriberList["mdClient"],
+  Environment subscriberEnv(subscriber);
+  XPtr<raptor::Subscriber> md_sub(subscriberEnv["mdClient"],
                                   R_NilValue, R_NilValue);
 
   // Construct the subscription topics from input contracts.
@@ -158,8 +164,8 @@ SEXP marketdata_subscribe(SEXP subscriber, SEXP topics)
 /// Unsubscribe market data for given list of contracts.
 SEXP marketdata_unsubscribe(SEXP subscriber, SEXP topics)
 {
-  List subscriberList(subscriber);
-  XPtr<raptor::Subscriber> md_sub(subscriberList["mdClient"],
+  Environment subscriberEnv(subscriber);
+  XPtr<raptor::Subscriber> md_sub(subscriberEnv["mdClient"],
                                   R_NilValue, R_NilValue);
 
   // Construct the subscription topics from input contracts.
