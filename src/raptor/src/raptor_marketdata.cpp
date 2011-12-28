@@ -67,9 +67,14 @@ class Subscriber : public atp::MarketDataSubscriber
           static_cast<double>(latency.total_microseconds())
         / 1000000.0f;
 
-      SEXP ret = (*callback_)(
-          wrap(topic), wrap(t), wrap(key), wrap(value), wrap(delay));
-      return as<bool>(ret);
+      try {
+        SEXP ret = (*callback_)(
+            wrap(topic), wrap(t), wrap(key), wrap(value), wrap(delay));
+        return as<bool>(ret);
+
+      } catch (std::exception e) {
+        std::cerr << "Exception " << e.what() << std::endl;
+      }
     }
     return true;
   }

@@ -18,15 +18,23 @@ message('endpoint = ', ep)
 
 subscriber <- marketdata.newSubscriber(ep)
 
-marketdata.subscribe(subscriber, list(contractDetails$AAPL,
-                                      contractDetails$GOOG))
+marketdata.subscribe(subscriber, list(contractDetails$AAPL))
+
+getVar <- function(n) { get(n, .GlobalEnv) }
+setVar <- function(n, v) { assign(n, v, .GlobalEnv) }
 
 count <- 0
-handler <- function(topic, t, event, value, delay) {
+max <- 100000000
+latencies <- c()
+x11()
 
-  message(paste(topic, t, event, value, sep=' '))
-  count <- count + 1
-  return(count < 10)
-}
+marketdata.start(subscriber, function(topic, t, event, value, delay) {
 
-marketdata.start(subscriber, handler=handler)
+  message(paste(count, topic, t, event, value, delay, sep=' '))
+
+  setVar('latencies', c(latencies, delay))
+  setVar('count', count + 1)
+
+  hist(latencies)
+  return(count < max)
+})
