@@ -27,6 +27,7 @@ DEFINE_bool(delay, true, "True to simulate sample delays when publishing");
 DEFINE_string(logfile, "logfile", "The name of the log file.");
 DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
 DEFINE_bool(publish, true, "True to publish to endpoint.");
+DEFINE_int64(playback, 1, "N multiple speed in playback.");
 
 namespace atp {
 namespace utils {
@@ -387,7 +388,7 @@ int main(int argc, char** argv)
             boost::int64_t dt = event.ts - last_ts;
             if (last_ts > 0 && dt > 0 && FLAGS_delay) {
               // wait dt micros
-              usleep(dt);
+              usleep(dt / FLAGS_playback);
             }
             atp::MarketData<double> marketData(event.symbol, event.ts,
                                                event.event, event.value);

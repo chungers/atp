@@ -4,6 +4,7 @@
 
 #include "utils.hpp"
 #include "marketdata.hpp"
+#include "varz/varz.hpp"
 #include "varz/VarzServer.hpp"
 #include "zmq/ZmqUtils.hpp"
 #include "raptor_marketdata.h"
@@ -11,6 +12,12 @@
 
 using namespace std;
 using namespace Rcpp;
+
+DEFINE_VARZ_int64(marketdata_subscriber_r_callback_latency_micros, 0, "");
+DEFINE_VARZ_int64(marketdata_subscriber_r_callback_last_ts, 0, "");
+DEFINE_VARZ_int64(marketdata_subscriber_r_callback_interval_micros, 0, "");
+DEFINE_VARZ_int64(marketdata_subscriber_r_callback_slow_downs, 0, "");
+
 
 namespace raptor {
 
@@ -60,20 +67,37 @@ class Subscriber : public atp::MarketDataSubscriber
       return false;
     }
     if (callback_ != NULL && environment_ != NULL) {
+      boost::uint64_t ct = (utc - utc_epoch).total_microseconds();
       double t =
-          static_cast<double>((utc - utc_epoch).total_microseconds())
-          / 1000000.0f;
+          static_cast<double>(ct) / 1000000.0f;
       double delay =
           static_cast<double>(latency.total_microseconds())
         / 1000000.0f;
 
       try {
+
+        boost::uint64_t start = now_micros();
+
         SEXP ret = (*callback_)(
             wrap(topic), wrap(t), wrap(key), wrap(value), wrap(delay));
+
+        VARZ_marketdata_subscriber_r_callback_latency_micros =
+            now_micros() - start;
+        VARZ_marketdata_subscriber_r_callback_interval_micros =
+            ct - VARZ_marketdata_subscriber_r_callback_last_ts;
+        VARZ_marketdata_subscriber_r_callback_last_ts = ct;
+
+        if (VARZ_marketdata_subscriber_r_callback_latency_micros >=
+            VARZ_marketdata_subscriber_r_callback_interval_micros) {
+          VARZ_marketdata_subscriber_r_callback_slow_downs++;
+        }
+
         return as<bool>(ret);
 
       } catch (std::exception e) {
         std::cerr << "Exception " << e.what() << std::endl;
+        // Just stop the loop so we don't hang
+        return false;
       }
     }
     return true;

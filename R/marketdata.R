@@ -28,21 +28,39 @@ message('endpoint = ', ep)
 
 subscriber <- marketdata.newSubscriber(ep)
 
-marketdata.subscribe(subscriber, list(contractDetails$AAPL))
+marketdata.subscribe(subscriber,
+                     list(contractDetails$AAPL));
 
 # initial state
 count <- 0
-max <- 100000000
+DATA <- list()
 latencies <- c()
-x11()
+#x11()
 
-marketdata.start(subscriber, function(topic, t, event, value, delay) {
+tradingEnd <- ISOdatetime(2011, 12, 29, 16, 0, 0, tz='America/New_York')
 
-  message(paste(count, topic, nycTime(t), event, value, delay, sep=' '))
+marketdata.start(subscriber, function(topic, t, evt, val, delay) {
+
+  lt <- nycTime(t)
+  sample <- xts(as.numeric(val), lt, tzone='America/New_York')
+  if (is.null(DATA[[topic]])) {
+    DATA[[topic]] <- list()
+  }
+  if (is.null(DATA[[topic]][[evt]])) {
+    DATA[[topic]][[evt]] <- sample
+    names(DATA[[topic]][[evt]]) <- c(paste(topic,evt, sep=':'))
+  } else {
+    DATA[[topic]][[evt]] <- c(DATA[[topic]][[evt]], sample)
+  }
+  setVar('DATA', DATA)
+
+  message(paste(count, topic, lt, evt, val, delay, sep=' '))
 
   setVar('latencies', c(latencies, delay))
   setVar('count', count + 1)
 
-  hist(latencies)
-  return(count < max)
+  #hist(latencies)
+  return(lt < tradingEnd)
 })
+
+save.image('2011_12_29_AAPL.RData')
