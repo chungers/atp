@@ -16,7 +16,7 @@ using namespace Rcpp;
 DEFINE_VARZ_int64(marketdata_subscriber_r_callback_latency_micros, 0, "");
 DEFINE_VARZ_int64(marketdata_subscriber_r_callback_last_ts, 0, "");
 DEFINE_VARZ_int64(marketdata_subscriber_r_callback_interval_micros, 0, "");
-DEFINE_VARZ_int64(marketdata_subscriber_r_callback_slow_downs, 0, "");
+DEFINE_VARZ_int64(marketdata_subscriber_r_callback_over_budget, 0, "");
 
 
 namespace raptor {
@@ -89,7 +89,7 @@ class Subscriber : public atp::MarketDataSubscriber
 
         if (VARZ_marketdata_subscriber_r_callback_latency_micros >=
             VARZ_marketdata_subscriber_r_callback_interval_micros) {
-          VARZ_marketdata_subscriber_r_callback_slow_downs++;
+          VARZ_marketdata_subscriber_r_callback_over_budget++;
         }
 
         return as<bool>(ret);

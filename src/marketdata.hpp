@@ -22,6 +22,7 @@ DEFINE_VARZ_int64(marketdata_send_latency_micros_count, 0, "");
 DEFINE_VARZ_int64(marketdata_process_latency_micros, 0, "");
 DEFINE_VARZ_int64(marketdata_process_latency_micros_total, 0, "");
 DEFINE_VARZ_int64(marketdata_process_latency_micros_count, 0, "");
+DEFINE_VARZ_int64(marketdata_process_latency_over_budget, 0, "");
 
 DEFINE_VARZ_bool(marketdata_process_stopped, false, "");
 
@@ -205,12 +206,16 @@ class MarketDataSubscriber
       istringstream s_ts(frame2);  s_ts >> ts;
       istringstream s_latency(frame5); s_latency >> latency;
 
+      // Compute the interval of events
+      VARZ_marketdata_event_interval_micros = ts -VARZ_marketdata_event_last_ts;
+      VARZ_marketdata_event_last_ts = ts;
+
       // Convert timestamp to posix time.
       ptime t = from_time_t(ts / 1000000LL);
       time_duration micros(0, 0, 0, ts % 1000000LL);
       t += micros;
 
-      // Compute the latency from the initial timestamp to now,
+      // Compute the latency from the message's timestamp to now,
       // accounting for network transport, parsing, etc.
       ptime now = microsec_clock::universal_time();
       time_duration total_latency = now - t;
@@ -226,16 +231,18 @@ class MarketDataSubscriber
         }
       }
 
-      boost::uint64_t dt = now_micros();
+      boost::uint64_t process_start = now_micros();
       bool continueProcess = process(t, frame1, frame3, frame4, total_latency);
-      boost::uint64_t process_dt = now_micros() - dt;
-
-      VARZ_marketdata_event_interval_micros = dt -VARZ_marketdata_event_last_ts;
-      VARZ_marketdata_event_last_ts = dt;
+      boost::uint64_t process_dt = now_micros() - process_start;
 
       VARZ_marketdata_process_latency_micros = process_dt;
       VARZ_marketdata_process_latency_micros_total += process_dt;
       VARZ_marketdata_process_latency_micros_count++;
+
+      if (VARZ_marketdata_process_latency_micros >=
+          VARZ_marketdata_event_interval_micros) {
+        VARZ_marketdata_process_latency_over_budget++;
+      }
 
       if (!continueProcess) {
         VARZ_marketdata_process_stopped = true;
