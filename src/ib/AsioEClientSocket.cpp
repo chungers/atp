@@ -27,16 +27,7 @@ DEFINE_VARZ_int64(asio_socket_send_latency_micros_total, 0, "");
 DEFINE_VARZ_int64(asio_socket_send_latency_micros_count, 0, "");
 
 DEFINE_VARZ_int64(asio_socket_receive_errors, 0, "");
-DEFINE_VARZ_int64(asio_socket_receive_latency_micros, 0, "");
-DEFINE_VARZ_int64(asio_socket_receive_latency_micros_total, 0, "");
-DEFINE_VARZ_int64(asio_socket_receive_latency_micros_count, 0, "");
-
-DEFINE_VARZ_int64(asio_socket_event_loop_latency_micros, 0, "");
-DEFINE_VARZ_int64(asio_socket_event_loop_latency_micros_total, 0, "");
-DEFINE_VARZ_int64(asio_socket_event_loop_latency_micros_count, 0, "");
-
 DEFINE_VARZ_int64(asio_socket_event_loop_errors, 0, "");
-
 DEFINE_VARZ_int64(asio_socket_event_loop_stopped, false, "");
 
 namespace ib {
@@ -235,13 +226,7 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
   size_t read = -1;
   try {
 
-    int64 start = now_micros();
     read = socket_.receive(boost::asio::buffer(buf, sz));
-    receiveDt_ = now_micros() - start;
-
-    VARZ_asio_socket_receive_latency_micros = receiveDt_;
-    VARZ_asio_socket_receive_latency_micros_total += receiveDt_;
-    VARZ_asio_socket_receive_latency_micros_count++;
 
   } catch (boost::system::system_error e) {
 
@@ -280,14 +265,7 @@ void AsioEClientSocket::block() {
   while (isSocketOK() && processed) {
     try {
 
-      int64 start = now_micros();
       processed = checkMessages();
-      processMessageDt_ = now_micros() - start;
-
-      VARZ_asio_socket_event_loop_latency_micros = processMessageDt_;
-      VARZ_asio_socket_event_loop_latency_micros_total += processMessageDt_;
-      VARZ_asio_socket_event_loop_latency_micros_count++;
-
 
     } catch (...) {
       // Implementation taken from http://goo.gl/aiOKm

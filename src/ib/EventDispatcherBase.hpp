@@ -7,7 +7,14 @@
 #include "ib/EWrapperFactory.hpp"
 #include "ib/TickerMap.hpp"
 #include "ib/tick_types.hpp"
+#include "varz/varz.hpp"
 #include "zmq/ZmqUtils.hpp"
+
+DEFINE_VARZ_int64(event_dispatch_publish_total_bytes, 0, "");
+DEFINE_VARZ_int64(event_dispatch_publish_count, 0, "");
+DEFINE_VARZ_int64(event_dispatch_publish_last_ts, 0, "");
+DEFINE_VARZ_int64(event_dispatch_publish_interval_micros, 0, "");
+DEFINE_VARZ_int64(event_dispatch_publish_unresolved_keys, 0, "");
 
 namespace ib {
 namespace internal {
@@ -39,12 +46,22 @@ class EventDispatcherBase
 
     if (TickerMap::getSubscriptionKeyFromId(tickerId, &topic)) {
 
+      boost::uint64_t now = now_micros();
       atp::MarketData<T> marketData(topic, timed.getMicros(), tick, value);
       size_t sent = marketData.dispatch(getOutboundSocket(0));
+
+      VARZ_event_dispatch_publish_count++;
+      VARZ_event_dispatch_publish_total_bytes += sent;
+      VARZ_event_dispatch_publish_interval_micros =
+          now - VARZ_event_dispatch_publish_last_ts;
+      VARZ_event_dispatch_publish_last_ts = now;
 
     } else {
       LOG(ERROR) << "Cannot get subscription key / topic for " << tickerId
                  << ", event = " << tickType << ", value " << value;
+
+      VARZ_event_dispatch_publish_unresolved_keys++;
+
     }
   }
 

@@ -28,6 +28,9 @@ DEFINE_VARZ_bool(marketdata_process_stopped, false, "");
 DEFINE_VARZ_string(marketdata_subscribes, "", "");
 DEFINE_VARZ_string(marketdata_unsubscribes, "", "");
 
+DEFINE_VARZ_int64(marketdata_event_last_ts, 0, "");
+DEFINE_VARZ_int64(marketdata_event_interval_micros, 0, "");
+
 namespace atp {
 
 using namespace std;
@@ -225,10 +228,13 @@ class MarketDataSubscriber
 
       boost::uint64_t dt = now_micros();
       bool continueProcess = process(t, frame1, frame3, frame4, total_latency);
-      dt = now_micros() - dt;
+      boost::uint64_t process_dt = now_micros() - dt;
 
-      VARZ_marketdata_process_latency_micros = dt;
-      VARZ_marketdata_process_latency_micros_total += dt;
+      VARZ_marketdata_event_interval_micros = dt -VARZ_marketdata_event_last_ts;
+      VARZ_marketdata_event_last_ts = dt;
+
+      VARZ_marketdata_process_latency_micros = process_dt;
+      VARZ_marketdata_process_latency_micros_total += process_dt;
       VARZ_marketdata_process_latency_micros_count++;
 
       if (!continueProcess) {

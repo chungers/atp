@@ -10,12 +10,17 @@
 
 DEFINE_VARZ_int64(api_events, 0, "");
 DEFINE_VARZ_int64(api_requests, 0, "");
+DEFINE_VARZ_int64(api_last_ts, 0, "");
+DEFINE_VARZ_int64(api_event_interval_micros, 0, "");
+
 
 // Macro for writing field value.
 #define __f__(m) "," << #m << '=' << m
 
-#define LOG_EVENT                                       \
-  boost::uint64_t t = now(); VARZ_api_events++; EWRAPPER_LOGGER  \
+#define LOG_EVENT                                          \
+  boost::uint64_t t = now(); VARZ_api_events++;            \
+  VARZ_api_event_interval_micros = t - VARZ_api_last_ts;   \
+  VARZ_api_last_ts = t; EWRAPPER_LOGGER                 \
   << "cid=" << connection_id_                           \
   << ",ts_utc=" << t                                    \
   << ",event=" << __func__                              \

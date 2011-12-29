@@ -4,6 +4,16 @@ library(raptor)
 
 options(digits.secs=6)
 
+# convenience functions
+getVar <- function(n) { get(n, .GlobalEnv) }
+
+setVar <- function(n, v) { assign(n, v, .GlobalEnv) }
+
+nycTime <- function(t) {
+  utc <- as.POSIXct(t, origin='1970-01-01', tz='GMT');
+  as.POSIXlt(utc, 'America/New_York');
+}
+
 
 # if invoked with R --vanilla --slave --args local
 # then use the localhost address.
@@ -20,9 +30,7 @@ subscriber <- marketdata.newSubscriber(ep)
 
 marketdata.subscribe(subscriber, list(contractDetails$AAPL))
 
-getVar <- function(n) { get(n, .GlobalEnv) }
-setVar <- function(n, v) { assign(n, v, .GlobalEnv) }
-
+# initial state
 count <- 0
 max <- 100000000
 latencies <- c()
@@ -30,7 +38,7 @@ x11()
 
 marketdata.start(subscriber, function(topic, t, event, value, delay) {
 
-  message(paste(count, topic, t, event, value, delay, sep=' '))
+  message(paste(count, topic, nycTime(t), event, value, delay, sep=' '))
 
   setVar('latencies', c(latencies, delay))
   setVar('count', count + 1)
