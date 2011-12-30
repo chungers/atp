@@ -19,6 +19,7 @@ DEFINE_VARZ_int64(marketdata_process_latency_micros, 0, "");
 DEFINE_VARZ_int64(marketdata_process_latency_micros_total, 0, "");
 DEFINE_VARZ_int64(marketdata_process_latency_micros_count, 0, "");
 DEFINE_VARZ_int64(marketdata_process_latency_over_budget, 0, "");
+DEFINE_VARZ_int64(marketdata_process_latency_drift_micros, 0, "");
 
 DEFINE_VARZ_bool(marketdata_process_stopped, false, "");
 
@@ -178,6 +179,7 @@ class MarketDataSubscriber
       VARZ_marketdata_process_latency_micros = process_dt;
       VARZ_marketdata_process_latency_micros_total += process_dt;
       VARZ_marketdata_process_latency_micros_count++;
+      VARZ_marketdata_process_latency_drift_micros = now_micros() - ts;
 
       if (VARZ_marketdata_process_latency_micros >=
           VARZ_marketdata_event_interval_micros) {
