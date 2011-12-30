@@ -3,7 +3,7 @@
 
 #include <sstream>
 #include "common.hpp"
-#include "marketdata.hpp"
+#include "marketdata_source.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/TickerMap.hpp"
 #include "ib/tick_types.hpp"

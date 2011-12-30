@@ -3,7 +3,7 @@
 #include <cassert>
 
 #include "utils.hpp"
-#include "marketdata.hpp"
+#include "marketdata_sink.hpp"
 #include "varz/varz.hpp"
 #include "varz/VarzServer.hpp"
 #include "zmq/ZmqUtils.hpp"

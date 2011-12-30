@@ -9,7 +9,7 @@
 #include "varz/varz.hpp"
 #include "varz/VarzServer.hpp"
 
-#include "marketdata.hpp"
+#include "marketdata_sink.hpp"
 
 static atp::varz::VarzServer* varz_instance;
 
