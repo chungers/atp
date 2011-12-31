@@ -28,10 +28,11 @@ marketdata.default_handler <- function(topic, t, event, value, delay) {
   return(TRUE)
 }
 
-marketdata.newSubscriber <- function(endpoint, varz = 9999) {
+marketdata.newSubscriber <- function(id, adminEndpoint,
+                                     endpoint, varz = 9999) {
   options(digits.secs=6)
   result <- .Call("marketdata_create_subscriber",
-                  endpoint, varz,
+                  id, adminEndpoint, endpoint, varz,
                   PACKAGE = "raptor")
   return(result)
 }

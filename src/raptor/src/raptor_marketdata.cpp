@@ -24,12 +24,14 @@ namespace raptor {
 class Subscriber : public atp::MarketDataSubscriber
 {
  public:
-  Subscriber(const string& endpoint, const vector<string>& subscriptions,
+  Subscriber(const string& id, const string& adminEndpoint,
+             const string& endpoint, const vector<string>& subscriptions,
              ::zmq::context_t* context, int varzPort) :
-      atp::MarketDataSubscriber(endpoint, subscriptions, context),
-      varz_(varzPort, 1),
-      shutdown_(false)
+      atp::MarketDataSubscriber(id, adminEndpoint,
+                                endpoint, subscriptions, context),
+      varz_(varzPort, 1)
   {
+    registerHandler("stop", boost::bind(&Subscriber::stop, this));
     varz_.start();
   }
 
@@ -45,12 +47,12 @@ class Subscriber : public atp::MarketDataSubscriber
     processInbound();
   }
 
-  void stop()
+  virtual bool stop()
   {
-    if (!shutdown_) {
-      varz_.stop();
-      shutdown_ = true;
-    }
+    bool stop = MarketDataSubscriber::stop();
+    Rprintf("Stopping varz");
+    varz_.stop();
+    return stop;
   }
 
  protected:
@@ -63,9 +65,6 @@ class Subscriber : public atp::MarketDataSubscriber
                        const string& key, const string& value,
                        const boost::posix_time::time_duration& latency)
   {
-    if (shutdown_) {
-      return false;
-    }
     if (callback_ != NULL && environment_ != NULL) {
       boost::uint64_t ct = (utc - utc_epoch).total_microseconds();
       double t =
@@ -107,16 +106,19 @@ class Subscriber : public atp::MarketDataSubscriber
   Function* callback_;
   Environment* environment_;
   atp::varz::VarzServer varz_;
-  bool shutdown_;
 };
 
 } // namespace raptor
 
 /// Create a new subscriber to the given endpoint and with varz at given port.
-SEXP marketdata_create_subscriber(SEXP endpoint,
+SEXP marketdata_create_subscriber(SEXP id,
+                                  SEXP adminEndpoint,
+                                  SEXP endpoint,
                                   SEXP varzPort)
 {
   zmq::context_t *context = new zmq::context_t(1);
+  string m_id = as<string>(id);
+  string m_adminEndpoint = as<string>(adminEndpoint);
   string ep = as<string>(endpoint);
 
   // Initialize with empty subscriptions
@@ -126,7 +128,8 @@ SEXP marketdata_create_subscriber(SEXP endpoint,
   int varz_port = as<int>(varzPort);
 
   raptor::Subscriber* subscriber =
-      new raptor::Subscriber(ep, subscriptions, context, varz_port);
+      new raptor::Subscriber(m_id, m_adminEndpoint,
+                             ep, subscriptions, context, varz_port);
 
   // Construct the return handle object- we only expose the context_t and
   // the actual subscriber object.

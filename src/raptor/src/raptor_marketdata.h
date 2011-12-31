@@ -5,7 +5,9 @@
 
 /// Simply creates an instance of the market data subscriber
 /// and returns its handle.
-RcppExport SEXP marketdata_create_subscriber(SEXP endpoint,
+RcppExport SEXP marketdata_create_subscriber(SEXP id,
+                                             SEXP adminEndpoint,
+                                             SEXP endpoint,
                                              SEXP varzPort);
 
 /// Subscribe to market data for given list of topics which are

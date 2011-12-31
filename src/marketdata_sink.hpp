@@ -1,8 +1,11 @@
 #ifndef ATP_MARKETDATA_SINK_H_
 #define ATP_MARKETDATA_SINK_H_
 
+#include <map>
 
-#include <sstream>
+#include <boost/assign.hpp>
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/date_time/gregorian/greg_month.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -23,6 +26,7 @@ DEFINE_VARZ_int64(marketdata_process_latency_drift_micros, 0, "");
 
 DEFINE_VARZ_bool(marketdata_process_stopped, false, "");
 
+DEFINE_VARZ_string(marketdata_id, "", "");
 DEFINE_VARZ_string(marketdata_subscribes, "", "");
 DEFINE_VARZ_string(marketdata_unsubscribes, "", "");
 
@@ -33,19 +37,40 @@ namespace atp {
 
 using namespace std;
 
+class MarketDataSubscriber;
+
+typedef boost::function< bool(const string&, const string&) > AdminHandler;
+typedef map< string, AdminHandler > HandlerMap;
+
 class MarketDataSubscriber
 {
  public:
 
-  MarketDataSubscriber(const string& endpoint,
+  MarketDataSubscriber(const string& id,
+                       const string& adminEndpoint,
+                       const string& endpoint,
                        const vector<string>& subscriptions,
                        ::zmq::context_t* context = NULL) :
+      id_(id),
+      adminEndpoint_(adminEndpoint),
       endpoint_(endpoint),
       subscriptions_(subscriptions),
       contextPtr_(context),
       ownContext_(context == NULL),
       offsetLatency_(false)
   {
+    VARZ_marketdata_id = id_;
+
+    // Bind admin handlers
+    registerHandler("connect", boost::bind(
+        &MarketDataSubscriber::connect, this, _2));
+    registerHandler("subscribe", boost::bind(
+        &MarketDataSubscriber::subscribe, this, _2));
+    registerHandler("unsubscribe", boost::bind(
+        &MarketDataSubscriber::unsubscribe, this, _2));
+    registerHandler("stop", boost::bind(
+        &MarketDataSubscriber::stop, this));
+
     if (ownContext_) {
       contextPtr_ = new ::zmq::context_t(1);
     }
@@ -58,6 +83,12 @@ class MarketDataSubscriber
       subscribe(*sub);
       MARKET_DATA_SUBSCRIBER_LOGGER << "subscribed to topic = " << *sub;
     }
+
+    // For admin -- also connect to the admin endpoint, which will
+    // publish admin messages using the id as the topic.  So add
+    // the id as a subscription.
+    socketPtr_->connect(adminEndpoint_.c_str());
+    subscribe(id_);
   }
 
   ~MarketDataSubscriber()
@@ -68,6 +99,12 @@ class MarketDataSubscriber
     if (ownContext_) {
       delete contextPtr_;
     }
+  }
+
+  virtual bool stop()
+  {
+    MARKET_DATA_SUBSCRIBER_LOGGER << "Stopping marketdata subscription processing.";
+    return false;
   }
 
   /// Connect to another endpoint IN ADDITION to the current connection(s).
@@ -141,49 +178,63 @@ class MarketDataSubscriber
         LOG(ERROR) << "Unexpected frame: " << extra;
         if (more == 0) break;
       }
-      boost::uint64_t ts;
-      boost::uint64_t latency;
+      bool continueProcess = false;
+      if (frame1 == id_) {
+        if (adminHandlers_.find(frame2) != adminHandlers_.end()) {
+          // This is an admin message.
+          MARKET_DATA_SUBSCRIBER_LOGGER << "Admin message: " <<
+              frame1 << " " << frame2 << " " << frame3;
 
-      istringstream s_ts(frame2);  s_ts >> ts;
-      istringstream s_latency(frame5); s_latency >> latency;
-
-      // Compute the interval of events
-      VARZ_marketdata_event_interval_micros = ts -VARZ_marketdata_event_last_ts;
-      VARZ_marketdata_event_last_ts = ts;
-
-      // Convert timestamp to posix time.
-      ptime t = from_time_t(ts / 1000000LL);
-      time_duration micros(0, 0, 0, ts % 1000000LL);
-      t += micros;
-
-      // Compute the latency from the message's timestamp to now,
-      // accounting for network transport, parsing, etc.
-      ptime now = microsec_clock::universal_time();
-      time_duration total_latency = now - t;
-
-      if (offsetLatency_) {
-        if (++count == 1) {
-          // compute the offset
-          latencyOffset = total_latency;
-          LOG(INFO) << "Using latency offset " << latencyOffset;
-        } else {
-          // compute the true latency with the offset
-          total_latency -= latencyOffset;
+          continueProcess = adminHandlers_[frame2](frame2, frame3);
         }
-      }
+      } else {
 
-      boost::uint64_t process_start = now_micros();
-      bool continueProcess = process(t, frame1, frame3, frame4, total_latency);
-      boost::uint64_t process_dt = now_micros() - process_start;
+        boost::uint64_t ts;
+        boost::uint64_t latency;
 
-      VARZ_marketdata_process_latency_micros = process_dt;
-      VARZ_marketdata_process_latency_micros_total += process_dt;
-      VARZ_marketdata_process_latency_micros_count++;
-      VARZ_marketdata_process_latency_drift_micros = now_micros() - ts;
+        istringstream s_ts(frame2);  s_ts >> ts;
+        istringstream s_latency(frame5); s_latency >> latency;
 
-      if (VARZ_marketdata_process_latency_micros >=
-          VARZ_marketdata_event_interval_micros) {
-        VARZ_marketdata_process_latency_over_budget++;
+        // Compute the interval of events
+        VARZ_marketdata_event_interval_micros =
+            ts -VARZ_marketdata_event_last_ts;
+        VARZ_marketdata_event_last_ts = ts;
+
+        // Convert timestamp to posix time.
+        ptime t = from_time_t(ts / 1000000LL);
+        time_duration micros(0, 0, 0, ts % 1000000LL);
+        t += micros;
+
+        // Compute the latency from the message's timestamp to now,
+        // accounting for network transport, parsing, etc.
+        ptime now = microsec_clock::universal_time();
+        time_duration total_latency = now - t;
+
+        if (offsetLatency_) {
+          if (++count == 1) {
+            // compute the offset
+            latencyOffset = total_latency;
+            MARKET_DATA_SUBSCRIBER_LOGGER << "Using latency offset "
+                                          << latencyOffset;
+          } else {
+            // compute the true latency with the offset
+            total_latency -= latencyOffset;
+          }
+        }
+
+        boost::uint64_t process_start = now_micros();
+        continueProcess = process(t, frame1, frame3, frame4, total_latency);
+        boost::uint64_t process_dt = now_micros() - process_start;
+
+        VARZ_marketdata_process_latency_micros = process_dt;
+        VARZ_marketdata_process_latency_micros_total += process_dt;
+        VARZ_marketdata_process_latency_micros_count++;
+        VARZ_marketdata_process_latency_drift_micros = now_micros() - ts;
+
+        if (VARZ_marketdata_process_latency_micros >=
+            VARZ_marketdata_event_interval_micros) {
+          VARZ_marketdata_process_latency_over_budget++;
+        }
       }
 
       if (!continueProcess) {
@@ -194,6 +245,11 @@ class MarketDataSubscriber
   }
 
  protected:
+
+  void registerHandler(const string& verb, AdminHandler handler)
+  {
+    adminHandlers_[verb] = handler;
+  }
 
   /// Process an incoming event.
   /// utc - timestamp in UTC
@@ -211,6 +267,8 @@ class MarketDataSubscriber
 
 
  private:
+  string id_;
+  string adminEndpoint_;
   string endpoint_;
   vector<string> subscriptions_;
   ::zmq::context_t* contextPtr_;
@@ -218,6 +276,7 @@ class MarketDataSubscriber
   bool ownContext_;
   bool offsetLatency_;
   boost::mutex mutex_;
+  HandlerMap adminHandlers_;
 };
 
 

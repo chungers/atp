@@ -24,6 +24,8 @@ void OnTerminate(int param)
   exit(1);
 }
 
+DEFINE_string(adminEp, "tcp://127.0.0.1:4444", "Admin endpoint");
+DEFINE_string(id, "marketdata", "Id of the subscriber");
 DEFINE_string(ep, "tcp://127.0.0.1:7777", "Marketdata endpoint");
 DEFINE_string(topics, "", "Commad delimited subscription topics");
 DEFINE_bool(playback, false, "True if data is playback from logs");
@@ -39,10 +41,12 @@ using namespace std;
 class ConsoleMarketDataSubscriber : public atp::MarketDataSubscriber
 {
  public :
-  ConsoleMarketDataSubscriber(const string& endpoint,
+  ConsoleMarketDataSubscriber(const string& id,
+                              const string& adminEndpoint,
+                              const string& endpoint,
                               const vector<string>& subscriptions,
                               ::zmq::context_t* context) :
-      MarketDataSubscriber(endpoint, subscriptions, context)
+      MarketDataSubscriber(id, adminEndpoint, endpoint, subscriptions, context)
   {
   }
 
@@ -86,7 +90,9 @@ int main(int argc, char** argv)
   vector<string> subscriptions;
   boost::split(subscriptions, FLAGS_topics, boost::is_any_of(","));
 
-  ::ConsoleMarketDataSubscriber subscriber(FLAGS_ep, subscriptions, &context);
+  ::ConsoleMarketDataSubscriber subscriber(
+      FLAGS_id, FLAGS_adminEp,
+      FLAGS_ep, subscriptions, &context);
   subscriber.setOffsetLatency(FLAGS_playback);
 
   LOG(INFO) << "Start varz server at " << FLAGS_varz;

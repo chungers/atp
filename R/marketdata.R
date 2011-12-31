@@ -13,7 +13,7 @@ nycTime <- function(t) {
 # if invoked with R --vanilla --slave --args local
 # then use the localhost address.
 fh <- commandArgs()[5]
-#fh <- 'local'
+fh <- 'local'
 ep <- ifelse(!is.na(fh) && fh == 'local',
              'tcp://127.0.0.1:7777',
              'tcp://69.164.211.61:7777')
@@ -22,7 +22,8 @@ load('firehose_contracts.RData')
 
 message('endpoint = ', ep)
 
-subscriber <- marketdata.newSubscriber(ep)
+subscriber <-
+  marketdata.newSubscriber('test-subscriber', 'tcp://127.0.0.1:4444', ep)
 
 marketdata.subscribe(subscriber,
                      list(contractDetails$AAPL));
