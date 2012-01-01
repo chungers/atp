@@ -4,59 +4,77 @@ library(raptor)
 
 options(digits.secs=6)
 
-# convenience functions
-nycTime <- function(t) {
-  utc <- as.POSIXct(t, origin='1970-01-01', tz='GMT');
-  as.POSIXlt(utc, 'America/New_York');
+# Using environment / closure to properly encapsulate the
+# marketdata subscriber and its data, state.
+# See http://www.lemnica.com/esotericR/Introducing-Closures/
+new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
+                                     contractDetails) {
+
+  state <- new.env()
+
+  state$id <- id
+  state$endpoint <- endpoint
+  state$adminSocket <- 'tcp://127.0.0.1:4444'
+  state$varz <- varz
+  state$subscription <- contractDetails
+  state$tradingEnd <- ISOdatetime(2011, 12, 30, 12, 0, 0, tz='America/New_York')
+
+  state$.Data <- list()
+  state$.Latencies <- list()
+  state$.Count <- 0
+
+  state$nycTime <- function(t) {
+    utc <- as.POSIXct(t, origin='1970-01-01', tz='GMT');
+    as.POSIXlt(utc, 'America/New_York');
+  }
+
+  state$subscriber <-
+    marketdata.newSubscriber(id, state$adminSocket, endpoint, state$varz)
+
+  marketdata.subscribe(state$subscriber, state$subscription)
+
+  state$handler <- function(topic, t, evt, val, delay) {
+
+    lt <- nycTime(t)
+
+    sample <- xts(as.numeric(val), lt, tzone='America/New_York')
+
+    if (is.null(.Data[[topic]])) {
+      .Data[[topic]] <<- list()
+    }
+
+    if (is.null(.Data[[topic]][[evt]])) {
+      .Data[[topic]][[evt]] <<- sample
+      names(.Data[[topic]][[evt]]) <<- c(paste(topic,evt, sep=':'))
+    } else {
+      .Data[[topic]][[evt]] <<- c(.Data[[topic]][[evt]], sample)
+    }
+
+    message(paste(.Count, topic, lt, evt, val, delay, sep=' '))
+
+    .Latencies <<- c(.Latencies, delay)
+    .Count <<- .Count+1
+    return(lt < tradingEnd)
+  }
+
+  state$start <- function() {
+    marketdata.start(subscriber, handler)
+    gc()
+  }
+
+  environment(state$handler) <- as.environment(state)
+  environment(state$start) <- as.environment(state)
+
+  class(state) <- 'MarketDataSubscriber'
+
+  return(state)
 }
 
-# if invoked with R --vanilla --slave --args local
-# then use the localhost address.
-fh <- commandArgs()[5]
-fh <- 'local'
-ep <- ifelse(!is.na(fh) && fh == 'local',
-             'tcp://127.0.0.1:7777',
-             'tcp://69.164.211.61:7777')
+# S3 mechanism for mapping functions as object methods
+# see help(UseMethod)
+# invocation - start(subscriber)
+start <- function(x, ...) UseMethod('start')
+start.MarketDataSubscriber <- function(x, ...) x$start()
 
-load('firehose_contracts.RData')
 
-message('endpoint = ', ep)
 
-subscriber <-
-  marketdata.newSubscriber('test-subscriber', 'tcp://127.0.0.1:4444', ep, 18001)
-
-marketdata.subscribe(subscriber,
-                     list(contractDetails$AAPL));
-
-# initial state
-count <- 0
-DATA <- list()
-latencies <- c()
-#x11()
-
-tradingEnd <- ISOdatetime(2011, 12, 30, 12, 0, 0, tz='America/New_York')
-
-marketdata.start(subscriber, function(topic, t, evt, val, delay) {
-
-  lt <- nycTime(t)
-  sample <- xts(as.numeric(val), lt, tzone='America/New_York')
-  if (is.null(DATA[[topic]])) {
-    DATA[[topic]] <<- list()
-  }
-  if (is.null(DATA[[topic]][[evt]])) {
-    DATA[[topic]][[evt]] <<- sample
-    names(DATA[[topic]][[evt]]) <<- c(paste(topic,evt, sep=':'))
-  } else {
-    DATA[[topic]][[evt]] <<- c(DATA[[topic]][[evt]], sample)
-  }
-
-  message(paste(count, topic, lt, evt, val, delay, sep=' '))
-
-  latencies <<- c(latencies, delay)
-  count <<- count+1
-
-  #hist(latencies)
-  return(lt < tradingEnd)
-})
-
-save.image('2011_12_30_AAPL.RData')
