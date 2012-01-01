@@ -96,7 +96,7 @@ int main(int argc, char** argv)
   subscriber.setOffsetLatency(FLAGS_playback);
 
   LOG(INFO) << "Start varz server at " << FLAGS_varz;
-  atp::varz::VarzServer varz(FLAGS_varz, 2);
+  atp::varz::VarzServer varz(FLAGS_varz, 1);
   varz_instance = &varz;
   varz.start();
 

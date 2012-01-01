@@ -13,6 +13,7 @@
 #include <boost/thread.hpp>
 
 #include "log_levels.h"
+#include "managed_agent.hpp"
 #include "utils.hpp"
 #include "varz/varz.hpp"
 #include "zmq/ZmqUtils.hpp"
@@ -39,10 +40,8 @@ using namespace std;
 
 class MarketDataSubscriber;
 
-typedef boost::function< bool(const string&, const string&) > AdminHandler;
-typedef map< string, AdminHandler > HandlerMap;
 
-class MarketDataSubscriber
+class MarketDataSubscriber : public ManagedAgent
 {
  public:
 
@@ -51,15 +50,14 @@ class MarketDataSubscriber
                        const string& endpoint,
                        const vector<string>& subscriptions,
                        ::zmq::context_t* context = NULL) :
-      id_(id),
-      adminEndpoint_(adminEndpoint),
+      ManagedAgent(id, adminEndpoint),
       endpoint_(endpoint),
       subscriptions_(subscriptions),
       contextPtr_(context),
       ownContext_(context == NULL),
       offsetLatency_(false)
   {
-    VARZ_marketdata_id = id_;
+    VARZ_marketdata_id = getId();
 
     // Bind admin handlers
     registerHandler("connect", boost::bind(
@@ -84,11 +82,7 @@ class MarketDataSubscriber
       MARKET_DATA_SUBSCRIBER_LOGGER << "subscribed to topic = " << *sub;
     }
 
-    // For admin -- also connect to the admin endpoint, which will
-    // publish admin messages using the id as the topic.  So add
-    // the id as a subscription.
-    socketPtr_->connect(adminEndpoint_.c_str());
-    subscribe(id_);
+    ManagedAgent::initialize();
   }
 
   ~MarketDataSubscriber()
@@ -179,14 +173,11 @@ class MarketDataSubscriber
         if (more == 0) break;
       }
       bool continueProcess = false;
-      if (frame1 == id_) {
-        if (adminHandlers_.find(frame2) != adminHandlers_.end()) {
-          // This is an admin message.
-          MARKET_DATA_SUBSCRIBER_LOGGER << "Admin message: " <<
-              frame1 << " " << frame2 << " " << frame3;
+      if (isAdminMessage(frame1, frame2, frame3)) {
 
-          continueProcess = adminHandlers_[frame2](frame2, frame3);
-        }
+        // handle the admin message
+        continueProcess = handleAdminMessage(frame2, frame3);
+
       } else {
 
         boost::uint64_t ts;
@@ -246,9 +237,10 @@ class MarketDataSubscriber
 
  protected:
 
-  void registerHandler(const string& verb, AdminHandler handler)
+  /// overrides ManagedAgent
+  virtual ::zmq::socket_t* getAdminSocket()
   {
-    adminHandlers_[verb] = handler;
+    return socketPtr_;
   }
 
   /// Process an incoming event.
@@ -267,8 +259,6 @@ class MarketDataSubscriber
 
 
  private:
-  string id_;
-  string adminEndpoint_;
   string endpoint_;
   vector<string> subscriptions_;
   ::zmq::context_t* contextPtr_;
@@ -276,7 +266,6 @@ class MarketDataSubscriber
   bool ownContext_;
   bool offsetLatency_;
   boost::mutex mutex_;
-  HandlerMap adminHandlers_;
 };
 
 
