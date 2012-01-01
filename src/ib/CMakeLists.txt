@@ -3,6 +3,8 @@
 message(STATUS "IB API =======================================================")
 message(STATUS "-- IB API version ${IBAPI_VERSION} from ${IBAPI_ROOT}")
 
+add_definitions('-fPIC')
+
 # IB Specific compile options
 option(IB_USE_STD_STRING "Use standard c++ string (see Shared/IBString.h)." ON)
 if (IB_USE_STD_STRING)

@@ -3,6 +3,8 @@
 
 message(STATUS "ZeroMQ =======================================================")
 
+add_definitions('-fPIC')
+
 ##########################################
 # Zmq library
 set(zmq_components_incs

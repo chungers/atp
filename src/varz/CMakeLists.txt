@@ -3,6 +3,8 @@
 
 message(STATUS "Varz =======================================================")
 
+add_definitions('-fPIC')
+
 ##########################################
 # Varz library
 set(varz_components_incs
