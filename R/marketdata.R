@@ -23,7 +23,7 @@ load('firehose_contracts.RData')
 message('endpoint = ', ep)
 
 subscriber <-
-  marketdata.newSubscriber('test-subscriber', 'tcp://127.0.0.1:4444', ep)
+  marketdata.newSubscriber('test-subscriber', 'tcp://127.0.0.1:4444', ep, 18001)
 
 marketdata.subscribe(subscriber,
                      list(contractDetails$AAPL));

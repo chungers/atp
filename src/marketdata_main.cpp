@@ -7,19 +7,13 @@
 #include <boost/algorithm/string.hpp>
 
 #include "varz/varz.hpp"
-#include "varz/VarzServer.hpp"
 
 #include "marketdata_sink.hpp"
 
-static atp::varz::VarzServer* varz_instance;
 
 void OnTerminate(int param)
 {
   LOG(INFO) << "===================== SHUTTING DOWN =======================";
-  if (varz_instance != NULL) {
-    varz_instance->stop();
-    LOG(INFO) << "Stopped varz";
-  }
   LOG(INFO) << "Bye.";
   exit(1);
 }
@@ -29,7 +23,7 @@ DEFINE_string(id, "marketdata", "Id of the subscriber");
 DEFINE_string(ep, "tcp://127.0.0.1:7777", "Marketdata endpoint");
 DEFINE_string(topics, "", "Commad delimited subscription topics");
 DEFINE_bool(playback, false, "True if data is playback from logs");
-DEFINE_int32(varz, 9999, "varz server port");
+DEFINE_int32(varz, 18000, "varz server port");
 
 DEFINE_VARZ_int64(subscriber_messages_received, 0, "total messages");
 DEFINE_VARZ_bool(subscriber_latency_offset, false, "latency offset");
@@ -45,8 +39,10 @@ class ConsoleMarketDataSubscriber : public atp::MarketDataSubscriber
                               const string& adminEndpoint,
                               const string& endpoint,
                               const vector<string>& subscriptions,
+                              int varzPort,
                               ::zmq::context_t* context) :
-      MarketDataSubscriber(id, adminEndpoint, endpoint, subscriptions, context)
+      MarketDataSubscriber(id, adminEndpoint, endpoint, subscriptions,
+                           varzPort, context)
   {
   }
 
@@ -92,13 +88,8 @@ int main(int argc, char** argv)
 
   ::ConsoleMarketDataSubscriber subscriber(
       FLAGS_id, FLAGS_adminEp,
-      FLAGS_ep, subscriptions, &context);
+      FLAGS_ep, subscriptions, FLAGS_varz, &context);
   subscriber.setOffsetLatency(FLAGS_playback);
-
-  LOG(INFO) << "Start varz server at " << FLAGS_varz;
-  atp::varz::VarzServer varz(FLAGS_varz, 1);
-  varz_instance = &varz;
-  varz.start();
 
   LOG(INFO) << "Start handling inbound messages.";
   subscriber.processInbound();

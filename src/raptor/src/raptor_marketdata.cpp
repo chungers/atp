@@ -5,7 +5,6 @@
 #include "utils.hpp"
 #include "marketdata_sink.hpp"
 #include "varz/varz.hpp"
-#include "varz/VarzServer.hpp"
 #include "zmq/ZmqUtils.hpp"
 #include "raptor_marketdata.h"
 
@@ -26,13 +25,12 @@ class Subscriber : public atp::MarketDataSubscriber
  public:
   Subscriber(const string& id, const string& adminEndpoint,
              const string& endpoint, const vector<string>& subscriptions,
-             ::zmq::context_t* context, int varzPort) :
+             int varzPort,
+             ::zmq::context_t* context) :
       atp::MarketDataSubscriber(id, adminEndpoint,
-                                endpoint, subscriptions, context),
-      varz_(varzPort, 1)
+                                endpoint, subscriptions, varzPort, context)
   {
     registerHandler("stop", boost::bind(&Subscriber::stop, this));
-    varz_.start();
   }
 
   ~Subscriber()
@@ -45,14 +43,6 @@ class Subscriber : public atp::MarketDataSubscriber
     environment_ = &environment;
     callback_ = &callback;
     processInbound();
-  }
-
-  virtual bool stop()
-  {
-    bool stop = MarketDataSubscriber::stop();
-    Rprintf("Stopping varz");
-    varz_.stop();
-    return stop;
   }
 
  protected:
@@ -105,7 +95,6 @@ class Subscriber : public atp::MarketDataSubscriber
  private:
   Function* callback_;
   Environment* environment_;
-  atp::varz::VarzServer varz_;
 };
 
 } // namespace raptor
@@ -129,7 +118,7 @@ SEXP marketdata_create_subscriber(SEXP id,
 
   raptor::Subscriber* subscriber =
       new raptor::Subscriber(m_id, m_adminEndpoint,
-                             ep, subscriptions, context, varz_port);
+                             ep, subscriptions, varz_port, context);
 
   // Construct the return handle object- we only expose the context_t and
   // the actual subscriber object.

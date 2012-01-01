@@ -29,7 +29,7 @@ marketdata.default_handler <- function(topic, t, event, value, delay) {
 }
 
 marketdata.newSubscriber <- function(id, adminEndpoint,
-                                     endpoint, varz = 9999) {
+                                     endpoint, varz = 18000) {
   options(digits.secs=6)
   result <- .Call("marketdata_create_subscriber",
                   id, adminEndpoint, endpoint, varz,
