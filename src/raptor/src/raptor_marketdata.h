@@ -7,6 +7,7 @@
 /// and returns its handle.
 RcppExport SEXP marketdata_create_subscriber(SEXP id,
                                              SEXP adminEndpoint,
+                                             SEXP eventEndpoint,
                                              SEXP endpoint,
                                              SEXP varzPort);
 

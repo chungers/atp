@@ -47,11 +47,12 @@ class MarketDataSubscriber : public ManagedAgent
 
   MarketDataSubscriber(const string& id,
                        const string& adminEndpoint,
+                       const string& eventEndpoint,
                        const string& endpoint,
                        const vector<string>& subscriptions,
                        int varzPort = 18000,
                        ::zmq::context_t* context = NULL) :
-      ManagedAgent(id, adminEndpoint, varzPort),
+      ManagedAgent(id, adminEndpoint, eventEndpoint, varzPort),
       endpoint_(endpoint),
       subscriptions_(subscriptions),
       contextPtr_(context),

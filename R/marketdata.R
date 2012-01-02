@@ -15,6 +15,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
   state$id <- id
   state$endpoint <- endpoint
   state$adminSocket <- 'tcp://127.0.0.1:4444'
+  state$eventSocket <- 'tcp://127.0.0.1:4445'
   state$varz <- varz
   state$subscription <- contractDetails
   state$tradingEnd <- ISOdatetime(2011, 12, 30, 12, 0, 0, tz='America/New_York')
@@ -29,7 +30,8 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
   }
 
   state$subscriber <-
-    marketdata.newSubscriber(id, state$adminSocket, endpoint, state$varz)
+    marketdata.newSubscriber(id, state$adminSocket, state$eventSocket,
+                             endpoint, state$varz)
 
   marketdata.subscribe(state$subscriber, state$subscription)
 

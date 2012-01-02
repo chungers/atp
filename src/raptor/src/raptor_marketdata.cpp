@@ -23,11 +23,12 @@ namespace raptor {
 class Subscriber : public atp::MarketDataSubscriber
 {
  public:
-  Subscriber(const string& id, const string& adminEndpoint,
+  Subscriber(const string& id,
+             const string& adminEndpoint, const string& eventEndpoint,
              const string& endpoint, const vector<string>& subscriptions,
              int varzPort,
              ::zmq::context_t* context) :
-      atp::MarketDataSubscriber(id, adminEndpoint,
+      atp::MarketDataSubscriber(id, adminEndpoint, eventEndpoint,
                                 endpoint, subscriptions, varzPort, context)
   {
     registerHandler("stop", boost::bind(&Subscriber::stop, this));
@@ -102,12 +103,14 @@ class Subscriber : public atp::MarketDataSubscriber
 /// Create a new subscriber to the given endpoint and with varz at given port.
 SEXP marketdata_create_subscriber(SEXP id,
                                   SEXP adminEndpoint,
+                                  SEXP eventEndpoint,
                                   SEXP endpoint,
                                   SEXP varzPort)
 {
   zmq::context_t *context = new zmq::context_t(1);
   string m_id = as<string>(id);
   string m_adminEndpoint = as<string>(adminEndpoint);
+  string m_eventEndpoint = as<string>(eventEndpoint);
   string ep = as<string>(endpoint);
 
   // Initialize with empty subscriptions
@@ -117,7 +120,7 @@ SEXP marketdata_create_subscriber(SEXP id,
   int varz_port = as<int>(varzPort);
 
   raptor::Subscriber* subscriber =
-      new raptor::Subscriber(m_id, m_adminEndpoint,
+      new raptor::Subscriber(m_id, m_adminEndpoint, m_eventEndpoint,
                              ep, subscriptions, varz_port, context);
 
   // Construct the return handle object- we only expose the context_t and

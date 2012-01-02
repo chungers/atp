@@ -2,7 +2,7 @@
 #define ATP_MANAGED_AGENT_H_
 
 #include <string>
-#include <zmq.hpp>
+#include <sstream>
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
@@ -10,9 +10,10 @@
 #include "log_levels.h"
 #include "varz/varz.hpp"
 #include "varz/VarzServer.hpp"
+#include "zmq/ZmqUtils.hpp"
+
 
 DEFINE_VARZ_string(managed_id, "", "");
-
 
 namespace atp {
 
@@ -31,9 +32,14 @@ class ManagedAgent
 {
  public:
   ManagedAgent(const string& id, const string& adminEndpoint,
+               const string& eventEndpoint,
                int varzPort) :
       id_(id), adminEndpoint_(adminEndpoint),
-      varz_(varzPort, 1), running_(false)
+      varzPort_(varzPort), varz_(varzPort, 1),
+      running_(false),
+      eventSocketPtr_(NULL),
+      eventContextPtr_(NULL),
+      eventEndpoint_(eventEndpoint)
   {
     VARZ_managed_id = id;
     varz_.start();
@@ -44,6 +50,13 @@ class ManagedAgent
   ~ManagedAgent()
   {
     stop();
+    // Now stop the event context
+    if (eventSocketPtr_ != NULL) {
+      delete eventSocketPtr_;
+    }
+    if (eventContextPtr_ != NULL) {
+      delete eventContextPtr_;
+    }
   }
 
   /// Must be called explicitly to set up the managed agent.
@@ -57,9 +70,21 @@ class ManagedAgent
       // listen to.
       try {
 
+        // Subscribe to admin messages from coordinator
         socketPtr->connect(adminEndpoint_.c_str());
         socketPtr->setsockopt(ZMQ_SUBSCRIBE,
                               id_.c_str(), id_.length());
+
+        // Notify start up of the managed agent through the event socket
+        ::zmq::context_t* context = getEventSocketContext();
+        if (context == NULL) {
+          eventContextPtr_ = new ::zmq::context_t(1);
+          context = eventContextPtr_;
+        }
+        eventSocketPtr_ = new ::zmq::socket_t(*context, ZMQ_PUSH);
+        eventSocketPtr_->connect(eventEndpoint_.c_str());
+
+        reportEventReady();
 
         ready = true;
 
@@ -122,12 +147,35 @@ class ManagedAgent
     return NULL;
   }
 
+  virtual ::zmq::context_t* getEventSocketContext()
+  {
+    return NULL;
+  }
+
+ private:
+  void reportEventReady()
+  {
+    if (eventSocketPtr_ != NULL) {
+      const string verb = "UP";
+      atp::zmq::send_copy(*eventSocketPtr_, verb, true);
+      atp::zmq::send_copy(*eventSocketPtr_, id_, true);
+
+      std::ostringstream oss;
+      oss << "http://localhost:" << varzPort_ << "/varz";
+      atp::zmq::send_copy(*eventSocketPtr_, oss.str(), false);
+    }
+  }
+
  private:
   string id_;
   string adminEndpoint_;
   HandlerMap adminHandlers_;
+  int varzPort_;
   atp::varz::VarzServer varz_;
   bool running_;
+  ::zmq::socket_t* eventSocketPtr_;
+  ::zmq::context_t* eventContextPtr_;
+  string eventEndpoint_;
 };
 
 
