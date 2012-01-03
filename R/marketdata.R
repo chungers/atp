@@ -20,7 +20,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
   state$eventSocket <- 'tcp://127.0.0.1:4445'
   state$varz <- varz
   state$subscription <- contractDetails
-  state$tradingEnd <- ISOdatetime(2011, 12, 30, 12, 0, 0, tz='America/New_York')
+  state$tradingEnd <- NULL
   state$sharedMemory <- sharedMemory
 
   state$.Data <- list()
@@ -62,6 +62,10 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
 
     .Latencies <<- c(.Latencies, delay)
     .Count <<- .Count+1
+    if (is.null(tradingEnd)) {
+      tradingEnd <<- ISOdatetime(lt$year + 1900, lt$mon + 1, lt$mday,
+                                 14, 30, 0, tz='America/New_York')
+    }
     return(lt < tradingEnd)
   }
 
@@ -80,7 +84,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
     }
     if (is.null(.Shared[[topic]][[evt]])) {
       dir <- '/tmp'
-      fn <- paste(topic, evt, sep='_')
+      fn <- paste(topic, lt$year + 1900, lt$mon + 1, lt$mday, evt, sep='_')
       .Shared[[topic]][[evt]] <<-
         filebacked.big.matrix(1000000, 2, backingpath=dir, backingfile=fn)
       .Desc[[topic]][[evt]] <<- paste(paste(dir, fn, sep='/'), 'desc', sep='.')
@@ -103,6 +107,10 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
 
     .Latencies <<- c(.Latencies, delay)
     .Count <<- .Count+1
+    if (is.null(tradingEnd)) {
+      tradingEnd <<- ISOdatetime(lt$year + 1900, lt$mon + 1, lt$mday,
+                                 14, 30, 0, tz='America/New_York')
+    }
     return(lt < tradingEnd)
   }
 
