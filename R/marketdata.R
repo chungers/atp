@@ -64,7 +64,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
     .Count <<- .Count+1
     if (is.null(tradingEnd)) {
       tradingEnd <<- ISOdatetime(lt$year + 1900, lt$mon + 1, lt$mday,
-                                 14, 30, 0, tz='America/New_York')
+                                 16, 30, 0, tz='America/New_York')
     }
     return(lt < tradingEnd)
   }
@@ -83,7 +83,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
       .Desc[[topic]] <<- list()
     }
     if (is.null(.Shared[[topic]][[evt]])) {
-      dir <- '/tmp'
+      dir <- '/tmp2'
       fn <- paste(topic, lt$year + 1900, lt$mon + 1, lt$mday, evt, sep='_')
       .Shared[[topic]][[evt]] <<-
         filebacked.big.matrix(1000000, 2, backingpath=dir, backingfile=fn)
@@ -109,7 +109,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
     .Count <<- .Count+1
     if (is.null(tradingEnd)) {
       tradingEnd <<- ISOdatetime(lt$year + 1900, lt$mon + 1, lt$mday,
-                                 14, 30, 0, tz='America/New_York')
+                                 16, 30, 0, tz='America/New_York')
     }
     return(lt < tradingEnd)
   }
