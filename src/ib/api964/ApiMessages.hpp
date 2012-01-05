@@ -184,6 +184,7 @@ class MarketDataRequest : public V964Message
 
     if (tickerId > 0) {
       eclient->reqMktData(tickerId, contract, "", false);
+      eclient->reqMktDepth(tickerId, contract, 10);
       return true;
     }
     return false;
@@ -248,6 +249,7 @@ class CancelMarketDataRequest : public V964Message
     }
     if (tickerId > 0) {
       eclient->cancelMktData(tickerId);
+      eclient->cancelMktDepth(tickerId);
       return true;
     }
     return false;
