@@ -13,5 +13,6 @@ message('endpoint = ', ep)
 
 zmq <- raptor.zmq.connect(addr=ep, type='ZMQ_REQ')
 result <- fh_cancel_marketData(zmq=zmq, symbols=symbols)
+result <- fh_cancel_marketData(zmq=zmq, symbols=indexes)
 raptor.zmq.disconnect(zmq)
 

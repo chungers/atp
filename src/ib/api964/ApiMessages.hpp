@@ -184,7 +184,7 @@ class MarketDataRequest : public V964Message
 
     if (tickerId > 0) {
       eclient->reqMktData(tickerId, contract, "", false);
-      eclient->reqMktDepth(tickerId, contract, 10);
+      eclient->reqMktDepth(tickerId, contract, 20);
       return true;
     }
     return false;

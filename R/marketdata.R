@@ -83,7 +83,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
       .Desc[[topic]] <<- list()
     }
     if (is.null(.Shared[[topic]][[evt]])) {
-      dir <- '/tmp2'
+      dir <- '/tmp'
       fn <- paste(topic, lt$year + 1900, lt$mon + 1, lt$mday, evt, sep='_')
       .Shared[[topic]][[evt]] <<-
         filebacked.big.matrix(1000000, 2, backingpath=dir, backingfile=fn)
