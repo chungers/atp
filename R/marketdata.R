@@ -64,7 +64,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
     .Count <<- .Count+1
     if (is.null(tradingEnd)) {
       tradingEnd <<- ISOdatetime(lt$year + 1900, lt$mon + 1, lt$mday,
-                                 16, 30, 0, tz='America/New_York')
+                                 16, 0, 0, tz='America/New_York')
     }
     return(lt < tradingEnd)
   }
@@ -109,7 +109,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
     .Count <<- .Count+1
     if (is.null(tradingEnd)) {
       tradingEnd <<- ISOdatetime(lt$year + 1900, lt$mon + 1, lt$mday,
-                                 16, 30, 0, tz='America/New_York')
+                                 16, 0, 0, tz='America/New_York')
     }
     return(lt < tradingEnd)
   }
