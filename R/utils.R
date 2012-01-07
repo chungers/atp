@@ -18,6 +18,21 @@ fh_stk_contract_detail <- function(ibg, symbol) {
   return(kv)
 }
 
+fh_ind_contract_detail <- function(ibg, symbol) {
+  stopifnot(isConnected(ibg))
+  
+  # contract details is a list, get the first one.
+  message('Getting contract details for ', symbol)
+  cd <- reqContractDetails(ibg, twsIND(symbol=symbol))[[1]]
+
+  message('Found details = ', cd)
+  # combine into a map where keys are the symbols and values are the contractDetails
+  key <- cd$contract$symbol
+  kv <- list()
+  kv[[key]] <- cd
+  return(kv)
+}
+
 # Load contract details from IB gateway.  Returns a list of contractDetails
 # keyed by the symbol name.
 #
@@ -100,6 +115,11 @@ fh_stk_contract_detail <- function(ibg, symbol) {
 #  $ liquidHours   : chr "20111217:CLOSED;20111219:0930-1600"
 fh_load_stk_contract_details <- function(ibg, symbols) {
   list <- foreach(s = symbols, .combine="c") %do% fh_stk_contract_detail(ibg, s)
+  return(list)
+}
+
+fh_load_ind_contract_details <- function(ibg, symbols) {
+  list <- foreach(s = symbols, .combine="c") %do% fh_ind_contract_detail(ibg, s)
   return(list)
 }
 

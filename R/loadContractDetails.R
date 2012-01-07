@@ -2,8 +2,15 @@ source("utils.R")
 
 # load contract details for all the symbols and store them in a RData file
 # as database of contracts for market data requests later on.
+indexes <- c(
+'INDU',
+'SPX')
+
+# first three will get the market depth (IB limit)
 symbols <- c(
 'AAPL',
+'GOOG',
+'SPY',
 'AKAM',
 'AMZN',
 'APC',
@@ -29,7 +36,6 @@ symbols <- c(
 'JPM',
 'GLD',
 'GLL',
-'GOOG',
 'GRPN',
 'GS',
 'LNKD',
@@ -46,7 +52,6 @@ symbols <- c(
 'RTH',
 'SMN',
 'SOHU',
-'SPY',
 'URE',
 'VMW',
 'WFM',
@@ -57,17 +62,22 @@ symbols <- c(
 
 library(IBrokers)
 
-ibg <- twsConnect(host="localhost", port=5001, clientId=9999)
+ibg <- twsConnect(host="localhost", port=4001, clientId=9999)
 
 message("Loading contractDetails for symbols, count = ", length(symbols))
 
 contractDetails <- fh_load_stk_contract_details(ibg, symbols)
+indexDetails <- fh_load_ind_contract_details(ibg, indexes)
+
+contractDetails <- c(contractDetails, indexDetails)
+
+twsDisconnect(ibg)
+rm(ibg)
 
 message("Found contractDetails, count = ", length(contractDetails))
 
 save.image('firehose_contracts.RData')
 
-twsDisconnect(ibg)
 
 
 
