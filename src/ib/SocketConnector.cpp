@@ -65,7 +65,7 @@ class SocketConnector::implementation : public AbstractSocketConnector
 
             VARZ_socket_connector_inbound_requests_errors++;
 
-            IBAPI_SOCKET_CONNECTOR_LOGGER
+            IBAPI_SOCKET_CONNECTOR_ERROR
                 << "Handle inbound message failed: "
                 << inboundMessage;
 
