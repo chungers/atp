@@ -16,3 +16,21 @@ firehose.cancel_marketdata <- function(handle, contract) {
             PACKAGE = "raptor");
   result
 }
+
+firehose.req_marketdepth <- function(handle, contract) {
+  # contract is a list.
+  result <- .Call("firehose_marketdepth",
+            handle,
+            lapply(contract, function(f) { as.character(f) }),
+            PACKAGE = "raptor");
+  result
+}
+
+firehose.cancel_marketdepth <- function(handle, contract) {
+  # contract is a list.
+  result <- .Call("firehose_cancel_marketdepth",
+            handle,
+            lapply(contract, function(f) { as.character(f) }),
+            PACKAGE = "raptor");
+  result
+}

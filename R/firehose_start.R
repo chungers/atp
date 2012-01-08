@@ -19,6 +19,14 @@ message('endpoint = ', ep)
 zmq <- raptor.zmq.connect(addr=ep, type='ZMQ_REQ')
 result <- fh_marketData(zmq=zmq, symbols=symbols)
 result <- fh_marketData(zmq=zmq, symbols=indexes)
+
+# market depth: IB allows only three at a time.
+book <- c('AAPL', 'GOOG', 'SPY')
+
+sapply(book, function(symbol) {
+  firehose.req_marketdepth(zmq, contractDetails[[symbol]]$contract)
+})
+
 raptor.zmq.disconnect(zmq)
 
 

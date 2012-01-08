@@ -101,6 +101,13 @@ class MarketDataRequest : public V964Message
   {
   }
 
+  /// Special form for subclasses to extend with its own
+  /// message type
+  MarketDataRequest(const IBAPI::MsgType& subClassMsgType) :
+      V964Message(subClassMsgType)
+  {
+  }
+
   MarketDataRequest(const IBAPI::Message& copy) : V964Message(copy)
   {
   }
@@ -173,7 +180,7 @@ class MarketDataRequest : public V964Message
     }
   }
 
-  bool callApi(EClientPtr eclient)
+  virtual bool callApi(EClientPtr eclient)
   {
     Contract contract;
     try {
@@ -187,11 +194,48 @@ class MarketDataRequest : public V964Message
 
     if (tickerId > 0) {
       eclient->reqMktData(tickerId, contract, "", false);
-      eclient->reqMktDepth(tickerId, contract, 20);
       return true;
     }
     return false;
   }
+};
+
+
+class MarketDepthRequest : public MarketDataRequest
+{
+ public:
+
+  MarketDepthRequest() : MarketDataRequest("MarketDepthRequest")
+  {
+  }
+
+  MarketDepthRequest(const IBAPI::Message& copy) : MarketDataRequest(copy)
+  {
+  }
+
+  ~MarketDepthRequest()
+  {
+  }
+
+  virtual bool callApi(EClientPtr eclient)
+  {
+    Contract contract;
+    try {
+      marshall(contract);
+    } catch (FIX::FieldNotFound e) {
+      API_MESSAGES_ERROR << "Not found: " << e.what();
+      return false;
+    }
+
+    long tickerId = ib::internal::TickerMap::registerContract(contract);
+
+    if (tickerId > 0) {
+        eclient->reqMktDepth(tickerId, contract, 20);
+      return true;
+    }
+    return false;
+  }
+
 };
 
 
@@ -200,6 +244,12 @@ class CancelMarketDataRequest : public V964Message
  public:
 
   CancelMarketDataRequest() : V964Message("CancelMarketDataRequest")
+  {
+  }
+
+  /// For subclass to specify its own message type.
+  CancelMarketDataRequest(const IBAPI::MsgType& subClassMsgType) :
+      V964Message(subClassMsgType)
   {
   }
 
@@ -242,7 +292,7 @@ class CancelMarketDataRequest : public V964Message
     return tickerId;
   }
 
-  bool callApi(EClientPtr eclient)
+  virtual bool callApi(EClientPtr eclient)
   {
     long tickerId = 0;
     try {
@@ -253,13 +303,48 @@ class CancelMarketDataRequest : public V964Message
     }
     if (tickerId > 0) {
       eclient->cancelMktData(tickerId);
-      eclient->cancelMktDepth(tickerId);
       return true;
     }
     return false;
   }
 };
 
+
+class CancelMarketDepthRequest : public CancelMarketDataRequest
+{
+ public:
+
+  CancelMarketDepthRequest() :
+      CancelMarketDataRequest("CancelMarketDepthRequest")
+  {
+  }
+
+  CancelMarketDepthRequest(const IBAPI::Message& copy) :
+      CancelMarketDataRequest(copy)
+  {
+  }
+
+  ~CancelMarketDepthRequest()
+  {
+  }
+
+  virtual bool callApi(EClientPtr eclient)
+  {
+    long tickerId = 0;
+    try {
+      tickerId = marshall();
+    } catch (FIX::FieldNotFound e) {
+      API_MESSAGES_ERROR << "Not found: " << e.what();
+      return false;
+    }
+    if (tickerId > 0) {
+      eclient->cancelMktDepth(tickerId);
+      return true;
+    }
+    return false;
+  }
+
+};
 
 class OptionChainRequest : public V964Message
 {

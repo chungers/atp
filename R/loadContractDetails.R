@@ -6,11 +6,8 @@ indexes <- c(
 'INDU',
 'SPX')
 
-# first three will get the market depth (IB limit)
 symbols <- c(
 'AAPL',
-'GOOG',
-'SPY',
 'AKAM',
 'AMZN',
 'APC',
@@ -30,6 +27,7 @@ symbols <- c(
 'FAS',
 'FAZ',
 'FFIV',
+'GOOG',
 'IBM',
 'INTC',
 'ISRG',
@@ -52,6 +50,7 @@ symbols <- c(
 'RTH',
 'SMN',
 'SOHU',
+'SPY',
 'URE',
 'VMW',
 'WFM',

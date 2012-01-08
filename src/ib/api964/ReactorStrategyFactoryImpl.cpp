@@ -13,6 +13,8 @@ using ib::internal::ReactorStrategyFactory;
 using IBAPI::V964::CancelMarketDataRequest;
 using IBAPI::V964::MarketDataRequest;
 
+using IBAPI::V964::CancelMarketDepthRequest;
+using IBAPI::V964::MarketDepthRequest;
 
 
 
@@ -29,6 +31,14 @@ class ReactorStrategyImpl : public ReactorStrategy
     }
     else if (msgType.getString() == "CancelMarketDataRequest") {
       CancelMarketDataRequest copy(message);
+      return copy.callApi(eclient);
+    }
+    else if (msgType.getString() == "MarketDepthRequest") {
+      MarketDepthRequest copy(message);
+      return copy.callApi(eclient);
+    }
+    else if (msgType.getString() == "CancelMarketDepthRequest") {
+      CancelMarketDepthRequest copy(message);
       return copy.callApi(eclient);
     }
 
