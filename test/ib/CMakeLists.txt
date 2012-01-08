@@ -110,7 +110,7 @@ set(utils_test_incs
 )
 set(utils_test_srcs
   ${TEST_DIR}/AllTests.cpp
-  #TickerMapTest.cpp
+  TickerMapTest.cpp
   UtilsTest.cpp
 )
 set(utils_test_libs

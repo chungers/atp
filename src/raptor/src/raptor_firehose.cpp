@@ -1,5 +1,6 @@
 
 #include <vector>
+#include <stdio.h>
 
 #include "ib/api964/ApiMessages.hpp"
 #include "zmq/ZmqUtils.hpp"
@@ -32,6 +33,8 @@ SEXP firehose_marketdata(SEXP handle, SEXP list)
 
   if (R_STRING(rList["sectype"]) == "STK") {
     mdr.set(FIX::SecurityType(FIX::SecurityType_COMMON_STOCK));
+  } else if (R_STRING(rList["sectype"]) == "IND") {
+    mdr.set(FIX::SecurityType(FIX::SecurityType_INDEXED_LINKED));
   } else if (R_STRING(rList["sectype"]) == "OPT") {
     mdr.set(FIX::SecurityType(FIX::SecurityType_OPTION));
     if (R_STRING(rList["right"]) == "P") {
@@ -51,12 +54,14 @@ SEXP firehose_marketdata(SEXP handle, SEXP list)
 
     mdr.set(FIX::DerivativeSecurityID(R_STRING(rList["local"])));
 
-    // TODO(fix this)
     std::string expiry = R_STRING(rList["expiry"]);
     int year = 2011;
     int month = 12;
     int day = 16;
-    IBAPI::V964::FormatExpiry(mdr, year, month, day);
+
+    if (sscanf(expiry.c_str(), "%4u%2u%2u", &year, &month, &day)) {
+      IBAPI::V964::FormatExpiry(mdr, year, month, day);
+    }
   }
 
   size_t sent = mdr.send(*socket);

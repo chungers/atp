@@ -3,13 +3,13 @@
 
 #include <cstdio>
 #include <boost/format.hpp>
-#include <glog/logging.h>
 
 #include <quickfix/FieldConvertors.h>
 #include <quickfix/FieldNumbers.h>
 #include <ql/quantlib.hpp>
 
 #include <Shared/Contract.h>
+#include "log_levels.h"
 #include "ib/internal.hpp"
 #include "ib/IBAPIValues.hpp"
 #include "ib/ApiMessageBase.hpp"
@@ -155,6 +155,8 @@ class MarketDataRequest : public V964Message
 
     } else if (securityType == FIX::SecurityType_COMMON_STOCK) {
       contract.secType= "STK";
+    } else if (securityType == FIX::SecurityType_INDEXED_LINKED) {
+      contract.secType= "IND";
     }
 
     MAP_OPTIONAL_FIELD(FIX::SecurityID, contract.secId);
@@ -177,6 +179,7 @@ class MarketDataRequest : public V964Message
     try {
       marshall(contract);
     } catch (FIX::FieldNotFound e) {
+      API_MESSAGES_ERROR << "Not found: " << e.what();
       return false;
     }
 
@@ -245,6 +248,7 @@ class CancelMarketDataRequest : public V964Message
     try {
       tickerId = marshall();
     } catch (FIX::FieldNotFound e) {
+      API_MESSAGES_ERROR << "Not found: " << e.what();
       return false;
     }
     if (tickerId > 0) {
@@ -318,6 +322,7 @@ class OptionChainRequest : public V964Message
     try {
       marshall(contract);
     } catch (FIX::FieldNotFound e) {
+      API_MESSAGES_ERROR << "Not found: " << e.what();
       return false;
     }
 

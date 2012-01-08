@@ -69,7 +69,9 @@ class SocketConnector::implementation : public AbstractSocketConnector
                 << "Handle inbound message failed: "
                 << inboundMessage;
 
-            break;
+            // Similar to HTTP error code - server side error 500.
+            atp::zmq::send_copy(socket, "500");
+
           } else {
 
             VARZ_socket_connector_inbound_requests_ok++;
@@ -81,9 +83,6 @@ class SocketConnector::implementation : public AbstractSocketConnector
           }
         }
       }
-      // If we broke out to here, an error occurred or handling failed.
-      // HTTP error code - server side error 500.
-      atp::zmq::send_copy(socket, "500");
     } catch (zmq::error_t e) {
 
       VARZ_socket_connector_inbound_requests_exceptions++;
