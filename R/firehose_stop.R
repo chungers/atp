@@ -1,18 +1,19 @@
-source("utils.R")
+source("include/FirehoseClient.class.R")
+source("config.R")
 
-library(raptor)
+load(CONFIG$contractDb)
 
-load('firehose_contracts.RData')
-stopifnot(is.vector(symbols))
 
 # if invoked with R --vanilla --slave --args local then use the localhost address.
-fh <- commandArgs()[5]
-ep <- ifelse(!is.na(fh) && fh == 'local', 'tcp://127.0.0.1:6666', 'tcp://69.164.211.61:6666')
+env <- commandArgs()[5]
+if (is.na(env)) {
+  env <- 'remote'
+}
+ep <- CONFIG$firehose[[env]]
+message(env, ', endpoint = ', ep)
 
-message('endpoint = ', ep)
-
-zmq <- raptor.zmq.connect(addr=ep, type='ZMQ_REQ')
-result <- fh_cancel_marketData(zmq=zmq, symbols=symbols)
-result <- fh_cancel_marketData(zmq=zmq, symbols=indexes)
-raptor.zmq.disconnect(zmq)
+fh <- new.FirehoseClient(cdb, ep)
+cancelMarketData(fh, stockSymbols(cdb))
+cancelMarketData(fh, CONFIG$options)
+cancelMarketDepth(fh, CONFIG$book)
 
