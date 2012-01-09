@@ -53,11 +53,11 @@ bool symbol_from_contract(const std::map<std::string, std::string>& nv,
 
     if (nv.at("secType") != "STK" && nv.at("secType") != "IND") {
       s << '.'
+        << nv.at("expiry")
+        << '.'
         << nv.at("strike")
         << '.'
-        << nv.at("right")
-        << '.'
-        << nv.at("expiry");
+        << nv.at("right");
     }
     *output = s.str();
     return true;
@@ -74,11 +74,11 @@ bool symbol_from_contract(const Contract& contract, std::string* output)
 
   if (contract.secType != "STK" && contract.secType != "IND") {
     ss << '.'
+       << contract.expiry
+       << '.'
        << contract.strike
        << '.'
-       << contract.right
-       << '.'
-       << contract.expiry;
+       << contract.right;
   }
   *output = ss.str();
   return true;
