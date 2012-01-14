@@ -16,6 +16,9 @@ using IBAPI::V964::MarketDataRequest;
 using IBAPI::V964::CancelMarketDepthRequest;
 using IBAPI::V964::MarketDepthRequest;
 
+using IBAPI::V964::CancelMarketOhlcRequest;
+using IBAPI::V964::MarketOhlcRequest;
+
 
 
 class ReactorStrategyImpl : public ReactorStrategy
@@ -39,6 +42,14 @@ class ReactorStrategyImpl : public ReactorStrategy
     }
     else if (msgType.getString() == "CancelMarketDepthRequest") {
       CancelMarketDepthRequest copy(message);
+      return copy.callApi(eclient);
+    }
+    else if (msgType.getString() == "MarketOhlcRequest") {
+      MarketOhlcRequest copy(message);
+      return copy.callApi(eclient);
+    }
+    else if (msgType.getString() == "CancelMarketOhlcRequest") {
+      CancelMarketOhlcRequest copy(message);
       return copy.callApi(eclient);
     }
 

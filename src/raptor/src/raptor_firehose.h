@@ -15,4 +15,9 @@ RcppExport SEXP firehose_marketdepth(SEXP handle, SEXP list);
 /// Request to cancel market depth for given contract
 RcppExport SEXP firehose_cancel_marketdepth(SEXP handle, SEXP list);
 
+/// Request for market ohlc / realtime bars given the contract
+RcppExport SEXP firehose_marketohlc(SEXP handle, SEXP list);
+
+/// Request to cancel market depth for given contract
+RcppExport SEXP firehose_cancel_marketohlc(SEXP handle, SEXP list);
 #endif // _raptor_RAPTOR_FIREHOSE_H

@@ -315,6 +315,45 @@ class MarketDepthRequest : public internal::ContractBasedRequest
 
 };
 
+/// Maps to RealTimeData -- just OHLC at 5 second intervals
+class MarketOhlcRequest : public internal::ContractBasedRequest
+{
+ public:
+
+  MarketOhlcRequest() :
+      internal::ContractBasedRequest("MarketOhlcRequest")
+  {
+  }
+
+  MarketOhlcRequest(const IBAPI::Message& copy) :
+      internal::ContractBasedRequest(copy)
+  {
+  }
+
+  ~MarketOhlcRequest()
+  {
+  }
+
+  virtual bool callApi(EClientPtr eclient)
+  {
+    Contract contract;
+    try {
+      marshall(contract);
+    } catch (FIX::FieldNotFound e) {
+      API_MESSAGES_ERROR << "Not found: " << e.what();
+      return false;
+    }
+
+    long tickerId = ib::internal::TickerMap::registerContract(contract);
+
+    if (tickerId > 0) {
+      eclient->reqRealTimeBars(tickerId, contract, 5, "TRADES", 0);
+      return true;
+    }
+    return false;
+  }
+
+};
 
 class CancelMarketDataRequest : public internal::ContractBasedCancelRequest
 {
@@ -392,6 +431,47 @@ class CancelMarketDepthRequest : public internal::ContractBasedCancelRequest
     return false;
   }
 
+};
+
+class CancelMarketOhlcRequest : public internal::ContractBasedCancelRequest
+{
+ public:
+
+  CancelMarketOhlcRequest() :
+      internal::ContractBasedCancelRequest("CancelMarketOhlcRequest")
+  {
+  }
+
+  /// For subclass to specify its own message type.
+  CancelMarketOhlcRequest(const IBAPI::MsgType& subClassMsgType) :
+      internal::ContractBasedCancelRequest(subClassMsgType)
+  {
+  }
+
+  CancelMarketOhlcRequest(const IBAPI::Message& copy) :
+      internal::ContractBasedCancelRequest(copy)
+  {
+  }
+
+  ~CancelMarketOhlcRequest()
+  {
+  }
+
+  virtual bool callApi(EClientPtr eclient)
+  {
+    long tickerId = 0;
+    try {
+      tickerId = marshall();
+    } catch (FIX::FieldNotFound e) {
+      API_MESSAGES_ERROR << "Not found: " << e.what();
+      return false;
+    }
+    if (tickerId > 0) {
+      eclient->cancelRealTimeBars(tickerId);
+      return true;
+    }
+    return false;
+  }
 };
 
 class OptionChainRequest : public V964Message

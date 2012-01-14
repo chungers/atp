@@ -112,6 +112,51 @@ new.FirehoseClient <- function(contractDb,
   }
   environment(this$cancelMarketDepth) <- as.environment(this)
 
+  #
+  # Request market ohlc
+  # Takes a vector of topics or regular expressions and request market ohlc
+  # for each.
+  #
+  this$requestMarketOhlc <- function(symbols) {
+    # symbols can be a list of regular expressions:
+    # "APC.OPT.201205.*\\.8[0-9].C" matches all 2012 May 80 and 85 calls.
+    matches <- foreach(regex = symbols, .combine='c') %do% {
+      this$.contractKeys[grep(regex, this$.contractKeys)]
+    }
+    result <- foreach(s = matches, .combine="c") %do% {
+      ret <- list()
+      ret[[s]] <- firehose.req_marketohlc(this$.zmq,
+                                           this$.contractDb[[s]]$contract)
+      message('Requested market ohlc ', s, ' ', ret)
+      return(ret)
+    }
+    return(result)
+  }
+  environment(this$requestMarketOhlc) <- as.environment(this)
+
+
+  #
+  # Cancel market ohlc
+  # Given a vector of regex or topics, cancel market ohlc for each
+  #
+  this$cancelMarketOhlc <- function(symbols) {
+    # symbols can be a list of regular expressions:
+    # "APC.OPT.201205.*\\.8[0-9].C" matches all 2012 May 80 and 85 calls.
+    matches <- foreach(regex = symbols, .combine='c') %do% {
+      this$.contractKeys[grep(regex, this$.contractKeys)]
+    }
+
+    result <- foreach(s = matches, .combine="c") %do% {
+      ret <- list()
+      ret[[s]] <- firehose.cancel_marketohlc(this$.zmq,
+                                              this$.contractDb[[s]]$contract)
+      message('Canceled market ohlc ', s, ' ', ret)
+      return(ret)
+    }
+    return(result)
+  }
+  environment(this$cancelMarketOhlc) <- as.environment(this)
+
   return(this)
 }
 
@@ -131,4 +176,12 @@ requestMarketDepth.FirehoseClient <-
 cancelMarketDepth <- function(x, symbols, ...) UseMethod('cancelMarketDepth')
 cancelMarketDepth.FirehoseClient <-
   function(x, symbols, ...) x$cancelMarketDepth(symbols)
+
+requestMarketOhlc <- function(x, symbols, ...) UseMethod('requestMarketOhlc')
+requestMarketOhlc.FirehoseClient <-
+  function(x, symbols, ...) x$requestMarketOhlc(symbols)
+
+cancelMarketOhlc <- function(x, symbols, ...) UseMethod('cancelMarketOhlc')
+cancelMarketOhlc.FirehoseClient <-
+  function(x, symbols, ...) x$cancelMarketOhlc(symbols)
 
