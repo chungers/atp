@@ -175,6 +175,7 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
   {
     LoggingEWrapper::updateMktDepth(id, position, operation, side,
                                     price, size);
+    publishDepth(id, side, position, operation, price, size, *this);
   }
 
   /// @overload EWrapper
@@ -184,6 +185,8 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
   {
     LoggingEWrapper::updateMktDepthL2(id, position, marketMaker, operation,
                                       side, price, size);
+    publishDepth(id, side, position, operation, price, size, *this,
+                 marketMaker);
   }
 
   /// @overload EWrapper

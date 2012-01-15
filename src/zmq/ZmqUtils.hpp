@@ -100,6 +100,19 @@ inline static size_t send_copy(::zmq::socket_t& socket,
   return size;
 }
 
+
+/// Send by memcpy.  This doesn't avoid the cost of memcpy but is safer
+/// because the buffer is copied to the zmq message buffer.
+template <typename T>
+inline static size_t send_copy(::zmq::socket_t& socket,
+                               const T input,
+                               bool sendMore = false)
+{
+  std::ostringstream oss;
+  oss << input;
+  return send_copy(socket, oss.str(), sendMore);
+}
+
 /// Send by memcpy.  This doesn't avoid the cost of memcpy but is safer
 /// because the buffer is copied to the zmq message buffer.
 inline static size_t send_copy(::zmq::socket_t& socket,

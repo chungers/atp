@@ -16,6 +16,13 @@ DEFINE_VARZ_int64(event_dispatch_publish_last_ts, 0, "");
 DEFINE_VARZ_int64(event_dispatch_publish_interval_micros, 0, "");
 DEFINE_VARZ_int64(event_dispatch_publish_unresolved_keys, 0, "");
 
+
+DEFINE_VARZ_int64(event_dispatch_publish_depth_total_bytes, 0, "");
+DEFINE_VARZ_int64(event_dispatch_publish_depth_count, 0, "");
+DEFINE_VARZ_int64(event_dispatch_publish_depth_last_ts, 0, "");
+DEFINE_VARZ_int64(event_dispatch_publish_depth_interval_micros, 0, "");
+DEFINE_VARZ_int64(event_dispatch_publish_depth_unresolved_keys, 0, "");
+
 namespace ib {
 namespace internal {
 
@@ -57,6 +64,7 @@ class EventDispatcherBase
       VARZ_event_dispatch_publish_last_ts = now;
 
     } else {
+
       LOG(ERROR) << "Cannot get subscription key / topic for " << tickerId
                  << ", event = " << tickType << ", value " << value;
 
@@ -65,6 +73,36 @@ class EventDispatcherBase
     }
   }
 
+  void publishDepth(TickerId tickerId, int side, int level, int operation,
+                    double price, int size,
+                    TimeTracking& timed,
+                    const std::string& mm = "L1")
+  {
+    std::string topic;
+    if (TickerMap::getSubscriptionKeyFromId(tickerId, &topic)) {
+
+      boost::uint64_t now = now_micros();
+
+      atp::MarketDepth marketDepth(topic, timed.getMicros(),
+                                   side, level, operation, price, size, mm);
+
+      size_t sent = marketDepth.dispatch(getOutboundSocket(0));
+
+      VARZ_event_dispatch_publish_depth_count++;
+      VARZ_event_dispatch_publish_depth_total_bytes += sent;
+      VARZ_event_dispatch_publish_depth_interval_micros =
+          now - VARZ_event_dispatch_publish_depth_last_ts;
+      VARZ_event_dispatch_publish_depth_last_ts = now;
+
+    } else {
+
+      LOG(ERROR) << "Cannot get subscription key / topic for " << tickerId
+                 << ", market depth";
+
+      VARZ_event_dispatch_publish_depth_unresolved_keys++;
+
+    }
+  }
 
 
  private:

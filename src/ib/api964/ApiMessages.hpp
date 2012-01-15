@@ -347,6 +347,8 @@ class MarketOhlcRequest : public internal::ContractBasedRequest
     long tickerId = ib::internal::TickerMap::registerContract(contract);
 
     if (tickerId > 0) {
+      eclient->reqRealTimeBars(tickerId, contract, 5, "BID", 0);
+      eclient->reqRealTimeBars(tickerId, contract, 5, "ASK", 0);
       eclient->reqRealTimeBars(tickerId, contract, 5, "TRADES", 0);
       return true;
     }
