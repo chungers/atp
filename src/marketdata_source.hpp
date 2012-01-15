@@ -49,21 +49,13 @@ class MarketData
     size_t total = 0;
     if (socket != NULL) {
 
-      std::ostringstream ts;
-      ts << timestamp_;
-
-      std::ostringstream vs;
-      vs << value_;
-
       boost::uint64_t delay = now_micros() - timestamp_;
-      std::ostringstream latency;
-      latency << delay;
 
       total += atp::zmq::send_copy(*socket, topic_, true);
-      total += atp::zmq::send_copy(*socket, ts.str(), true);
+      total += atp::zmq::send_copy(*socket, timestamp_, true);
       total += atp::zmq::send_copy(*socket, key_, true);
-      total += atp::zmq::send_copy(*socket, vs.str(), true);
-      total += atp::zmq::send_copy(*socket, latency.str(), false);
+      total += atp::zmq::send_copy(*socket, value_, true);
+      total += atp::zmq::send_copy(*socket, delay, false);
 
       VARZ_marketdata_send_latency_micros = delay;
       VARZ_marketdata_send_latency_micros_total += delay;
