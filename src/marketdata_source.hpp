@@ -19,10 +19,10 @@ DEFINE_VARZ_int64(marketdata_send_latency_micros, 0, "");
 DEFINE_VARZ_int64(marketdata_send_latency_micros_total, 0, "");
 DEFINE_VARZ_int64(marketdata_send_latency_micros_count, 0, "");
 
+using namespace std;
+
 
 namespace atp {
-
-using namespace std;
 
 
 template <typename V>
@@ -71,7 +71,6 @@ class MarketData
   V value_;
 };
 
-
 class MarketDepth
 {
  public:
@@ -99,7 +98,8 @@ class MarketDepth
       timestamp_(timestamp),
       side_(side == 0 ? ASK : BID),
       level_(level),
-      operation_(operation == 0 ? ADD : (operation == 1) ? CHANGE : REMOVE),
+      operation_(operation == 0 ? ADD : (operation == 1) ?
+                 CHANGE : REMOVE),
       price_(price),
       size_(size),
       mm_(mm)
@@ -126,9 +126,7 @@ class MarketDepth
       total += atp::zmq::send_copy(*socket, topic_, true);
 
       // timestamp
-      std::ostringstream ts;
-      ts << timestamp_;
-      total += atp::zmq::send_copy(*socket, ts.str(), true);
+      total += atp::zmq::send_copy(*socket, timestamp_, true);
 
       // side
       switch (side_) {
