@@ -62,6 +62,29 @@ class ConsoleMarketDataSubscriber : public atp::MarketDataSubscriber
     return true;
   }
 
+  virtual bool processDepth(const boost::posix_time::ptime& utc,
+                            const string& topic,
+                            const string& side,
+                            const int level,
+                            const string& operation,
+                            const double price,
+                            const int size,
+                            const string& mm,
+                            const boost::posix_time::time_duration& latency)
+  {
+    VARZ_subscriber_messages_received++;
+
+    LOG(INFO) << topic << ' '
+              << us_eastern::utc_to_local(utc) << ' '
+              << side << ' '
+              << level << ' '
+              << operation << ' '
+              << price << ' '
+              << size << ' '
+              << mm << ' '
+              << latency;
+    return true;
+  }
 };
 
 int main(int argc, char** argv)

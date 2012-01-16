@@ -55,7 +55,40 @@ struct Event
   T value;
 };
 
+struct BookEvent
+{
+  boost::int64_t ts;
+  string symbol;
+  int side;
+  int level;
+  int operation;
+  double price;
+  int size;
+  string mm;
+};
+
+
 static std::map<long,std::string> TickerIdSymbolMap;
+
+// In America/New_York
+static boost::posix_time::time_duration RTH_START(9, 30, 0, 0);
+static boost::posix_time::time_duration RTH_END(16, 0, 0, 0);
+
+using namespace boost::posix_time;
+
+static ptime getPosixTime(boost::uint64_t ts)
+{
+  ptime t = from_time_t(ts / 1000000LL);
+  time_duration micros(0, 0, 0, ts % 1000000LL);
+  t += micros;
+  return t;
+}
+
+static bool checkRTH(ptime t)
+{
+  time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
+  return eastern >= RTH_START && eastern < RTH_END;
+}
 
 static void GetSymbol(long code, std::string* symbol)
 {
@@ -74,6 +107,16 @@ static bool checkEvent(std::map<std::string, std::string>& event)
   std::map<std::string, std::string>::iterator found = event.find("event");
   if (found != event.end()) {
     return EVENTS.find(event["event"]) != EVENTS.end();
+  }
+  return false;
+}
+
+static bool checkBookEvent(std::map<std::string, std::string>& event)
+{
+  std::map<std::string, std::string>::iterator found = event.find("event");
+  if (found != event.end()) {
+    return found->second == "updateMktDepth" ||
+        found->second == "updateMktDepthL2";
   }
   return false;
 }
@@ -270,6 +313,62 @@ static bool Convert(std::map<std::string, std::string>& nv,
   return true;
 }
 
+static bool Convert(std::map<std::string, std::string>& nv, BookEvent* result)
+{
+  ////////// Timestamp
+  boost::uint64_t ts;
+  if (!GetField(nv, "ts_utc", &ts)) {
+    return false;
+  }
+  result->ts = ts;
+  LOG_READER_DEBUG << "Timestamp ==> " << result->ts;
+
+  ////////// TickerId / Symbol:
+  long code = 0;
+  if (!GetField(nv, "id", &code)) {
+    return false;
+  }
+  GetSymbol(code, &(result->symbol));
+  nv["symbol"] = result->symbol;
+  LOG_READER_DEBUG << "symbol ==> " << result->symbol << "(" << code << ")";
+
+  ////////// Side
+  if (!GetField(nv, "side", &(result->side))) {
+    return false;
+  }
+  LOG_READER_DEBUG << "side ==> " << result->side;
+
+  ////////// Operation
+  if (!GetField(nv, "operation", &(result->operation))) {
+    return false;
+  }
+  LOG_READER_DEBUG << "operation ==> " << result->operation;
+
+  ////////// Level
+  if (!GetField(nv, "position", &(result->level))) {
+    return false;
+  }
+  LOG_READER_DEBUG << "level ==> " << result->level;
+
+  ////////// Price
+  if (!GetField(nv, "price", &(result->price))) {
+    return false;
+  }
+  LOG_READER_DEBUG << "price ==> " << result->price;
+
+  ////////// Size
+  if (!GetField(nv, "size", &(result->size))) {
+    return false;
+  }
+  LOG_READER_DEBUG << "size ==> " << result->size;
+
+  ////////// MM (optional)
+  if (!GetField(nv, "marketMaker", &(result->mm))) {
+    result->mm = "L1";
+  }
+  LOG_READER_DEBUG << "mm ==> " << result->mm;
+  return true;
+}
 
 
 } // namespace utils
@@ -302,9 +401,6 @@ class MarketDataPublisher : public EventDispatcherBase
  private:
   PublisherSocket collector_;
 };
-
-static boost::posix_time::time_duration RTH_START(9, 30, 0, 0);
-static boost::posix_time::time_duration RTH_END(16, 0, 0, 0);
 
 ////////////////////////////////////////////////////////
 //
@@ -364,25 +460,21 @@ int main(int argc, char** argv)
       LOG_READER_DEBUG << "Log entry = " << line << endl;
 
       std::map<std::string, std::string> nv; // basic name /value pair
-      atp::utils::Event<double> event; // market data event in EVENTS
 
       if (atp::utils::ParseMap(line, nv, '=', ",")) {
+
+        // Check for regular market data event
+        atp::utils::Event<double> event;
         if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, &event)) {
 
-          boost::posix_time::ptime t = boost::posix_time::from_time_t(
-              event.ts / 1000000LL);
-          boost::posix_time::time_duration micros(
-              0, 0, 0, event.ts % 1000000LL);
-          t += micros;
+          boost::posix_time::ptime t = atp::utils::getPosixTime(event.ts);
+          bool rth = atp::utils::checkRTH(t);
 
-          boost::posix_time::time_duration eastern =
-              us_eastern::utc_to_local(t).time_of_day();
-
-          bool rth = eastern >= RTH_START and eastern < RTH_END;
           if (!rth && FLAGS_rth) {
             // Skip if not RTH and we want only data during trading hours.
             continue;
           }
+
           if (FLAGS_publish) {
 
             boost::int64_t dt = event.ts - last_ts;
@@ -405,6 +497,55 @@ int main(int argc, char** argv)
           }
 
           matchedRecords++;
+
+        } else if (atp::utils::checkBookEvent(nv)) {
+
+          atp::utils::BookEvent event;
+          if (atp::utils::Convert(nv, &event)) {
+
+            boost::posix_time::ptime t = atp::utils::getPosixTime(event.ts);
+            bool rth = atp::utils::checkRTH(t);
+
+            if (!rth && FLAGS_rth) {
+              // Skip if not RTH and we want only data during trading hours.
+              continue;
+            }
+
+            if (FLAGS_publish) {
+
+              boost::int64_t dt = event.ts - last_ts;
+              if (last_ts > 0 && dt > 0 && FLAGS_delay) {
+                // wait dt micros
+                usleep(dt / FLAGS_playback);
+              }
+
+              atp::MarketDepth marketDepth(event.symbol, event.ts,
+                                           event.side, event.level,
+                                           event.operation,
+                                           event.price,
+                                           event.size,
+                                           event.mm);
+              size_t sent = marketDepth.dispatch(socket);
+              //std::cerr << event.symbol << " " << sent << std::endl;
+              last_ts = event.ts;
+
+            } else {
+
+              std::cout << t << ","
+                        << event.symbol << ","
+                        << event.side << ","
+                        << event.level << ","
+                        << event.operation << ","
+                        << event.price << ","
+                        << event.size << ","
+                        << event.mm << std::endl;
+            }
+
+            matchedRecords++;
+
+          } else {
+            LOG_READER_LOGGER << "Parsing failed";
+          }
 
         } else if (atp::utils::checkAction(nv)) {
           // Handle action here.
