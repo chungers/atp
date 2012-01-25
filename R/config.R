@@ -60,19 +60,36 @@ CONFIG$symbols <- c(
 
 library(foreach)
 
-CONFIG$book <- c('AAPL.STK', 'GOOG.STK', 'SPY.STK')
+CONFIG$book <- c('AAPL.STK', 'GOOG.STK', 'BIDU.STK')
 
-aapl_options <- foreach(strike = c(390, 400, 410, 420),
+expiry <- 20120127
+
+aapl_options <- foreach(strike = c(405, 410, 415, 420, 425, 430, 435),
                         .combine='c') %do% {
-  paste('AAPL.OPT', 20120113, strike, sep='.')
+  paste('AAPL.OPT', expiry, strike, sep='.')
 }
 
-goog_options <- foreach(strike = c(640, 650, 660, 670, 680),
+amzn_options <- foreach(strike = c(175, 180, 185, 190, 195, 200, 205),
                         .combine='c') %do% {
-  paste('GOOG.OPT', 20120113, strike, sep='.')
+  paste('AMZN.OPT', expiry, strike, sep='.')
 }
 
-CONFIG$options <- c(aapl_options, goog_options)
+goog_options <- foreach(strike = c(565, 570, 575, 580, 585, 590, 595, 600),
+                        .combine='c') %do% {
+  paste('GOOG.OPT', expiry, strike, sep='.')
+}
+
+bidu_options <- foreach(strike = c(110, 115, 120, 125, 130, 135, 140),
+                        .combine='c') %do% {
+  paste('BIDU.OPT', expiry, strike, sep='.')
+}
+
+spy_options <- foreach(strike = c(120, 125, 130, 135, 140),
+                        .combine='c') %do% {
+  paste('SPY.OPT', expiry, strike, sep='.')
+}
+
+CONFIG$options <- c(aapl_options, amzn_options, goog_options, bidu_options, spy_options)
 
 # name of the contract database
 CONFIG$contractDb <- 'ContractDb.RData'
