@@ -62,9 +62,9 @@ library(foreach)
 
 CONFIG$book <- c('AAPL.STK', 'GOOG.STK', 'BIDU.STK')
 
-expiry <- 20120127
+expiry <- 20120203
 
-aapl_options <- foreach(strike = c(405, 410, 415, 420, 425, 430, 435),
+aapl_options <- foreach(strike = c(440, 445, 450, 455, 460, 465, 470),
                         .combine='c') %do% {
   paste('AAPL.OPT', expiry, strike, sep='.')
 }
@@ -74,12 +74,12 @@ amzn_options <- foreach(strike = c(175, 180, 185, 190, 195, 200, 205),
   paste('AMZN.OPT', expiry, strike, sep='.')
 }
 
-goog_options <- foreach(strike = c(565, 570, 575, 580, 585, 590, 595, 600),
+goog_options <- foreach(strike = c(560, 565, 570, 575, 580, 585, 590, 595),
                         .combine='c') %do% {
   paste('GOOG.OPT', expiry, strike, sep='.')
 }
 
-bidu_options <- foreach(strike = c(110, 115, 120, 125, 130, 135, 140),
+bidu_options <- foreach(strike = c(115, 120, 125, 130, 135, 140, 145),
                         .combine='c') %do% {
   paste('BIDU.OPT', expiry, strike, sep='.')
 }
