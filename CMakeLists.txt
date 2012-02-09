@@ -69,6 +69,7 @@ list(APPEND emacs_includes
   ${IBAPI_ROOT}/Shared
   ${IBAPI_ROOT}/PosixSocketClient
   ${RCPP_INCLUDE_PATH}
+  ${THIRD_PARTY_BUILD_DIR}/include
 )
 
 #list(APPEND emacs_sys_includes
@@ -85,6 +86,7 @@ set(API_ROOT ${COMMON_DIR}/ib/api/${IBAPI_VERSION})
 third_party(gflags)
 set(glog_deps gflags)
 third_party(glog)
+third_party_plain_make(leveldb)
 
 # Include the subdirectories required for this project:
 add_subdirectory(src)
