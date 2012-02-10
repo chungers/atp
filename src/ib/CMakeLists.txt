@@ -59,9 +59,9 @@ set(LogReader_libs
   boost_system
   gflags
   glog
-  common_proto
-  historian_proto
-  protobuf-lite
+#  common_proto
+#  historian_proto
+#  protobuf-lite
 )
 cpp_executable(LogReader)
 

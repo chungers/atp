@@ -20,7 +20,7 @@
 #include "ib/tick_types.hpp"
 #include "ib/EventDispatcherBase.hpp"
 #include "ib/TickerMap.hpp"
-#include "proto/historian.pb.h"
+//#include "proto/historian.pb.h"
 #include "zmq/ZmqUtils.hpp"
 
 DEFINE_bool(rth, true, "Regular trading hours");
@@ -501,7 +501,7 @@ int main(int argc, char** argv)
 
         } else if (atp::utils::checkBookEvent(nv)) {
 
-          historian::IBMarketDepthEvent ibEvent;
+          //historian::IBMarketDepthEvent ibEvent;
           atp::utils::BookEvent event;
           if (atp::utils::Convert(nv, &event)) {
 
