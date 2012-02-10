@@ -111,7 +111,7 @@ class ContractBasedRequest : public V964Message
   {
   }
 
-  ~ContractBasedRequest()
+  virtual ~ContractBasedRequest()
   {
   }
 
@@ -130,7 +130,7 @@ class ContractBasedRequest : public V964Message
   FIELD_SET(*this, FIX::MaturityDay);
 
 
-  void marshall(Contract& contract)
+  virtual void marshall(Contract& contract)
   {
     MAP_REQUIRED_FIELD(FIX::Symbol, contract.symbol);
 
@@ -197,7 +197,7 @@ class ContractBasedCancelRequest : public V964Message
   {
   }
 
-  ~ContractBasedCancelRequest()
+  virtual ~ContractBasedCancelRequest()
   {
   }
 
@@ -251,7 +251,7 @@ class MarketDataRequest : public internal::ContractBasedRequest
   {
   }
 
-  ~MarketDataRequest()
+  virtual ~MarketDataRequest()
   {
   }
 
@@ -290,7 +290,7 @@ class MarketDepthRequest : public internal::ContractBasedRequest
   {
   }
 
-  ~MarketDepthRequest()
+  virtual ~MarketDepthRequest()
   {
   }
 
@@ -330,7 +330,7 @@ class MarketOhlcRequest : public internal::ContractBasedRequest
   {
   }
 
-  ~MarketOhlcRequest()
+  virtual ~MarketOhlcRequest()
   {
   }
 
@@ -377,7 +377,7 @@ class CancelMarketDataRequest : public internal::ContractBasedCancelRequest
   {
   }
 
-  ~CancelMarketDataRequest()
+  virtual ~CancelMarketDataRequest()
   {
   }
 
@@ -413,7 +413,7 @@ class CancelMarketDepthRequest : public internal::ContractBasedCancelRequest
   {
   }
 
-  ~CancelMarketDepthRequest()
+  virtual ~CancelMarketDepthRequest()
   {
   }
 
@@ -455,7 +455,7 @@ class CancelMarketOhlcRequest : public internal::ContractBasedCancelRequest
   {
   }
 
-  ~CancelMarketOhlcRequest()
+  virtual ~CancelMarketOhlcRequest()
   {
   }
 
@@ -488,7 +488,7 @@ class OptionChainRequest : public V964Message
   {
   }
 
-  ~OptionChainRequest()
+  virtual ~OptionChainRequest()
   {
   }
 
@@ -504,7 +504,7 @@ class OptionChainRequest : public V964Message
   FIELD_SET(*this, FIX::MaturityDay);
 
 
-  void marshall(Contract& contract)
+  virtual void marshall(Contract& contract)
   {
     MAP_REQUIRED_FIELD(FIX::Symbol, contract.symbol);
 
@@ -531,7 +531,7 @@ class OptionChainRequest : public V964Message
     MAP_OPTIONAL_FIELD_DEFAULT(FIX::Currency, contract.currency, USD);
   }
 
-  bool callApi(EClientPtr eclient)
+  virtual bool callApi(EClientPtr eclient)
   {
     Contract contract;
     try {
