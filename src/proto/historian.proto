@@ -1,0 +1,19 @@
+package proto.historian;
+
+option optimize_for = LITE_RUNTIME;
+
+import "ib.proto";
+
+message Record {
+
+  enum Type {
+    IB_MARKET_DATA = 1;
+    IB_MARKET_DEPTH = 2;
+  }
+
+  required Type type = 1;
+
+  optional ib.MarketData ib_marketdata = 2;
+  optional ib.MarketDepth ib_marketdepth = 3;
+}
+

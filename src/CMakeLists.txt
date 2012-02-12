@@ -44,6 +44,9 @@ set(marketdata_libs
 cpp_executable(marketdata)
 
 
+# Protobuffers
+add_subdirectory(proto)
+
 # Interactive Brokers adapter
 add_subdirectory(ib)
 

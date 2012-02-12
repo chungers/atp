@@ -47,20 +47,23 @@ cpp_library(IBAPIConnector)
 
 ##########################################
 # Simple Log File Reader
-set(LogReader_incs
+set(logreader_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(LogReader_srcs
+set(logreader_srcs
   logreader_main.cpp
 )
-set(LogReader_libs
+set(logreader_libs
   IBAPIConnector
   boost_system
   gflags
   glog
+  ib_proto
+  historian_proto
+  protobuf-lite
 )
-cpp_executable(LogReader)
+cpp_executable(logreader)
 
 # Add the versioned api subdirectory
 add_subdirectory(${IBAPI_IMPL_DIR})
