@@ -71,6 +71,7 @@ class MarketData
   V value_;
 };
 
+
 class MarketDepth
 {
  public:

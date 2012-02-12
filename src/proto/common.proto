@@ -14,20 +14,10 @@ message Date {
 message Time {
   required int32 hour = 1;  // 0-23
   required int32 minute = 2;  // 0-59
-  required int32 second = 3; // 0-59
+  required double second = 3; // 0-59 with decimal for microseconds
 }
 
-message Interval {
-  enum Unit {
-    MINUTE = 1;
-    HOUR = 2;
-    DAY = 3;
-    WEEK = 4;
-  }
-  required Unit unit = 1;
-  required int32 duration = 2;
-}
-
+// Convention is similar to ranges in STL - [start, end)
 message Duration {
   // Start datetime - inclusive.
   required group Start = 1 {
@@ -39,28 +29,4 @@ message Duration {
     required Date date = 5;
     optional Time time = 6;
   }
-}
-
-enum OptionRight {
-  CALL = 1;
-  PUT  = 2;
-}
-
-message Option {
-  required int32 id = 1;
-  required string symbol = 2;
-  required OptionRight right = 3;
-  required double strike = 4;
-  required Date expiry = 5;
-}
-
-message Stock {
-  required int32 id = 1;
-  required string symbol = 2;
-}
-
-message Index {
-  required int32 id = 1;
-  required string symbol = 2;
-  optional string exhange = 3; // TODO exchange as enum
 }

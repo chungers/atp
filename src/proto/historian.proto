@@ -1,55 +1,19 @@
-// Events / data from the IB API.
-package historian;
+package proto.historian;
 
 option optimize_for = LITE_RUNTIME;
 
-import "common.proto";
+import "ib.proto";
 
+message Record {
 
-message IBMarketDataEvent {
-  required int64 time_stamp = 1;
-  required string id = 2;
-  required string event = 3;
-  optional string string_value = 4;
-  optional double double_value = 5;
-  optional int64 int_value = 6;
+  enum Type {
+    IB_MARKET_DATA = 1;
+    IB_MARKET_DEPTH = 2;
+  }
+
+  required Type type = 1;
+
+  optional ib.MarketData ib_marketdata = 2;
+  optional ib.MarketDepth ib_marketdepth = 3;
 }
 
-enum Side {
-  ASK = 1;
-  BID = 2;
-}
-
-enum BookOperation {
-  ADD = 1;
-  REMOVE = 2;
-  CHANGE = 3;
-}
-
-message IBMarketDepthEvent {
-  required int64 time_stamp = 1;
-  required string id = 2;
-  required Side side = 3;
-  required double price = 4;
-  required int64 size = 5;
-  required BookOperation operation = 6;
-  optional int32 level = 7;
-  optional string mm = 8;
-}
-
-message HistorianRecord {
-  optional IBMarketDataEvent ib_marketdata = 2;
-  optional IBMarketDepthEvent ib_marketdepth = 3;
-}
-
-message Bar {
-  required int64 time_stamp = 1;
-  required int32 id = 2;
-  required double open = 3;
-  required double high = 4;
-  required double low = 5;
-  required double close = 6;
-  required double wap = 7;
-  required int32 count = 8;  // # of samples in this interval
-  optional common.Interval interval = 9;
-}

@@ -20,7 +20,7 @@
 #include "ib/tick_types.hpp"
 #include "ib/EventDispatcherBase.hpp"
 #include "ib/TickerMap.hpp"
-//#include "proto/historian.pb.h"
+#include "proto/ib.pb.h"
 #include "zmq/ZmqUtils.hpp"
 
 DEFINE_bool(rth, true, "Regular trading hours");
@@ -34,40 +34,20 @@ namespace atp {
 namespace utils {
 
 
-std::map<std::string, std::string> ACTIONS = boost::assign::map_list_of
+static std::map<std::string, std::string> ACTIONS = boost::assign::map_list_of
     ("reqMktData", "contract")
     ("reqMktDepth", "contract")
     ("reqRealTimeBars", "contract")
     ("reqHistoricalData", "contract")
     ;
 
-std::map<std::string, std::string> EVENTS = boost::assign::map_list_of
-    ("tickPrice", "price")
-    ("tickSize", "size")
-    ("tickGeneric", "value")
+typedef std::pair<std::string, proto::ib::MarketData_Type> event_type;
+static std::map<std::string, event_type> EVENTS =
+    boost::assign::map_list_of
+    ("tickPrice", event_type("price", proto::ib::MarketData_Type_DOUBLE))
+    ("tickSize", event_type("size", proto::ib::MarketData_Type_INT))
+    ("tickGeneric", event_type("value", proto::ib::MarketData_Type_STRING))
     ;
-
-template <typename T>
-struct Event
-{
-  string symbol;
-  string event;
-  boost::int64_t ts;
-  T value;
-};
-
-struct BookEvent
-{
-  boost::int64_t ts;
-  string symbol;
-  int side;
-  int level;
-  int operation;
-  double price;
-  int size;
-  string mm;
-};
-
 
 static std::map<long,std::string> TickerIdSymbolMap;
 
@@ -262,115 +242,161 @@ static bool MapActions(std::map<std::string, std::string>& nv)
 }
 
 static bool Convert(std::map<std::string, std::string>& nv,
-                    Event<double>* result)
+                    proto::ib::MarketData* result)
 {
-  uint64_t ts = 0;
-  std::string symbol;
-  std::string event;
-  double value;
+  using std::string;
 
+  uint64_t ts = 0;
   ////////// Timestamp
   if (!GetField(nv, "ts_utc", &ts)) {
     return false;
   }
-  LOG_READER_DEBUG << "Timestamp ==> " << ts << endl;
+  result->set_time_stamp(ts);
+  LOG_READER_DEBUG << "Timestamp ==> " << result->time_stamp() << endl;
 
   ////////// TickerId / Symbol:
   long code = 0;
   if (!GetField(nv, "tickerId", &code)) {
     return false;
   }
+  std::string symbol;
   GetSymbol(code, &symbol);
   nv["symbol"] = symbol;
-  LOG_READER_DEBUG << "symbol ==> " << symbol << "(" << code << ")" << endl;
+  result->set_symbol(symbol);
+  LOG_READER_DEBUG << "symbol ==> " << result->symbol()
+                   << "(" << code << ")" << endl;
 
   ////////// Event
+  std::string event;
   if (!GetField(nv, "field", &event)) {
     return false;
   }
-  LOG_READER_DEBUG << "event ==> " << event << endl;
+  result->set_event(event);
+  LOG_READER_DEBUG << "event ==> " << result->event() << endl;
 
   ////////// Price / Size
+  using proto::ib::MarketData_Type;
+
   std::string method;
+  double value;
   if (GetField(nv, "event", &method)) {
-    std::string fieldToUse = EVENTS[method];
+    event_type ft = EVENTS[method];
+    std::string fieldToUse = ft.first;
+    MarketData_Type type = ft.second;
+
     if (!GetField(nv, fieldToUse, &value)) {
       return false;
     }
+    result->set_type(type);
+    switch (type) {
+      case proto::ib::MarketData_Type_INT :
+        result->set_int_value(value);
+        break;
+      case proto::ib::MarketData_Type_DOUBLE :
+        result->set_double_value(value);
+        break;
+      case proto::ib::MarketData_Type_STRING :
+        result->set_string_value(""); // TODO
+        break;
+    }
   }
+  LOG_READER_DEBUG << "value ==> " << result->double_value() << endl;
 
-  LOG_READER_DEBUG << "value ==> " << value << endl;
-
-  LOG_READER_DEBUG
-      << symbol << ' '
-      << event << ' '
-      << ts << ' '
-      << value << endl;
-
-  result->ts = ts;
-  result->symbol = symbol;
-  result->event = event;
-  result->value = value;
   return true;
 }
 
-static bool Convert(std::map<std::string, std::string>& nv, BookEvent* result)
+static bool Convert(std::map<std::string, std::string>& nv,
+                    proto::ib::MarketDepth* result)
 {
+  using std::string;
+
   ////////// Timestamp
   boost::uint64_t ts;
   if (!GetField(nv, "ts_utc", &ts)) {
     return false;
   }
-  result->ts = ts;
-  LOG_READER_DEBUG << "Timestamp ==> " << result->ts;
+  result->set_time_stamp(ts);
+  LOG_READER_DEBUG << "Timestamp ==> " << result->time_stamp();
 
   ////////// TickerId / Symbol:
   long code = 0;
   if (!GetField(nv, "id", &code)) {
     return false;
   }
-  GetSymbol(code, &(result->symbol));
-  nv["symbol"] = result->symbol;
-  LOG_READER_DEBUG << "symbol ==> " << result->symbol << "(" << code << ")";
+
+  string parsed_symbol;
+  GetSymbol(code, &parsed_symbol);
+  nv["symbol"] = parsed_symbol;
+  result->set_symbol(parsed_symbol);
+  LOG_READER_DEBUG << "symbol ==> " << result->symbol()
+                   << "(" << code << ")";
 
   ////////// Side
-  if (!GetField(nv, "side", &(result->side))) {
+  int parsed_side;
+  if (!GetField(nv, "side", &parsed_side)) {
     return false;
   }
-  LOG_READER_DEBUG << "side ==> " << result->side;
+  switch (parsed_side) {
+    case (proto::ib::MarketDepth_Side_ASK) :
+      result->set_side(proto::ib::MarketDepth_Side_ASK);
+      break;
+    case (proto::ib::MarketDepth_Side_BID) :
+      result->set_side(proto::ib::MarketDepth_Side_BID);
+      break;
+  }
+  LOG_READER_DEBUG << "side ==> " << result->side();
 
   ////////// Operation
-  if (!GetField(nv, "operation", &(result->operation))) {
+  int parsed_operation;
+  if (!GetField(nv, "operation", &parsed_operation)) {
     return false;
   }
-  LOG_READER_DEBUG << "operation ==> " << result->operation;
+  switch (parsed_operation) {
+    case (proto::ib::MarketDepth_Operation_INSERT) :
+      result->set_operation(proto::ib::MarketDepth_Operation_INSERT);
+      break;
+    case (proto::ib::MarketDepth_Operation_DELETE) :
+      result->set_operation(proto::ib::MarketDepth_Operation_DELETE);
+      break;
+    case (proto::ib::MarketDepth_Operation_UPDATE) :
+      result->set_operation(proto::ib::MarketDepth_Operation_UPDATE);
+      break;
+  }
+  LOG_READER_DEBUG << "operation ==> " << result->operation();
 
   ////////// Level
-  if (!GetField(nv, "position", &(result->level))) {
+  int parsed_level;
+  if (!GetField(nv, "position", &parsed_level)) {
     return false;
   }
-  LOG_READER_DEBUG << "level ==> " << result->level;
+  result->set_level(parsed_level);
+  LOG_READER_DEBUG << "level ==> " << result->level();
 
   ////////// Price
-  if (!GetField(nv, "price", &(result->price))) {
+  double parsed_price;
+  if (!GetField(nv, "price", &parsed_price)) {
     return false;
   }
-  LOG_READER_DEBUG << "price ==> " << result->price;
+  result->set_price(parsed_price);
+  LOG_READER_DEBUG << "price ==> " << result->price();
 
   ////////// Size
-  if (!GetField(nv, "size", &(result->size))) {
+  int parsed_size;
+  if (!GetField(nv, "size", &parsed_size)) {
     return false;
   }
-  LOG_READER_DEBUG << "size ==> " << result->size;
+  result->set_size(parsed_size);
+  LOG_READER_DEBUG << "size ==> " << result->size();
 
   ////////// MM (optional)
-  if (!GetField(nv, "marketMaker", &(result->mm))) {
-    result->mm = "L1";
+  string parsed_mm;
+  if (!GetField(nv, "marketMaker", &parsed_mm)) {
+    result->set_mm("L1");
   }
-  LOG_READER_DEBUG << "mm ==> " << result->mm;
+  result->set_mm(parsed_mm);
+  LOG_READER_DEBUG << "mm ==> " << result->mm();
   return true;
 }
-
 
 } // namespace utils
 } // namespace atp
@@ -394,8 +420,8 @@ class MarketDataPublisher : public EventDispatcherBase
  public:
 
   MarketDataPublisher(zmq::socket_t* socket) :
-      collector_(socket),
-      EventDispatcherBase(collector_)
+      EventDispatcherBase(collector_),
+      collector_(socket)
   {
   }
 
@@ -465,10 +491,11 @@ int main(int argc, char** argv)
       if (atp::utils::ParseMap(line, nv, '=', ",")) {
 
         // Check for regular market data event
-        atp::utils::Event<double> event;
+        proto::ib::MarketData event;
         if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, &event)) {
 
-          boost::posix_time::ptime t = atp::utils::getPosixTime(event.ts);
+          boost::posix_time::ptime t =
+              atp::utils::getPosixTime(event.time_stamp());
           bool rth = atp::utils::checkRTH(t);
 
           if (!rth && FLAGS_rth) {
@@ -478,34 +505,47 @@ int main(int argc, char** argv)
 
           if (FLAGS_publish) {
 
-            boost::int64_t dt = event.ts - last_ts;
+            boost::int64_t dt = event.time_stamp() - last_ts;
             if (last_ts > 0 && dt > 0 && FLAGS_delay) {
               // wait dt micros
               usleep(dt / FLAGS_playback);
             }
-            atp::MarketData<double> marketData(event.symbol, event.ts,
-                                               event.event, event.value);
+            atp::MarketData<double> marketData(event.symbol(),
+                                               event.time_stamp(),
+                                               event.event(),
+                                               event.double_value());
             size_t sent = marketData.dispatch(socket);
             //std::cerr << event.symbol << " " << sent << std::endl;
-            last_ts = event.ts;
+            last_ts = event.time_stamp();
 
           } else {
 
             std::cout << t << ","
-                      << event.symbol << ","
-                      << event.event << ","
-                      << event.value << std::endl;
+                      << event.symbol() << ","
+                      << event.event() << ",";
+            switch (event.type()) {
+              case (proto::ib::MarketData_Type_INT) :
+                std::cout << event.int_value();
+                break;
+              case (proto::ib::MarketData_Type_DOUBLE) :
+                std::cout << event.double_value();
+                break;
+              case (proto::ib::MarketData_Type_STRING) :
+                std::cout << event.string_value();
+                break;
+            }
+            std::cout << std::endl;
           }
 
           matchedRecords++;
 
         } else if (atp::utils::checkBookEvent(nv)) {
 
-          //historian::IBMarketDepthEvent ibEvent;
-          atp::utils::BookEvent event;
+          proto::ib::MarketDepth event;
           if (atp::utils::Convert(nv, &event)) {
 
-            boost::posix_time::ptime t = atp::utils::getPosixTime(event.ts);
+            boost::posix_time::ptime t =
+                atp::utils::getPosixTime(event.time_stamp());
             bool rth = atp::utils::checkRTH(t);
 
             if (!rth && FLAGS_rth) {
@@ -515,32 +555,33 @@ int main(int argc, char** argv)
 
             if (FLAGS_publish) {
 
-              boost::int64_t dt = event.ts - last_ts;
+              boost::int64_t dt = event.time_stamp() - last_ts;
               if (last_ts > 0 && dt > 0 && FLAGS_delay) {
                 // wait dt micros
                 usleep(dt / FLAGS_playback);
               }
 
-              atp::MarketDepth marketDepth(event.symbol, event.ts,
-                                           event.side, event.level,
-                                           event.operation,
-                                           event.price,
-                                           event.size,
-                                           event.mm);
+              atp::MarketDepth marketDepth(event.symbol(),
+                                           event.time_stamp(),
+                                           event.side(),
+                                           event.level(),
+                                           event.operation(),
+                                           event.price(),
+                                           event.size(),
+                                           event.mm());
               size_t sent = marketDepth.dispatch(socket);
-              //std::cerr << event.symbol << " " << sent << std::endl;
-              last_ts = event.ts;
+              last_ts = event.time_stamp();
 
             } else {
 
               std::cout << t << ","
-                        << event.symbol << ","
-                        << event.side << ","
-                        << event.level << ","
-                        << event.operation << ","
-                        << event.price << ","
-                        << event.size << ","
-                        << event.mm << std::endl;
+                        << event.symbol() << ","
+                        << event.side() << ","
+                        << event.level() << ","
+                        << event.operation() << ","
+                        << event.price() << ","
+                        << event.size() << ","
+                        << event.mm() << std::endl;
             }
 
             matchedRecords++;
