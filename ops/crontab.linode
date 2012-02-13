@@ -1,7 +1,7 @@
 # Set up for linux
 # firehose setup
 45 6 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/firehose-start/buildWithParameters?token=fhstart&cause=cron"
-59 6 * * 1,2,3,4,5 sh /home/jenkins/github/atp/bin/firehose.sh -r
-30 17 * * 1,2,3,4,5 sh /home/jenkins/github/atp/bin/firehose.sh -c
+50 6 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/marketdata/buildWithParameters?token=marketdata&cause=cron&mode=start"
+30 17 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/marketdata/buildWithParameters?token=marketdata&cause=cron&mode=stop"
 45 17 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/firehose-stop/build?token=fhstop&cause=cron"
 
