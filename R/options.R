@@ -23,14 +23,14 @@ options.getStrikesFromPrevClosing <- function(symbol, strikes) {
 }
 
 options.buildOptionStrikes <- function(symbol, expiry,
-                                                 num_strikes = 8) {
+                                       num_strikes = 8) {
 # Builds a list of option symbols -- note that this is a matching
 # expression where calls and puts will match
 # e.g. AAPL.OPT.20120210.450
   library(foreach)
   option_strikes <- options.getStrikesFromPrevClosing(symbol, num_strikes)
   option_symbols <- foreach(strike = option_strikes, .combine='c') %do% {
-    paset(symbol, '.OPT', expiry, strike, sep='.')
+    paste(symbol, '.OPT', expiry, strike, sep='.')
   }
   return(option_symbols)
 }
