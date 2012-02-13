@@ -12,33 +12,33 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
                                      contractDetails,
                                      sharedMemory = TRUE) {
 
-  state <- new.env()
+  this <- new.env()
 
-  state$id <- id
-  state$endpoint <- endpoint
-  state$adminSocket <- 'tcp://127.0.0.1:4444'
-  state$eventSocket <- 'tcp://127.0.0.1:4445'
-  state$varz <- varz
-  state$subscription <- contractDetails
-  state$tradingEnd <- NULL
-  state$sharedMemory <- sharedMemory
+  this$id <- id
+  this$endpoint <- endpoint
+  this$adminSocket <- 'tcp://127.0.0.1:4444'
+  this$eventSocket <- 'tcp://127.0.0.1:4445'
+  this$varz <- varz
+  this$subscription <- contractDetails
+  this$tradingEnd <- NULL
+  this$sharedMemory <- sharedMemory
 
-  state$.Data <- list()
-  state$.Latencies <- list()
-  state$.Count <- 0
-  state$.hour <- 0
+  this$.Data <- list()
+  this$.Latencies <- list()
+  this$.Count <- 0
+  this$.hour <- 0
 
-  # State for shared memory implementation
-  state$.Shared <- list()
-  state$.Desc <- list()
+  # This for shared memory implementation
+  this$.Shared <- list()
+  this$.Desc <- list()
 
-  state$nycTime <- function(t) {
+  this$nycTime <- function(t) {
     utc <- as.POSIXct(t, origin='1970-01-01', tz='GMT');
     as.POSIXlt(utc, 'America/New_York');
   }
 
   # Non-shared memory implementation - data set is local.
-  state$handler <- function(topic, t, evt, val, delay) {
+  this$handler <- function(topic, t, evt, val, delay) {
 
     lt <- nycTime(t)
 
@@ -70,7 +70,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
   }
 
   # Shared memory implementation - file-backed + shared across R sessions.
-  state$handler_shm <- function(topic, t, evt, val, delay) {
+  this$handler_shm <- function(topic, t, evt, val, delay) {
 
     lt <- nycTime(t)
 
@@ -114,7 +114,7 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
     return(lt < tradingEnd)
   }
 
-  state$start <- function() {
+  this$start <- function() {
     if (sharedMemory) {
       marketdata.start(subscriber, handler_shm)
     } else {
@@ -124,20 +124,20 @@ new_marketDataSubscriber <- function(id, endpoint, varz = 18000,
   }
 
   # start up of this class
-  state$subscriber <-
-    marketdata.newSubscriber(id, state$adminSocket, state$eventSocket,
-                             endpoint, state$varz)
+  this$subscriber <-
+    marketdata.newSubscriber(id, this$adminSocket, this$eventSocket,
+                             endpoint, this$varz)
 
-  marketdata.subscribe(state$subscriber, state$subscription)
+  marketdata.subscribe(this$subscriber, this$subscription)
 
   # ensure proper environment for the member functions
-  environment(state$handler) <- as.environment(state)
-  environment(state$handler_shm) <- as.environment(state)
-  environment(state$start) <- as.environment(state)
+  environment(this$handler) <- as.environment(this)
+  environment(this$handler_shm) <- as.environment(this)
+  environment(this$start) <- as.environment(this)
 
-  class(state) <- 'MarketDataSubscriber'
+  class(this) <- 'MarketDataSubscriber'
 
-  return(state)
+  return(this)
 }
 
 # S3 mechanism for mapping functions as object methods
