@@ -62,6 +62,7 @@ set(logreader_libs
   ib_proto
   historian_proto
   protobuf-lite
+  leveldb
 )
 cpp_executable(logreader)
 

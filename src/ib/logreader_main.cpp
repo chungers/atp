@@ -1,4 +1,5 @@
 
+#include <assert.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -15,13 +16,19 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <leveldb/db.h>
+
 #include "log_levels.h"
 #include "ib/ticker_id.hpp"
 #include "ib/tick_types.hpp"
 #include "ib/EventDispatcherBase.hpp"
 #include "ib/TickerMap.hpp"
 #include "proto/ib.pb.h"
+#include "proto/historian.pb.h"
 #include "zmq/ZmqUtils.hpp"
+
+
+const static std::string NO_VALUE("__no_value__");
 
 DEFINE_bool(rth, true, "Regular trading hours");
 DEFINE_bool(delay, true, "True to simulate sample delays when publishing");
@@ -29,6 +36,8 @@ DEFINE_string(logfile, "logfile", "The name of the log file.");
 DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
 DEFINE_bool(publish, true, "True to publish to endpoint.");
 DEFINE_int64(playback, 1, "N multiple speed in playback.");
+DEFINE_string(leveldb, NO_VALUE, "leveldb file");
+
 
 namespace atp {
 namespace utils {
@@ -398,6 +407,40 @@ static bool Convert(std::map<std::string, std::string>& nv,
   return true;
 }
 
+template <typename T>
+static const std::string buildDbKey(const T& data)
+{
+  using std::string;
+  using std::ostringstream;
+  // build the key
+  ostringstream key;
+  key << data.symbol() << '.' << data.time_stamp();
+  return key.str();
+}
+
+static bool WriteDb(const proto::historian::Record& record, leveldb::DB* db)
+{
+  using std::string;
+
+  string key;
+  switch (record.type()) {
+    case (proto::historian::Record_Type_IB_MARKET_DATA) :
+      key =  buildDbKey(record.ib_marketdata());
+      break;
+    case (proto::historian::Record_Type_IB_MARKET_DEPTH) :
+      key =  buildDbKey(record.ib_marketdepth());
+      break;
+  }
+
+  string buffer;
+  record.SerializeToString(&buffer);
+
+  // TODO - not sure if this is safe to allocate from the stack instead
+  // of heap as implied by the pointer in the function param.
+  leveldb::Status status = db->Put(leveldb::WriteOptions(), key, buffer);
+  return status.ok();
+}
+
 } // namespace utils
 } // namespace atp
 
@@ -452,6 +495,17 @@ int main(int argc, char** argv)
   }
 
 
+  leveldb::DB* levelDb = NULL;
+  leveldb::Options options;
+
+  if (FLAGS_leveldb != NO_VALUE) {
+    LOG_READER_LOGGER << "LevelDb on, file = " << FLAGS_leveldb;
+    options.create_if_missing = true;
+    leveldb::Status status = leveldb::DB::Open(
+        options, FLAGS_leveldb, &levelDb);
+    assert(status.ok());
+  }
+
   std::string line;
   int lines = 0;
   int matchedRecords = 0;
@@ -491,11 +545,12 @@ int main(int argc, char** argv)
       if (atp::utils::ParseMap(line, nv, '=', ",")) {
 
         // Check for regular market data event
-        proto::ib::MarketData event;
-        if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, &event)) {
+        proto::historian::Record record;
+        proto::ib::MarketData* event = record.mutable_ib_marketdata();
+        if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, event)) {
 
           boost::posix_time::ptime t =
-              atp::utils::getPosixTime(event.time_stamp());
+              atp::utils::getPosixTime(event->time_stamp());
           bool rth = atp::utils::checkRTH(t);
 
           if (!rth && FLAGS_rth) {
@@ -505,47 +560,54 @@ int main(int argc, char** argv)
 
           if (FLAGS_publish) {
 
-            boost::int64_t dt = event.time_stamp() - last_ts;
+            boost::int64_t dt = event->time_stamp() - last_ts;
             if (last_ts > 0 && dt > 0 && FLAGS_delay) {
               // wait dt micros
               usleep(dt / FLAGS_playback);
             }
-            atp::MarketData<double> marketData(event.symbol(),
-                                               event.time_stamp(),
-                                               event.event(),
-                                               event.double_value());
+            atp::MarketData<double> marketData(event->symbol(),
+                                               event->time_stamp(),
+                                               event->event(),
+                                               event->double_value());
             size_t sent = marketData.dispatch(socket);
-            //std::cerr << event.symbol << " " << sent << std::endl;
-            last_ts = event.time_stamp();
+            //std::cerr << event->symbol << " " << sent << std::endl;
+            last_ts = event->time_stamp();
 
           } else {
 
             std::cout << t << ","
-                      << event.symbol() << ","
-                      << event.event() << ",";
-            switch (event.type()) {
+                      << event->symbol() << ","
+                      << event->event() << ",";
+            switch (event->type()) {
               case (proto::ib::MarketData_Type_INT) :
-                std::cout << event.int_value();
+                std::cout << event->int_value();
                 break;
               case (proto::ib::MarketData_Type_DOUBLE) :
-                std::cout << event.double_value();
+                std::cout << event->double_value();
                 break;
               case (proto::ib::MarketData_Type_STRING) :
-                std::cout << event.string_value();
+                std::cout << event->string_value();
                 break;
             }
             std::cout << std::endl;
           }
 
+          if (levelDb != NULL) {
+            bool written = atp::utils::WriteDb(record, levelDb);
+            LOG_READER_LOGGER << "Db written " << written
+                              << record.ByteSize();
+          }
           matchedRecords++;
 
         } else if (atp::utils::checkBookEvent(nv)) {
 
-          proto::ib::MarketDepth event;
-          if (atp::utils::Convert(nv, &event)) {
+          proto::historian::Record record;
+          proto::ib::MarketDepth* event = record.mutable_ib_marketdepth();
+
+          if (atp::utils::Convert(nv, event)) {
 
             boost::posix_time::ptime t =
-                atp::utils::getPosixTime(event.time_stamp());
+                atp::utils::getPosixTime(event->time_stamp());
             bool rth = atp::utils::checkRTH(t);
 
             if (!rth && FLAGS_rth) {
@@ -555,33 +617,39 @@ int main(int argc, char** argv)
 
             if (FLAGS_publish) {
 
-              boost::int64_t dt = event.time_stamp() - last_ts;
+              boost::int64_t dt = event->time_stamp() - last_ts;
               if (last_ts > 0 && dt > 0 && FLAGS_delay) {
                 // wait dt micros
                 usleep(dt / FLAGS_playback);
               }
 
-              atp::MarketDepth marketDepth(event.symbol(),
-                                           event.time_stamp(),
-                                           event.side(),
-                                           event.level(),
-                                           event.operation(),
-                                           event.price(),
-                                           event.size(),
-                                           event.mm());
+              atp::MarketDepth marketDepth(event->symbol(),
+                                           event->time_stamp(),
+                                           event->side(),
+                                           event->level(),
+                                           event->operation(),
+                                           event->price(),
+                                           event->size(),
+                                           event->mm());
               size_t sent = marketDepth.dispatch(socket);
-              last_ts = event.time_stamp();
+              last_ts = event->time_stamp();
 
             } else {
 
               std::cout << t << ","
-                        << event.symbol() << ","
-                        << event.side() << ","
-                        << event.level() << ","
-                        << event.operation() << ","
-                        << event.price() << ","
-                        << event.size() << ","
-                        << event.mm() << std::endl;
+                        << event->symbol() << ","
+                        << event->side() << ","
+                        << event->level() << ","
+                        << event->operation() << ","
+                        << event->price() << ","
+                        << event->size() << ","
+                        << event->mm() << std::endl;
+            }
+
+            if (levelDb != NULL) {
+              bool written = atp::utils::WriteDb(record, levelDb);
+              LOG_READER_LOGGER << "Db written " << written
+                                << record.ByteSize();
             }
 
             matchedRecords++;
@@ -607,6 +675,10 @@ int main(int argc, char** argv)
   if (FLAGS_publish) {
     delete socket;
     delete context;
+  }
+
+  if (levelDb != NULL) {
+    delete levelDb;
   }
   LOG_READER_LOGGER << "Completed." << std::endl;
   return 0;
