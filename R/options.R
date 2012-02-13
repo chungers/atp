@@ -1,3 +1,14 @@
+options.nextFriday <- function(t = Sys.Date(), asString = TRUE) {
+# Given the date, return the next friday.
+  if (!require(lubridate)) {
+    install.packages('lubridate')
+    library(lubridate)
+  }
+  offset <- as.numeric(6 - wday(t))  # 6 is friday
+  offset <- ifelse(offset < 0, 7 + offset, offset)
+  nextFriday <- t + offset
+  return(ifelse(asString, format(nextFriday, "%Y%m%d"), nextFriday))
+}
 
 options.getStrikesFromPrevClosing <- function(symbol, strikes) {
 # Given a symbol, determine a set of strikes based on
@@ -34,3 +45,5 @@ options.buildOptionStrikes <- function(symbol, expiry,
   }
   return(option_symbols)
 }
+
+

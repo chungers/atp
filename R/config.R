@@ -65,7 +65,7 @@ source("options.R")
 
 CONFIG$book <- c('AAPL.STK', 'GOOG.STK', 'BIDU.STK')
 
-expiry <- 20120210
+expiry <- options.nextFriday()
 
 CONFIG$options <- c(
                     options.buildOptionStrikes('AAPL', expiry, 8),
