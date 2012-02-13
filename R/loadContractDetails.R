@@ -3,7 +3,7 @@ source("config.R")
 
 
 cdb <- new.ContractDb()
-connect(cdb)
+connect(cdb, port=CONFIG$gatewayPort)
 load(cdb, CONFIG$symbols)
 load(cdb, CONFIG$indexes, index=TRUE)
 disconnect(cdb)
