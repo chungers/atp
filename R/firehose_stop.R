@@ -1,6 +1,6 @@
 source("include/FirehoseClient.class.R")
 source("config.R")
-
+load("marketdata_requests.RData")
 load(CONFIG$contractDb)
 
 
@@ -14,10 +14,6 @@ message(env, ', endpoint = ', ep)
 
 fh <- new.FirehoseClient(cdb, ep)
 
-#save(marketDataRequested, marketDepthRequested,
-#     file='marketdata_requests.RData')
-
-load('marketdata_requests.RData')
 cancelMarketData(fh, marketDataRequested)
 cancelMarketDepth(fh, marketDepthRequested)
 
