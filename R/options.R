@@ -41,7 +41,7 @@ options.buildOptionStrikes <- function(symbol, expiry,
   library(foreach)
   option_strikes <- options.getStrikesFromPrevClosing(symbol, num_strikes)
   option_symbols <- foreach(strike = option_strikes, .combine='c') %do% {
-    paste(symbol, '.OPT', expiry, strike, sep='.')
+    paste(symbol, 'OPT', expiry, strike, sep='.')
   }
   return(option_symbols)
 }
