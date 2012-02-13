@@ -71,7 +71,7 @@ CONFIG$options <- c(
                     options.buildOptionStrikes('AAPL', expiry, 8),
                     options.buildOptionStrikes('AMZN', expiry, 8),
                     options.buildOptionStrikes('BIDU', expiry, 8),
-                    options.buildOptionStrikes('SPY', expiry, 8)
+                    options.buildOptionStrikes('SPY', expiry, 8),
                     options.buildOptionStrikes('ZNGA', expiry, 8)
                     )
 
