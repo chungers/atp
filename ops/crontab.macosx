@@ -1,0 +1,7 @@
+# Set up for dev / mac machines
+# firehose setup
+45 3 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/firehose-start/buildWithParameters?token=fhstart&cause=cron"
+59 3 * * 1,2,3,4,5 sh /Users/david/github/gyokuro/atp/bin/firehose.sh -r
+30 14 * * 1,2,3,4,5 sh /Users/david/github/gyokuro/atp/bin/firehose.sh -c
+45 14 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/firehose-stop/build?token=fhstop&cause=cron"
+

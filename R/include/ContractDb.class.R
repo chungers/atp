@@ -12,7 +12,7 @@ new.ContractDb <- function() {
   # connection object to IB gateway
   this$.ibg <- NULL
   this$.Data <- NULL
-  this$.Symbols <- NULL
+  this$.Stocks <- NULL
   this$.Indexes <- NULL
 
   #
@@ -91,7 +91,7 @@ new.ContractDb <- function() {
       fh_stk_contract_detail(this$.ibg, s)
     }
     this$.Data <- c(this$.Data, list)
-    this$.Symbols <- unique(c(this$.Symbols, symbols))
+    this$.Stocks <- unique(c(this$.Stocks, symbols))
     length(list)
   }
   environment(this$loadStockContractDetails) <- as.environment(this)
@@ -117,7 +117,7 @@ new.ContractDb <- function() {
       fh_opt_contract_detail(this$.ibg, s)
     }
     this$.Data <- c(this$.Data, list)
-    this$.Symbols <- unique(c(this$.Symbols, symbols))
+    this$.Stocks <- unique(c(this$.Stocks, symbols))
     length(list)
   }
   environment(this$loadOptionContractDetails) <- as.environment(this)
@@ -150,7 +150,7 @@ new.ContractDb <- function() {
   # Get the stock symbols
   #
   this$stockSymbols <- function() {
-    stocks <- foreach (s = this$.Symbols, .combine='c') %do% {
+    stocks <- foreach (s = this$.Stocks, .combine='c') %do% {
       paste(s, 'STK', sep='.')
     }
     indexes <- foreach (s = this$.Indexes, .combine='c') %do% {
@@ -159,6 +159,22 @@ new.ContractDb <- function() {
     c(stocks, indexes)
   }
   environment(this$stockSymbols) <- as.environment(this)
+
+  #
+  # Find by Regex
+  # The input can be a list of regular expressions
+  #
+  this$find <- function(symbols) {
+    keys <- names(this$.Data)
+    # symbols can be a list of regular expressions:
+    # "APC.OPT.201205.*\\.8[0-9].C" matches all 2012 May 80 and 85 calls.
+    matches <- foreach(regex = symbols, .combine='c') %do% {
+      keys[grep(regex, keys)]
+    }
+    return(this$.Data[[matches]])
+  }
+  environment(this$find) <- as.environment(this)
+
 
   return(this)
 }
@@ -192,3 +208,7 @@ loadOptionContractDetails.ContractDb <-
 
 load <- function(x, s, index, ...) UseMethod('load')
 load.ContractDb <- function(x, s, index = FALSE, ...) x$load(s, index)
+
+find <- function(x, s, ...) UseMethod('find')
+find.ContractDb <- function(x, s, ...) x$find(s)
+
