@@ -13,7 +13,11 @@ ep <- CONFIG$firehose[[env]]
 message(env, ', endpoint = ', ep)
 
 fh <- new.FirehoseClient(cdb, ep)
-cancelMarketData(fh, stockSymbols(cdb))
-cancelMarketData(fh, CONFIG$options)
-cancelMarketDepth(fh, CONFIG$book)
+
+#save(marketDataRequested, marketDepthRequested,
+#     file='marketdata_requests.RData')
+
+load('marketdata_requests.RData')
+cancelMarketData(fh, marketDataRequested)
+cancelMarketDepth(fh, marketDepthRequested)
 

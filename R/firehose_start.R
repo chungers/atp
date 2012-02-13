@@ -15,6 +15,15 @@ ep <- CONFIG$firehose[[env]]
 message(env, ', endpoint = ', ep)
 
 fh <- new.FirehoseClient(cdb, ep)
+
 requestMarketData(fh, stockSymbols(cdb))
 requestMarketData(fh, CONFIG$options)
 requestMarketDepth(fh, CONFIG$book)
+
+marketDataRequested <- c(stockSymbols(cdb), CONFIG$options)
+marketDepthRequest <- CONFIG$book
+
+save(marketDataRequested, marketDepthRequested,
+     file='marketdata_requests.RData')
+
+
