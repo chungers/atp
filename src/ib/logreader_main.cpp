@@ -8,6 +8,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include "boost/assign.hpp"
+#include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/gregorian/greg_month.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
@@ -37,7 +38,7 @@ DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
 DEFINE_bool(publish, true, "True to publish to endpoint.");
 DEFINE_int64(playback, 1, "N multiple speed in playback.");
 DEFINE_string(leveldb, NO_VALUE, "leveldb file");
-
+DEFINE_bool(csv, true, "True to write to stdout (when not publishing)");
 
 namespace atp {
 namespace utils {
@@ -407,6 +408,7 @@ static bool Convert(std::map<std::string, std::string>& nv,
   return true;
 }
 
+
 template <typename T>
 static const std::string buildDbKey(const T& data)
 {
@@ -414,7 +416,7 @@ static const std::string buildDbKey(const T& data)
   using std::ostringstream;
   // build the key
   ostringstream key;
-  key << data.symbol() << '.' << data.time_stamp();
+  key << data.symbol() << ':' << data.time_stamp();
   return key.str();
 }
 
@@ -435,10 +437,15 @@ static bool WriteDb(const proto::historian::Record& record, leveldb::DB* db)
   string buffer;
   record.SerializeToString(&buffer);
 
-  // TODO - not sure if this is safe to allocate from the stack instead
-  // of heap as implied by the pointer in the function param.
-  leveldb::Status status = db->Put(leveldb::WriteOptions(), key, buffer);
-  return status.ok();
+  string readBuffer;
+  leveldb::Status readStatus = db->Get(leveldb::ReadOptions(),
+                                       key, &readBuffer);
+  if (readStatus.IsNotFound() || buffer != readBuffer) {
+    leveldb::Status status = db->Put(leveldb::WriteOptions(), key, buffer);
+    return status.ok();
+  } else {
+    return false;
+  }
 }
 
 } // namespace utils
@@ -509,6 +516,8 @@ int main(int argc, char** argv)
   std::string line;
   int lines = 0;
   int matchedRecords = 0;
+  int dbWrittenRecords = 0;
+  int dbDuplicateRecords = 0;
 
   boost::posix_time::time_facet facet("%Y-%m-%d %H:%M:%S%F%Q");
 
@@ -546,6 +555,7 @@ int main(int argc, char** argv)
 
         // Check for regular market data event
         proto::historian::Record record;
+        record.set_type(proto::historian::Record_Type_IB_MARKET_DATA);
         proto::ib::MarketData* event = record.mutable_ib_marketdata();
         if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, event)) {
 
@@ -575,33 +585,41 @@ int main(int argc, char** argv)
 
           } else {
 
-            std::cout << t << ","
-                      << event->symbol() << ","
-                      << event->event() << ",";
-            switch (event->type()) {
-              case (proto::ib::MarketData_Type_INT) :
-                std::cout << event->int_value();
-                break;
-              case (proto::ib::MarketData_Type_DOUBLE) :
-                std::cout << event->double_value();
-                break;
-              case (proto::ib::MarketData_Type_STRING) :
-                std::cout << event->string_value();
-                break;
+            if (FLAGS_csv) {
+              std::cout << t << ","
+                        << event->symbol() << ","
+                        << event->event() << ",";
+              switch (event->type()) {
+                case (proto::ib::MarketData_Type_INT) :
+                  std::cout << event->int_value();
+                  break;
+                case (proto::ib::MarketData_Type_DOUBLE) :
+                  std::cout << event->double_value();
+                  break;
+                case (proto::ib::MarketData_Type_STRING) :
+                  std::cout << event->string_value();
+                  break;
+              }
+              std::cout << std::endl;
             }
-            std::cout << std::endl;
           }
 
           if (levelDb != NULL) {
             bool written = atp::utils::WriteDb(record, levelDb);
-            LOG_READER_LOGGER << "Db written " << written
-                              << record.ByteSize();
+            if (written) {
+              dbWrittenRecords++;
+              LOG_READER_LOGGER << "Db written " << written
+                                << record.ByteSize();
+            } else {
+              dbDuplicateRecords++;
+            }
           }
           matchedRecords++;
 
         } else if (atp::utils::checkBookEvent(nv)) {
 
           proto::historian::Record record;
+          record.set_type(proto::historian::Record_Type_IB_MARKET_DEPTH);
           proto::ib::MarketDepth* event = record.mutable_ib_marketdepth();
 
           if (atp::utils::Convert(nv, event)) {
@@ -636,20 +654,27 @@ int main(int argc, char** argv)
 
             } else {
 
-              std::cout << t << ","
-                        << event->symbol() << ","
-                        << event->side() << ","
-                        << event->level() << ","
-                        << event->operation() << ","
-                        << event->price() << ","
-                        << event->size() << ","
-                        << event->mm() << std::endl;
+              if (FLAGS_csv) {
+                std::cout << t << ","
+                          << event->symbol() << ","
+                          << event->side() << ","
+                          << event->level() << ","
+                          << event->operation() << ","
+                          << event->price() << ","
+                          << event->size() << ","
+                          << event->mm() << std::endl;
+              }
             }
 
             if (levelDb != NULL) {
               bool written = atp::utils::WriteDb(record, levelDb);
-              LOG_READER_LOGGER << "Db written " << written
-                                << record.ByteSize();
+              if (written) {
+                dbWrittenRecords++;
+                LOG_READER_LOGGER << "Db written " << written
+                                  << record.ByteSize();
+              } else {
+                dbDuplicateRecords++;
+              }
             }
 
             matchedRecords++;
@@ -678,6 +703,9 @@ int main(int argc, char** argv)
   }
 
   if (levelDb != NULL) {
+    LOG_READER_LOGGER << "Written: " << dbWrittenRecords << ", Duplicate: " <<
+        dbDuplicateRecords;
+
     delete levelDb;
   }
   LOG_READER_LOGGER << "Completed." << std::endl;
