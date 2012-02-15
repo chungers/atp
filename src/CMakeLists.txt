@@ -43,6 +43,8 @@ set(marketdata_libs
 )
 cpp_executable(marketdata)
 
+# Boost support for gzip
+add_subdirectory(boost/iostreams)
 
 # Protobuffers
 add_subdirectory(proto)
