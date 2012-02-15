@@ -3,7 +3,8 @@ CONFIG <- list()
 
 CONFIG$indexes <- c(
 'INDU',
-'SPX')
+'SPX',
+'VIX')
 
 CONFIG$symbols <- c(
 'AAPL',
