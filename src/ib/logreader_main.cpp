@@ -13,6 +13,10 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/format.hpp>
+#include <boost/iostreams/device/file.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
@@ -494,7 +498,15 @@ int main(int argc, char** argv)
   // Open the file inputstream
   LOG_READER_LOGGER << "Opening file " << filename << endl;
 
-  std::ifstream infile(filename.c_str());
+
+  boost::iostreams::filtering_istream infile;
+  //  std::ifstream infile(filename.c_str());
+
+  bool isCompressed = boost::algorithm::find_first(filename, ".gz");
+  if (isCompressed) {
+    infile.push(boost::iostreams::gzip_decompressor());
+  }
+  infile.push(boost::iostreams::file_source(filename));
 
   if (!infile) {
     LOG(ERROR) << "Unable to open " << filename << endl;
@@ -694,7 +706,7 @@ int main(int argc, char** argv)
   LOG_READER_LOGGER << "Processed " << lines << " lines with "
                     << matchedRecords << " records." << std::endl;
   LOG_READER_LOGGER << "Finishing up -- closing file." << std::endl;
-  infile.close();
+  //infile.close();
   infile.clear();
 
   if (FLAGS_publish) {

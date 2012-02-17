@@ -57,12 +57,15 @@ set(logreader_srcs
 set(logreader_libs
   IBAPIConnector
   boost_system
+  boost_iostreams
   gflags
   glog
   ib_proto
   historian_proto
   protobuf-lite
   leveldb
+  bz2
+  z
 )
 cpp_executable(logreader)
 
