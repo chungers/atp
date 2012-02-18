@@ -16,7 +16,7 @@ options.getStrikesFromPrevClosing <- function(symbol, strikes) {
 
   library(quantmod)
   # load the data first
-  data <- getSymbols(symbol, src='yahoo', auto.assign=FALSE)
+  data <- getSymbols(symbol, src='google', auto.assign=FALSE)
 
   # Get the last closing price
   lastDay <- tail(data, 1)
