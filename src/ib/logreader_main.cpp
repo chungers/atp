@@ -498,9 +498,7 @@ int main(int argc, char** argv)
   // Open the file inputstream
   LOG_READER_LOGGER << "Opening file " << filename << endl;
 
-
   boost::iostreams::filtering_istream infile;
-  //  std::ifstream infile(filename.c_str());
 
   bool isCompressed = boost::algorithm::find_first(filename, ".gz");
   if (isCompressed) {
@@ -512,7 +510,6 @@ int main(int argc, char** argv)
     LOG(ERROR) << "Unable to open " << filename << endl;
     return -1;
   }
-
 
   leveldb::DB* levelDb = NULL;
   leveldb::Options options;

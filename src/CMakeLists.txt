@@ -60,3 +60,6 @@ add_subdirectory(zmq)
 
 # ATP R extensions
 add_subdirectory(raptor)
+
+# Historian
+add_subdirectory(historian)
