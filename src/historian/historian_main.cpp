@@ -197,9 +197,22 @@ int main(int argc, char** argv)
     boost::posix_time::ptime t;
 
     if (record.ParseFromString(value.ToString())) {
-      if (record.type() == Record_Type_IB_MARKET_DATA) {
+      if (record.type() == Record_Type_SESSION_LOG) {
+        const proto::historian::SessionLog& event = record.session_log();
+        boost::posix_time::ptime start =
+            atp::utils::getPosixTime(event.start_timestamp());
+        boost::posix_time::ptime end =
+            atp::utils::getPosixTime(event.stop_timestamp());
+
+        std::cout << key.ToString() << ","
+                  << event.symbol() << ","
+                  << "start=" << us_eastern::utc_to_local(start) << ","
+                  << "end=" << us_eastern::utc_to_local(end);
+        std::cout << std::endl;
+
+      } else if (record.type() == Record_Type_IB_MARKET_DATA) {
           const proto::ib::MarketData& event = record.ib_marketdata();
-          t = atp::utils::getPosixTime(event.time_stamp());
+          t = atp::utils::getPosixTime(event.timestamp());
           rth = atp::utils::checkRTH(t);
 
           if (!rth && FLAGS_rth) {
@@ -209,18 +222,18 @@ int main(int argc, char** argv)
 
           if (FLAGS_publish) {
 
-            boost::int64_t dt = event.time_stamp() - last_ts;
+            boost::int64_t dt = event.timestamp() - last_ts;
             if (last_ts > 0 && dt > 0 && FLAGS_delay) {
               // wait dt micros
               usleep(dt / FLAGS_playback);
             }
             atp::MarketData<double> marketData(event.symbol(),
-                                               event.time_stamp(),
+                                               event.timestamp(),
                                                event.event(),
                                                event.double_value());
             size_t sent = marketData.dispatch(socket);
             //std::cerr << event.symbol << " " << sent << std::endl;
-            last_ts = event.time_stamp();
+            last_ts = event.timestamp();
 
           }
 
@@ -244,7 +257,7 @@ int main(int argc, char** argv)
           }
       } else if (record.type() == Record_Type_IB_MARKET_DATA) {
           const proto::ib::MarketDepth& depth = record.ib_marketdepth();
-          t = atp::utils::getPosixTime(depth.time_stamp());
+          t = atp::utils::getPosixTime(depth.timestamp());
           rth = atp::utils::checkRTH(t);
 
           if (!rth && FLAGS_rth) {
@@ -254,14 +267,14 @@ int main(int argc, char** argv)
 
           if (FLAGS_publish) {
 
-            boost::int64_t dt = depth.time_stamp() - last_ts;
+            boost::int64_t dt = depth.timestamp() - last_ts;
             if (last_ts > 0 && dt > 0 && FLAGS_delay) {
               // wait dt micros
               usleep(dt / FLAGS_playback);
             }
 
             atp::MarketDepth marketDepth(depth.symbol(),
-                                         depth.time_stamp(),
+                                         depth.timestamp(),
                                          depth.side(),
                                          depth.level(),
                                          depth.operation(),
@@ -269,7 +282,7 @@ int main(int argc, char** argv)
                                          depth.size(),
                                          depth.mm());
             size_t sent = marketDepth.dispatch(socket);
-            last_ts = depth.time_stamp();
+            last_ts = depth.timestamp();
           }
 
           if (FLAGS_csv) {

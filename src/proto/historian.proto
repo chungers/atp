@@ -4,16 +4,28 @@ option optimize_for = LITE_RUNTIME;
 
 import "ib.proto";
 
+// For each symbol and a full session of data
+// (e.g. per day).  This is useful for scanning
+// for what data is available in the db.
+message SessionLog {
+  required string symbol = 1;
+  required uint64 start_timestamp = 2;
+  required uint64 stop_timestamp = 3;
+}
+
 message Record {
 
   enum Type {
+    SESSION_LOG = 0;
     IB_MARKET_DATA = 1;
     IB_MARKET_DEPTH = 2;
   }
 
   required Type type = 1;
 
-  optional ib.MarketData ib_marketdata = 2;
-  optional ib.MarketDepth ib_marketdepth = 3;
+  optional SessionLog session_log = 2;
+
+  optional ib.MarketData ib_marketdata = 10;
+  optional ib.MarketDepth ib_marketdepth = 11;
 }
 

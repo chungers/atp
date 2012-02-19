@@ -16,7 +16,7 @@
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
-
+#include <boost/shared_ptr.hpp>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
@@ -64,6 +64,17 @@ static std::map<std::string, event_type> EVENTS =
     ;
 
 static std::map<long,std::string> TickerIdSymbolMap;
+typedef boost::shared_ptr<proto::historian::Record> RecordPtr;
+typedef std::map<std::string, RecordPtr> SessionLogMap;
+typedef std::map<std::string, RecordPtr>::const_iterator SessionLogMapIterator;
+static SessionLogMap SymbolSessionLogs;
+
+static void register_ticker_id_symbol(const long tickerId,
+                                      const std::string& symbol)
+{
+  TickerIdSymbolMap[tickerId] = symbol;
+}
+
 
 // In America/New_York
 static boost::posix_time::time_duration RTH_START(9, 30, 0, 0);
@@ -91,7 +102,7 @@ static void GetSymbol(long code, std::string* symbol)
     LOG(WARNING) << "No mapping exists for ticker id " << code;
     std::string sym;
     ib::internal::SymbolFromTickerId(code, &sym);
-    TickerIdSymbolMap[code] = sym + ".STK";
+    register_ticker_id_symbol(code, sym + ".STK");
     LOG(INFO) << "Mapping " << code << " to " << TickerIdSymbolMap[code];
   }
   *symbol = TickerIdSymbolMap[code];
@@ -236,7 +247,8 @@ static bool MapActions(std::map<std::string, std::string>& nv)
                    << contractString;
       }
       if (TickerIdSymbolMap.find(tickerId) == TickerIdSymbolMap.end()) {
-        TickerIdSymbolMap[tickerId] = symbol;
+        register_ticker_id_symbol(tickerId, symbol);
+
         LOG(INFO) << "Created mapping of " << tickerId << " to " << symbol;
       } else {
         // We may have a collision!
@@ -265,8 +277,8 @@ static bool Convert(std::map<std::string, std::string>& nv,
   if (!GetField(nv, "ts_utc", &ts)) {
     return false;
   }
-  result->set_time_stamp(ts);
-  LOG_READER_DEBUG << "Timestamp ==> " << result->time_stamp() << endl;
+  result->set_timestamp(ts);
+  LOG_READER_DEBUG << "Timestamp ==> " << result->timestamp() << endl;
 
   ////////// TickerId / Symbol:
   long code = 0;
@@ -329,8 +341,8 @@ static bool Convert(std::map<std::string, std::string>& nv,
   if (!GetField(nv, "ts_utc", &ts)) {
     return false;
   }
-  result->set_time_stamp(ts);
-  LOG_READER_DEBUG << "Timestamp ==> " << result->time_stamp();
+  result->set_timestamp(ts);
+  LOG_READER_DEBUG << "Timestamp ==> " << result->timestamp();
 
   ////////// TickerId / Symbol:
   long code = 0;
@@ -412,6 +424,24 @@ static bool Convert(std::map<std::string, std::string>& nv,
   return true;
 }
 
+template <typename T>
+static void updateSessionLog(const T& data)
+{
+  const std::string& symbol = data.symbol();
+  if (SymbolSessionLogs.find(symbol) == SymbolSessionLogs.end()) {
+    SymbolSessionLogs[symbol] = RecordPtr(new proto::historian::Record());
+    SymbolSessionLogs[symbol]->set_type(
+        proto::historian::Record_Type_SESSION_LOG);
+    SymbolSessionLogs[symbol]->mutable_session_log()->set_symbol(symbol);
+    SymbolSessionLogs[symbol]->mutable_session_log()->set_start_timestamp(
+        data.timestamp());
+    LOG(INFO) << "SessionLog:Set up " << symbol;
+  } else {
+    SymbolSessionLogs[symbol]->mutable_session_log()->set_stop_timestamp(
+        data.timestamp());
+    LOG(INFO) << "SessionLog:Complete " << symbol;
+  }
+}
 
 template <typename T>
 static const std::string buildDbKey(const T& data)
@@ -420,7 +450,7 @@ static const std::string buildDbKey(const T& data)
   using std::ostringstream;
   // build the key
   ostringstream key;
-  key << data.symbol() << ':' << data.time_stamp();
+  key << data.symbol() << ':' << data.timestamp();
   return key.str();
 }
 
@@ -432,9 +462,11 @@ static bool WriteDb(const proto::historian::Record& record, leveldb::DB* db)
   switch (record.type()) {
     case (proto::historian::Record_Type_IB_MARKET_DATA) :
       key =  buildDbKey(record.ib_marketdata());
+      updateSessionLog(record.ib_marketdata());
       break;
     case (proto::historian::Record_Type_IB_MARKET_DEPTH) :
       key =  buildDbKey(record.ib_marketdepth());
+      updateSessionLog(record.ib_marketdepth());
       break;
   }
 
@@ -450,6 +482,31 @@ static bool WriteDb(const proto::historian::Record& record, leveldb::DB* db)
   } else {
     return false;
   }
+}
+
+static bool WriteSessionLogs(leveldb::DB* db)
+{
+  bool ok = true;
+  for (SessionLogMapIterator itr = SymbolSessionLogs.begin();
+       itr != SymbolSessionLogs.end();
+       ++itr) {
+
+    const std::string& symbol = itr->first;
+    const RecordPtr& log = itr->second;
+
+    string buffer;
+    log->SerializeToString(&buffer);
+
+    std::ostringstream key;
+    key << "sessionlog:" << symbol << ":"
+        << log->session_log().start_timestamp() << ":"
+        << log->session_log().stop_timestamp();
+
+    leveldb::Status status = db->Put(leveldb::WriteOptions(),
+                                     key.str(), buffer);
+    ok = ok && status.ok();
+  }
+  return ok;
 }
 
 } // namespace utils
@@ -569,7 +626,7 @@ int main(int argc, char** argv)
         if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, event)) {
 
           boost::posix_time::ptime t =
-              atp::utils::getPosixTime(event->time_stamp());
+              atp::utils::getPosixTime(event->timestamp());
           bool rth = atp::utils::checkRTH(t);
 
           if (!rth && FLAGS_rth) {
@@ -579,18 +636,18 @@ int main(int argc, char** argv)
 
           if (FLAGS_publish) {
 
-            boost::int64_t dt = event->time_stamp() - last_ts;
+            boost::int64_t dt = event->timestamp() - last_ts;
             if (last_ts > 0 && dt > 0 && FLAGS_delay) {
               // wait dt micros
               usleep(dt / FLAGS_playback);
             }
             atp::MarketData<double> marketData(event->symbol(),
-                                               event->time_stamp(),
+                                               event->timestamp(),
                                                event->event(),
                                                event->double_value());
             size_t sent = marketData.dispatch(socket);
             //std::cerr << event->symbol << " " << sent << std::endl;
-            last_ts = event->time_stamp();
+            last_ts = event->timestamp();
 
           } else {
 
@@ -634,7 +691,7 @@ int main(int argc, char** argv)
           if (atp::utils::Convert(nv, event)) {
 
             boost::posix_time::ptime t =
-                atp::utils::getPosixTime(event->time_stamp());
+                atp::utils::getPosixTime(event->timestamp());
             bool rth = atp::utils::checkRTH(t);
 
             if (!rth && FLAGS_rth) {
@@ -644,14 +701,14 @@ int main(int argc, char** argv)
 
             if (FLAGS_publish) {
 
-              boost::int64_t dt = event->time_stamp() - last_ts;
+              boost::int64_t dt = event->timestamp() - last_ts;
               if (last_ts > 0 && dt > 0 && FLAGS_delay) {
                 // wait dt micros
                 usleep(dt / FLAGS_playback);
               }
 
               atp::MarketDepth marketDepth(event->symbol(),
-                                           event->time_stamp(),
+                                           event->timestamp(),
                                            event->side(),
                                            event->level(),
                                            event->operation(),
@@ -659,7 +716,7 @@ int main(int argc, char** argv)
                                            event->size(),
                                            event->mm());
               size_t sent = marketDepth.dispatch(socket);
-              last_ts = event->time_stamp();
+              last_ts = event->timestamp();
 
             } else {
 
@@ -714,6 +771,11 @@ int main(int argc, char** argv)
   if (levelDb != NULL) {
     LOG_READER_LOGGER << "Written: " << dbWrittenRecords << ", Duplicate: " <<
         dbDuplicateRecords;
+
+    // Now write the session logs:
+    if (!atp::utils::WriteSessionLogs(levelDb)) {
+      LOG(ERROR) << "Falied to write session log!";
+    }
 
     delete levelDb;
   }

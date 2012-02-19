@@ -11,7 +11,7 @@ message MarketData {
     STRING = 2;
   }
 
-  required uint64 time_stamp = 1;
+  required uint64 timestamp = 1;
   required string symbol = 2;
   required string event = 3;
   required Type type = 4;
@@ -33,7 +33,7 @@ message MarketDepth {
     DELETE = 2;
   }
 
-  required uint64 time_stamp = 1;
+  required uint64 timestamp = 1;
   required string symbol = 2;
   required Side side = 3;
   required double price = 4;
