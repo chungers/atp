@@ -435,11 +435,9 @@ static void updateSessionLog(const T& data)
     SymbolSessionLogs[symbol]->mutable_session_log()->set_symbol(symbol);
     SymbolSessionLogs[symbol]->mutable_session_log()->set_start_timestamp(
         data.timestamp());
-    LOG(INFO) << "SessionLog:Set up " << symbol;
   } else {
     SymbolSessionLogs[symbol]->mutable_session_log()->set_stop_timestamp(
         data.timestamp());
-    LOG(INFO) << "SessionLog:Complete " << symbol;
   }
 }
 
