@@ -60,8 +60,8 @@ set(logreader_libs
   boost_iostreams
   gflags
   glog
-  ib_proto
   historian_proto
+  ib_proto
   protobuf-lite
   leveldb
   bz2

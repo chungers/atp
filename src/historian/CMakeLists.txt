@@ -15,8 +15,8 @@ set(historian_srcs
 set(historian_libs
   gflags
   glog
-  ib_proto
   historian_proto
+  ib_proto
   protobuf-lite
   leveldb
   zmq
