@@ -38,6 +38,8 @@ DEFINE_int64(playback, 1, "N multiple speed in playback.");
 DEFINE_string(leveldb, NO_VALUE, "leveldb file");
 DEFINE_bool(csv, true, "True to write to stdout (when not publishing)");
 
+DEFINE_bool(est, true, "Use EST for time range.");
+DEFINE_string(symbol, NO_VALUE, "symbol");
 DEFINE_string(start, NO_VALUE, "range start");
 DEFINE_string(end, NO_VALUE, "range end");
 
@@ -45,26 +47,11 @@ namespace atp {
 namespace utils {
 
 
-static std::map<std::string, std::string> ACTIONS = boost::assign::map_list_of
-    ("reqMktData", "contract")
-    ("reqMktDepth", "contract")
-    ("reqRealTimeBars", "contract")
-    ("reqHistoricalData", "contract")
-    ;
-
-typedef std::pair<std::string, proto::ib::MarketData_Type> event_type;
-static std::map<std::string, event_type> EVENTS =
-    boost::assign::map_list_of
-    ("tickPrice", event_type("price", proto::ib::MarketData_Type_DOUBLE))
-    ("tickSize", event_type("size", proto::ib::MarketData_Type_INT))
-    ("tickGeneric", event_type("value", proto::ib::MarketData_Type_STRING))
-    ;
-
-static std::map<long,std::string> TickerIdSymbolMap;
-
 // In America/New_York
 static boost::posix_time::time_duration RTH_START(9, 30, 0, 0);
 static boost::posix_time::time_duration RTH_END(16, 0, 0, 0);
+
+static const ptime EPOCH(boost::gregorian::date(1970,boost::gregorian::Jan,1));
 
 using namespace boost::posix_time;
 
@@ -76,16 +63,72 @@ static ptime getPosixTime(boost::uint64_t ts)
   return t;
 }
 
+static boost::uint64_t micros(const ptime& pt)
+{
+  boost::uint64_t d = (pt.date() - EPOCH.date()).days()
+      * 24 * 60 * 60 * 1000000LL;
+  time_duration t = pt.time_of_day();
+  boost::uint64_t m = d + (t.ticks() / t.ticks_per_second()) * 1000000LL;
+  // ptime p2 = getPosixTime(m);
+  // assert(pt == p2);
+  return m;
+}
+
 static bool checkRTH(ptime t)
 {
   time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
   return eastern >= RTH_START && eastern < RTH_END;
 }
 
+static const std::locale TIME_FORMAT = std::locale(
+    std::cout.getloc(),
+    new boost::posix_time::time_input_facet("%Y-%m-%d %H:%M:%S"));
+
+
+static const bool parseTime(const std::string& input, ptime* output)
+{
+  ptime pt;
+  std::istringstream is(input);
+  is.imbue(TIME_FORMAT);
+  is >> pt;
+  if (pt != ptime()) {
+    *output = (!FLAGS_est) ? pt : us_eastern::local_to_utc(pt);
+    return true;
+  }
+  LOG(FATAL) << "Wrong datetime: " << input;
+  return false;
+}
+
+
 } // namespace utils
 } // namespace atp
 
 using namespace ib::internal;
+
+
+
+typedef std::pair<std::string, std::string> range;
+static const range parseRange()
+{
+  namespace bt = boost::posix_time;
+
+  if (FLAGS_symbol != NO_VALUE) {
+    // compute the actual search keys based on start and end flags
+    bt::ptime start;
+    bt::ptime end;
+    atp::utils::parseTime(FLAGS_start, &start);
+    atp::utils::parseTime(FLAGS_end, &end);
+
+
+    std::ostringstream sStart;
+    std::ostringstream sEnd;
+    sStart << FLAGS_symbol << ":" << atp::utils::micros(start);
+    sEnd << FLAGS_symbol << ":" << atp::utils::micros(end);
+    return range(sStart.str(), sEnd.str());
+  } else {
+    return range(FLAGS_start, FLAGS_end);
+  }
+}
 
 
 ////////////////////////////////////////////////////////
@@ -132,13 +175,14 @@ int main(int argc, char** argv)
       levelDb->NewIterator(leveldb::ReadOptions()));
 
   using namespace boost::posix_time;
-  ptime epoch(boost::gregorian::date(1970,boost::gregorian::Jan,1));
-
   boost::int64_t last_ts = 0;
+  const range& range = parseRange();
+
+  LOG(INFO) << "Using range [" << range.first << ", " << range.second << ")";
 
   // The lines are space separated, so we need to skip whitespaces.
-  for (iterator->Seek(FLAGS_start);
-       iterator->Valid() && iterator->key().ToString() < FLAGS_end;
+  for (iterator->Seek(range.first);
+       iterator->Valid() && iterator->key().ToString() < range.second;
        iterator->Next()) {
 
     leveldb::Slice key = iterator->key();
@@ -195,6 +239,7 @@ int main(int argc, char** argv)
                 std::cout << event.string_value();
                 break;
             }
+            std::cout << "," << key.ToString();
             std::cout << std::endl;
           }
       } else if (record.type() == Record_Type_IB_MARKET_DATA) {
@@ -247,6 +292,10 @@ int main(int argc, char** argv)
   }
 
   if (levelDb != NULL) {
+    // Need to delete this in order.  The better way is to
+    // have a class where the member variables are scoped_ptr
+    // and have the destructor do the proper ordering of things.
+    iterator.reset();
     delete levelDb;
   }
   HISTORIAN_LOGGER << "Completed." << std::endl;
