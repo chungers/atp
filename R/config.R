@@ -1,5 +1,13 @@
-
 CONFIG <- list()
+
+# name of the contract database
+CONFIG$contractDb <- 'ContractDb.RData'
+
+CONFIG$firehose <- list(remote = 'tcp://69.164.211.61:6666',
+                        local = 'tcp://127.0.0.1:6666')
+
+CONFIG$gatewayPort <- 4002
+
 
 CONFIG$indexes <- c(
 'INDU',
@@ -58,20 +66,17 @@ CONFIG$symbols <- c(
 'SPY',
 'URE',
 'VMW',
-'VNO'
+'VNO',
 'WFM',
 'WYNN',
 'XLE',
 'XLV',
 "ZNGA")
 
-library(foreach)
-source("options.R")
-
 CONFIG$book <- c('AAPL.STK', 'GOOG.STK', 'BIDU.STK')
 
+source("options.R")
 expiry <- options.nextFriday()
-
 CONFIG$options <- c(
                     options.buildOptionStrikes('AAPL', expiry, 8),
                     options.buildOptionStrikes('AMZN', expiry, 8),
@@ -79,11 +84,3 @@ CONFIG$options <- c(
                     options.buildOptionStrikes('SPY', expiry, 8),
                     options.buildOptionStrikes('ZNGA', expiry, 8)
                     )
-
-# name of the contract database
-CONFIG$contractDb <- 'ContractDb.RData'
-
-CONFIG$firehose <- list(remote = 'tcp://69.164.211.61:6666',
-                        local = 'tcp://127.0.0.1:6666')
-
-CONFIG$gatewayPort <- 4002
