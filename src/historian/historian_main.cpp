@@ -203,12 +203,12 @@ int main(int argc, char** argv)
             atp::utils::getPosixTime(event.start_timestamp());
         boost::posix_time::ptime end =
             atp::utils::getPosixTime(event.stop_timestamp());
-
+        const std::string& source = event.source();
         std::cout << key.ToString() << ","
                   << event.symbol() << ","
                   << "start=" << us_eastern::utc_to_local(start) << ","
-                  << "end=" << us_eastern::utc_to_local(end);
-        std::cout << std::endl;
+                  << "end=" << us_eastern::utc_to_local(end) << ","
+                  << "source=" << source << std::endl;
 
       } else if (record.type() == Record_Type_IB_MARKET_DATA) {
           const proto::ib::MarketData& event = record.ib_marketdata();

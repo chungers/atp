@@ -11,6 +11,7 @@ message SessionLog {
   required string symbol = 1;
   required uint64 start_timestamp = 2;
   required uint64 stop_timestamp = 3;
+  required string source = 4;
 }
 
 message Record {

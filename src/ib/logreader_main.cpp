@@ -482,7 +482,7 @@ static bool WriteDb(const proto::historian::Record& record, leveldb::DB* db)
   }
 }
 
-static bool WriteSessionLogs(leveldb::DB* db)
+static bool WriteSessionLogs(leveldb::DB* db, const std::string& source)
 {
   bool ok = true;
   for (SessionLogMapIterator itr = SymbolSessionLogs.begin();
@@ -491,6 +491,8 @@ static bool WriteSessionLogs(leveldb::DB* db)
 
     const std::string& symbol = itr->first;
     const RecordPtr& log = itr->second;
+
+    log->mutable_session_log()->set_source(source);
 
     string buffer;
     log->SerializeToString(&buffer);
@@ -549,6 +551,10 @@ int main(int argc, char** argv)
   google::InitGoogleLogging(argv[0]);
 
   const std::string filename = FLAGS_logfile;
+
+  std::vector<std::string> parts;
+  boost::split(parts, filename, boost::is_any_of("/"));
+  const std::string& source = parts.back();
 
   // Open the file inputstream
   LOG_READER_LOGGER << "Opening file " << filename << endl;
@@ -771,7 +777,7 @@ int main(int argc, char** argv)
         dbDuplicateRecords;
 
     // Now write the session logs:
-    if (!atp::utils::WriteSessionLogs(levelDb)) {
+    if (!atp::utils::WriteSessionLogs(levelDb, source)) {
       LOG(ERROR) << "Falied to write session log!";
     }
 
