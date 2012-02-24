@@ -4,5 +4,5 @@
 45 6 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/firehose-start/buildWithParameters?token=fhstart&cause=cron"
 50 6 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/marketdata/buildWithParameters?token=marketdata&cause=cron&MODE=start"
 30 17 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/marketdata/buildWithParameters?token=marketdata&cause=cron&MODE=stop"
-45 17 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/firehose-stop/build?token=fhstop&cause=cron"
+35 17 * * 1,2,3,4,5 curl -i "http://build.lab616.com:8080/job/firehose-stop/build?token=fhstop&cause=cron"
 
