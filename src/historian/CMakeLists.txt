@@ -5,6 +5,23 @@ add_definitions('-fPIC')
 
 ##########################################
 # Historian
+set(historian_components_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(historian_components_srcs
+  historian.cpp
+)
+set(historian_components_libs
+  historian_proto
+  ib_proto
+  protobuf-lite
+  leveldb
+)
+cpp_library(historian_components)
+
+##########################################
+# Historian
 set(historian_incs
   ${GEN_DIR}
   ${SRC_DIR}
@@ -15,10 +32,7 @@ set(historian_srcs
 set(historian_libs
   gflags
   glog
-  historian_proto
-  ib_proto
-  protobuf-lite
-  leveldb
+  historian_components
   zmq
   varz_components
 )

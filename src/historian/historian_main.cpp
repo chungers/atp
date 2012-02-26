@@ -26,7 +26,7 @@
 #include "proto/ib.pb.h"
 #include "proto/historian.pb.h"
 #include "zmq/ZmqUtils.hpp"
-
+#include "historian/historian.hpp"
 
 const static std::string NO_VALUE("__no_value__");
 
@@ -43,69 +43,8 @@ DEFINE_string(symbol, NO_VALUE, "symbol");
 DEFINE_string(start, NO_VALUE, "range start");
 DEFINE_string(end, NO_VALUE, "range end");
 
-namespace atp {
-namespace utils {
-
-
-// In America/New_York
-static boost::posix_time::time_duration RTH_START(9, 30, 0, 0);
-static boost::posix_time::time_duration RTH_END(16, 0, 0, 0);
-
-static const ptime EPOCH(boost::gregorian::date(1970,boost::gregorian::Jan,1));
-
-using namespace boost::posix_time;
-
-static ptime getPosixTime(boost::uint64_t ts)
-{
-  ptime t = from_time_t(ts / 1000000LL);
-  time_duration micros(0, 0, 0, ts % 1000000LL);
-  t += micros;
-  return t;
-}
-
-static boost::uint64_t micros(const ptime& pt)
-{
-  boost::uint64_t d = (pt.date() - EPOCH.date()).days()
-      * 24 * 60 * 60 * 1000000LL;
-  time_duration t = pt.time_of_day();
-  boost::uint64_t m = d + (t.ticks() / t.ticks_per_second()) * 1000000LL;
-  // ptime p2 = getPosixTime(m);
-  // assert(pt == p2);
-  return m;
-}
-
-static bool checkRTH(ptime t)
-{
-  time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
-  return eastern >= RTH_START && eastern < RTH_END;
-}
-
-static const std::locale TIME_FORMAT = std::locale(
-    std::cout.getloc(),
-    new boost::posix_time::time_input_facet("%Y-%m-%d %H:%M:%S"));
-
-
-static const bool parseTime(const std::string& input, ptime* output)
-{
-  ptime pt;
-  std::istringstream is(input);
-  is.imbue(TIME_FORMAT);
-  is >> pt;
-  if (pt != ptime()) {
-    *output = (!FLAGS_est) ? pt : us_eastern::local_to_utc(pt);
-    return true;
-  }
-  LOG(FATAL) << "Wrong datetime: " << input;
-  return false;
-}
-
-
-} // namespace utils
-} // namespace atp
 
 using namespace ib::internal;
-
-
 
 typedef std::pair<std::string, std::string> range;
 static const range parseRange()
@@ -116,14 +55,13 @@ static const range parseRange()
     // compute the actual search keys based on start and end flags
     bt::ptime start;
     bt::ptime end;
-    atp::utils::parseTime(FLAGS_start, &start);
-    atp::utils::parseTime(FLAGS_end, &end);
-
+    historian::parse(FLAGS_start, &start);
+    historian::parse(FLAGS_end, &end);
 
     std::ostringstream sStart;
     std::ostringstream sEnd;
-    sStart << FLAGS_symbol << ":" << atp::utils::micros(start);
-    sEnd << FLAGS_symbol << ":" << atp::utils::micros(end);
+    sStart << FLAGS_symbol << ":" << historian::as_micros(start);
+    sEnd << FLAGS_symbol << ":" << historian::as_micros(end);
     return range(sStart.str(), sEnd.str());
   } else {
     return range(FLAGS_start, FLAGS_end);
@@ -137,7 +75,7 @@ static const range parseRange()
 //
 int main(int argc, char** argv)
 {
-  google::SetUsageMessage("Reads and publishes market data from logfile.");
+  google::SetUsageMessage("Reads and publishes market data from database.");
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
@@ -200,9 +138,9 @@ int main(int argc, char** argv)
       if (record.type() == Record_Type_SESSION_LOG) {
         const proto::historian::SessionLog& event = record.session_log();
         boost::posix_time::ptime start =
-            atp::utils::getPosixTime(event.start_timestamp());
+            historian::as_ptime(event.start_timestamp());
         boost::posix_time::ptime end =
-            atp::utils::getPosixTime(event.stop_timestamp());
+            historian::as_ptime(event.stop_timestamp());
         const std::string& source = event.source();
         std::cout << key.ToString() << ","
                   << event.symbol() << ","
@@ -212,8 +150,8 @@ int main(int argc, char** argv)
 
       } else if (record.type() == Record_Type_IB_MARKET_DATA) {
           const proto::ib::MarketData& event = record.ib_marketdata();
-          t = atp::utils::getPosixTime(event.timestamp());
-          rth = atp::utils::checkRTH(t);
+          t = historian::as_ptime(event.timestamp());
+          rth = historian::checkRTH(t);
 
           if (!rth && FLAGS_rth) {
             // Skip if not RTH and we want only data during trading hours.
@@ -257,8 +195,8 @@ int main(int argc, char** argv)
           }
       } else if (record.type() == Record_Type_IB_MARKET_DATA) {
           const proto::ib::MarketDepth& depth = record.ib_marketdepth();
-          t = atp::utils::getPosixTime(depth.timestamp());
-          rth = atp::utils::checkRTH(t);
+          t = historian::as_ptime(depth.timestamp());
+          rth = historian::checkRTH(t);
 
           if (!rth && FLAGS_rth) {
             // Skip if not RTH
