@@ -36,6 +36,13 @@ TEST(DbTest, DbOpenTest)
 
   EXPECT_TRUE(db.write(d));
 
+  d.set_double_value(700.);  // if this commits following tests will fail.
+  EXPECT_FALSE(db.write(d, false)); // no overwrite
+
+  // now change the key
+  d.set_symbol("GOOG.STK");
+  EXPECT_TRUE(db.write(d, true)); // no overwrite - should commit.
+
   struct : public historian::Visitor
   {
     double value;
@@ -65,7 +72,7 @@ TEST(DbTest, DbOpenTest)
   } visitor;
 
   visitor.count = 0;
-  db.query("A", "Z", &visitor);
+  db.query("AAPL.STK", "BAC.STK", &visitor);
 
   EXPECT_EQ(500.0, visitor.value);
   EXPECT_EQ(1, visitor.count);
