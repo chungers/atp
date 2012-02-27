@@ -22,6 +22,14 @@ WORKING_DIRECTORY ${SRC_DIR}
 COMMENT "Install R package ${R_PKG}",
 )
 
-add_dependencies(build_raptor IBAPIConnector zmq_components varz_components)
+add_dependencies(build_raptor
+  IBAPIConnector
+  zmq_components
+  varz_components
+  historian_components
+  #historian_proto
+  #ib_proto
+)
+
 add_dependencies(install_raptor build_raptor)
 

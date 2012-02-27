@@ -19,8 +19,9 @@ using boost::posix_time::ptime;
 using boost::posix_time::time_duration;
 using boost::uint64_t;
 
-using namespace proto::ib;
-using namespace proto::historian;
+using proto::ib::MarketData;
+using proto::ib::MarketDepth;
+using proto::historian::SessionLog;
 
 
 static const ptime EPOCH(boost::gregorian::date(1970,boost::gregorian::Jan,1));
@@ -85,7 +86,7 @@ class Visitor
 };
 
 
-class DefaultVisitor : public Visitor
+struct DefaultVisitor : public Visitor
 {
   virtual ~DefaultVisitor() {}
 
