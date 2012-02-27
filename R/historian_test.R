@@ -26,13 +26,15 @@ h <- function(symbol, ts, event, value) {
   return(TRUE)
 }
 
-symbol <- 'SPX.IND'
+symbol <- 'AAPL.STK'
 start <- '2012-02-24 09:30:00'
 end <- '2012-02-24 16:00:00'
 
 message('Fetching data')
 
 raptor.historian.ib_marketdata(db, symbol, start, end, h)
+
+message('Loaded')
 
 library(xts)
 

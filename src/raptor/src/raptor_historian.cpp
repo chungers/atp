@@ -79,6 +79,8 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
             break;
         }
 
+        // Don't use callback. Too slow.  Instead, build the vectors
+        // and return to the caller directly.
         bool ok = as<bool>(callback_(
             wrap(data.symbol()),
             wrap(static_cast<double>(data.timestamp()) / 1000000.f),
