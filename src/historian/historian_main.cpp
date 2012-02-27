@@ -31,9 +31,9 @@
 const static std::string NO_VALUE("__no_value__");
 
 DEFINE_bool(rth, true, "Regular trading hours");
-DEFINE_bool(delay, true, "True to simulate sample delays when publishing");
+DEFINE_bool(delay, false, "True to simulate sample delays when publishing");
 DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
-DEFINE_bool(publish, true, "True to publish to endpoint.");
+DEFINE_bool(publish, false, "True to publish to endpoint.");
 DEFINE_int64(playback, 1, "N multiple speed in playback.");
 DEFINE_string(leveldb, NO_VALUE, "leveldb file");
 DEFINE_bool(csv, true, "True to write to stdout (when not publishing)");
