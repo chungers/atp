@@ -131,4 +131,4 @@ class Db
 
 } // namespace historian
 
-#endif HISTORIAN_H_
+#endif //HISTORIAN_H_
