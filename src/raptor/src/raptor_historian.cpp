@@ -54,9 +54,9 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
 
   if (ok) {
     string qSymbol = as<string>(symbol);
-    ptime qStart, qStop;
-    historian::parse(as<string>(start), &qStart);
-    historian::parse(as<string>(stop), &qStop);
+    ptime utcStart, utcStop;
+    historian::parse(as<string>(start), &utcStart, true);  // as EST
+    historian::parse(as<string>(stop), &utcStop, true);
 
     Function cb(callback);
 
@@ -91,7 +91,7 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
     } visitor(cb);
 
     // Now actually perform the query
-    int count = leveldb->query(qSymbol, qStart, qStop, &visitor, as<bool>(est));
+    int count = leveldb->query(qSymbol, utcStart, utcStop, &visitor);
     return wrap(count);
   }
   return wrap(ok);

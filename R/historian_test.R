@@ -11,13 +11,22 @@ nycTime <- function(t) {
   as.POSIXlt(utc, 'America/New_York');
 }
 
+t <- c()
+e <- c()
+v <- c()
+
 h <- function(symbol, ts, event, value) {
-  t <- nycTime(ts)
-  message(paste(symbol, t, event, value, sep=','))
+  nyt <- nycTime(ts)
+
+  t <<- c(t, as.numeric(ts))
+  e <<- c(e, as.character(event))
+  v <<- c(v, as.numeric(value))
+
+  message(paste(symbol, nyt, event, value, sep=','))
   return(TRUE)
 }
 
-symbol <- 'AAPL.STK'
+symbol <- 'SPX.IND'
 start <- '2012-02-24 09:30:00'
 end <- '2012-02-24 16:00:00'
 
@@ -25,5 +34,16 @@ message('Fetching data')
 
 raptor.historian.ib_marketdata(db, symbol, start, end, h)
 
-raptor.historian.close(db)
+library(xts)
+
+# process using dataframe first
+my.df <- data.frame(list(ts=t, event=e, value=v))
+
+# subset to get last
+last <- subset(my.df, event=='LAST')
+last.xts <- as.xts(last$value, order.by=nycTime(last$ts), tzone='America/New_York')
+
+head(last.xts, 10)
+
+#raptor.historian.close(db)
 

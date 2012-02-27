@@ -117,8 +117,9 @@ class Db
   int query(const std::string& start, const std::string& stop,
             Visitor* visit);
 
-  int query(const std::string& symbol, const ptime& start, const ptime& stop,
-            Visitor* visit, bool est = true);
+  int query(const std::string& symbol, const ptime& startUtc,
+            const ptime& stopUtc,
+            Visitor* visit);
 
 
  private:

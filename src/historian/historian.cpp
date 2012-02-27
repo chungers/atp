@@ -94,16 +94,15 @@ class Db::implementation
     return count;
   }
 
-  int query(const std::string& symbol, const ptime& start, const ptime& end,
-            Visitor* visit, bool est)
+  int query(const std::string& symbol,
+            const ptime& startUtc, const ptime& endUtc,
+            Visitor* visit)
   {
     if (levelDb_ == NULL) return 0;
     std::ostringstream startkey;
-    startkey << symbol << ":"
-             << as_micros((est) ? us_eastern::local_to_utc(start) : start);
+    startkey << symbol << ":" << as_micros(startUtc);
     std::ostringstream endkey;
-    endkey << symbol << ":"
-           << as_micros((est) ? us_eastern::local_to_utc(end) : end);
+    endkey << symbol << ":" << as_micros(endUtc);
     return query(startkey.str(), endkey.str(), visit);
   }
 
@@ -132,10 +131,11 @@ int Db::query(const std::string& start, const std::string& stop,
   return impl_->query(start, stop, visit);
 }
 
-int Db::query(const std::string& symbol, const ptime& start, const ptime& stop,
-              Visitor* visit, bool est)
+int Db::query(const std::string& symbol,
+              const ptime& startUtc, const ptime& stopUtc,
+              Visitor* visit)
 {
-  return impl_->query(symbol, start, stop, visit, est);
+  return impl_->query(symbol, startUtc, stopUtc, visit);
 }
 
 using proto::ib::MarketData;

@@ -35,7 +35,7 @@
 
 const static std::string NO_VALUE("__no_value__");
 
-DEFINE_bool(rth, true, "Regular trading hours");
+DEFINE_bool(rth, false, "Regular trading hours");
 DEFINE_bool(delay, true, "True to simulate sample delays when publishing");
 DEFINE_string(logfile, "logfile", "The name of the log file.");
 DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
