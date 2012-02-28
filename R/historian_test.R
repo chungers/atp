@@ -32,18 +32,15 @@ end <- '2012-02-24 16:00:00'
 
 message('Fetching data')
 
-raptor.historian.ib_marketdata(db, symbol, start, end, h)
+raw <- raptor.historian.ib_marketdata(db, symbol, 'LAST', start, end)
 
 message('Loaded')
 
 library(xts)
 
-# process using dataframe first
-my.df <- data.frame(list(ts=t, event=e, value=v))
-
-# subset to get last
-last <- subset(my.df, event=='LAST')
-last.xts <- as.xts(last$value, order.by=nycTime(last$ts), tzone='America/New_York')
+last.xts <- as.xts(raw$value,
+                   order.by=nycTime(raw$utc_t),
+                   tzone='America/New_York')
 
 head(last.xts, 10)
 

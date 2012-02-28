@@ -14,12 +14,12 @@ raptor.historian.close <- function(handle) {
   result
 }
 
-raptor.historian.ib_marketdata <- function(handle, symbol,
-                                           rStart, rStop, callback,
-                                           est = TRUE) {
+raptor.historian.ib_marketdata <- function(handle, symbol, event,
+                                           rStart, rStop, est = TRUE,
+                                           callback = NULL) {
   result <- .Call("raptor_historian_ib_marketdata",
                   handle,
-                  as.character(symbol),
+                  as.character(symbol), as.character(event),
                   as.character(rStart), as.character(rStop), callback, est,
                   PACKAGE = "raptor");
   result

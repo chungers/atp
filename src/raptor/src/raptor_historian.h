@@ -9,7 +9,7 @@ RcppExport SEXP raptor_historian_open(SEXP db);
 RcppExport SEXP raptor_historian_close(SEXP dbHandle);
 
 RcppExport SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
-                                               SEXP symbol,
+                                               SEXP symbol, SEXP event,
                                                SEXP rStart, SEXP rStop,
                                                SEXP callback,
                                                SEXP est);

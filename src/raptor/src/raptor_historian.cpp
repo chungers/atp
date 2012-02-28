@@ -40,7 +40,7 @@ SEXP raptor_historian_close(SEXP dbHandle)
 }
 
 SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
-                                    SEXP symbol,
+                                    SEXP symbol, SEXP event,
                                     SEXP start, SEXP stop,
                                     SEXP callback, SEXP est)
 {
@@ -52,51 +52,83 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
   XPtr<Db> leveldb(handleList["dbPtr"], R_NilValue, R_NilValue);
   bool ok = as<bool>(handleList["open"]);
 
-  if (ok) {
-    string qSymbol = as<string>(symbol);
-    ptime utcStart, utcStop;
-    historian::parse(as<string>(start), &utcStart, true);  // as EST
-    historian::parse(as<string>(stop), &utcStop, true);
+  if (!ok) {
+    return wrap(false);
+  }
+  string qSymbol = as<string>(symbol);
+  string qEvent = as<string>(event);
+  ptime utcStart, utcStop;
+  historian::parse(as<string>(start), &utcStart, true);  // as EST
+  historian::parse(as<string>(stop), &utcStop, true);
 
-    Function cb(callback);
+  Function* cb = (callback != R_NilValue) ? new Function(callback) : NULL;
 
-    struct Visitor : public historian::DefaultVisitor
+  NumericVector tsVector; //(5000);
+  NumericVector valueVector; //(5000);
+
+  struct Visitor : public historian::DefaultVisitor
+  {
+    Visitor(Function* cb, const string& event,
+            NumericVector* tsVectorPtr,
+            NumericVector* valueVectorPtr) :
+        callback_(cb), event_(event),
+        tsVectorPtr_(tsVectorPtr),
+        valueVectorPtr_(valueVectorPtr)
     {
-      Visitor(Function& cb) : callback_(cb) {}
+      Rprintf("event = %s\t", event_.c_str());
+      if (callback_ == NULL) Rprintf("No callback given.\n");
+    }
+    ~Visitor()
+    {
+      if (callback_ != NULL) delete callback_;
+    }
 
-      bool operator()(const std::string& key, const MarketData& data)
-      {
-        SEXP value;
-        switch (data.type()) {
-          case proto::ib::MarketData_Type_INT :
-            value = wrap(static_cast<long>(data.int_value()));
-            break;
-          case proto::ib::MarketData_Type_STRING :
-            value = wrap(data.string_value());
-            break;
-          case proto::ib::MarketData_Type_DOUBLE :
-            value = wrap(data.double_value());
-            break;
-        }
+    bool operator()(const std::string& key, const MarketData& data)
+    {
+      SEXP value;
+      switch (data.type()) {
+        case proto::ib::MarketData_Type_INT :
+          value = wrap(static_cast<long>(data.int_value()));
+          break;
+        case proto::ib::MarketData_Type_STRING :
+          value = wrap(data.string_value());
+          break;
+        case proto::ib::MarketData_Type_DOUBLE :
+          value = wrap(data.double_value());
+          break;
+      }
 
-        // Don't use callback. Too slow.  Instead, build the vectors
-        // and return to the caller directly.
-        bool ok = as<bool>(callback_(
+      if (callback_ != NULL) {
+        return as<bool>((*callback_)(
             wrap(data.symbol()),
             wrap(static_cast<double>(data.timestamp()) / 1000000.f),
             wrap(data.event()),
             value));
-        return ok;
+      } else if (data.event() == event_) {
+        tsVectorPtr_->push_back(
+            static_cast<double>(data.timestamp()) / 1000000.f);
+        valueVectorPtr_->push_back(as<double>(value));
+
+        if (tsVectorPtr_->size() % 1000 == 0) {
+          Rprintf(".");
+        }
       }
+      return true; // continue as we collect the values.
+    }
 
-      Function& callback_;
-    } visitor(cb);
+    Function* callback_;
+    string event_;
+    NumericVector* tsVectorPtr_;
+    NumericVector* valueVectorPtr_;
+  } visitor(cb, qEvent, &tsVector, &valueVector);
 
-    // Now actually perform the query
-    int count = leveldb->query(qSymbol, utcStart, utcStop, &visitor);
-    return wrap(count);
-  }
-  return wrap(ok);
+  // Now actually perform the query
+  int count = leveldb->query(qSymbol, utcStart, utcStop, &visitor);
+
+  return List::create(Named("symbol", qSymbol),
+                      Named("utc_t", tsVector),
+                      Named("value", valueVector)
+                      );
 }
 
 SEXP raptor_historian_sessionlogs(SEXP dbHandle, SEXP symbol)
