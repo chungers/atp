@@ -75,8 +75,9 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
         msg << "Connection reset. Disconnecting.";
         break;
       case 1100:
-        terminate = true;
-        msg << "Disconnecting.";
+        LOG(ERROR) << "Error 1100 -- not disconnecting. Expect IBGateway to reconnect.";
+        terminate = false;
+        msg << "No disconnect.";
         break;
       case 2103:
         terminate = false;
