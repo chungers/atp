@@ -17,6 +17,18 @@ using std::string;
 
 typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
 
+
+TEST(UtilsTest, DateTest)
+{
+  ptime t1, t2;
+
+  historian::parse("2012-02-14 04:30:34.567899", &t1, false);
+  historian::parse("2012-02-14 04:36:34.567899", &t2, false);
+
+  time_duration diff = t2 - t1;
+  EXPECT_EQ(6, diff.minutes());
+}
+
 TEST(UtilsTest, ParseTest)
 {
   ptime parsed;

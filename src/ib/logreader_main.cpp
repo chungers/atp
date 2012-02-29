@@ -30,20 +30,22 @@
 #include "ib/TickerMap.hpp"
 #include "proto/ib.pb.h"
 #include "proto/historian.pb.h"
+#include "historian/historian.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 
 const static std::string NO_VALUE("__no_value__");
 
 DEFINE_bool(rth, false, "Regular trading hours");
-DEFINE_bool(delay, true, "True to simulate sample delays when publishing");
+DEFINE_bool(delay, false, "True to simulate sample delays when publishing");
 DEFINE_string(logfile, "logfile", "The name of the log file.");
 DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
-DEFINE_bool(publish, true, "True to publish to endpoint.");
+DEFINE_bool(publish, false, "True to publish to endpoint.");
 DEFINE_int64(playback, 1, "N multiple speed in playback.");
 DEFINE_string(leveldb, NO_VALUE, "leveldb file");
-DEFINE_bool(csv, true, "True to write to stdout (when not publishing)");
-
+DEFINE_bool(csv, false, "True to write to stdout (when not publishing)");
+DEFINE_int64(gapInMinutes, 5,
+             "Number of minutes gap to start a new session log");
 namespace atp {
 namespace utils {
 
@@ -424,18 +426,73 @@ static bool Convert(std::map<std::string, std::string>& nv,
   return true;
 }
 
-template <typename T>
-static void updateSessionLog(const T& data)
+static bool Write(const RecordPtr& log, leveldb::DB* db)
 {
+  const std::string filename = FLAGS_logfile;
+
+  std::vector<std::string> parts;
+  boost::split(parts, filename, boost::is_any_of("/"));
+  const std::string& source = parts.back();
+
+  log->mutable_session_log()->set_source(source);
+
+  string buffer;
+  log->SerializeToString(&buffer);
+
+  std::ostringstream key;
+  key << "sessionlog:" << log->session_log().symbol() << ":"
+      << log->session_log().start_timestamp() << ":"
+      << log->session_log().stop_timestamp();
+
+  leveldb::Status status = db->Put(leveldb::WriteOptions(),
+                                   key.str(), buffer);
+  return status.ok();
+}
+
+template <typename T>
+static void updateSessionLog(const T& data, leveldb::DB* db)
+{
+  using boost::posix_time::ptime;
+  using boost::posix_time::time_duration;
+
   const std::string& symbol = data.symbol();
   if (SymbolSessionLogs.find(symbol) == SymbolSessionLogs.end()) {
+
     SymbolSessionLogs[symbol] = RecordPtr(new proto::historian::Record());
     SymbolSessionLogs[symbol]->set_type(
         proto::historian::Record_Type_SESSION_LOG);
     SymbolSessionLogs[symbol]->mutable_session_log()->set_symbol(symbol);
     SymbolSessionLogs[symbol]->mutable_session_log()->set_start_timestamp(
         data.timestamp());
+    SymbolSessionLogs[symbol]->mutable_session_log()->set_stop_timestamp(0);
+
   } else {
+
+    const RecordPtr& rec = SymbolSessionLogs[symbol];
+    // We check to see if more than X minutes have elapsed.  If so,
+    // write one session log and start a new one.
+    if (rec->session_log().stop_timestamp() > 0) {
+
+      ptime last = historian::as_ptime(rec->session_log().stop_timestamp());
+      ptime now = historian::as_ptime(data.timestamp());
+
+      time_duration diff = now - last;
+      if (diff.minutes() > FLAGS_gapInMinutes) {
+        LOG(INFO) << "Starting a new session log range for " << symbol
+                  << " with gap " << diff << " between "
+                  << last << " and " << now;
+
+        // Now write it
+        Write(rec, db);
+
+        // Now set the start time to this
+        rec->mutable_session_log()->set_start_timestamp(
+            data.timestamp());
+        // reset it.
+        rec->mutable_session_log()->set_stop_timestamp(0);
+      }
+    }
+
     SymbolSessionLogs[symbol]->mutable_session_log()->set_stop_timestamp(
         data.timestamp());
   }
@@ -460,11 +517,11 @@ static bool WriteDb(const proto::historian::Record& record, leveldb::DB* db)
   switch (record.type()) {
     case (proto::historian::Record_Type_IB_MARKET_DATA) :
       key =  buildDbKey(record.ib_marketdata());
-      updateSessionLog(record.ib_marketdata());
+      updateSessionLog(record.ib_marketdata(), db);
       break;
     case (proto::historian::Record_Type_IB_MARKET_DEPTH) :
       key =  buildDbKey(record.ib_marketdepth());
-      updateSessionLog(record.ib_marketdepth());
+      updateSessionLog(record.ib_marketdepth(), db);
       break;
   }
 
@@ -482,7 +539,7 @@ static bool WriteDb(const proto::historian::Record& record, leveldb::DB* db)
   }
 }
 
-static bool WriteSessionLogs(leveldb::DB* db, const std::string& source)
+static bool WriteSessionLogs(leveldb::DB* db)
 {
   bool ok = true;
   for (SessionLogMapIterator itr = SymbolSessionLogs.begin();
@@ -491,20 +548,7 @@ static bool WriteSessionLogs(leveldb::DB* db, const std::string& source)
 
     const std::string& symbol = itr->first;
     const RecordPtr& log = itr->second;
-
-    log->mutable_session_log()->set_source(source);
-
-    string buffer;
-    log->SerializeToString(&buffer);
-
-    std::ostringstream key;
-    key << "sessionlog:" << symbol << ":"
-        << log->session_log().start_timestamp() << ":"
-        << log->session_log().stop_timestamp();
-
-    leveldb::Status status = db->Put(leveldb::WriteOptions(),
-                                     key.str(), buffer);
-    ok = ok && status.ok();
+    ok = ok && Write(log, db);
   }
   return ok;
 }
@@ -551,12 +595,6 @@ int main(int argc, char** argv)
   google::InitGoogleLogging(argv[0]);
 
   const std::string filename = FLAGS_logfile;
-
-  std::vector<std::string> parts;
-  boost::split(parts, filename, boost::is_any_of("/"));
-  const std::string& source = parts.back();
-
-  // Open the file inputstream
   LOG_READER_LOGGER << "Opening file " << filename << endl;
 
   boost::iostreams::filtering_istream infile;
@@ -777,7 +815,7 @@ int main(int argc, char** argv)
         dbDuplicateRecords;
 
     // Now write the session logs:
-    if (!atp::utils::WriteSessionLogs(levelDb, source)) {
+    if (!atp::utils::WriteSessionLogs(levelDb)) {
       LOG(ERROR) << "Falied to write session log!";
     }
 
