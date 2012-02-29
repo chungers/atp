@@ -2,7 +2,7 @@
 library(raptor)
 options(digits.secs=6)
 
-dbFile <- '/tmp/slim3'
+dbFile <- '/Volumes/backup1/data/test.ldb'
 
 db <- raptor.historian.open(dbFile)
 
@@ -15,6 +15,7 @@ t <- c()
 e <- c()
 v <- c()
 
+# callback for each observation -- this is optional and SLOW.
 h <- function(symbol, ts, event, value) {
   nyt <- nycTime(ts)
 
@@ -27,37 +28,40 @@ h <- function(symbol, ts, event, value) {
 }
 
 
-symbol <- 'BIDU.OPT.20120224.130.C'
-start <- '2012-02-24 09:30:00'
-end <- '2012-02-24 16:00:00'
-
-message('Fetching data')
-
-raw <- raptor.historian.ib_marketdata(db, symbol, 'LAST', start, end)
-
-message('Loaded')
-
-library(xts)
-
-last.xts <- as.xts(raw$value,
-                   order.by=nycTime(raw$utc_t),
-                   tzone='America/New_York')
-
-plot(last.xts)
-
-
+start <- '2012-02-28 09:30:00'
+end <- '2012-02-28 16:00:00'
 
 mkdata <- function(db, symbol, event,
-                   start='2012-02-24 09:30:00', end='2012-02-24 16:00:00') {
-  raw <- raptor.historian.ib_marketdata(db, symbol, event, start, end)
+                   qstart=start, qend=end) {
+  raw <- raptor.historian.ib_marketdata(db, symbol, event, qstart, qend)
   library(xts)
   data <- as.xts(raw$value,
                  order.by=nycTime(raw$utc_t),
                  tzone='America/New_York')
-
-  plot(data)
   return(data)
 }
+
+
+dev.new(); p1 <- dev.cur()
+dev.new(); p2 <- dev.cur()
+
+aapl <- mkdata(db, 'AAPL.STK', 'LAST')
+spx <- mkdata(db, 'SPX.IND', 'LAST')
+
+# locf - last observation carried forward.
+# this fills in the NA at different sampling instants
+aapl_spx <- na.locf(merge(aapl, spx), fromLast=TRUE)
+dev.set(p1)
+plot.zoo(aapl_spx)
+
+gld <- mkdata(db, 'GLD.STK', 'LAST')
+gdx <- mkdata(db, 'GDX.STK', 'LAST')
+
+# locf - last observation carried forward.
+# this fills in the NA at different sampling instants
+gld_gdx <- na.locf(merge(gld, gdx), fromLast=TRUE)
+dev.set(p2)
+plot.zoo(gld_gdx)
 
 
 #raptor.historian.close(db)
