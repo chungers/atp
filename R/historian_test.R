@@ -2,7 +2,7 @@
 library(raptor)
 options(digits.secs=6)
 
-dbFile <- '/tmp/mytest1'
+dbFile <- '/tmp/slim3'
 
 db <- raptor.historian.open(dbFile)
 
@@ -26,7 +26,8 @@ h <- function(symbol, ts, event, value) {
   return(TRUE)
 }
 
-symbol <- 'AAPL.STK'
+
+symbol <- 'BIDU.OPT.20120224.130.C'
 start <- '2012-02-24 09:30:00'
 end <- '2012-02-24 16:00:00'
 
@@ -42,7 +43,22 @@ last.xts <- as.xts(raw$value,
                    order.by=nycTime(raw$utc_t),
                    tzone='America/New_York')
 
-head(last.xts, 10)
+plot(last.xts)
+
+
+
+mkdata <- function(db, symbol, event,
+                   start='2012-02-24 09:30:00', end='2012-02-24 16:00:00') {
+  raw <- raptor.historian.ib_marketdata(db, symbol, event, start, end)
+  library(xts)
+  data <- as.xts(raw$value,
+                 order.by=nycTime(raw$utc_t),
+                 tzone='America/New_York')
+
+  plot(data)
+  return(data)
+}
+
 
 #raptor.historian.close(db)
 

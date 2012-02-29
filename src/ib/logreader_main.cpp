@@ -82,6 +82,9 @@ static void register_ticker_id_symbol(const long tickerId,
 static boost::posix_time::time_duration RTH_START(9, 30, 0, 0);
 static boost::posix_time::time_duration RTH_END(16, 0, 0, 0);
 
+static boost::posix_time::time_duration EXT_START(4, 0, 0, 0);
+static boost::posix_time::time_duration EXT_END(20, 0, 0, 0);
+
 using namespace boost::posix_time;
 
 static ptime getPosixTime(boost::uint64_t ts)
@@ -92,6 +95,11 @@ static ptime getPosixTime(boost::uint64_t ts)
   return t;
 }
 
+static bool checkEXT(ptime t)
+{
+  time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
+  return eastern >= EXT_START && eastern < EXT_END;
+}
 static bool checkRTH(ptime t)
 {
   time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
@@ -289,6 +297,9 @@ static bool Convert(std::map<std::string, std::string>& nv,
   }
   std::string symbol;
   GetSymbol(code, &symbol);
+
+  result->set_contract_id(code);
+
   nv["symbol"] = symbol;
   result->set_symbol(symbol);
   LOG_READER_DEBUG << "symbol ==> " << result->symbol()
@@ -351,6 +362,7 @@ static bool Convert(std::map<std::string, std::string>& nv,
   if (!GetField(nv, "id", &code)) {
     return false;
   }
+  result->set_contract_id(code);
 
   string parsed_symbol;
   GetSymbol(code, &parsed_symbol);
@@ -669,6 +681,12 @@ int main(int argc, char** argv)
 
           boost::posix_time::ptime t =
               atp::utils::getPosixTime(event->timestamp());
+
+          bool ext = atp::utils::checkEXT(t);
+          if (!ext) {
+            continue; // outside trading hours
+          }
+
           bool rth = atp::utils::checkRTH(t);
 
           if (!rth && FLAGS_rth) {
@@ -734,6 +752,12 @@ int main(int argc, char** argv)
 
             boost::posix_time::ptime t =
                 atp::utils::getPosixTime(event->timestamp());
+
+            bool ext = atp::utils::checkEXT(t);
+            if (!ext) {
+              continue; // outside trading hours
+            }
+
             bool rth = atp::utils::checkRTH(t);
 
             if (!rth && FLAGS_rth) {

@@ -18,6 +18,8 @@ message MarketData {
   optional string string_value = 5;
   optional double double_value = 6;
   optional int64 int_value = 7;
+
+  required uint64 contract_id = 8;
 }
 
 message MarketDepth {
@@ -41,5 +43,7 @@ message MarketDepth {
   required Operation operation = 6;
   required uint32 level = 7;
   optional string mm = 8;
+
+  required uint64 contract_id = 9;
 }
 
