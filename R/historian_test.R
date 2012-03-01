@@ -2,7 +2,7 @@
 library(raptor)
 options(digits.secs=6)
 
-dbFile <- '/Volumes/backup1/data/test.ldb'
+dbFile <- '/Volumes/backup1/data/test2.ldb'
 
 db <- raptor.historian.open(dbFile)
 
@@ -28,8 +28,8 @@ h <- function(symbol, ts, event, value) {
 }
 
 
-start <- '2012-02-28 09:30:00'
-end <- '2012-02-28 16:00:00'
+start <- '2012-02-29 09:30:00'
+end <- '2012-02-29 16:00:00'
 
 mkdata <- function(db, symbol, event,
                    qstart=start, qend=end) {

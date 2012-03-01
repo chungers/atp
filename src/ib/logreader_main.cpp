@@ -46,6 +46,8 @@ DEFINE_string(leveldb, NO_VALUE, "leveldb file");
 DEFINE_bool(csv, false, "True to write to stdout (when not publishing)");
 DEFINE_int64(gapInMinutes, 5,
              "Number of minutes gap to start a new session log");
+DEFINE_bool(checkDuplicate, false, "True to read for existing record before writing db.");
+
 namespace atp {
 namespace utils {
 
@@ -540,10 +542,15 @@ static bool WriteDb(const proto::historian::Record& record, leveldb::DB* db)
   string buffer;
   record.SerializeToString(&buffer);
 
-  string readBuffer;
-  leveldb::Status readStatus = db->Get(leveldb::ReadOptions(),
+  bool canWrite = !FLAGS_checkDuplicate;
+  if (FLAGS_checkDuplicate) {
+    string readBuffer;
+    leveldb::Status readStatus = db->Get(leveldb::ReadOptions(),
                                        key, &readBuffer);
-  if (readStatus.IsNotFound() || buffer != readBuffer) {
+    canWrite = (readStatus.IsNotFound() || buffer != readBuffer);
+  }
+
+  if (canWrite) {
     leveldb::Status status = db->Put(leveldb::WriteOptions(), key, buffer);
     return status.ok();
   } else {
@@ -606,22 +613,12 @@ int main(int argc, char** argv)
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
-  const std::string filename = FLAGS_logfile;
-  LOG_READER_LOGGER << "Opening file " << filename << endl;
+  using namespace boost::posix_time;
+  ptime epoch(boost::gregorian::date(1970,boost::gregorian::Jan,1));
+  time_facet facet("%Y-%m-%d %H:%M:%S%F%Q");
+  std::cout.imbue(std::locale(std::cout.getloc(), &facet));
 
-  boost::iostreams::filtering_istream infile;
-
-  bool isCompressed = boost::algorithm::find_first(filename, ".gz");
-  if (isCompressed) {
-    infile.push(boost::iostreams::gzip_decompressor());
-  }
-  infile.push(boost::iostreams::file_source(filename));
-
-  if (!infile) {
-    LOG(ERROR) << "Unable to open " << filename << endl;
-    return -1;
-  }
-
+  // open database
   leveldb::DB* levelDb = NULL;
   leveldb::Options options;
 
@@ -632,16 +629,6 @@ int main(int argc, char** argv)
         options, FLAGS_leveldb, &levelDb);
     assert(status.ok());
   }
-
-  std::string line;
-  int lines = 0;
-  int matchedRecords = 0;
-  int dbWrittenRecords = 0;
-  int dbDuplicateRecords = 0;
-
-  boost::posix_time::time_facet facet("%Y-%m-%d %H:%M:%S%F%Q");
-
-  std::cout.imbue(std::locale(std::cout.getloc(), &facet));
 
   MarketDataPublisher* publisher = NULL;
   zmq::context_t* context = NULL;
@@ -654,101 +641,57 @@ int main(int argc, char** argv)
     socket = new zmq::socket_t(*context, ZMQ_PUSH);
     socket->connect(FLAGS_endpoint.c_str());
     publisher = new MarketDataPublisher(socket);
-
     LOG(INFO) << "Pushing events to " << FLAGS_endpoint;
   }
 
-  using namespace boost::posix_time;
 
-  ptime epoch(boost::gregorian::date(1970,boost::gregorian::Jan,1));
+  std::vector<string> logfiles;
+  boost::split(logfiles, FLAGS_logfile, boost::is_any_of(","));
 
-  boost::int64_t last_ts = 0;
+  LOG(INFO) << "Files = " << logfiles.size();
 
-  // The lines are space separated, so we need to skip whitespaces.
-  while (infile >> std::skipws >> line) {
-    if (line.find(',') != std::string::npos) {
-      LOG_READER_DEBUG << "Log entry = " << line << endl;
+  for (std::vector<string>::const_iterator logfile = logfiles.begin();
+       logfile != logfiles.end();
+       ++logfile) {
 
-      std::map<std::string, std::string> nv; // basic name /value pair
+    const std::string filename = *logfile;
 
-      if (atp::utils::ParseMap(line, nv, '=', ",")) {
+    LOG(INFO) << "Opening file " << filename << endl;
 
-        // Check for regular market data event
-        proto::historian::Record record;
-        record.set_type(proto::historian::Record_Type_IB_MARKET_DATA);
-        proto::ib::MarketData* event = record.mutable_ib_marketdata();
-        if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, event)) {
+    boost::iostreams::filtering_istream infile;
+    bool isCompressed = boost::algorithm::find_first(filename, ".gz");
+    if (isCompressed) {
+      infile.push(boost::iostreams::gzip_decompressor());
+    }
+    infile.push(boost::iostreams::file_source(filename));
 
-          boost::posix_time::ptime t =
-              atp::utils::getPosixTime(event->timestamp());
+    if (!infile) {
+      LOG(ERROR) << "Unable to open " << filename << endl;
+      return -1;
+    }
 
-          bool ext = atp::utils::checkEXT(t);
-          if (!ext) {
-            continue; // outside trading hours
-          }
+    std::string line;
+    int lines = 0;
+    int matchedRecords = 0;
+    int dbWrittenRecords = 0;
+    int dbDuplicateRecords = 0;
 
-          bool rth = atp::utils::checkRTH(t);
+    boost::int64_t last_ts = 0;
 
-          if (!rth && FLAGS_rth) {
-            // Skip if not RTH and we want only data during trading hours.
-            continue;
-          }
+    // The lines are space separated, so we need to skip whitespaces.
+    while (infile >> std::skipws >> line) {
+      if (line.find(',') != std::string::npos) {
+        LOG_READER_DEBUG << "Log entry = " << line << endl;
 
-          if (FLAGS_publish) {
+        std::map<std::string, std::string> nv; // basic name /value pair
 
-            boost::int64_t dt = event->timestamp() - last_ts;
-            if (last_ts > 0 && dt > 0 && FLAGS_delay) {
-              // wait dt micros
-              usleep(dt / FLAGS_playback);
-            }
-            atp::MarketData<double> marketData(event->symbol(),
-                                               event->timestamp(),
-                                               event->event(),
-                                               event->double_value());
-            size_t sent = marketData.dispatch(socket);
-            //std::cerr << event->symbol << " " << sent << std::endl;
-            last_ts = event->timestamp();
+        if (atp::utils::ParseMap(line, nv, '=', ",")) {
 
-          } else {
-
-            if (FLAGS_csv) {
-              std::cout << t << ","
-                        << event->symbol() << ","
-                        << event->event() << ",";
-              switch (event->type()) {
-                case (proto::ib::MarketData_Type_INT) :
-                  std::cout << event->int_value();
-                  break;
-                case (proto::ib::MarketData_Type_DOUBLE) :
-                  std::cout << event->double_value();
-                  break;
-                case (proto::ib::MarketData_Type_STRING) :
-                  std::cout << event->string_value();
-                  break;
-              }
-              std::cout << std::endl;
-            }
-          }
-
-          if (levelDb != NULL) {
-            bool written = atp::utils::WriteDb(record, levelDb);
-            if (written) {
-              dbWrittenRecords++;
-              LOG_READER_LOGGER << "Db written " << written
-                                << record.ByteSize();
-            } else {
-              dbDuplicateRecords++;
-            }
-          }
-          matchedRecords++;
-
-        } else if (atp::utils::checkBookEvent(nv)) {
-
+          // Check for regular market data event
           proto::historian::Record record;
-          record.set_type(proto::historian::Record_Type_IB_MARKET_DEPTH);
-          proto::ib::MarketDepth* event = record.mutable_ib_marketdepth();
-
-          if (atp::utils::Convert(nv, event)) {
+          record.set_type(proto::historian::Record_Type_IB_MARKET_DATA);
+          proto::ib::MarketData* event = record.mutable_ib_marketdata();
+          if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, event)) {
 
             boost::posix_time::ptime t =
                 atp::utils::getPosixTime(event->timestamp());
@@ -772,16 +715,12 @@ int main(int argc, char** argv)
                 // wait dt micros
                 usleep(dt / FLAGS_playback);
               }
-
-              atp::MarketDepth marketDepth(event->symbol(),
-                                           event->timestamp(),
-                                           event->side(),
-                                           event->level(),
-                                           event->operation(),
-                                           event->price(),
-                                           event->size(),
-                                           event->mm());
-              size_t sent = marketDepth.dispatch(socket);
+              atp::MarketData<double> marketData(event->symbol(),
+                                                 event->timestamp(),
+                                                 event->event(),
+                                                 event->double_value());
+              size_t sent = marketData.dispatch(socket);
+              //std::cerr << event->symbol << " " << sent << std::endl;
               last_ts = event->timestamp();
 
             } else {
@@ -789,12 +728,19 @@ int main(int argc, char** argv)
               if (FLAGS_csv) {
                 std::cout << t << ","
                           << event->symbol() << ","
-                          << event->side() << ","
-                          << event->level() << ","
-                          << event->operation() << ","
-                          << event->price() << ","
-                          << event->size() << ","
-                          << event->mm() << std::endl;
+                          << event->event() << ",";
+                switch (event->type()) {
+                  case (proto::ib::MarketData_Type_INT) :
+                    std::cout << event->int_value();
+                    break;
+                  case (proto::ib::MarketData_Type_DOUBLE) :
+                    std::cout << event->double_value();
+                    break;
+                  case (proto::ib::MarketData_Type_STRING) :
+                    std::cout << event->string_value();
+                    break;
+                }
+                std::cout << std::endl;
               }
             }
 
@@ -808,41 +754,113 @@ int main(int argc, char** argv)
                 dbDuplicateRecords++;
               }
             }
-
             matchedRecords++;
 
-          } else {
-            LOG_READER_LOGGER << "Parsing failed";
+          } else if (atp::utils::checkBookEvent(nv)) {
+
+            proto::historian::Record record;
+            record.set_type(proto::historian::Record_Type_IB_MARKET_DEPTH);
+            proto::ib::MarketDepth* event = record.mutable_ib_marketdepth();
+
+            if (atp::utils::Convert(nv, event)) {
+
+              boost::posix_time::ptime t =
+                  atp::utils::getPosixTime(event->timestamp());
+
+              bool ext = atp::utils::checkEXT(t);
+              if (!ext) {
+                continue; // outside trading hours
+              }
+
+              bool rth = atp::utils::checkRTH(t);
+
+              if (!rth && FLAGS_rth) {
+                // Skip if not RTH and we want only data during trading hours.
+                continue;
+              }
+
+              if (FLAGS_publish) {
+
+                boost::int64_t dt = event->timestamp() - last_ts;
+                if (last_ts > 0 && dt > 0 && FLAGS_delay) {
+                  // wait dt micros
+                  usleep(dt / FLAGS_playback);
+                }
+
+                atp::MarketDepth marketDepth(event->symbol(),
+                                             event->timestamp(),
+                                             event->side(),
+                                             event->level(),
+                                             event->operation(),
+                                             event->price(),
+                                             event->size(),
+                                             event->mm());
+                size_t sent = marketDepth.dispatch(socket);
+                last_ts = event->timestamp();
+
+              } else {
+
+                if (FLAGS_csv) {
+                  std::cout << t << ","
+                            << event->symbol() << ","
+                            << event->side() << ","
+                            << event->level() << ","
+                            << event->operation() << ","
+                            << event->price() << ","
+                            << event->size() << ","
+                            << event->mm() << std::endl;
+                }
+              }
+
+              if (levelDb != NULL) {
+                bool written = atp::utils::WriteDb(record, levelDb);
+                if (written) {
+                  dbWrittenRecords++;
+                  LOG_READER_LOGGER << "Db written " << written
+                                    << record.ByteSize();
+                } else {
+                  dbDuplicateRecords++;
+                }
+              }
+
+              matchedRecords++;
+
+            } else {
+              LOG_READER_LOGGER << "Parsing failed";
+            }
+
+          } else if (atp::utils::checkAction(nv)) {
+            // Handle action here.
+            atp::utils::MapActions(nv);
           }
-
-        } else if (atp::utils::checkAction(nv)) {
-          // Handle action here.
-          atp::utils::MapActions(nv);
         }
+        lines++;
       }
-      lines++;
     }
-  }
-  LOG_READER_LOGGER << "Processed " << lines << " lines with "
-                    << matchedRecords << " records." << std::endl;
-  LOG_READER_LOGGER << "Finishing up -- closing file." << std::endl;
-  //infile.close();
-  infile.clear();
+    LOG_READER_LOGGER << "Processed " << lines << " lines with "
+                      << matchedRecords << " records." << std::endl;
+    LOG_READER_LOGGER << "Finishing up -- closing file." << std::endl;
+    //infile.close();
+    infile.clear();
 
+    if (levelDb != NULL) {
+      LOG_READER_LOGGER << "Written: " << dbWrittenRecords << ", Duplicate: " <<
+          dbDuplicateRecords;
+      // Now write the session logs:
+      if (!atp::utils::WriteSessionLogs(levelDb)) {
+        LOG(ERROR) << "Falied to write session log!";
+      }
+    }
+  } // for each file
+
+
+  // Clean up
   if (FLAGS_publish) {
     delete socket;
     delete context;
   }
 
   if (levelDb != NULL) {
-    LOG_READER_LOGGER << "Written: " << dbWrittenRecords << ", Duplicate: " <<
-        dbDuplicateRecords;
-
-    // Now write the session logs:
-    if (!atp::utils::WriteSessionLogs(levelDb)) {
-      LOG(ERROR) << "Falied to write session log!";
-    }
-
     delete levelDb;
   }
   LOG_READER_LOGGER << "Completed." << std::endl;

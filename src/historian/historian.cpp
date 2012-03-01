@@ -25,6 +25,7 @@ class Db::implementation
   {
     leveldb::Options options;
     options.create_if_missing = true;
+    options.block_size = 4096 * 100;
     leveldb::Status status = leveldb::DB::Open(options, dbFile_, &levelDb_);
     if (status.ok()) {
       return true;
