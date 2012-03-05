@@ -512,6 +512,19 @@ static void updateSessionLog(const T& data, leveldb::DB* db)
   }
 }
 
+using proto::ib::MarketData;
+using proto::ib::MarketDepth;
+
+static const std::string& getPrefix(const MarketData& data)
+{
+  return "market:";
+}
+
+static const std::string& getPrefix(const MarketDepth& data)
+{
+  return "depth:";
+}
+
 template <typename T>
 static const std::string buildDbKey(const T& data)
 {
@@ -519,7 +532,7 @@ static const std::string buildDbKey(const T& data)
   using std::ostringstream;
   // build the key
   ostringstream key;
-  key << data.symbol() << ':' << data.timestamp();
+  key << getPrefix(data) << data.symbol() << ':' << data.timestamp();
   return key.str();
 }
 

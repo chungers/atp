@@ -193,7 +193,7 @@ int main(int argc, char** argv)
             std::cout << "," << key.ToString();
             std::cout << std::endl;
           }
-      } else if (record.type() == Record_Type_IB_MARKET_DATA) {
+      } else if (record.type() == Record_Type_IB_MARKET_DEPTH) {
           const proto::ib::MarketDepth& depth = record.ib_marketdepth();
           t = historian::as_ptime(depth.timestamp());
           rth = historian::checkRTH(t);

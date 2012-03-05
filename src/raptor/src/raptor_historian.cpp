@@ -83,7 +83,7 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
       if (callback_ != NULL) delete callback_;
     }
 
-    bool operator()(const std::string& key, const MarketData& data)
+    bool operator()(const MarketData& data)
     {
       SEXP value;
       switch (data.type()) {

@@ -80,13 +80,13 @@ class Db::implementation
         bool readMore = false;
         switch (record.type()) {
           case Record_Type_SESSION_LOG:
-            readMore = (*visit)(key.ToString(), record.session_log());
+            readMore = (*visit)(record.session_log());
             break;
           case Record_Type_IB_MARKET_DATA:
-            readMore = (*visit)(key.ToString(), record.ib_marketdata());
+            readMore = (*visit)(record.ib_marketdata());
             break;
           case Record_Type_IB_MARKET_DEPTH:
-            readMore = (*visit)(key.ToString(), record.ib_marketdepth());
+            readMore = (*visit)(record.ib_marketdepth());
             break;
         }
         if (!readMore) break;
@@ -125,11 +125,27 @@ bool Db::open()
 {
   return impl_->open();
 }
+using proto::historian::QueryByRange;
+using proto::historian::QueryBySymbol;
+using proto::historian::QuerySessionLogs;
+
+int Db::query(const QueryByRange& query, Visitor* visit)
+{
+  return impl_->query(query.first(), query.last(), visit);
+}
 
 int Db::query(const std::string& start, const std::string& stop,
              Visitor* visit)
 {
   return impl_->query(start, stop, visit);
+}
+
+int Db::query(const QueryBySymbol& query, Visitor* visit)
+{
+  return impl_->query(query.symbol(),
+                      historian::as_ptime(query.utc_first_micros()),
+                      historian::as_ptime(query.utc_last_micros()),
+                      visit);
 }
 
 int Db::query(const std::string& symbol,
@@ -143,6 +159,17 @@ using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 using proto::historian::SessionLog;
 using proto::historian::Record;
+using proto::historian::Record_Type;
+
+
+inline const std::string GetPrefix(const MarketData& data)
+{ return "market:"; }
+
+inline const std::string GetPrefix(const MarketDepth& data)
+{ return "depth:"; }
+
+inline const std::string GetPrefix(const SessionLog& data)
+{ return "sessionlog:"; }
 
 template <typename T>
 static const std::string buildDbKey(const T& data)
@@ -151,12 +178,19 @@ static const std::string buildDbKey(const T& data)
   using std::ostringstream;
   // build the key
   ostringstream key;
-  key << data.symbol() << ':' << data.timestamp();
+  key << GetPrefix(data) << data.symbol() << ':' << data.timestamp();
   return key.str();
+}
+
+template <typename T>
+inline bool validate(const T& value)
+{
+  return value.IsInitialized();
 }
 
 bool Db::write(const MarketData& value, bool overwrite)
 {
+  if (!validate(value)) return false;
   Record record;
   record.set_type(proto::historian::Record_Type_IB_MARKET_DATA);
   record.mutable_ib_marketdata()->CopyFrom(value);
@@ -165,6 +199,7 @@ bool Db::write(const MarketData& value, bool overwrite)
 
 bool Db::write(const MarketDepth& value, bool overwrite)
 {
+  if (!validate(value)) return false;
   Record record;
   record.set_type(proto::historian::Record_Type_IB_MARKET_DEPTH);
   record.mutable_ib_marketdepth()->CopyFrom(value);
@@ -173,6 +208,7 @@ bool Db::write(const MarketDepth& value, bool overwrite)
 
 bool Db::write(const SessionLog& value, bool overwrite)
 {
+  if (!validate(value)) return false;
   Record record;
   record.set_type(proto::historian::Record_Type_SESSION_LOG);
   record.mutable_session_log()->CopyFrom(value);

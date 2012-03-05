@@ -30,3 +30,36 @@ message Record {
   optional ib.MarketDepth ib_marketdepth = 11;
 }
 
+
+message QueryByRange {
+  required string first = 1;
+  required string last = 2;
+  optional string filter = 3;
+}
+
+message QueryBySymbol {
+  required string symbol = 1;
+  optional uint64 utc_first_micros = 2;
+  optional uint64 utc_last_micros = 3;
+  optional string filter = 4;
+}
+
+message QuerySessionLogs {
+  required string symbol = 1;
+}
+
+message Query {
+
+  enum Type {
+    QUERY_BY_RANGE = 0;
+    QUERY_BY_SYMBOL = 1;
+    QUERY_SESSION_LOGS = 2;
+  }
+
+  required Type type = 1;
+  required string callback = 2;
+
+  optional QueryByRange query_by_range = 3;
+  optional QueryBySymbol query_by_symbol = 4;
+  optional QuerySessionLogs query_session_logs = 5;
+}

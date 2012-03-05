@@ -12,6 +12,7 @@ set(historian_tests_incs
 set(historian_tests_srcs
   ${TEST_DIR}/AllTests.cpp
   DbTest.cpp
+  DbReactorTest.cpp
   UtilsTest.cpp
 )
 set(historian_tests_libs

@@ -10,30 +10,70 @@ set(historian_components_incs
   ${SRC_DIR}
 )
 set(historian_components_srcs
-  historian.cpp
+  Db.cpp
+  DbReactorStrategy.cpp
+  DbReactorClient.cpp
 )
 set(historian_components_libs
   historian_proto
   ib_proto
   protobuf-lite
   leveldb
+  zmq_components
 )
 cpp_library(historian_components)
 
 ##########################################
-# Historian
-set(historian_incs
+# Historian - DB command line client
+set(hc_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(historian_srcs
-  historian_main.cpp
+set(hc_srcs
+  Db_main.cpp
 )
-set(historian_libs
+set(hc_libs
   gflags
   glog
   historian_components
-  zmq
   varz_components
+  zmq_components
 )
-cpp_executable(historian)
+cpp_executable(hc)
+
+
+##########################################
+# Historian - DB ZMQ reactor
+set(hz_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(hz_srcs
+  DbReactor_main.cpp
+)
+set(hz_libs
+  gflags
+  glog
+  historian_components
+  varz_components
+  zmq_components
+)
+cpp_executable(hz)
+
+##########################################
+# Historian - DB ZMQ reactor client
+set(hzc_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(hzc_srcs
+  DbReactorClient_main.cpp
+)
+set(hzc_libs
+  gflags
+  glog
+  historian_components
+  varz_components
+  zmq_components
+)
+cpp_executable(hzc)

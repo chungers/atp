@@ -33,6 +33,7 @@ TEST(DbTest, DbOpenTest)
   d.set_event("ASK");
   d.set_type(proto::ib::MarketData_Type_DOUBLE);
   d.set_double_value(500.0);
+  d.set_contract_id(9999);
 
   EXPECT_TRUE(db.write(d));
 
@@ -49,13 +50,13 @@ TEST(DbTest, DbOpenTest)
     bool fail;
     int count;
 
-    bool operator()(const std::string& key, const SessionLog& log)
+    bool operator()(const SessionLog& log)
     {
       fail = true;
       return false;
     }
 
-    bool operator()(const std::string& key, const MarketData& data)
+    bool operator()(const MarketData& data)
     {
       value = data.double_value();
       count++;
@@ -63,7 +64,7 @@ TEST(DbTest, DbOpenTest)
       return true;
     }
 
-    bool operator()(const std::string& key, const MarketDepth& data)
+    bool operator()(const MarketDepth& data)
     {
       fail = true;
       return false;
