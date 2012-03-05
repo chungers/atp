@@ -35,6 +35,7 @@ message QueryByRange {
   required string first = 1;
   required string last = 2;
   optional string filter = 3;
+  optional bool depth_only = 4;
 }
 
 message QueryBySymbol {
@@ -42,6 +43,7 @@ message QueryBySymbol {
   optional uint64 utc_first_micros = 2;
   optional uint64 utc_last_micros = 3;
   optional string filter = 4;
+  optional bool depth_only = 5;
 }
 
 message QuerySessionLogs {

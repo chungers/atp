@@ -14,10 +14,13 @@ using historian::Db;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 using proto::historian::SessionLog;
+using proto::historian::Query;
+using proto::historian::QueryByRange;
+using proto::historian::QueryBySymbol;
 
 
 
-TEST(DbTest, DbOpenTest)
+TEST(DbTest, DbReadWriteMarketDataTest)
 {
   Db db("/tmp/testdb");
   EXPECT_TRUE(db.open());
@@ -100,7 +103,75 @@ TEST(DbTest, DbOpenTest)
   visitor.value = 0.;
   visitor.fail = false;
   db.query(key.str(), key.str(), &visitor);
-
   EXPECT_EQ(0, visitor.count);
+
+  ///
+  {
+    visitor.count = 0;
+    visitor.value = 0.;
+    visitor.fail = false;
+
+    QueryByRange qbr;
+    qbr.set_first(key.str());
+    qbr.set_last(key2.str());
+    qbr.set_filter("BID");
+    db.query(qbr, &visitor);
+    EXPECT_EQ(0, visitor.count);
+  }
+
+  ///
+  {
+    visitor.count = 0;
+    visitor.value = 0.;
+    visitor.fail = false;
+
+    QueryByRange qbr;
+    qbr.set_first(key.str());
+    qbr.set_last(key2.str());
+    qbr.set_filter("ASK");
+    db.query(qbr, &visitor);
+    EXPECT_EQ(1, visitor.count);
+    EXPECT_EQ(500.0, visitor.value);
+  }
+
+  ///
+  {
+    visitor.count = 0;
+    visitor.value = 0.;
+    visitor.fail = false;
+
+    QueryBySymbol qbs;
+    qbs.set_symbol("AAPL.STK");
+    qbs.set_utc_first_micros(historian::as_micros(t));
+
+    boost::posix_time::time_duration td(0, 0, 0, 1);
+    qbs.set_utc_last_micros(historian::as_micros(t + td));
+    qbs.set_filter("ASK");
+    db.query(qbs, &visitor);
+    EXPECT_EQ(1, visitor.count);
+    EXPECT_EQ(500.0, visitor.value);
+  }
+
+  ///
+  {
+    visitor.count = 0;
+    visitor.value = 0.;
+    visitor.fail = false;
+
+    QueryBySymbol qbs;
+    qbs.set_symbol("AAPL.STK");
+    qbs.set_utc_first_micros(historian::as_micros(t));
+
+    boost::posix_time::time_duration td(0, 0, 0, 1);
+    qbs.set_utc_last_micros(historian::as_micros(t + td));
+    qbs.set_filter("ASK");
+
+    // only market depth
+    qbs.set_depth_only(true);
+
+    db.query(qbs, &visitor);
+    EXPECT_EQ(0, visitor.count);
+  }
+
 }
 

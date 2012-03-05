@@ -29,12 +29,11 @@ using proto::historian::QueryByRange;
 using proto::historian::QueryBySymbol;
 using proto::historian::QuerySessionLogs;
 
-template <typename Q>
+
 class DbVisitor : public historian::Visitor
 {
  public:
-  DbVisitor(const Q& query, socket_t& socket) :
-      query_(query), socket_(socket) {}
+  DbVisitor(socket_t& socket) : socket_(socket) {}
   ~DbVisitor() {}
 
   bool operator()(const SessionLog& log)
@@ -44,9 +43,6 @@ class DbVisitor : public historian::Visitor
 
   bool operator()(const MarketData& data)
   {
-    if (query_.has_filter() && data.event() == query_.filter()) {
-      return send(data) > 0;
-    }
     return send(data) > 0;
   }
 
@@ -95,7 +91,6 @@ class DbVisitor : public historian::Visitor
   }
 
  private:
-  const Q& query_;
   socket_t& socket_;
 };
 
@@ -140,33 +135,36 @@ bool replyDataReady(socket_t& socket)
 }
 
 int handleQueryByRange(const boost::shared_ptr<Db> db,
-                          const QueryByRange& q,
-                          socket_t& socket, string* message)
+                       const QueryByRange& q,
+                       socket_t& socket, string* message)
 {
   HISTORIAN_REACTOR_DEBUG << "QueryByRange ["
-                          << q.first() << ", " << q.last() << ")";
-
-  DbVisitor<QueryByRange> visitor(q, socket);
+                          << q.first() << ", " << q.last() << ")"
+                          << (q.has_filter() ?
+                              ", filer=" + q.filter() : "");
+  DbVisitor visitor(socket);
   return db->query(q, &visitor);
 }
 
 int handleQueryBySymbol(const boost::shared_ptr<Db> db,
-                           const QueryBySymbol& q,
-                           socket_t& socket, string* message)
+                        const QueryBySymbol& q,
+                        socket_t& socket, string* message)
 {
   HISTORIAN_REACTOR_DEBUG << "QueryBySymbol @"
                           << q.symbol()
                           << "[" << q.utc_first_micros()
                           << ", " << q.utc_last_micros()
-                          << ")";
-  DbVisitor<QueryBySymbol> visitor(q, socket);
+                          << ")"
+                          << (q.has_filter() ?
+                              ", filer=" + q.filter() : "");
+  DbVisitor visitor(socket);
   return db->query(q, &visitor);
   return 0;
 }
 
 int handleQuerySessionLogs(const boost::shared_ptr<Db> db,
-                              const QuerySessionLogs& q,
-                              socket_t& socket, string* message)
+                           const QuerySessionLogs& q,
+                           socket_t& socket, string* message)
 {
   HISTORIAN_REACTOR_DEBUG << "QuerySessionLogs @"
                           << q.symbol();

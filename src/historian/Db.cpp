@@ -106,17 +106,17 @@ class Db::implementation
     return count;
   }
 
-  int query(const std::string& symbol,
-            const ptime& startUtc, const ptime& endUtc,
-            Visitor* visit)
-  {
-    if (levelDb_ == NULL) return 0;
-    std::ostringstream startkey;
-    startkey << symbol << ":" << as_micros(startUtc);
-    std::ostringstream endkey;
-    endkey << symbol << ":" << as_micros(endUtc);
-    return query(startkey.str(), endkey.str(), visit);
-  }
+  // int query(const std::string& symbol,
+  //           const ptime& startUtc, const ptime& endUtc,
+  //           Visitor* visit, bool depth_only = false)
+  // {
+  //   if (levelDb_ == NULL) return 0;
+  //   std::ostringstream startkey;
+  //   startkey << symbol << ":" << as_micros(startUtc);
+  //   std::ostringstream endkey;
+  //   endkey << symbol << ":" << as_micros(endUtc);
+  //   return query(startkey.str(), endkey.str(), visit);
+  // }
 
  private:
   std::string dbFile_;
@@ -137,34 +137,8 @@ bool Db::open()
   return impl_->open();
 }
 
-int Db::query(const QueryByRange& query, Visitor* visit)
-{
-  return impl_->query(query.first(), query.last(), visit);
-}
-
-int Db::query(const std::string& start, const std::string& stop,
-             Visitor* visit)
-{
-  return impl_->query(start, stop, visit);
-}
-
-int Db::query(const QueryBySymbol& query, Visitor* visit)
-{
-  return impl_->query(query.symbol(),
-                      historian::as_ptime(query.utc_first_micros()),
-                      historian::as_ptime(query.utc_last_micros()),
-                      visit);
-}
-
-int Db::query(const std::string& symbol,
-              const ptime& startUtc, const ptime& stopUtc,
-              Visitor* visit)
-{
-  return impl_->query(symbol, startUtc, stopUtc, visit);
-}
-
 inline const std::string GetPrefix(const MarketData& data)
-{ return "market:"; }
+{ return ""; } // common case - no prefix
 
 inline const std::string GetPrefix(const MarketDepth& data)
 { return "depth:"; }
@@ -181,6 +155,40 @@ static const std::string buildDbKey(const T& data)
   ostringstream key;
   key << GetPrefix(data) << data.symbol() << ':' << data.timestamp();
   return key.str();
+}
+
+int Db::query(const QueryByRange& query, Visitor* visit)
+{
+  FilterVisitor<QueryByRange> filtered(visit, query);
+  return impl_->query(query.first(), query.last(), &filtered);
+}
+
+int Db::query(const std::string& start, const std::string& stop,
+             Visitor* visit)
+{
+  return impl_->query(start, stop, visit);
+}
+
+int Db::query(const QueryBySymbol& query, Visitor* visit)
+{
+  FilterVisitor<QueryBySymbol> filtered(visit, query);
+  string symbol = (query.has_depth_only() && query.depth_only()) ?
+      "depth:" + query.symbol() : query.symbol();
+  return Db::query(symbol,
+                   historian::as_ptime(query.utc_first_micros()),
+                   historian::as_ptime(query.utc_last_micros()),
+                   &filtered);
+}
+
+int Db::query(const std::string& symbol,
+              const ptime& startUtc, const ptime& stopUtc,
+              Visitor* visit)
+{
+    std::ostringstream startkey;
+    startkey << symbol << ":" << as_micros(startUtc);
+    std::ostringstream endkey;
+    endkey << symbol << ":" << as_micros(stopUtc);
+    return impl_->query(startkey.str(), endkey.str(), visit);
 }
 
 template <typename T>
