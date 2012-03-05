@@ -1,5 +1,7 @@
 
 
+#include <signal.h>
+#include <stdio.h>
 #include <zmq.hpp>
 
 #include <gflags/gflags.h>

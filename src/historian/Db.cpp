@@ -4,6 +4,17 @@
 
 #include "historian/historian.hpp"
 
+
+using proto::ib::MarketData;
+using proto::ib::MarketDepth;
+using proto::historian::SessionLog;
+using proto::historian::Record;
+using proto::historian::Record_Type;
+
+using proto::historian::QueryByRange;
+using proto::historian::QueryBySymbol;
+using proto::historian::QuerySessionLogs;
+
 namespace historian {
 
 class Db::implementation
@@ -125,9 +136,6 @@ bool Db::open()
 {
   return impl_->open();
 }
-using proto::historian::QueryByRange;
-using proto::historian::QueryBySymbol;
-using proto::historian::QuerySessionLogs;
 
 int Db::query(const QueryByRange& query, Visitor* visit)
 {
@@ -154,13 +162,6 @@ int Db::query(const std::string& symbol,
 {
   return impl_->query(symbol, startUtc, stopUtc, visit);
 }
-
-using proto::ib::MarketData;
-using proto::ib::MarketDepth;
-using proto::historian::SessionLog;
-using proto::historian::Record;
-using proto::historian::Record_Type;
-
 
 inline const std::string GetPrefix(const MarketData& data)
 { return "market:"; }
