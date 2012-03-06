@@ -137,13 +137,11 @@ bool Db::open()
   return impl_->open();
 }
 
-inline const std::string GetPrefix(const MarketData& data)
-{ return ""; } // common case - no prefix
-
-inline const std::string GetPrefix(const MarketDepth& data)
+template <typename T> inline const std::string GetPrefix()
+{ return ""; }
+template <> inline const std::string GetPrefix<MarketDepth>()
 { return "depth:"; }
-
-inline const std::string GetPrefix(const SessionLog& data)
+template <> inline const std::string GetPrefix<SessionLog>()
 { return "sessionlog:"; }
 
 template <typename T>
@@ -153,7 +151,8 @@ static const std::string buildDbKey(const T& data)
   using std::ostringstream;
   // build the key
   ostringstream key;
-  key << GetPrefix(data) << data.symbol() << ':' << data.timestamp();
+  key << GetPrefix<T>()
+      << data.symbol() << ':' << data.timestamp();
   return key.str();
 }
 
