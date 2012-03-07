@@ -5,8 +5,11 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/optional.hpp>
 
+#include "proto/common.hpp"
+#include "proto/common.pb.h"
 #include "proto/ib.pb.h"
 #include "proto/historian.pb.h"
+
 
 // Utilites
 
@@ -160,7 +163,7 @@ template <> inline void set_as<Value>(const Value& v, Record* record)
 template <typename T> inline const Record wrap(const T& v)
 {
   // Default try to carry it as a Value.
-  Value value = proto::common::wrap(v);
+  Value value = proto::common::wrap<T>(v);
   Record record;
   proto::historian::set_as<Value>(value, &record);
   return record;
