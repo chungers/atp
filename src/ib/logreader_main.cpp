@@ -59,12 +59,12 @@ static std::map<std::string, std::string> ACTIONS = boost::assign::map_list_of
     ("reqHistoricalData", "contract")
     ;
 
-typedef std::pair<std::string, proto::ib::MarketData_Type> event_type;
+typedef std::pair<std::string, proto::common::Value_Type> event_type;
 static std::map<std::string, event_type> EVENTS =
     boost::assign::map_list_of
-    ("tickPrice", event_type("price", proto::ib::MarketData_Type_DOUBLE))
-    ("tickSize", event_type("size", proto::ib::MarketData_Type_INT))
-    ("tickGeneric", event_type("value", proto::ib::MarketData_Type_STRING))
+    ("tickPrice", event_type("price", proto::common::Value_Type_DOUBLE))
+    ("tickSize", event_type("size", proto::common::Value_Type_INT))
+    ("tickGeneric", event_type("value", proto::common::Value_Type_STRING))
     ;
 
 static std::map<long,std::string> TickerIdSymbolMap;
@@ -316,32 +316,32 @@ static bool Convert(std::map<std::string, std::string>& nv,
   LOG_READER_DEBUG << "event ==> " << result->event() << endl;
 
   ////////// Price / Size
-  using proto::ib::MarketData_Type;
+  using proto::common::Value_Type;
 
   std::string method;
   double value;
   if (GetField(nv, "event", &method)) {
     event_type ft = EVENTS[method];
     std::string fieldToUse = ft.first;
-    MarketData_Type type = ft.second;
+    Value_Type type = ft.second;
 
     if (!GetField(nv, fieldToUse, &value)) {
       return false;
     }
-    result->set_type(type);
+    result->mutable_value()->set_type(type);
     switch (type) {
-      case proto::ib::MarketData_Type_INT :
-        result->set_int_value(value);
+      case proto::common::Value_Type_INT :
+        result->mutable_value()->set_int_value(value);
         break;
-      case proto::ib::MarketData_Type_DOUBLE :
-        result->set_double_value(value);
+      case proto::common::Value_Type_DOUBLE :
+        result->mutable_value()->set_double_value(value);
         break;
-      case proto::ib::MarketData_Type_STRING :
-        result->set_string_value(""); // TODO
+      case proto::common::Value_Type_STRING :
+        result->mutable_value()->set_string_value(""); // TODO
         break;
     }
   }
-  LOG_READER_DEBUG << "value ==> " << result->double_value() << endl;
+  LOG_READER_DEBUG << "value ==> " << result->value().double_value() << endl;
 
   return true;
 }
@@ -731,7 +731,7 @@ int main(int argc, char** argv)
               atp::MarketData<double> marketData(event->symbol(),
                                                  event->timestamp(),
                                                  event->event(),
-                                                 event->double_value());
+                                                 event->value().double_value());
               size_t sent = marketData.dispatch(socket);
               //std::cerr << event->symbol << " " << sent << std::endl;
               last_ts = event->timestamp();
@@ -742,15 +742,15 @@ int main(int argc, char** argv)
                 std::cout << t << ","
                           << event->symbol() << ","
                           << event->event() << ",";
-                switch (event->type()) {
-                  case (proto::ib::MarketData_Type_INT) :
-                    std::cout << event->int_value();
+                switch (event->value().type()) {
+                  case (proto::common::Value_Type_INT) :
+                    std::cout << event->value().int_value();
                     break;
-                  case (proto::ib::MarketData_Type_DOUBLE) :
-                    std::cout << event->double_value();
+                  case (proto::common::Value_Type_DOUBLE) :
+                    std::cout << event->value().double_value();
                     break;
-                  case (proto::ib::MarketData_Type_STRING) :
-                    std::cout << event->string_value();
+                  case (proto::common::Value_Type_STRING) :
+                    std::cout << event->value().string_value();
                     break;
                 }
                 std::cout << std::endl;

@@ -168,7 +168,7 @@ int main(int argc, char** argv)
             atp::MarketData<double> marketData(event.symbol(),
                                                event.timestamp(),
                                                event.event(),
-                                               event.double_value());
+                                               event.value().double_value());
             size_t sent = marketData.dispatch(socket);
             //std::cerr << event.symbol << " " << sent << std::endl;
             last_ts = event.timestamp();
@@ -179,15 +179,16 @@ int main(int argc, char** argv)
             std::cout << t << ","
                       << event.symbol() << ","
                       << event.event() << ",";
-            switch (event.type()) {
-              case (proto::ib::MarketData_Type_INT) :
-                std::cout << event.int_value();
+            proto::common::Value value = event.value();
+            switch (value.type()) {
+              case (proto::common::Value_Type_INT) :
+                std::cout << value.int_value();
                 break;
-              case (proto::ib::MarketData_Type_DOUBLE) :
-                std::cout << event.double_value();
+              case (proto::common::Value_Type_DOUBLE) :
+                std::cout << value.double_value();
                 break;
-              case (proto::ib::MarketData_Type_STRING) :
-                std::cout << event.string_value();
+              case (proto::common::Value_Type_STRING) :
+                std::cout << value.string_value();
                 break;
             }
             std::cout << "," << key.ToString();

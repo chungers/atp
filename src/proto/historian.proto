@@ -2,6 +2,7 @@ package proto.historian;
 
 option optimize_for = LITE_RUNTIME;
 
+import "common.proto";
 import "ib.proto";
 
 // For each symbol and a full session of data
@@ -17,14 +18,16 @@ message SessionLog {
 message Record {
 
   enum Type {
-    SESSION_LOG = 0;
-    IB_MARKET_DATA = 1;
-    IB_MARKET_DEPTH = 2;
+    VALUE = 0;
+    SESSION_LOG = 1;
+    IB_MARKET_DATA = 2;
+    IB_MARKET_DEPTH = 3;
   }
 
   required Type type = 1;
 
-  optional SessionLog session_log = 2;
+  optional common.Value value = 2;
+  optional SessionLog session_log = 3;
 
   optional ib.MarketData ib_marketdata = 10;
   optional ib.MarketDepth ib_marketdepth = 11;

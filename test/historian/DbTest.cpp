@@ -34,13 +34,14 @@ TEST(DbTest, DbReadWriteMarketDataTest)
   d.set_timestamp(historian::as_micros(t));
   d.set_symbol("AAPL.STK");
   d.set_event("ASK");
-  d.set_type(proto::ib::MarketData_Type_DOUBLE);
-  d.set_double_value(500.0);
+  d.mutable_value()->set_type(proto::common::Value_Type_DOUBLE);
+  d.mutable_value()->set_double_value(500.0);
   d.set_contract_id(9999);
 
   EXPECT_TRUE(db.write(d));
 
-  d.set_double_value(700.);  // if this commits following tests will fail.
+  // if this commits following tests will fail.
+  d.mutable_value()->set_double_value(700.);
   EXPECT_FALSE(db.write(d, false)); // no overwrite
 
   // now change the key
@@ -61,7 +62,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
 
     bool operator()(const MarketData& data)
     {
-      value = data.double_value();
+      value = data.value().double_value();
       count++;
       fail = false;
       return true;

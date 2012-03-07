@@ -17,6 +17,7 @@ set(historian_components_srcs
 set(historian_components_libs
   historian_proto
   ib_proto
+  common_proto
   protobuf-lite
   leveldb
   zmq_components

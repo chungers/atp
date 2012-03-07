@@ -37,8 +37,8 @@ TEST(DbReactorTest, ZmqProtoTest)
   d.set_timestamp(historian::as_micros(t));
   d.set_symbol("AAPL.STK");
   d.set_event("ASK");
-  d.set_type(proto::ib::MarketData_Type_DOUBLE);
-  d.set_double_value(500.0);
+  d.mutable_value()->set_type(proto::common::Value_Type_DOUBLE);
+  d.mutable_value()->set_double_value(500.0);
   d.set_contract_id(9999);
 
   {
@@ -68,7 +68,7 @@ TEST(DbReactorTest, ZmqProtoTest)
 
     // send a bunch to fill the buffer
     for (int i=0; i < 10; ++i) {
-      d.set_double_value(100. * i);
+      d.mutable_value()->set_double_value(100. * i);
 
       string sendBuffer;
       EXPECT_TRUE(d.SerializeToString(&sendBuffer));
@@ -85,7 +85,7 @@ TEST(DbReactorTest, ZmqProtoTest)
       MarketData m;
       EXPECT_TRUE(m.ParseFromString(receiveBuffer));
 
-      EXPECT_EQ(100. * i, m.double_value());
+      EXPECT_EQ(100. * i, m.value().double_value());
     }
 
   } catch (zmq::error_t e) {

@@ -46,6 +46,7 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
 {
   using std::string;
   using boost::posix_time::ptime;
+  using proto::common::Value;
   using proto::ib::MarketData;
 
   List handleList(dbHandle);
@@ -86,15 +87,16 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
     bool operator()(const MarketData& data)
     {
       SEXP value;
-      switch (data.type()) {
-        case proto::ib::MarketData_Type_INT :
-          value = wrap(static_cast<long>(data.int_value()));
+      Value v = data.value();
+      switch (v.type()) {
+        case proto::common::Value_Type_INT :
+          value = wrap(static_cast<long>(v.int_value()));
           break;
-        case proto::ib::MarketData_Type_STRING :
-          value = wrap(data.string_value());
+        case proto::common::Value_Type_STRING :
+          value = wrap(v.string_value());
           break;
-        case proto::ib::MarketData_Type_DOUBLE :
-          value = wrap(data.double_value());
+        case proto::common::Value_Type_DOUBLE :
+          value = wrap(v.double_value());
           break;
       }
 

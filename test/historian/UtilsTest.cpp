@@ -6,7 +6,8 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
-
+#include "proto/common.hpp"
+#include "proto/historian.hpp"
 #include "historian/historian.hpp"
 
 using boost::uint64_t;
@@ -16,6 +17,93 @@ using boost::posix_time::time_duration;
 using std::string;
 
 typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
+
+
+TEST(UtilsTest, ValueParsingTest)
+{
+  using namespace proto::common;
+
+  Value v;
+  v.set_type(proto::common::Value_Type_INT);
+  v.set_int_value(20);
+
+  boost::optional<int> intValue = as<int>(v);
+  EXPECT_TRUE(intValue);
+  EXPECT_EQ(20, *intValue);
+
+  // We don't expect a value as double since the proto was
+  // encoded as an int value.
+  boost::optional<double> doubleValue = as<double>(v);
+  EXPECT_FALSE(doubleValue);
+
+  // Test wrapping in a Value
+  Value v2 = wrap(20);
+  boost::optional<int> intValue2 = as<int>(v2);
+  EXPECT_EQ(20, *intValue2);
+
+  v2 = wrap(20.0);
+  intValue2 = as<int>(v2);
+  EXPECT_FALSE(intValue2);
+
+  v2 = wrap(string("foo"));
+  intValue2 = as<int>(v2);
+  EXPECT_FALSE(intValue2);
+
+  boost::optional<string> stringVal = as<string>(v2);
+  EXPECT_TRUE(stringVal);
+  EXPECT_EQ("foo", *stringVal);
+
+
+  v2 = wrap("bar");
+  intValue2 = as<int>(v2);
+  EXPECT_FALSE(intValue2);
+
+  stringVal = as<string>(v2);
+  EXPECT_TRUE(stringVal);
+  EXPECT_EQ("bar", *stringVal);
+
+
+  Value v3;
+  set_as<int>(25, &v3);
+  optional<int> intValue3 = as<int>(v3);
+  EXPECT_TRUE(intValue3);
+  EXPECT_EQ(25, *intValue3);
+}
+
+TEST(UtilsTest, RecordParsingTest)
+{
+  namespace common = proto::common;
+  namespace ib = proto::ib;
+  namespace historian = proto::historian;
+
+  common::Value v = common::wrap<string>("a test");
+
+  historian::Record r = historian::wrap<common::Value>(v);
+
+  boost::optional<ib::MarketData> om = historian::as<ib::MarketData>(r);
+  EXPECT_FALSE(om);
+
+  boost::optional<common::Value> ov = historian::as<common::Value>(r);
+  EXPECT_TRUE(ov);
+  EXPECT_EQ("a test", *common::as<string>(*ov));
+
+  ib::MarketData md;
+  md.set_event("ASK");
+  md.set_symbol("AAPL");
+  md.set_contract_id(1234);
+  md.mutable_value()->CopyFrom(common::wrap<double>(450.));
+
+  r = historian::wrap<ib::MarketData>(md);
+  boost::optional<ib::MarketDepth> dp = historian::as<ib::MarketDepth>(r);
+  EXPECT_FALSE(dp);
+  boost::optional<ib::MarketData> od = historian::as<ib::MarketData>(r);
+  EXPECT_TRUE(od);
+
+  historian::set_as<ib::MarketData>(md, &r);
+  boost::optional<ib::MarketData> od2 = historian::as<ib::MarketData>(r);
+  EXPECT_TRUE(od2);
+
+}
 
 
 TEST(UtilsTest, DateTest)

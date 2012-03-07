@@ -3,23 +3,15 @@ package proto.ib;
 
 option optimize_for = LITE_RUNTIME;
 
-message MarketData {
+import "common.proto";
 
-  enum Type {
-    DOUBLE = 0;
-    INT    = 1;
-    STRING = 2;
-  }
+message MarketData {
 
   required uint64 timestamp = 1;
   required string symbol = 2;
   required string event = 3;
-  required Type type = 4;
-  optional string string_value = 5;
-  optional double double_value = 6;
-  optional int64 int_value = 7;
-
-  required uint64 contract_id = 8;
+  required proto.common.Value value = 4;
+  required uint64 contract_id = 5;
 }
 
 message MarketDepth {

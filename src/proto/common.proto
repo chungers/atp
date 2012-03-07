@@ -1,6 +1,6 @@
 // Common proto definitions.
 
-package common;
+package proto.common;
 
 option optimize_for = LITE_RUNTIME;
 
@@ -30,3 +30,19 @@ message Duration {
     optional Time time = 6;
   }
 }
+
+// A typed value
+message Value {
+
+  enum Type {
+    DOUBLE = 0;
+    INT    = 1;
+    STRING = 2;
+  }
+
+  required Type type = 1;
+  optional string string_value = 2;
+  optional double double_value = 3;
+  optional int64 int_value = 4;
+}
+
