@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include <boost/scoped_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "proto/ib.pb.h"
