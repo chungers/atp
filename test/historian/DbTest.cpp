@@ -3,14 +3,21 @@
 #include <iostream>
 #include <vector>
 
+#include <boost/optional.hpp>
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
+#include <leveldb/db.h>
 
+#include "proto/common.hpp"
+#include "proto/historian.hpp"
 #include "historian/historian.hpp"
 
+using std::string;
+using boost::optional;
 using boost::posix_time::ptime;
 using historian::Db;
+using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 using proto::historian::SessionLog;
@@ -19,9 +26,10 @@ using proto::historian::QueryByRange;
 using proto::historian::QueryBySymbol;
 
 
-
 TEST(DbTest, DbReadWriteMarketDataTest)
 {
+  namespace common = proto::common;
+
   Db db("/tmp/testdb");
   EXPECT_TRUE(db.open());
 
@@ -34,8 +42,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
   d.set_timestamp(historian::as_micros(t));
   d.set_symbol("AAPL.STK");
   d.set_event("ASK");
-  d.mutable_value()->set_type(proto::common::Value_Type_DOUBLE);
-  d.mutable_value()->set_double_value(500.0);
+  common::set_as(500., d.mutable_value());
   d.set_contract_id(9999);
 
   EXPECT_TRUE(db.write(d));

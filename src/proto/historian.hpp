@@ -193,7 +193,6 @@ template <> inline const Record wrap<Value>(const Value& v)
   Record record; proto::historian::set_as(v, &record); return record;
 }
 
-
 } // historian
 } // proto
 
