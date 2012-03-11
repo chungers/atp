@@ -15,6 +15,7 @@
 #include "historian/historian.hpp"
 #include "historian/internal.hpp"
 
+
 using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
@@ -70,6 +71,8 @@ class Db::implementation
   int query(const std::string& start, const std::string& stop,
             Visitor* visit)
   {
+    LOG(INFO) << "start = " << start << ", stop = " << stop;
+
     if (levelDb_ == NULL) return 0;
 
     boost::scoped_ptr<leveldb::Iterator> iterator(
@@ -82,9 +85,6 @@ class Db::implementation
 
       leveldb::Slice key = iterator->key();
       leveldb::Slice value = iterator->value();
-
-      using namespace proto::historian;
-
       Record record;
       if (record.ParseFromString(value.ToString())) {
         const string& k = key.ToString();
@@ -174,7 +174,11 @@ int Db::query(const QueryBySymbol& query, Visitor* visit)
 template <typename T>
 inline bool validate(const T& value)
 {
-  return value.IsInitialized();
+  bool init = value.IsInitialized();
+  if (!init) {
+    LOG(ERROR) << "Not initialized!";
+  }
+  return init;
 }
 
 template <typename T>
@@ -189,4 +193,6 @@ template bool Db::Write<MarketData>(const MarketData&, bool);
 template bool Db::Write<MarketDepth>(const MarketDepth&, bool);
 template bool Db::Write<SessionLog>(const SessionLog&, bool);
 
+
 } // namespace historian
+

@@ -74,7 +74,7 @@ bool write_db(const string& key, const V& value,
       LOG(ERROR) << "Error: write failed: " << putStatus.ToString()
                  << ", key = " << key << ", buff = " << buffer;
     }
-    return true;
+    return putStatus.ok();
   } else {
     LOG(ERROR) << "Not ok to write: skipped.";
   }

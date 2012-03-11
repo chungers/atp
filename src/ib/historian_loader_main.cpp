@@ -26,27 +26,22 @@
 #include "log_levels.h"
 #include "ib/ticker_id.hpp"
 #include "ib/tick_types.hpp"
-#include "ib/EventDispatcherBase.hpp"
 #include "ib/TickerMap.hpp"
 #include "historian/historian.hpp"
-#include "zmq/ZmqUtils.hpp"
+
 
 const static std::string NO_VALUE("__no_value__");
 
-DEFINE_bool(rth, true, "Regular trading hours");
+DEFINE_bool(rth, false, "Regular trading hours");
 DEFINE_bool(delay, false, "True to simulate sample delays when publishing");
 DEFINE_string(logfile, "logfile", "The name of the log file.");
-DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
-DEFINE_bool(publish, false, "True to publish to endpoint.");
-DEFINE_int64(playback, 1, "N multiple speed in playback.");
 DEFINE_string(leveldb, NO_VALUE, "leveldb file");
-DEFINE_bool(csv, false, "True to write to stdout (when not publishing)");
 DEFINE_int64(gapInMinutes, 5,
              "Number of minutes gap to start a new session log");
 DEFINE_bool(checkDuplicate, false,
             "True to read for existing record before writing db.");
 DEFINE_bool(syncstdio, false, "cin syncs with stdio (slower).");
-DEFINE_bool(est, true, "True to output csv in EST.");
+DEFINE_bool(est, true, "True to use EST for input/output; internal still utc.");
 
 using namespace boost::posix_time;
 using namespace historian;
@@ -502,32 +497,6 @@ static bool WriteSessionLogs(const string& source,
 
 using namespace ib::internal;
 
-// class PublisherSocket : public EWrapperEventCollector
-// {
-//  public:
-//   PublisherSocket(zmq::socket_t* socket) : socket_(socket) {}
-
-//   virtual zmq::socket_t* getOutboundSocket(int channel = 0)
-//   { return socket_; }
-
-//  private:
-//   zmq::socket_t* socket_;
-// };
-
-// class MarketDataPublisher : public EventDispatcherBase
-// {
-//  public:
-
-//   MarketDataPublisher(zmq::socket_t* socket) :
-//       EventDispatcherBase(collector_),
-//       collector_(socket)
-//   {
-//   }
-
-//  private:
-//   PublisherSocket collector_;
-// };
-
 ////////////////////////////////////////////////////////
 //
 // MAIN
@@ -545,28 +514,12 @@ int main(int argc, char** argv)
   time_facet facet("%Y-%m-%d %H:%M:%S%F%Q");
   std::cout.imbue(std::locale(std::cout.getloc(), &facet));
 
-  boost::shared_ptr<historian::Db> db;
-  if (FLAGS_leveldb != NO_VALUE) {
-    LOG_READER_LOGGER << "LevelDb on, file = " << FLAGS_leveldb;
+  LOG_READER_LOGGER << "LevelDb on, file = " << FLAGS_leveldb;
 
-    db.reset(new historian::Db(FLAGS_leveldb));
-    assert(db->Open());
+  boost::shared_ptr<historian::Db> db(new historian::Db(FLAGS_leveldb));
+  if (!db->Open()) {
+    LOG(FATAL) << "Cannot open db: " << FLAGS_leveldb;
   }
-
-  // MarketDataPublisher* publisher = NULL;
-  zmq::context_t* context = NULL;
-  zmq::socket_t* socket = NULL;
-  if (!FLAGS_publish) {
-    std::cout << "\"timestamp_utc\",\"symbol\",\"event\",\"value\""
-              << std::endl;
-  } else {
-    context = new zmq::context_t(1);
-    socket = new zmq::socket_t(*context, ZMQ_PUSH);
-    socket->connect(FLAGS_endpoint.c_str());
-    // publisher = new MarketDataPublisher(socket);
-    LOG(INFO) << "Pushing events to " << FLAGS_endpoint;
-  }
-
 
   std::vector<string> logfiles;
   boost::split(logfiles, FLAGS_logfile, boost::is_any_of(","));
@@ -590,8 +543,9 @@ int main(int argc, char** argv)
 
     if (!infile) {
       LOG(ERROR) << "Unable to open " << filename << endl;
-      return -1;
+      continue;
     }
+
     // opened the file, parse and get the shortname for source
     std::vector<std::string> parts;
     boost::split(parts, filename, boost::is_any_of("/"));
@@ -658,53 +612,13 @@ int main(int argc, char** argv)
               }
             }
 
-
-            if (FLAGS_publish) {
-
-              boost::int64_t dt = event.timestamp() - last_ts;
-              if (last_ts > 0 && dt > 0 && FLAGS_delay) {
-                // wait dt micros
-                usleep(dt / FLAGS_playback);
-              }
-              atp::MarketData<double> marketData(event.symbol(),
-                                                 event.timestamp(),
-                                                 event.event(),
-                                                 event.value().double_value());
-              size_t sent = marketData.dispatch(socket);
-              //std::cerr << event.symbol << " " << sent << std::endl;
-              last_ts = event.timestamp();
-
+            bool written = atp::utils::WriteDb(source, event, db);
+            if (written) {
+              dbWrittenRecords++;
+              LOG_READER_LOGGER << "Db written " << written
+                                << event.ByteSize();
             } else {
-
-              if (FLAGS_csv) {
-
-                std::cout << ((FLAGS_est) ? historian::to_est(t) : t) << ","
-                          << event.symbol() << ","
-                          << event.event() << ",";
-                switch (event.value().type()) {
-                  case (proto::common::Value_Type_INT) :
-                    std::cout << event.value().int_value();
-                    break;
-                  case (proto::common::Value_Type_DOUBLE) :
-                    std::cout << event.value().double_value();
-                    break;
-                  case (proto::common::Value_Type_STRING) :
-                    std::cout << event.value().string_value();
-                    break;
-                }
-                std::cout << std::endl;
-              }
-            }
-
-            if (db.get() != NULL) {
-              bool written = atp::utils::WriteDb(source, event, db);
-              if (written) {
-                dbWrittenRecords++;
-                LOG_READER_LOGGER << "Db written " << written
-                                  << event.ByteSize();
-              } else {
-                dbDuplicateRecords++;
-              }
+              dbDuplicateRecords++;
             }
             matchedRecords++;
 
@@ -730,7 +644,7 @@ int main(int argc, char** argv)
                 last_log_t = t;
                 last_log = now_micros();
                 last_written = dbWrittenRecords;
-            } else {
+              } else {
                 time_duration dt = t - last_log_t;
                 boost::uint64_t now = now_micros();
                 boost::uint64_t elapsed = now - last_log;
@@ -752,50 +666,14 @@ int main(int argc, char** argv)
                 }
               }
 
-              if (FLAGS_publish) {
-
-                boost::int64_t dt = event.timestamp() - last_ts;
-                if (last_ts > 0 && dt > 0 && FLAGS_delay) {
-                  // wait dt micros
-                  usleep(dt / FLAGS_playback);
-                }
-
-                atp::MarketDepth marketDepth(event.symbol(),
-                                             event.timestamp(),
-                                             event.side(),
-                                             event.level(),
-                                             event.operation(),
-                                             event.price(),
-                                             event.size(),
-                                             event.mm());
-                size_t sent = marketDepth.dispatch(socket);
-                last_ts = event.timestamp();
-
-              } else {
-
-                if (FLAGS_csv) {
-                  std::cout << ((FLAGS_est) ? historian::to_est(t) : t) << ","
-                            << event.symbol() << ","
-                            << event.side() << ","
-                            << event.level() << ","
-                            << event.operation() << ","
-                            << event.price() << ","
-                            << event.size() << ","
-                            << event.mm() << std::endl;
-                }
-              }
-
-              if (db.get() != NULL) {
-                bool written = atp::utils::WriteDb(source, event, db);
-                if (written) {
+              bool written = atp::utils::WriteDb(source, event, db);
+              if (written) {
                   dbWrittenRecords++;
                   LOG_READER_LOGGER << "Db written " << written
                                     << event.ByteSize();
-                } else {
-                  dbDuplicateRecords++;
-                }
+              } else {
+                dbDuplicateRecords++;
               }
-
               matchedRecords++;
 
             } else {
@@ -812,7 +690,7 @@ int main(int argc, char** argv)
     }
     LOG(INFO) << "Processed " << lines << " lines with "
               << matchedRecords << " records." << std::endl;
-    LOG_READER_LOGGER << "Finishing up -- closing file." << std::endl;
+    LOG(INFO) << "Finishing up -- closing file." << std::endl;
     //infile.close();
     infile.clear();
 
@@ -827,13 +705,7 @@ int main(int argc, char** argv)
   } // for each file
 
 
-  // Clean up
-  if (FLAGS_publish) {
-    delete socket;
-    delete context;
-  }
-
-  LOG_READER_LOGGER << "Completed." << std::endl;
+  LOG(INFO) << "Completed." << std::endl;
   return 0;
 }
 

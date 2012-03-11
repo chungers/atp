@@ -97,6 +97,20 @@ std::ostream& operator<<(std::ostream& out, const IndexedValue& iv)
   return out;
 }
 
+std::ostream& operator<<(std::ostream& out, const SessionLog& log)
+{
+  using namespace historian;
+  using namespace proto::common;
+  ptime t1 = to_est(as_ptime(log.start_timestamp()));
+  ptime t2 = to_est(as_ptime(log.start_timestamp()));
+
+  out << log.symbol() << ","
+      << "start=" << t1 << ","
+      << "end=" << t2 << ","
+      << "source=" << log.source();
+  return out;
+}
+
 } // common
 } // proto
 
@@ -133,14 +147,9 @@ int main(int argc, char** argv)
       switch (record.type()) {
 
         case SESSION_LOG: {
-          optional<SessionLog> log = p::as<SessionLog>(record);
-          if (log) {
-            std::cout << log->symbol() << ","
-                      << "start=" << us_eastern::utc_to_local(
-                          historian::as_ptime(log->start_timestamp())) << ","
-                      << "end=" << us_eastern::utc_to_local(
-                          historian::as_ptime(log->stop_timestamp())) << ","
-                      << "source=" << log->source();
+          optional<SessionLog> value = p::as<SessionLog>(record);
+          if (value) {
+            std::cout << *value;
           }
         }
           break;
@@ -197,6 +206,10 @@ int main(int argc, char** argv)
     query.set_utc_first_micros(historian::as_micros(start));
     query.set_utc_last_micros(historian::as_micros(end));
 
+    LOG(INFO) << "Query by symbol: " << query.symbol() << ", "
+              << query.utc_first_micros() << ", "
+              << query.utc_last_micros() << ", "
+              << query.index();
 
     int count = db->query(query, &visit);
     std::cout << "Count = " << count;
@@ -208,13 +221,12 @@ int main(int argc, char** argv)
     if (FLAGS_event.size() > 0) {
       query.set_type(INDEXED_VALUE); // index lookup
       query.set_index(FLAGS_event);
-    } else {
-      query.set_type(IB_MARKET_DATA);
     }
 
     query.set_first(FLAGS_first);
     query.set_last(FLAGS_last);
 
+    LOG(INFO) << "Simple query: " << query.first() << ", " << query.last();
     int count = db->query(query, &visit);
     std::cout << "Count = " << count;
   }
