@@ -527,6 +527,8 @@ int main(int argc, char** argv)
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
+  std::cin.sync_with_stdio(false);
+
   using namespace boost::posix_time;
   ptime epoch(boost::gregorian::date(1970,boost::gregorian::Jan,1));
   time_facet facet("%Y-%m-%d %H:%M:%S%F%Q");
