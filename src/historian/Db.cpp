@@ -19,6 +19,7 @@ using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 using proto::historian::SessionLog;
+using proto::historian::IndexedValue;
 using proto::historian::Record;
 using proto::historian::Type;
 
@@ -86,6 +87,8 @@ class Db::implementation
 
       Record record;
       if (record.ParseFromString(value.ToString())) {
+        const string& k = key.ToString();
+        record.set_key(k);
         bool readMore = (*visit)(record);
         if (!readMore) break;
       }
@@ -146,7 +149,7 @@ int Db::query(const QueryBySymbol& query, Visitor* visit)
                          buildKey(query.symbol(), query.utc_last_micros()),
                          visit);
     }
-    case VALUE: {
+    case INDEXED_VALUE: {
       if (query.has_index()) {
         // TODO figure out a cleaner way
         Writer<MarketData> writer;

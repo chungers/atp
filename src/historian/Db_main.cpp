@@ -88,6 +88,15 @@ std::ostream& operator<<(std::ostream& out, const MarketDepth& v)
   return out;
 }
 
+std::ostream& operator<<(std::ostream& out, const IndexedValue& iv)
+{
+  using namespace historian;
+  using namespace proto::common;
+  ptime t =to_est(as_ptime(iv.timestamp()));
+  out << t << "," << iv.value();
+  return out;
+}
+
 } // common
 } // proto
 
@@ -118,6 +127,9 @@ int main(int argc, char** argv)
     {
       namespace p = proto::historian;
 
+      if (record.has_key()) {
+        std::cout << record.key() << ",";
+      }
       switch (record.type()) {
 
         case SESSION_LOG: {
@@ -132,8 +144,8 @@ int main(int argc, char** argv)
           }
         }
           break;
-        case VALUE: {
-          optional<Value> value = p::as<Value>(record);
+        case INDEXED_VALUE: {
+          optional<IndexedValue> value = p::as<IndexedValue>(record);
           if (value) {
             std::cout << *value;
           }
@@ -170,7 +182,7 @@ int main(int argc, char** argv)
 
     using namespace proto::historian;
     if (FLAGS_event.size() > 0) {
-      query.set_type(VALUE); // index lookup
+      query.set_type(INDEXED_VALUE); // index lookup
       query.set_index(FLAGS_event);
     } else {
       query.set_type(IB_MARKET_DATA);
@@ -194,7 +206,7 @@ int main(int argc, char** argv)
 
     using namespace proto::historian;
     if (FLAGS_event.size() > 0) {
-      query.set_type(VALUE); // index lookup
+      query.set_type(INDEXED_VALUE); // index lookup
       query.set_index(FLAGS_event);
     } else {
       query.set_type(IB_MARKET_DATA);

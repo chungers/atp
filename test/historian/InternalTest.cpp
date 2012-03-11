@@ -22,6 +22,7 @@ using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 using proto::historian::Record;
+using proto::historian::IndexedValue;
 using proto::historian::SessionLog;
 using proto::historian::Query;
 using proto::historian::QueryByRange;
@@ -132,12 +133,12 @@ TEST(InternalTest, MarketDataWriterTest)
   EXPECT_TRUE(util.Get<Record>(*indexKey, &record2));
   EXPECT_TRUE(record2.IsInitialized());
 
-  optional<Value> indexed2 = h::as<Value>(record2);
+  optional<IndexedValue> indexed2 = h::as<IndexedValue>(record2);
   EXPECT_TRUE(indexed2);
   EXPECT_TRUE(indexed2->IsInitialized());
 
   double v1 =  *(c::as<double>(read->value()));
-  double v2 =  *(c::as<double>(*indexed2));
+  double v2 =  *(c::as<double>(indexed2->value()));
   EXPECT_EQ(500., v1);
   EXPECT_EQ(v1, v2);
 }

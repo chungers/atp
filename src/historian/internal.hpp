@@ -20,6 +20,7 @@
 using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
+using proto::historian::IndexedValue;
 using proto::historian::SessionLog;
 using proto::historian::Record;
 using proto::historian::Type;
@@ -256,7 +257,6 @@ struct Writer<MarketData>
     key << INDEX_IB_MARKET_DATA_BY_EVENT << ':'
         << symbol << ':'
         << event << ':' << timestamp;
-    LOG(INFO) << "indexKey = " << key.str();
     return key.str();
   }
 
@@ -273,7 +273,11 @@ struct Writer<MarketData>
     // overwrite value, etc.), then update the secondary index as well.
     if (write_batch<Record>(key, record, &batch, levelDb, overwrite)) {
       // Index the value
-      Record indexRecord = proto::historian::wrap<Value>(value.value());
+      IndexedValue iv;
+      iv.set_timestamp(value.timestamp());
+      iv.mutable_value()->CopyFrom(value.value());
+
+      Record indexRecord = proto::historian::wrap<IndexedValue>(iv);
       string indexKey = buildIndexKey(value);
       write_batch<Record>(indexKey, indexRecord, &batch, levelDb, true);
       return write_db(&batch, levelDb);

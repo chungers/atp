@@ -7,6 +7,7 @@
 
 namespace historian {
 
+using std::string;
 using proto::historian::Record;
 
 class Visitor

@@ -77,18 +77,16 @@ int main(int argc, char** argv)
     q.set_last(FLAGS_last);
 
     // TODO abstract this detail into a cleaner api
-    q.set_type(proto::historian::VALUE);
+    q.set_type(proto::historian::INDEXED_VALUE);
     if (FLAGS_event.size() > 0) {
       q.set_index(INDEX_IB_MARKET_DATA_BY_EVENT);
     }
 
     struct Visitor : public historian::DefaultVisitor {
 
-      virtual bool operator()(const MarketData& data)
+      virtual bool operator()(const string& key, const Record& data)
       {
-        std::cerr << "marketdata: " << data.symbol()
-                  << ", " << data.timestamp() << ", " << data.event()
-                  << std::endl;
+        // TODO implement this
         return true;
       }
     } visitor;

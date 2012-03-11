@@ -77,15 +77,19 @@ TEST(UtilsTest, RecordParsingTest)
   namespace historian = proto::historian;
 
   common::Value v = common::wrap<string>("a test");
+  historian::IndexedValue iv;
+  iv.mutable_value()->CopyFrom(v);
+  iv.set_timestamp(102030);
 
-  historian::Record r = historian::wrap<common::Value>(v);
+  historian::Record r = historian::wrap<historian::IndexedValue>(iv);
 
   boost::optional<ib::MarketData> om = historian::as<ib::MarketData>(r);
   EXPECT_FALSE(om);
 
-  boost::optional<common::Value> ov = historian::as<common::Value>(r);
+  boost::optional<historian::IndexedValue> ov =
+      historian::as<historian::IndexedValue>(r);
   EXPECT_TRUE(ov);
-  EXPECT_EQ("a test", *common::as<string>(*ov));
+  EXPECT_EQ("a test", *common::as<string>(ov->value()));
 
   ib::MarketData md;
   md.set_event("ASK");

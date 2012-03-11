@@ -21,6 +21,7 @@ using boost::optional;
 using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
+using proto::historian::IndexedValue;
 using proto::historian::SessionLog;
 
 namespace internal {
@@ -50,9 +51,9 @@ inline optional<SessionLog> get<SessionLog>(const Record& record)
 }
 
 template <>
-inline optional<Value> get<Value>(const Record& record)
+inline optional<IndexedValue> get<IndexedValue>(const Record& record)
 {
-  return optional<Value>(record.value());
+  return optional<IndexedValue>(record.indexed_value());
 }
 
 template <typename T>
@@ -81,9 +82,9 @@ inline void set_as(const SessionLog& v, Record* record)
   record->mutable_session_log()->CopyFrom(v);
 }
 
-inline void set_as(const Value& v, Record* record)
+inline void set_as(const IndexedValue& v, Record* record)
 {
-  record->mutable_value()->CopyFrom(v);
+  record->mutable_indexed_value()->CopyFrom(v);
 }
 
 template <typename T>
@@ -124,10 +125,10 @@ template <> inline optional<SessionLog> as<SessionLog>(const Record& record)
   return as<SessionLog>(SESSION_LOG, record);
 }
 
-/** Returns as SessionLog, if Record carries a Value. */
-template <> inline optional<Value> as<Value>(const Record& record)
+/** Returns as SessionLog, if Record carries a IndexedValue. */
+template <> inline optional<IndexedValue> as<IndexedValue>(const Record& record)
 {
-  return as<Value>(VALUE, record);
+  return as<IndexedValue>(INDEXED_VALUE, record);
 }
 
 template <typename T> inline void set_as(const T& v, Record* record)
@@ -154,20 +155,24 @@ template <> inline void set_as<SessionLog>(const SessionLog& v, Record* record)
   set_as<SessionLog>(SESSION_LOG, v, record);
 }
 
-/** Sets the Record to carry a Value. */
-template <> inline void set_as<Value>(const Value& v, Record* record)
+/** Sets the Record to carry a IndexedValue. */
+template <> inline void set_as<IndexedValue>(const IndexedValue& v, Record* record)
 {
-  set_as<Value>(VALUE, v, record);
+  set_as<IndexedValue>(INDEXED_VALUE, v, record);
 }
 
 template <typename T> inline const Record wrap(const T& v)
 {
-  // Default try to carry it as a Value.
-  Value value = proto::common::wrap<T>(v);
   Record record;
-  proto::historian::set_as<Value>(value, &record);
+  proto::historian::set_as<T>(v, &record);
   return record;
 }
+
+// template inline const Record wrap<MarketData>(const MarketData& v);
+// template inline const Record wrap<MarketDepth>(const MarketDepth& v);
+// template inline const Record wrap<SessionLog>(const SessionLog& v);
+// template inline const Record wrap<IndexedValue>(const IndexedValue& v);
+
 
 /** Wraps a MarketData in a copy of Record */
 template <> inline const Record wrap<MarketData>(const MarketData& v)
@@ -187,8 +192,8 @@ template <> inline const Record wrap<SessionLog>(const SessionLog& v)
   Record record; proto::historian::set_as(v, &record); return record;
 }
 
-/** Wraps a Value in a copy of Record */
-template <> inline const Record wrap<Value>(const Value& v)
+/** Wraps a IndexedValue in a copy of Record */
+template <> inline const Record wrap<IndexedValue>(const IndexedValue& v)
 {
   Record record; proto::historian::set_as(v, &record); return record;
 }
