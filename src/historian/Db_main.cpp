@@ -135,7 +135,7 @@ int main(int argc, char** argv)
     boost::posix_time::ptime t;
 
     if (record.ParseFromString(value.ToString())) {
-      if (record.type() == Record_Type_SESSION_LOG) {
+      if (record.type() == SESSION_LOG) {
         const proto::historian::SessionLog& event = record.session_log();
         boost::posix_time::ptime start =
             historian::as_ptime(event.start_timestamp());

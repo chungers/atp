@@ -20,11 +20,10 @@ using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 using proto::historian::SessionLog;
 using proto::historian::Record;
-using proto::historian::Record_Type;
+using proto::historian::Type;
 
 using proto::historian::QueryByRange;
 using proto::historian::QueryBySymbol;
-using proto::historian::QuerySessionLogs;
 
 namespace historian {
 
@@ -67,31 +66,6 @@ class Db::implementation
     return writer(value, levelDb_, overwrite);
   }
 
-  /**
-   * Writing to db explicitly by key and value.
-   */
-  template <typename T>
-  bool write(const std::string& key, const T& value, bool overwrite = true)
-  {
-    bool okToWrite = overwrite;
-    if (!overwrite) {
-      std::string readBuffer;
-      leveldb::Status readStatus = levelDb_->Get(leveldb::ReadOptions(),
-                                                 key, &readBuffer);
-      okToWrite = readStatus.IsNotFound();
-    }
-
-    if (okToWrite) {
-      std::string buffer;
-      value.SerializeToString(&buffer);
-
-      leveldb::Status putStatus = levelDb_->Put(leveldb::WriteOptions(),
-                                                key, buffer);
-      return putStatus.ok();
-    }
-    return false;
-  }
-
   int query(const std::string& start, const std::string& stop,
             Visitor* visit)
   {
@@ -112,35 +86,12 @@ class Db::implementation
 
       Record record;
       if (record.ParseFromString(value.ToString())) {
-        bool readMore = false;
-        switch (record.type()) {
-          case Record_Type_SESSION_LOG:
-            readMore = (*visit)(record.session_log());
-            break;
-          case Record_Type_IB_MARKET_DATA:
-            readMore = (*visit)(record.ib_marketdata());
-            break;
-          case Record_Type_IB_MARKET_DEPTH:
-            readMore = (*visit)(record.ib_marketdepth());
-            break;
-        }
+        bool readMore = (*visit)(record);
         if (!readMore) break;
       }
     }
     return count;
   }
-
-  // int query(const std::string& symbol,
-  //           const ptime& startUtc, const ptime& endUtc,
-  //           Visitor* visit, bool depth_only = false)
-  // {
-  //   if (levelDb_ == NULL) return 0;
-  //   std::ostringstream startkey;
-  //   startkey << symbol << ":" << as_micros(startUtc);
-  //   std::ostringstream endkey;
-  //   endkey << symbol << ":" << as_micros(endUtc);
-  //   return query(startkey.str(), endkey.str(), visit);
-  // }
 
  private:
   std::string dbFile_;
@@ -161,29 +112,9 @@ bool Db::open()
   return impl_->open();
 }
 
-template <typename T> inline const std::string GetPrefix()
-{ return ""; }
-template <> inline const std::string GetPrefix<MarketDepth>()
-{ return "depth:"; }
-template <> inline const std::string GetPrefix<SessionLog>()
-{ return "sessionlog:"; }
-
-template <typename T>
-static const std::string buildDbKey(const T& data)
-{
-  using std::string;
-  using std::ostringstream;
-  // build the key
-  ostringstream key;
-  key << GetPrefix<T>()
-      << data.symbol() << ':' << data.timestamp();
-  return key.str();
-}
-
 int Db::query(const QueryByRange& query, Visitor* visit)
 {
-  FilterVisitor<QueryByRange> filtered(visit, query);
-  return impl_->query(query.first(), query.last(), &filtered);
+  return impl_->query(query.first(), query.last(), visit);
 }
 
 int Db::query(const std::string& start, const std::string& stop,
@@ -194,25 +125,48 @@ int Db::query(const std::string& start, const std::string& stop,
 
 int Db::query(const QueryBySymbol& query, Visitor* visit)
 {
-  FilterVisitor<QueryBySymbol> filtered(visit, query);
-  string symbol = (query.has_depth_only() && query.depth_only()) ?
-      "depth:" + query.symbol() : query.symbol();
-  return Db::query(symbol,
-                   historian::as_ptime(query.utc_first_micros()),
-                   historian::as_ptime(query.utc_last_micros()),
-                   &filtered);
+  using namespace historian::internal;
+  using namespace proto::historian;
+  switch (query.type()) {
+    case IB_MARKET_DATA: {
+      KeyBuilder<MarketData> buildKey;
+      return this->query(buildKey(query.symbol(), query.utc_first_micros()),
+                         buildKey(query.symbol(), query.utc_last_micros()),
+                         visit);
+    }
+    case IB_MARKET_DEPTH: {
+      KeyBuilder<MarketDepth> buildKey;
+      return this->query(buildKey(query.symbol(), query.utc_first_micros()),
+                         buildKey(query.symbol(), query.utc_last_micros()),
+                         visit);
+    }
+    case SESSION_LOG: {
+      KeyBuilder<SessionLog> buildKey;
+      return this->query(buildKey(query.symbol(), query.utc_first_micros()),
+                         buildKey(query.symbol(), query.utc_last_micros()),
+                         visit);
+    }
+    case VALUE: {
+      if (query.has_index()) {
+        // TODO figure out a cleaner way
+        Writer<MarketData> writer;
+        return this->query(writer.buildIndexKey(query.symbol(),
+                                                query.index(),
+                                                query.utc_first_micros()),
+                           writer.buildIndexKey(query.symbol(),
+                                                query.index(),
+                                                query.utc_last_micros()),
+                           visit);
+
+      } else {
+        return 0;
+      }
+    }
+    default:
+      return 0;
+  }
 }
 
-int Db::query(const std::string& symbol,
-              const ptime& startUtc, const ptime& stopUtc,
-              Visitor* visit)
-{
-    std::ostringstream startkey;
-    startkey << symbol << ":" << as_micros(startUtc);
-    std::ostringstream endkey;
-    endkey << symbol << ":" << as_micros(stopUtc);
-    return impl_->query(startkey.str(), endkey.str(), visit);
-}
 
 template <typename T>
 inline bool validate(const T& value)
@@ -220,22 +174,16 @@ inline bool validate(const T& value)
   return value.IsInitialized();
 }
 
-bool Db::write(const MarketData& value, bool overwrite)
+template <typename T>
+bool Db::Write(const T& value, bool overwrite)
 {
   if (!validate(value)) return false;
   return impl_->write(value, overwrite);
 }
 
-bool Db::write(const MarketDepth& value, bool overwrite)
-{
-  if (!validate(value)) return false;
-  return impl_->write(value, overwrite);
-}
-
-bool Db::write(const SessionLog& value, bool overwrite)
-{
-  if (!validate(value)) return false;
-  return impl_->write(value, overwrite);
-}
+// Instantiate the templates for the closed set of types we support:
+template bool Db::Write<MarketData>(const MarketData&, bool);
+template bool Db::Write<MarketDepth>(const MarketDepth&, bool);
+template bool Db::Write<SessionLog>(const SessionLog&, bool);
 
 } // namespace historian

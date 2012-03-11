@@ -41,6 +41,9 @@ using proto::ib::MarketDepth;
 using proto::historian::SessionLog;
 using proto::historian::QueryByRange;
 
+using namespace historian;
+
+
 int main(int argc, char** argv)
 {
   google::SetUsageMessage("ZMQ Reactor for historian / marketdata db");
@@ -73,8 +76,10 @@ int main(int argc, char** argv)
     q.set_first(FLAGS_first);
     q.set_last(FLAGS_last);
 
+    // TODO abstract this detail into a cleaner api
+    q.set_type(proto::historian::VALUE);
     if (FLAGS_event.size() > 0) {
-      q.set_filter(FLAGS_event);
+      q.set_index(INDEX_IB_MARKET_DATA_BY_EVENT);
     }
 
     struct Visitor : public historian::DefaultVisitor {

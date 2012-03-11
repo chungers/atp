@@ -28,11 +28,8 @@
 #include "ib/tick_types.hpp"
 #include "ib/EventDispatcherBase.hpp"
 #include "ib/TickerMap.hpp"
-#include "proto/ib.pb.h"
-#include "proto/historian.pb.h"
 #include "historian/historian.hpp"
 #include "zmq/ZmqUtils.hpp"
-
 
 const static std::string NO_VALUE("__no_value__");
 
@@ -47,6 +44,10 @@ DEFINE_bool(csv, false, "True to write to stdout (when not publishing)");
 DEFINE_int64(gapInMinutes, 5,
              "Number of minutes gap to start a new session log");
 DEFINE_bool(checkDuplicate, false, "True to read for existing record before writing db.");
+
+
+using namespace boost::posix_time;
+using namespace historian;
 
 namespace atp {
 namespace utils {
@@ -68,44 +69,15 @@ static std::map<std::string, event_type> EVENTS =
     ;
 
 static std::map<long,std::string> TickerIdSymbolMap;
-typedef boost::shared_ptr<proto::historian::Record> RecordPtr;
-typedef std::map<std::string, RecordPtr> SessionLogMap;
-typedef std::map<std::string, RecordPtr>::const_iterator SessionLogMapIterator;
+typedef boost::shared_ptr<SessionLog> SessionLogPtr;
+typedef std::map<std::string, SessionLogPtr> SessionLogMap;
+typedef std::map<std::string, SessionLogPtr>::const_iterator SessionLogMapIterator;
 static SessionLogMap SymbolSessionLogs;
 
 static void register_ticker_id_symbol(const long tickerId,
                                       const std::string& symbol)
 {
   TickerIdSymbolMap[tickerId] = symbol;
-}
-
-
-// In America/New_York
-static boost::posix_time::time_duration RTH_START(9, 30, 0, 0);
-static boost::posix_time::time_duration RTH_END(16, 0, 0, 0);
-
-static boost::posix_time::time_duration EXT_START(4, 0, 0, 0);
-static boost::posix_time::time_duration EXT_END(20, 0, 0, 0);
-
-using namespace boost::posix_time;
-
-static ptime getPosixTime(boost::uint64_t ts)
-{
-  ptime t = from_time_t(ts / 1000000LL);
-  time_duration micros(0, 0, 0, ts % 1000000LL);
-  t += micros;
-  return t;
-}
-
-static bool checkEXT(ptime t)
-{
-  time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
-  return eastern >= EXT_START && eastern < EXT_END;
-}
-static bool checkRTH(ptime t)
-{
-  time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
-  return eastern >= RTH_START && eastern < RTH_END;
 }
 
 static void GetSymbol(long code, std::string* symbol)
@@ -280,7 +252,7 @@ static bool MapActions(std::map<std::string, std::string>& nv)
 }
 
 static bool Convert(std::map<std::string, std::string>& nv,
-                    proto::ib::MarketData* result)
+                    historian::MarketData* result)
 {
   using std::string;
 
@@ -347,7 +319,7 @@ static bool Convert(std::map<std::string, std::string>& nv,
 }
 
 static bool Convert(std::map<std::string, std::string>& nv,
-                    proto::ib::MarketDepth* result)
+                    historian::MarketDepth* result)
 {
   using std::string;
 
@@ -440,54 +412,30 @@ static bool Convert(std::map<std::string, std::string>& nv,
   return true;
 }
 
-static bool Write(const RecordPtr& log, leveldb::DB* db)
-{
-  const std::string filename = FLAGS_logfile;
-
-  std::vector<std::string> parts;
-  boost::split(parts, filename, boost::is_any_of("/"));
-  const std::string& source = parts.back();
-
-  log->mutable_session_log()->set_source(source);
-
-  string buffer;
-  log->SerializeToString(&buffer);
-
-  std::ostringstream key;
-  key << "sessionlog:" << log->session_log().symbol() << ":"
-      << log->session_log().start_timestamp() << ":"
-      << log->session_log().stop_timestamp();
-
-  leveldb::Status status = db->Put(leveldb::WriteOptions(),
-                                   key.str(), buffer);
-  return status.ok();
-}
-
 template <typename T>
-static void updateSessionLog(const T& data, leveldb::DB* db)
+static void updateSessionLog(const T& data,
+                             const boost::shared_ptr<historian::Db>& db)
 {
+  using proto::historian::SessionLog;
   using boost::posix_time::ptime;
   using boost::posix_time::time_duration;
 
   const std::string& symbol = data.symbol();
   if (SymbolSessionLogs.find(symbol) == SymbolSessionLogs.end()) {
 
-    SymbolSessionLogs[symbol] = RecordPtr(new proto::historian::Record());
-    SymbolSessionLogs[symbol]->set_type(
-        proto::historian::Record_Type_SESSION_LOG);
-    SymbolSessionLogs[symbol]->mutable_session_log()->set_symbol(symbol);
-    SymbolSessionLogs[symbol]->mutable_session_log()->set_start_timestamp(
-        data.timestamp());
-    SymbolSessionLogs[symbol]->mutable_session_log()->set_stop_timestamp(0);
+    SymbolSessionLogs[symbol] = SessionLogPtr(new SessionLog());
+    SymbolSessionLogs[symbol]->set_symbol(symbol);
+    SymbolSessionLogs[symbol]->set_start_timestamp(data.timestamp());
+    SymbolSessionLogs[symbol]->set_stop_timestamp(0);
 
   } else {
 
-    const RecordPtr& rec = SymbolSessionLogs[symbol];
+    const SessionLogPtr& log = SymbolSessionLogs[symbol];
     // We check to see if more than X minutes have elapsed.  If so,
     // write one session log and start a new one.
-    if (rec->session_log().stop_timestamp() > 0) {
+    if (log->stop_timestamp() > 0) {
 
-      ptime last = historian::as_ptime(rec->session_log().stop_timestamp());
+      ptime last = historian::as_ptime(log->stop_timestamp());
       ptime now = historian::as_ptime(data.timestamp());
 
       time_duration diff = now - last;
@@ -496,82 +444,35 @@ static void updateSessionLog(const T& data, leveldb::DB* db)
                   << " with gap " << diff << " between "
                   << last << " and " << now;
 
-        // Now write it
-        Write(rec, db);
+        const std::string filename = FLAGS_logfile;
+        std::vector<std::string> parts;
+        boost::split(parts, filename, boost::is_any_of("/"));
+        const std::string& source = parts.back();
+        log->set_source(source);
+
+        if (!db->Write(*log) > 0) {
+          LOG(ERROR) << "Failed to write session log";
+        }
 
         // Now set the start time to this
-        rec->mutable_session_log()->set_start_timestamp(
-            data.timestamp());
+        log->set_start_timestamp(data.timestamp());
         // reset it.
-        rec->mutable_session_log()->set_stop_timestamp(0);
+        log->set_stop_timestamp(0);
       }
     }
 
-    SymbolSessionLogs[symbol]->mutable_session_log()->set_stop_timestamp(
-        data.timestamp());
+    SymbolSessionLogs[symbol]->set_stop_timestamp(data.timestamp());
   }
-}
-
-using proto::ib::MarketData;
-using proto::ib::MarketDepth;
-
-static const std::string& getPrefix(const MarketData& data)
-{
-  return "market:";
-}
-
-static const std::string& getPrefix(const MarketDepth& data)
-{
-  return "depth:";
 }
 
 template <typename T>
-static const std::string buildDbKey(const T& data)
+static bool WriteDb(const T& value, boost::shared_ptr<historian::Db> db)
 {
-  using std::string;
-  using std::ostringstream;
-  // build the key
-  ostringstream key;
-  key << getPrefix(data) << data.symbol() << ':' << data.timestamp();
-  return key.str();
+  bool canOverWrite = !FLAGS_checkDuplicate;
+  return db->Write<T>(value, canOverWrite);
 }
 
-static bool WriteDb(const proto::historian::Record& record, leveldb::DB* db)
-{
-  using std::string;
-
-  string key;
-  switch (record.type()) {
-    case (proto::historian::Record_Type_IB_MARKET_DATA) :
-      key =  buildDbKey(record.ib_marketdata());
-      updateSessionLog(record.ib_marketdata(), db);
-      break;
-    case (proto::historian::Record_Type_IB_MARKET_DEPTH) :
-      key =  buildDbKey(record.ib_marketdepth());
-      updateSessionLog(record.ib_marketdepth(), db);
-      break;
-  }
-
-  string buffer;
-  record.SerializeToString(&buffer);
-
-  bool canWrite = !FLAGS_checkDuplicate;
-  if (FLAGS_checkDuplicate) {
-    string readBuffer;
-    leveldb::Status readStatus = db->Get(leveldb::ReadOptions(),
-                                       key, &readBuffer);
-    canWrite = (readStatus.IsNotFound() || buffer != readBuffer);
-  }
-
-  if (canWrite) {
-    leveldb::Status status = db->Put(leveldb::WriteOptions(), key, buffer);
-    return status.ok();
-  } else {
-    return false;
-  }
-}
-
-static bool WriteSessionLogs(leveldb::DB* db)
+static bool WriteSessionLogs(const boost::shared_ptr<historian::Db>& db)
 {
   bool ok = true;
   for (SessionLogMapIterator itr = SymbolSessionLogs.begin();
@@ -579,8 +480,8 @@ static bool WriteSessionLogs(leveldb::DB* db)
        ++itr) {
 
     const std::string& symbol = itr->first;
-    const RecordPtr& log = itr->second;
-    ok = ok && Write(log, db);
+    const SessionLog& log = *(itr->second);
+    ok = ok && (db->Write(log) > 0);
   }
   return ok;
 }
@@ -631,16 +532,12 @@ int main(int argc, char** argv)
   time_facet facet("%Y-%m-%d %H:%M:%S%F%Q");
   std::cout.imbue(std::locale(std::cout.getloc(), &facet));
 
-  // open database
-  leveldb::DB* levelDb = NULL;
-  leveldb::Options options;
-
+  boost::shared_ptr<historian::Db> db;
   if (FLAGS_leveldb != NO_VALUE) {
     LOG_READER_LOGGER << "LevelDb on, file = " << FLAGS_leveldb;
-    options.create_if_missing = true;
-    leveldb::Status status = leveldb::DB::Open(
-        options, FLAGS_leveldb, &levelDb);
-    assert(status.ok());
+
+    db.reset(new historian::Db(FLAGS_leveldb));
+    assert(db->open());
   }
 
   MarketDataPublisher* publisher = NULL;
@@ -701,20 +598,16 @@ int main(int argc, char** argv)
         if (atp::utils::ParseMap(line, nv, '=', ",")) {
 
           // Check for regular market data event
-          proto::historian::Record record;
-          record.set_type(proto::historian::Record_Type_IB_MARKET_DATA);
-          proto::ib::MarketData* event = record.mutable_ib_marketdata();
-          if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, event)) {
+          historian::MarketData event;
+          if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, &event)) {
 
-            boost::posix_time::ptime t =
-                atp::utils::getPosixTime(event->timestamp());
-
-            bool ext = atp::utils::checkEXT(t);
+            ptime t = historian::as_ptime(event.timestamp());
+            bool ext = historian::checkEXT(t);
             if (!ext) {
               continue; // outside trading hours
             }
 
-            bool rth = atp::utils::checkRTH(t);
+            bool rth = historian::checkRTH(t);
 
             if (!rth && FLAGS_rth) {
               // Skip if not RTH and we want only data during trading hours.
@@ -723,46 +616,46 @@ int main(int argc, char** argv)
 
             if (FLAGS_publish) {
 
-              boost::int64_t dt = event->timestamp() - last_ts;
+              boost::int64_t dt = event.timestamp() - last_ts;
               if (last_ts > 0 && dt > 0 && FLAGS_delay) {
                 // wait dt micros
                 usleep(dt / FLAGS_playback);
               }
-              atp::MarketData<double> marketData(event->symbol(),
-                                                 event->timestamp(),
-                                                 event->event(),
-                                                 event->value().double_value());
+              atp::MarketData<double> marketData(event.symbol(),
+                                                 event.timestamp(),
+                                                 event.event(),
+                                                 event.value().double_value());
               size_t sent = marketData.dispatch(socket);
-              //std::cerr << event->symbol << " " << sent << std::endl;
-              last_ts = event->timestamp();
+              //std::cerr << event.symbol << " " << sent << std::endl;
+              last_ts = event.timestamp();
 
             } else {
 
               if (FLAGS_csv) {
                 std::cout << t << ","
-                          << event->symbol() << ","
-                          << event->event() << ",";
-                switch (event->value().type()) {
+                          << event.symbol() << ","
+                          << event.event() << ",";
+                switch (event.value().type()) {
                   case (proto::common::Value_Type_INT) :
-                    std::cout << event->value().int_value();
+                    std::cout << event.value().int_value();
                     break;
                   case (proto::common::Value_Type_DOUBLE) :
-                    std::cout << event->value().double_value();
+                    std::cout << event.value().double_value();
                     break;
                   case (proto::common::Value_Type_STRING) :
-                    std::cout << event->value().string_value();
+                    std::cout << event.value().string_value();
                     break;
                 }
                 std::cout << std::endl;
               }
             }
 
-            if (levelDb != NULL) {
-              bool written = atp::utils::WriteDb(record, levelDb);
+            if (db.get() != NULL) {
+              bool written = atp::utils::WriteDb(event, db);
               if (written) {
                 dbWrittenRecords++;
                 LOG_READER_LOGGER << "Db written " << written
-                                  << record.ByteSize();
+                                  << event.ByteSize();
               } else {
                 dbDuplicateRecords++;
               }
@@ -771,21 +664,17 @@ int main(int argc, char** argv)
 
           } else if (atp::utils::checkBookEvent(nv)) {
 
-            proto::historian::Record record;
-            record.set_type(proto::historian::Record_Type_IB_MARKET_DEPTH);
-            proto::ib::MarketDepth* event = record.mutable_ib_marketdepth();
+            historian::MarketDepth event;
+            if (atp::utils::Convert(nv, &event)) {
 
-            if (atp::utils::Convert(nv, event)) {
+              ptime t = historian::as_ptime(event.timestamp());
 
-              boost::posix_time::ptime t =
-                  atp::utils::getPosixTime(event->timestamp());
-
-              bool ext = atp::utils::checkEXT(t);
+              bool ext = historian::checkEXT(t);
               if (!ext) {
                 continue; // outside trading hours
               }
 
-              bool rth = atp::utils::checkRTH(t);
+              bool rth = historian::checkRTH(t);
 
               if (!rth && FLAGS_rth) {
                 // Skip if not RTH and we want only data during trading hours.
@@ -794,43 +683,43 @@ int main(int argc, char** argv)
 
               if (FLAGS_publish) {
 
-                boost::int64_t dt = event->timestamp() - last_ts;
+                boost::int64_t dt = event.timestamp() - last_ts;
                 if (last_ts > 0 && dt > 0 && FLAGS_delay) {
                   // wait dt micros
                   usleep(dt / FLAGS_playback);
                 }
 
-                atp::MarketDepth marketDepth(event->symbol(),
-                                             event->timestamp(),
-                                             event->side(),
-                                             event->level(),
-                                             event->operation(),
-                                             event->price(),
-                                             event->size(),
-                                             event->mm());
+                atp::MarketDepth marketDepth(event.symbol(),
+                                             event.timestamp(),
+                                             event.side(),
+                                             event.level(),
+                                             event.operation(),
+                                             event.price(),
+                                             event.size(),
+                                             event.mm());
                 size_t sent = marketDepth.dispatch(socket);
-                last_ts = event->timestamp();
+                last_ts = event.timestamp();
 
               } else {
 
                 if (FLAGS_csv) {
                   std::cout << t << ","
-                            << event->symbol() << ","
-                            << event->side() << ","
-                            << event->level() << ","
-                            << event->operation() << ","
-                            << event->price() << ","
-                            << event->size() << ","
-                            << event->mm() << std::endl;
+                            << event.symbol() << ","
+                            << event.side() << ","
+                            << event.level() << ","
+                            << event.operation() << ","
+                            << event.price() << ","
+                            << event.size() << ","
+                            << event.mm() << std::endl;
                 }
               }
 
-              if (levelDb != NULL) {
-                bool written = atp::utils::WriteDb(record, levelDb);
+              if (db.get() != NULL) {
+                bool written = atp::utils::WriteDb(event, db);
                 if (written) {
                   dbWrittenRecords++;
                   LOG_READER_LOGGER << "Db written " << written
-                                    << record.ByteSize();
+                                    << event.ByteSize();
                 } else {
                   dbDuplicateRecords++;
                 }
@@ -856,11 +745,11 @@ int main(int argc, char** argv)
     //infile.close();
     infile.clear();
 
-    if (levelDb != NULL) {
+    if (db.get() != NULL) {
       LOG_READER_LOGGER << "Written: " << dbWrittenRecords << ", Duplicate: " <<
           dbDuplicateRecords;
       // Now write the session logs:
-      if (!atp::utils::WriteSessionLogs(levelDb)) {
+      if (!atp::utils::WriteSessionLogs(db)) {
         LOG(ERROR) << "Falied to write session log!";
       }
     }
@@ -873,9 +762,6 @@ int main(int argc, char** argv)
     delete context;
   }
 
-  if (levelDb != NULL) {
-    delete levelDb;
-  }
   LOG_READER_LOGGER << "Completed." << std::endl;
   return 0;
 }

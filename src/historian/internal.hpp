@@ -13,17 +13,17 @@
 
 #include "proto/common.hpp"
 #include "proto/historian.hpp"
+#include "historian/time_utils.hpp"
 
 using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 using proto::historian::SessionLog;
 using proto::historian::Record;
-using proto::historian::Record_Type;
+using proto::historian::Type;
 
 using proto::historian::QueryByRange;
 using proto::historian::QueryBySymbol;
-using proto::historian::QuerySessionLogs;
 
 namespace historian {
 namespace internal {
@@ -31,6 +31,9 @@ namespace internal {
 using std::ostringstream;
 using std::string;
 using boost::optional;
+using boost::posix_time::ptime;
+using boost::uint64_t;
+
 using namespace leveldb;
 
 bool write_db(leveldb::WriteBatch* batch, leveldb::DB* levelDb)
@@ -86,27 +89,68 @@ bool write_batch(const optional<string>& key, const V& value,
   return false;
 }
 
-template <typename V>
-struct Writer
+template <typename T>
+struct KeyBuilder
 {
-  const optional<string> buildKey(const V& value)
+  const string operator()(const T& value)
   {
-    return optional<string>(); // uninitialized.
+    return "";
   }
 
-  bool operator()(const V& value,
-                  leveldb::DB* levelDb,
-                  bool overwrite = true)
+  const string operator()(const string& symbol, uint64_t time_micros)
   {
-    optional<string> key = buildKey(value);
-    return write_db<V>(key, value, levelDb, overwrite);
+    return "";
+  }
+
+  const string operator()(const string& symbol, ptime timstamp)
+  {
+    return "";
   }
 };
 
-template <>
-struct Writer<SessionLog>
+template <> struct KeyBuilder<MarketData>
 {
-  const optional<string> buildKey(const SessionLog& value)
+  const string operator()(const MarketData& value)
+  {
+    return (*this)(value.symbol(), value.timestamp());
+  }
+
+  const string operator()(const string& symbol, uint64_t time_micros)
+  {
+    ostringstream key;
+    key << ENTITY_IB_MARKET_DATA << ':' << symbol << ':' << time_micros;
+    return key.str();
+  }
+
+  const string operator()(const string& symbol, ptime timestamp)
+  {
+    return (*this)(symbol, as_micros(timestamp));
+  }
+};
+
+template <> struct KeyBuilder<MarketDepth>
+{
+  const string operator()(const MarketDepth& value)
+  {
+    return (*this)(value.symbol(), value.timestamp());
+  }
+
+  const string operator()(const string& symbol, uint64_t time_micros)
+  {
+    ostringstream key;
+    key << ENTITY_IB_MARKET_DEPTH << ':' << symbol << ':' << time_micros;
+    return key.str();
+  }
+
+  const string operator()(const string& symbol, ptime timestamp)
+  {
+    return (*this)(symbol, as_micros(timestamp));
+  }
+};
+
+template <> struct KeyBuilder<SessionLog>
+{
+  const string operator()(const SessionLog& value)
   {
     ostringstream key;
     key << ENTITY_SESSION_LOG << ':'
@@ -116,13 +160,45 @@ struct Writer<SessionLog>
     return key.str();
   }
 
+  const string operator()(const string& symbol, uint64_t time_micros)
+  {
+    ostringstream key;
+    key << ENTITY_SESSION_LOG << ':' << symbol << ':' << time_micros;
+    return key.str();
+  }
+
+  const string operator()(const string& symbol, ptime timestamp)
+  {
+    return (*this)(symbol, as_micros(timestamp));
+  }
+};
+
+
+template <typename V>
+struct Writer
+{
+  bool operator()(const V& value,
+                  leveldb::DB* levelDb,
+                  bool overwrite = true)
+  {
+    KeyBuilder<V> buildKey;
+    const string key = buildKey(value);
+    return write_db<V>(key, value, levelDb, overwrite);
+  }
+};
+
+template <>
+struct Writer<SessionLog>
+{
   bool operator()(const SessionLog& value,
                   leveldb::DB* levelDb,
                   bool overwrite = true)
   {
+    using namespace proto::historian;
+    KeyBuilder<SessionLog> buildKey;
     optional<string> key = buildKey(value);
     Record record;
-    record.set_type(proto::historian::Record_Type_SESSION_LOG);
+    record.set_type(SESSION_LOG);
     record.mutable_session_log()->CopyFrom(value);
     return write_db<Record>(key, record, levelDb, overwrite);
   }
@@ -131,22 +207,15 @@ struct Writer<SessionLog>
 template <>
 struct Writer<MarketDepth>
 {
-  const optional<string> buildKey(const MarketDepth& value)
-  {
-    ostringstream key;
-    key << ENTITY_IB_MARKET_DEPTH << ':'
-        << value.symbol() << ':'
-        << value.timestamp();
-    return key.str();
-  }
-
   bool operator()(const MarketDepth& value,
                   leveldb::DB* levelDb,
                   bool overwrite = true)
   {
+    using namespace proto::historian;
+    KeyBuilder<MarketDepth> buildKey;
     optional<string> key = buildKey(value);
     Record record;
-    record.set_type(proto::historian::Record_Type_IB_MARKET_DEPTH);
+    record.set_type(IB_MARKET_DEPTH);
     record.mutable_ib_marketdepth()->CopyFrom(value);
     return write_db<Record>(key, record, levelDb, overwrite);
   }
@@ -155,21 +224,21 @@ struct Writer<MarketDepth>
 template <>
 struct Writer<MarketData>
 {
-  const optional<string> buildKey(const MarketData& value)
+  const string buildIndexKey(const MarketData& value)
   {
-    ostringstream key;
-    key << ENTITY_IB_MARKET_DATA << ':'
-        << value.symbol() << ':'
-        << value.timestamp();
-    return key.str();
+    return this->buildIndexKey(value.symbol(),
+                               value.event(),
+                               value.timestamp());
   }
 
-  const optional<string> buildIndexKey(const MarketData& value)
+  const string buildIndexKey(const string& symbol,
+                             const string& event,
+                             uint64_t timestamp)
   {
     ostringstream key;
     key << INDEX_IB_MARKET_DATA_BY_EVENT << ':'
-        << value.symbol() << ':'
-        << value.event() << ':' << value.timestamp();
+        << symbol << ':'
+        << event << ':' << timestamp;
     return key.str();
   }
 
@@ -178,6 +247,7 @@ struct Writer<MarketData>
                   bool overwrite = true)
   {
     leveldb::WriteBatch batch;
+    KeyBuilder<MarketData> buildKey;
     optional<string> key = buildKey(value);
     Record record = proto::historian::wrap<MarketData>(value);
 

@@ -47,12 +47,22 @@ inline boost::uint64_t as_micros(const ptime& pt)
 
 static const time_duration RTH_START_EST(9, 30, 0, 0);
 static const time_duration RTH_END_EST(16, 0, 0, 0);
+static const time_duration EXT_START(4, 0, 0, 0);
+static const time_duration EXT_END(20, 0, 0, 0);
+
 
 /// Returns true if time given is within the regurlar trading hour (RTH)
 inline bool checkRTH(const ptime& t)
 {
   time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
   return eastern >= RTH_START_EST && eastern < RTH_END_EST;
+}
+
+/// Returns true if time given is within the extended trading hours (EXT)
+static bool checkEXT(ptime t)
+{
+  time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
+  return eastern >= EXT_START && eastern < EXT_END;
 }
 
 static const std::locale TIME_FORMAT = std::locale(

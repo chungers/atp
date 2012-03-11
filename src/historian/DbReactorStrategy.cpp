@@ -21,13 +21,12 @@ using atp::zmq::Reactor;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 using proto::historian::Record;
-using proto::historian::Record_Type;
+using proto::historian::Type;
 using proto::historian::SessionLog;
 using proto::historian::Query;
 using proto::historian::Query_Type;
 using proto::historian::QueryByRange;
 using proto::historian::QueryBySymbol;
-using proto::historian::QuerySessionLogs;
 
 
 class DbVisitor : public historian::Visitor
@@ -36,44 +35,16 @@ class DbVisitor : public historian::Visitor
   DbVisitor(socket_t& socket) : socket_(socket) {}
   ~DbVisitor() {}
 
-  bool operator()(const SessionLog& log)
+  bool operator()(const Record& record)
   {
-    return send(log) > 0;
+    return send(record) > 0;
   }
 
-  bool operator()(const MarketData& data)
-  {
-    return send(data) > 0;
-  }
-
-  bool operator()(const MarketDepth& data)
-  {
-    return send(data) > 0;
-  }
 
  private:
 
-  void set(Record* record, const MarketData& data)
+  size_t send(const Record& record)
   {
-    record->set_type(proto::historian::Record_Type_IB_MARKET_DATA);
-    record->mutable_ib_marketdata()->CopyFrom(data);
-  }
-  void set(Record* record, const MarketDepth& data)
-  {
-    record->set_type(proto::historian::Record_Type_IB_MARKET_DEPTH);
-    record->mutable_ib_marketdepth()->CopyFrom(data);
-  }
-  void set(Record* record, const SessionLog& data)
-  {
-    record->set_type(proto::historian::Record_Type_SESSION_LOG);
-    record->mutable_session_log()->CopyFrom(data);
-  }
-
-  template <typename T> size_t send(const T& message)
-  {
-    Record record;
-    set(&record, message);
-
     string recordProto;
     if (!record.SerializeToString(&recordProto)) {
       HISTORIAN_REACTOR_ERROR << "Error serializing " << &record;
@@ -81,7 +52,6 @@ class DbVisitor : public historian::Visitor
     }
 
     try {
-
       size_t sent = atp::zmq::send_copy(socket_, recordProto, false);
       return sent;
     } catch (zmq::error_t e) {
@@ -138,10 +108,11 @@ int handleQueryByRange(const boost::shared_ptr<Db> db,
                        const QueryByRange& q,
                        socket_t& socket, string* message)
 {
-  HISTORIAN_REACTOR_DEBUG << "QueryByRange ["
+  HISTORIAN_REACTOR_DEBUG << "QueryByRange<"
+                          << q.type() << ">["
                           << q.first() << ", " << q.last() << ")"
-                          << (q.has_filter() ?
-                              ", filer=" + q.filter() : "");
+                          << (q.has_index() ?
+                              ", index=" + q.index() : "");
   DbVisitor visitor(socket);
   return db->query(q, &visitor);
 }
@@ -150,26 +121,19 @@ int handleQueryBySymbol(const boost::shared_ptr<Db> db,
                         const QueryBySymbol& q,
                         socket_t& socket, string* message)
 {
-  HISTORIAN_REACTOR_DEBUG << "QueryBySymbol @"
+  HISTORIAN_REACTOR_DEBUG << "QueryBySymbol<"
+                          << q.type() << ">@"
                           << q.symbol()
                           << "[" << q.utc_first_micros()
                           << ", " << q.utc_last_micros()
                           << ")"
-                          << (q.has_filter() ?
-                              ", filer=" + q.filter() : "");
+                          << (q.has_index() ?
+                              ", index=" + q.index() : "");
   DbVisitor visitor(socket);
   return db->query(q, &visitor);
   return 0;
 }
 
-int handleQuerySessionLogs(const boost::shared_ptr<Db> db,
-                           const QuerySessionLogs& q,
-                           socket_t& socket, string* message)
-{
-  HISTORIAN_REACTOR_DEBUG << "QuerySessionLogs @"
-                          << q.symbol();
-  return 0;
-}
 
 bool DbReactorStrategy::respond(socket_t& socket)
 {
@@ -228,12 +192,6 @@ bool DbReactorStrategy::respond(socket_t& socket)
           case Query_Type_QUERY_BY_SYMBOL :
             if ((count = handleQueryBySymbol(db_, query.query_by_symbol(),
                                              *callback, &error)) < 0) {
-              replyError(*callback, error);
-            }
-            break;
-          case Query_Type_QUERY_SESSION_LOGS :
-            if ((count = handleQuerySessionLogs(db_, query.query_session_logs(),
-                                                *callback, &error)) < 0) {
               replyError(*callback, error);
             }
             break;

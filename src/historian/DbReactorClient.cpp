@@ -16,12 +16,12 @@ using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 using proto::historian::SessionLog;
 using proto::historian::Record;
-using proto::historian::Record_Type;
+using proto::historian::Type;
 using proto::historian::Query;
 using proto::historian::Query_Type;
 using proto::historian::QueryByRange;
 using proto::historian::QueryBySymbol;
-using proto::historian::QuerySessionLogs;
+
 
 namespace historian {
 
@@ -37,11 +37,6 @@ inline void set(Query* query, const QueryBySymbol& q)
 {
   query->set_type(proto::historian::Query_Type_QUERY_BY_SYMBOL);
   query->mutable_query_by_symbol()->CopyFrom(q);
-}
-inline void set(Query* query, const QuerySessionLogs& q)
-{
-  query->set_type(proto::historian::Query_Type_QUERY_SESSION_LOGS);
-  query->mutable_query_session_logs()->CopyFrom(q);
 }
 
 template <typename T>
@@ -114,18 +109,6 @@ bool DbReactorClient::connect()
   }
 }
 
-template <typename T>
-bool do_visit(Visitor* visit, const T& data)
-{
-  try {
-    (*visit)(data);
-    return true;
-  } catch (...) {
-    HISTORIAN_REACTOR_ERROR << "Error from visitor";
-  }
-  return false;
-}
-
 bool processQueryResponse(const boost::scoped_ptr<socket_t>& socket,
                           string* error)
 {
@@ -168,33 +151,13 @@ int processCallback(const boost::scoped_ptr<socket_t>& socket, Visitor* visit)
 
     // Deserialize to Record;
     Record record;
-    if (!record.ParseFromString(frame1)) {
-
+    if (record.ParseFromString(frame1)) {
+      if ((*visit)(record)) {
+        count++;
+      }
+    } else {
       HISTORIAN_REACTOR_DEBUG << "Not a Record. Received: " << frame1;
       break;
-
-    } else {
-
-      using namespace proto::historian;
-      Record_Type type = record.type();
-      switch (type) {
-
-        case Record_Type_SESSION_LOG:
-          if (do_visit<SessionLog>(visit, record.session_log())) {
-            count++;
-          }
-          break;
-        case Record_Type_IB_MARKET_DATA:
-          if (do_visit<MarketData>(visit, record.ib_marketdata())) {
-            count++;
-          }
-          break;
-        case Record_Type_IB_MARKET_DEPTH:
-          if (do_visit<MarketDepth>(visit, record.ib_marketdepth())) {
-            count++;
-          }
-          break;
-      }
     }
   }
   return count;

@@ -151,7 +151,7 @@ TEST(UtilsTest, ParseTest)
 
 }
 
-TEST(UtisTest, MicrosTimeTest)
+TEST(UtilsTest, MicrosTimeTest)
 {
   ptime utc, utc2;
   const string est("2012-02-14 04:30:34.567899");

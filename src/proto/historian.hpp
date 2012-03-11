@@ -56,7 +56,7 @@ inline optional<Value> get<Value>(const Record& record)
 }
 
 template <typename T>
-inline optional<T> as(const proto::historian::Record_Type type,
+inline optional<T> as(const proto::historian::Type type,
                       const Record& record)
 {
   if (record.type() == type) {
@@ -87,7 +87,7 @@ inline void set_as(const Value& v, Record* record)
 }
 
 template <typename T>
-inline const void set_as(proto::historian::Record_Type t,
+inline const void set_as(proto::historian::Type t,
                          const T& v, Record* record)
 {
   record->set_type(t);
@@ -109,25 +109,25 @@ template <typename T> inline optional<T> as(const Record& record)
 /** Returns as MarketData, if Record carries a MarketData. */
 template <> inline optional<MarketData> as(const Record& record)
 {
-  return as<MarketData>(proto::historian::Record_Type_IB_MARKET_DATA, record);
+  return as<MarketData>(IB_MARKET_DATA, record);
 }
 
 /** Returns as MarketDepth, if Record carries a MarketDepth. */
 template <> inline optional<MarketDepth> as<MarketDepth>(const Record& record)
 {
-  return as<MarketDepth>(proto::historian::Record_Type_IB_MARKET_DEPTH, record);
+  return as<MarketDepth>(IB_MARKET_DEPTH, record);
 }
 
 /** Returns as SessionLog, if Record carries a SessionLog. */
 template <> inline optional<SessionLog> as<SessionLog>(const Record& record)
 {
-  return as<SessionLog>(proto::historian::Record_Type_SESSION_LOG, record);
+  return as<SessionLog>(SESSION_LOG, record);
 }
 
 /** Returns as SessionLog, if Record carries a Value. */
 template <> inline optional<Value> as<Value>(const Record& record)
 {
-  return as<Value>(proto::historian::Record_Type_VALUE, record);
+  return as<Value>(VALUE, record);
 }
 
 template <typename T> inline void set_as(const T& v, Record* record)
@@ -138,26 +138,26 @@ template <typename T> inline void set_as(const T& v, Record* record)
 /** Sets the Record to carry a MarketData. */
 template <> inline void set_as<MarketData>(const MarketData& v, Record* record)
 {
-  set_as<MarketData>(proto::historian::Record_Type_IB_MARKET_DATA, v, record);
+  set_as<MarketData>(IB_MARKET_DATA, v, record);
 }
 
 /** Sets the Record to carry a MarketDepth. */
 template <> inline void set_as<MarketDepth>(const MarketDepth& v,
                                             Record* record)
 {
-  set_as<MarketDepth>(proto::historian::Record_Type_IB_MARKET_DEPTH, v, record);
+  set_as<MarketDepth>(IB_MARKET_DEPTH, v, record);
 }
 
 /** Sets the Record to carry a SessionLog. */
 template <> inline void set_as<SessionLog>(const SessionLog& v, Record* record)
 {
-  set_as<SessionLog>(proto::historian::Record_Type_SESSION_LOG, v, record);
+  set_as<SessionLog>(SESSION_LOG, v, record);
 }
 
 /** Sets the Record to carry a Value. */
 template <> inline void set_as<Value>(const Value& v, Record* record)
 {
-  set_as<Value>(proto::historian::Record_Type_VALUE, v, record);
+  set_as<Value>(VALUE, v, record);
 }
 
 template <typename T> inline const Record wrap(const T& v)

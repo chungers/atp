@@ -102,7 +102,8 @@ TEST(InternalTest, MarketDataWriterTest)
   // Get the key from the writer
   using namespace historian::internal;
   Writer<MarketData> writer;
-  const optional<string> key = writer.buildKey(d);
+  KeyBuilder<MarketData> buildKey;
+  const optional<string> key = buildKey(d);
   EXPECT_TRUE(key);
   LOG(INFO) << "key = " << *key;
 
@@ -133,7 +134,7 @@ TEST(InternalTest, MarketDataWriterTest)
 
   optional<Value> indexed2 = h::as<Value>(record2);
   EXPECT_TRUE(indexed2);
-  EXPECT_TRUE((*indexed2).IsInitialized());
+  EXPECT_TRUE(indexed2->IsInitialized());
 
   double v1 =  *(c::as<double>(read->value()));
   double v2 =  *(c::as<double>(*indexed2));
@@ -141,3 +142,97 @@ TEST(InternalTest, MarketDataWriterTest)
   EXPECT_EQ(v1, v2);
 }
 
+TEST(InternalTest, MarketDepthWriterTest)
+{
+  namespace c = proto::common;
+  namespace i = proto::ib;
+  namespace h = proto::historian;
+
+  const string est("2012-02-14 04:30:34.567899");
+  ptime t;
+  historian::parse(est, &t);
+
+  MarketDepth d;
+
+  d.set_timestamp(historian::as_micros(t));
+  d.set_symbol("AAPL.STK");
+  d.set_side(i::MarketDepth_Side_ASK);
+  d.set_price(500.);
+  d.set_size(10);
+  d.set_operation(i::MarketDepth_Operation_UPDATE);
+  d.set_level(1);
+  d.set_contract_id(9999);
+
+  EXPECT_TRUE(d.IsInitialized());
+
+  // Get the key from the writer
+  using namespace historian::internal;
+  Writer<MarketDepth> writer;
+  KeyBuilder<MarketDepth> buildKey;
+  const optional<string> key = buildKey(d);
+  EXPECT_TRUE(key);
+  LOG(INFO) << "key = " << *key;
+
+  // Now delete it to make sure there's nothing
+  testing::DbUtil util(DB_FILE);
+  util.Delete(*key);
+
+  // Now try to write it
+  EXPECT_TRUE(writer(d, util.db, false));
+  EXPECT_TRUE(util.Exists(*key));
+
+  // Now read data out
+  Record record;
+  EXPECT_TRUE(util.Get<Record>(*key, &record));
+  EXPECT_TRUE(record.IsInitialized());
+  optional<MarketDepth> read = h::as<MarketDepth>(record);
+  EXPECT_TRUE(read);
+  EXPECT_TRUE(read->IsInitialized());
+  EXPECT_EQ(i::MarketDepth_Operation_UPDATE, read->operation());
+}
+
+
+TEST(InternalTest, SessionLogWriterTest)
+{
+  namespace c = proto::common;
+  namespace i = proto::ib;
+  namespace h = proto::historian;
+
+  const string est1("2012-02-14 04:30:34.567899");
+  const string est2("2012-02-14 04:30:34.567899");
+  ptime t1, t2;
+  historian::parse(est1, &t1);
+  historian::parse(est2, &t2);
+
+  SessionLog d;
+  d.set_symbol("AAPL.STK");
+  d.set_start_timestamp(historian::as_micros(t1));
+  d.set_stop_timestamp(historian::as_micros(t2));
+  d.set_source("test");
+  EXPECT_TRUE(d.IsInitialized());
+
+  // Get the key from the writer
+  using namespace historian::internal;
+  Writer<SessionLog> writer;
+  KeyBuilder<SessionLog> buildKey;
+  const optional<string> key = buildKey(d);
+  EXPECT_TRUE(key);
+  LOG(INFO) << "key = " << *key;
+
+  // Now delete it to make sure there's nothing
+  testing::DbUtil util(DB_FILE);
+  util.Delete(*key);
+
+  // Now try to write it
+  EXPECT_TRUE(writer(d, util.db, false));
+  EXPECT_TRUE(util.Exists(*key));
+
+  // Now read data out
+  Record record;
+  EXPECT_TRUE(util.Get<Record>(*key, &record));
+  EXPECT_TRUE(record.IsInitialized());
+  optional<SessionLog> read = h::as<SessionLog>(record);
+  EXPECT_TRUE(read);
+  EXPECT_TRUE(read->IsInitialized());
+  EXPECT_EQ("test", read->source());
+}

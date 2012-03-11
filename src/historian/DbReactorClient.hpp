@@ -4,6 +4,7 @@
 #include <boost/scoped_ptr.hpp>
 #include <zmq.hpp>
 
+#include "historian/constants.hpp"
 #include "historian/Visitor.hpp"
 
 namespace historian {

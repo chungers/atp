@@ -5,6 +5,13 @@ option optimize_for = LITE_RUNTIME;
 import "common.proto";
 import "ib.proto";
 
+enum Type {
+  VALUE = 0;
+  SESSION_LOG = 1;
+  IB_MARKET_DATA = 2;
+  IB_MARKET_DEPTH = 3;
+}
+
 // For each symbol and a full session of data
 // (e.g. per day).  This is useful for scanning
 // for what data is available in the db.
@@ -17,13 +24,6 @@ message SessionLog {
 
 message Record {
 
-  enum Type {
-    VALUE = 0;
-    SESSION_LOG = 1;
-    IB_MARKET_DATA = 2;
-    IB_MARKET_DEPTH = 3;
-  }
-
   required Type type = 1;
 
   optional common.Value value = 2;
@@ -35,22 +35,18 @@ message Record {
 
 
 message QueryByRange {
-  required string first = 1;
-  required string last = 2;
-  optional string filter = 3;
-  optional bool depth_only = 4;
+  required Type type = 1;
+  required string first = 2;
+  required string last = 3;
+  optional string index = 4;
 }
 
 message QueryBySymbol {
-  required string symbol = 1;
-  optional uint64 utc_first_micros = 2;
-  optional uint64 utc_last_micros = 3;
-  optional string filter = 4;
-  optional bool depth_only = 5;
-}
-
-message QuerySessionLogs {
-  required string symbol = 1;
+  required Type type = 1;
+  required string symbol = 2;
+  optional uint64 utc_first_micros = 3;
+  optional uint64 utc_last_micros = 4;
+  optional string index = 5;
 }
 
 message Query {
@@ -58,7 +54,6 @@ message Query {
   enum Type {
     QUERY_BY_RANGE = 0;
     QUERY_BY_SYMBOL = 1;
-    QUERY_SESSION_LOGS = 2;
   }
 
   required Type type = 1;
@@ -66,5 +61,4 @@ message Query {
 
   optional QueryByRange query_by_range = 3;
   optional QueryBySymbol query_by_symbol = 4;
-  optional QuerySessionLogs query_session_logs = 5;
 }
