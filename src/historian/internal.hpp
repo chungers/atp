@@ -7,6 +7,8 @@
 #include <leveldb/db.h>
 #include <leveldb/write_batch.h>
 
+#include <glog/logging.h>
+
 #include "proto/common.pb.h"
 #include "proto/ib.pb.h"
 #include "proto/historian.pb.h"
@@ -39,52 +41,67 @@ using namespace leveldb;
 bool write_db(leveldb::WriteBatch* batch, leveldb::DB* levelDb)
 {
   Status s = levelDb->Write(WriteOptions(), batch);
-  return s.ok();
+  if (!s.ok()) {
+    LOG(ERROR) << "Error: write batch failed: " << s.ToString();
+    return false;
+  } else {
+    return true;
+  }
 }
 
 template <typename V>
-bool write_db(const optional<string>& key, const V& value,
+bool write_db(const string& key, const V& value,
               leveldb::DB* levelDb,
               bool overwrite = true)
 {
-  if (!key) {
+  if (key.size() == 0) {
+    LOG(ERROR) << "No key";
     return false; // do nothing -- no key
   }
   bool okToWrite = overwrite;
   if (!overwrite) {
     string readBuffer;
-    Status readStatus = levelDb->Get(ReadOptions(), *key, &readBuffer);
+    Status readStatus = levelDb->Get(ReadOptions(), key, &readBuffer);
     okToWrite = readStatus.IsNotFound();
   }
 
   if (okToWrite) {
     string buffer;
     value.SerializeToString(&buffer);
-    Status putStatus = levelDb->Put(WriteOptions(), *key, buffer);
-    return putStatus.ok();
+    Status putStatus = levelDb->Put(WriteOptions(), key, buffer);
+    if (!putStatus.ok()) {
+      LOG(ERROR) << "Error: write failed: " << putStatus.ToString()
+                 << ", key = " << key << ", buff = " << buffer;
+    }
+    return true;
+  } else {
+    LOG(ERROR) << "Not ok to write: skipped.";
   }
   return false;
 }
 
 template <typename V>
-bool write_batch(const optional<string>& key, const V& value,
+bool write_batch(const string& key, const V& value,
                  leveldb::WriteBatch* batch, leveldb::DB* levelDb,
                  bool overwrite = true)
 {
-  if (!key) {
+  if (key.size() == 0) {
+    LOG(ERROR) << "No key";
     return false; // do nothing -- no key
   }
   bool okToWrite = overwrite;
   if (!overwrite) {
     string readBuffer;
-    Status readStatus = levelDb->Get(ReadOptions(), *key, &readBuffer);
+    Status readStatus = levelDb->Get(ReadOptions(), key, &readBuffer);
     okToWrite = readStatus.IsNotFound();
   }
   if (okToWrite) {
     string buffer;
     value.SerializeToString(&buffer);
-    batch->Put(*key, buffer);
+    batch->Put(key, buffer);
     return true;
+  } else {
+    LOG(ERROR) << "Not ok to write: skipped batch.";
   }
   return false;
 }
@@ -196,7 +213,7 @@ struct Writer<SessionLog>
   {
     using namespace proto::historian;
     KeyBuilder<SessionLog> buildKey;
-    optional<string> key = buildKey(value);
+    string key = buildKey(value);
     Record record;
     record.set_type(SESSION_LOG);
     record.mutable_session_log()->CopyFrom(value);
@@ -213,7 +230,7 @@ struct Writer<MarketDepth>
   {
     using namespace proto::historian;
     KeyBuilder<MarketDepth> buildKey;
-    optional<string> key = buildKey(value);
+    string key = buildKey(value);
     Record record;
     record.set_type(IB_MARKET_DEPTH);
     record.mutable_ib_marketdepth()->CopyFrom(value);
@@ -239,6 +256,7 @@ struct Writer<MarketData>
     key << INDEX_IB_MARKET_DATA_BY_EVENT << ':'
         << symbol << ':'
         << event << ':' << timestamp;
+    LOG(INFO) << "indexKey = " << key.str();
     return key.str();
   }
 
@@ -248,7 +266,7 @@ struct Writer<MarketData>
   {
     leveldb::WriteBatch batch;
     KeyBuilder<MarketData> buildKey;
-    optional<string> key = buildKey(value);
+    string key = buildKey(value);
     Record record = proto::historian::wrap<MarketData>(value);
 
     // Try to batch first by the primary record. If ok (e.g. based on
@@ -256,7 +274,7 @@ struct Writer<MarketData>
     if (write_batch<Record>(key, record, &batch, levelDb, overwrite)) {
       // Index the value
       Record indexRecord = proto::historian::wrap<Value>(value.value());
-      optional<string> indexKey = buildIndexKey(value);
+      string indexKey = buildIndexKey(value);
       write_batch<Record>(indexKey, indexRecord, &batch, levelDb, true);
       return write_db(&batch, levelDb);
     }

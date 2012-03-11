@@ -21,7 +21,7 @@ class Db
   ~Db();
 
  public:
-  bool open();
+  bool Open();
 
   template <typename T> bool Write(const T& value, bool overwrite = true);
 

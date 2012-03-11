@@ -222,7 +222,7 @@ int DbReactorStrategy::socketType()
 
 bool DbReactorStrategy::OpenDb()
 {
-  return db_->open();
+  return db_->Open();
 }
 
 } // historian

@@ -42,7 +42,7 @@ class Db::implementation
     }
   }
 
-  bool open()
+  bool Open()
   {
     leveldb::Options options;
     options.create_if_missing = true;
@@ -107,9 +107,9 @@ Db::~Db()
 {
 }
 
-bool Db::open()
+bool Db::Open()
 {
-  return impl_->open();
+  return impl_->Open();
 }
 
 int Db::query(const QueryByRange& query, Visitor* visit)

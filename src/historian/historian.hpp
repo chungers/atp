@@ -13,4 +13,5 @@ typedef proto::ib::MarketDepth MarketDepth;
 typedef proto::historian::SessionLog SessionLog;
 
 } // historian
+
 #endif //HISTORIAN_H_

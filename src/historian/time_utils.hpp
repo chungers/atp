@@ -50,6 +50,10 @@ static const time_duration RTH_END_EST(16, 0, 0, 0);
 static const time_duration EXT_START(4, 0, 0, 0);
 static const time_duration EXT_END(20, 0, 0, 0);
 
+inline ptime to_est(const ptime& t)
+{
+  return us_eastern::utc_to_local(t);
+}
 
 /// Returns true if time given is within the regurlar trading hour (RTH)
 inline bool checkRTH(const ptime& t)

@@ -33,7 +33,7 @@
 
 const static std::string NO_VALUE("__no_value__");
 
-DEFINE_bool(rth, false, "Regular trading hours");
+DEFINE_bool(rth, true, "Regular trading hours");
 DEFINE_bool(delay, false, "True to simulate sample delays when publishing");
 DEFINE_string(logfile, "logfile", "The name of the log file.");
 DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
@@ -43,8 +43,10 @@ DEFINE_string(leveldb, NO_VALUE, "leveldb file");
 DEFINE_bool(csv, false, "True to write to stdout (when not publishing)");
 DEFINE_int64(gapInMinutes, 5,
              "Number of minutes gap to start a new session log");
-DEFINE_bool(checkDuplicate, false, "True to read for existing record before writing db.");
-
+DEFINE_bool(checkDuplicate, false,
+            "True to read for existing record before writing db.");
+DEFINE_bool(syncstdio, false, "cin syncs with stdio (slower).");
+DEFINE_bool(est, true, "True to output csv in EST.");
 
 using namespace boost::posix_time;
 using namespace historian;
@@ -527,7 +529,7 @@ int main(int argc, char** argv)
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
-  std::cin.sync_with_stdio(false);
+  std::cin.sync_with_stdio(FLAGS_syncstdio);
 
   using namespace boost::posix_time;
   ptime epoch(boost::gregorian::date(1970,boost::gregorian::Jan,1));
@@ -539,7 +541,7 @@ int main(int argc, char** argv)
     LOG_READER_LOGGER << "LevelDb on, file = " << FLAGS_leveldb;
 
     db.reset(new historian::Db(FLAGS_leveldb));
-    assert(db->open());
+    assert(db->Open());
   }
 
   MarketDataPublisher* publisher = NULL;
@@ -589,6 +591,9 @@ int main(int argc, char** argv)
     int dbDuplicateRecords = 0;
 
     boost::int64_t last_ts = 0;
+    boost::uint64_t last_log = 0;
+    int last_written = 0;
+    ptime last_log_t;
 
     // The lines are space separated, so we need to skip whitespaces.
     while (infile >> std::skipws >> line) {
@@ -610,11 +615,36 @@ int main(int argc, char** argv)
             }
 
             bool rth = historian::checkRTH(t);
-
             if (!rth && FLAGS_rth) {
               // Skip if not RTH and we want only data during trading hours.
               continue;
             }
+
+            if (last_log_t == boost::posix_time::not_a_date_time) {
+              last_log_t = t;
+              last_log = now_micros();
+              last_written = dbWrittenRecords;
+            } else {
+              time_duration dt = t - last_log_t;
+              boost::uint64_t now = now_micros();
+              boost::uint64_t elapsed = now - last_log;
+              double elapsedSec = static_cast<double>(elapsed) / 1000000.;
+              int written_so_far = dbWrittenRecords - last_written;
+              double writeQps =
+                  static_cast<double>(written_so_far) / elapsedSec;
+              if (dt.minutes() >= 15) {
+                LOG(INFO) << "Currently at " << historian::to_est(t)
+                          << ": in " << elapsedSec << " sec. "
+                          << ": matchedRecords=" << matchedRecords
+                          << ", dbWrittenRecords=" << dbWrittenRecords
+                          << ", written=" << written_so_far
+                          << ", wQPS=" << writeQps;
+                last_log_t = t;
+                last_log = now;
+                last_written = dbWrittenRecords;
+              }
+            }
+
 
             if (FLAGS_publish) {
 
@@ -634,7 +664,8 @@ int main(int argc, char** argv)
             } else {
 
               if (FLAGS_csv) {
-                std::cout << t << ","
+
+                std::cout << ((FLAGS_est) ? historian::to_est(t) : t) << ","
                           << event.symbol() << ","
                           << event.event() << ",";
                 switch (event.value().type()) {
@@ -705,7 +736,7 @@ int main(int argc, char** argv)
               } else {
 
                 if (FLAGS_csv) {
-                  std::cout << t << ","
+                  std::cout << ((FLAGS_est) ? historian::to_est(t) : t) << ","
                             << event.symbol() << ","
                             << event.side() << ","
                             << event.level() << ","

@@ -41,6 +41,7 @@ message Value {
   }
 
   required Type type = 1;
+
   optional string string_value = 2;
   optional double double_value = 3;
   optional int64 int_value = 4;

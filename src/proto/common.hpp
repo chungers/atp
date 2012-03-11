@@ -1,6 +1,7 @@
 #ifndef PROTO_COMMON_H_
 #define PROTO_COMMON_H_
 
+#include <iostream>
 #include <string>
 #include <boost/lexical_cast.hpp>
 #include <boost/optional.hpp>
@@ -157,7 +158,6 @@ template <> inline const Value wrap<string>(const string& v)
 {
   Value val; proto::common::set_as(v, &val); return val;
 }
-
 
 } // common
 } // proto

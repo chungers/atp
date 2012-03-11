@@ -23,51 +23,73 @@
 #include "common.hpp"
 #include "marketdata_source.hpp"
 #include "log_levels.h"
-#include "proto/ib.pb.h"
-#include "proto/historian.pb.h"
 #include "zmq/ZmqUtils.hpp"
+#include "proto/historian.hpp"
 #include "historian/historian.hpp"
 
-const static std::string NO_VALUE("__no_value__");
 
-DEFINE_bool(rth, true, "Regular trading hours");
-DEFINE_bool(delay, false, "True to simulate sample delays when publishing");
-DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
-DEFINE_bool(publish, false, "True to publish to endpoint.");
-DEFINE_int64(playback, 1, "N multiple speed in playback.");
+const static std::string NO_VALUE("");
+
 DEFINE_string(leveldb, NO_VALUE, "leveldb file");
-DEFINE_bool(csv, true, "True to write to stdout (when not publishing)");
-
 DEFINE_bool(est, true, "Use EST for time range.");
 DEFINE_string(symbol, NO_VALUE, "symbol");
-DEFINE_string(start, NO_VALUE, "range start");
-DEFINE_string(end, NO_VALUE, "range end");
+DEFINE_string(event, NO_VALUE, "event");
+DEFINE_string(first, NO_VALUE, "range start");
+DEFINE_string(last, NO_VALUE, "range end");
 
+
+using namespace boost::posix_time;
 
 using namespace ib::internal;
+using namespace historian;
+using namespace proto::common;
+using namespace proto::ib;
+using namespace proto::historian;
 
-typedef std::pair<std::string, std::string> range;
-static const range parseRange()
+using boost::optional;
+using std::string;
+
+namespace proto {
+namespace common {
+
+std::ostream& operator<<(std::ostream& out, const Value& v)
 {
-  namespace bt = boost::posix_time;
-
-  if (FLAGS_symbol != NO_VALUE) {
-    // compute the actual search keys based on start and end flags
-    bt::ptime start;
-    bt::ptime end;
-    historian::parse(FLAGS_start, &start);
-    historian::parse(FLAGS_end, &end);
-
-    std::ostringstream sStart;
-    std::ostringstream sEnd;
-    sStart << FLAGS_symbol << ":" << historian::as_micros(start);
-    sEnd << FLAGS_symbol << ":" << historian::as_micros(end);
-    return range(sStart.str(), sEnd.str());
-  } else {
-    return range(FLAGS_start, FLAGS_end);
+  using namespace proto::common;
+  switch (v.type()) {
+    case Value_Type_INT:
+      out << v.int_value();
+      break;
+    case Value_Type_DOUBLE:
+      out << v.double_value();
+      break;
+    case Value_Type_STRING:
+      out << v.string_value();
+      break;
   }
+  return out;
 }
 
+std::ostream& operator<<(std::ostream& out, const MarketData& v)
+{
+  using namespace historian;
+  ptime t =to_est(as_ptime(v.timestamp()));
+  out << t << "," << v.symbol() << "," << v.event() << "," << v.value();
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const MarketDepth& v)
+{
+  using namespace historian;
+  ptime t = to_est(as_ptime(v.timestamp()));
+  out << t << "," << v.symbol() << ","
+      << v.operation() << "," << v.level() << ","
+      << v.side() << "," << v.price() << ","
+      << v.size();
+  return out;
+}
+
+} // common
+} // proto
 
 ////////////////////////////////////////////////////////
 //
@@ -79,177 +101,112 @@ int main(int argc, char** argv)
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
-  leveldb::DB* levelDb = NULL;
-  leveldb::Options options;
+  boost::scoped_ptr<historian::Db> db;
 
   if (FLAGS_leveldb != NO_VALUE) {
     HISTORIAN_LOGGER << "LevelDb on, file = " << FLAGS_leveldb;
-    options.create_if_missing = true;
-    leveldb::Status status = leveldb::DB::Open(
-        options, FLAGS_leveldb, &levelDb);
-    assert(status.ok());
+    db.reset(new historian::Db(FLAGS_leveldb));
+    assert(db->Open());
   }
 
   boost::posix_time::time_facet facet("%Y-%m-%d %H:%M:%S%F%Q");
   std::cout.imbue(std::locale(std::cout.getloc(), &facet));
 
-  zmq::context_t* context = NULL;
-  zmq::socket_t* socket = NULL;
+  struct Visitor : public historian::Visitor
+  {
+    virtual bool operator()(const Record& record)
+    {
+      namespace p = proto::historian;
 
-  if (FLAGS_csv) {
-    std::cout << "\"timestamp_utc\",\"symbol\",\"event\",\"value\""
-              << std::endl;
-  }
+      switch (record.type()) {
 
-  if (FLAGS_publish) {
-    context = new zmq::context_t(1);
-    socket = new zmq::socket_t(*context, ZMQ_PUSH);
-    socket->connect(FLAGS_endpoint.c_str());
+        case SESSION_LOG: {
+          optional<SessionLog> log = p::as<SessionLog>(record);
+          if (log) {
+            std::cout << log->symbol() << ","
+                      << "start=" << us_eastern::utc_to_local(
+                          historian::as_ptime(log->start_timestamp())) << ","
+                      << "end=" << us_eastern::utc_to_local(
+                          historian::as_ptime(log->stop_timestamp())) << ","
+                      << "source=" << log->source();
+          }
+        }
+          break;
+        case VALUE: {
+          optional<Value> value = p::as<Value>(record);
+          if (value) {
+            std::cout << *value;
+          }
+        }
+          break;
+        case IB_MARKET_DATA: {
+          optional<MarketData> value = p::as<MarketData>(record);
+          if (value) {
+            std::cout << *value;
+          }
+        }
+          break;
+        case IB_MARKET_DEPTH: {
+          optional<MarketDepth> value = p::as<MarketDepth>(record);
+          if (value) {
+            std::cout << *value;
+          }
+        }
+          break;
+      }
 
-    LOG(INFO) << "Pushing events to " << FLAGS_endpoint;
-  }
+      std::cout << std::endl;
+      return true;
+    }
+  } visit;
 
-  boost::scoped_ptr<leveldb::Iterator> iterator(
-      levelDb->NewIterator(leveldb::ReadOptions()));
 
-  using namespace boost::posix_time;
-  boost::int64_t last_ts = 0;
-  const range& range = parseRange();
+  // parse for queries
+  if (FLAGS_symbol.size() > 0) {
+    // Query by symbol, etc
+    QueryBySymbol query;
 
-  LOG(INFO) << "Using range [" << range.first << ", " << range.second << ")";
-
-  // The lines are space separated, so we need to skip whitespaces.
-  for (iterator->Seek(range.first);
-       iterator->Valid() && iterator->key().ToString() < range.second;
-       iterator->Next()) {
-
-    leveldb::Slice key = iterator->key();
-    leveldb::Slice value = iterator->value();
+    query.set_symbol(FLAGS_symbol);
 
     using namespace proto::historian;
-
-    Record record;
-
-    boost::int64_t dt;
-    bool rth;
-    boost::posix_time::ptime t;
-
-    if (record.ParseFromString(value.ToString())) {
-      if (record.type() == SESSION_LOG) {
-        const proto::historian::SessionLog& event = record.session_log();
-        boost::posix_time::ptime start =
-            historian::as_ptime(event.start_timestamp());
-        boost::posix_time::ptime end =
-            historian::as_ptime(event.stop_timestamp());
-        const std::string& source = event.source();
-        std::cout << key.ToString() << ","
-                  << event.symbol() << ","
-                  << "start=" << us_eastern::utc_to_local(start) << ","
-                  << "end=" << us_eastern::utc_to_local(end) << ","
-                  << "source=" << source << std::endl;
-
-      } else if (record.type() == Record_Type_IB_MARKET_DATA) {
-          const proto::ib::MarketData& event = record.ib_marketdata();
-          t = historian::as_ptime(event.timestamp());
-          rth = historian::checkRTH(t);
-
-          if (!rth && FLAGS_rth) {
-            // Skip if not RTH and we want only data during trading hours.
-            continue;
-          }
-
-          if (FLAGS_publish) {
-
-            boost::int64_t dt = event.timestamp() - last_ts;
-            if (last_ts > 0 && dt > 0 && FLAGS_delay) {
-              // wait dt micros
-              usleep(dt / FLAGS_playback);
-            }
-            atp::MarketData<double> marketData(event.symbol(),
-                                               event.timestamp(),
-                                               event.event(),
-                                               event.value().double_value());
-            size_t sent = marketData.dispatch(socket);
-            //std::cerr << event.symbol << " " << sent << std::endl;
-            last_ts = event.timestamp();
-
-          }
-
-          if (FLAGS_csv) {
-            std::cout << t << ","
-                      << event.symbol() << ","
-                      << event.event() << ",";
-            proto::common::Value value = event.value();
-            switch (value.type()) {
-              case (proto::common::Value_Type_INT) :
-                std::cout << value.int_value();
-                break;
-              case (proto::common::Value_Type_DOUBLE) :
-                std::cout << value.double_value();
-                break;
-              case (proto::common::Value_Type_STRING) :
-                std::cout << value.string_value();
-                break;
-            }
-            std::cout << "," << key.ToString();
-            std::cout << std::endl;
-          }
-      } else if (record.type() == Record_Type_IB_MARKET_DEPTH) {
-          const proto::ib::MarketDepth& depth = record.ib_marketdepth();
-          t = historian::as_ptime(depth.timestamp());
-          rth = historian::checkRTH(t);
-
-          if (!rth && FLAGS_rth) {
-            // Skip if not RTH
-            continue;
-          }
-
-          if (FLAGS_publish) {
-
-            boost::int64_t dt = depth.timestamp() - last_ts;
-            if (last_ts > 0 && dt > 0 && FLAGS_delay) {
-              // wait dt micros
-              usleep(dt / FLAGS_playback);
-            }
-
-            atp::MarketDepth marketDepth(depth.symbol(),
-                                         depth.timestamp(),
-                                         depth.side(),
-                                         depth.level(),
-                                         depth.operation(),
-                                         depth.price(),
-                                         depth.size(),
-                                         depth.mm());
-            size_t sent = marketDepth.dispatch(socket);
-            last_ts = depth.timestamp();
-          }
-
-          if (FLAGS_csv) {
-            std::cout << t << ","
-                      << depth.symbol() << ","
-                      << depth.side() << ","
-                      << depth.level() << ","
-                      << depth.operation() << ","
-                      << depth.price() << ","
-                      << depth.size() << ","
-                      << depth.mm() << std::endl;
-          }
-      }
+    if (FLAGS_event.size() > 0) {
+      query.set_type(VALUE); // index lookup
+      query.set_index(FLAGS_event);
+    } else {
+      query.set_type(IB_MARKET_DATA);
     }
+
+    // compute the actual search keys based on start and end flags
+    ptime start;
+    ptime end;
+    historian::parse(FLAGS_first, &start);
+    historian::parse(FLAGS_last, &end);
+
+    query.set_utc_first_micros(historian::as_micros(start));
+    query.set_utc_last_micros(historian::as_micros(end));
+
+
+    int count = db->query(query, &visit);
+    std::cout << "Count = " << count;
+  } else {
+    // Simple by range
+    QueryByRange query;
+
+    using namespace proto::historian;
+    if (FLAGS_event.size() > 0) {
+      query.set_type(VALUE); // index lookup
+      query.set_index(FLAGS_event);
+    } else {
+      query.set_type(IB_MARKET_DATA);
+    }
+
+    query.set_first(FLAGS_first);
+    query.set_last(FLAGS_last);
+
+    int count = db->query(query, &visit);
+    std::cout << "Count = " << count;
   }
 
-  if (FLAGS_publish) {
-    delete socket;
-    delete context;
-  }
-
-  if (levelDb != NULL) {
-    // Need to delete this in order.  The better way is to
-    // have a class where the member variables are scoped_ptr
-    // and have the destructor do the proper ordering of things.
-    iterator.reset();
-    delete levelDb;
-  }
   HISTORIAN_LOGGER << "Completed." << std::endl;
   return 0;
 }
