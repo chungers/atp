@@ -97,6 +97,29 @@ std::ostream& operator<<(std::ostream& out, const SessionLog& log)
       << "source=" << log.source();
   return out;
 }
+
+std::ostream& operator<<(std::ostream& out, const QueryByRange& q)
+{
+  using namespace historian;
+  using namespace proto::common;
+  out << "Query[" << q.first() << "," << q.last() << ")"
+      << ", index=" << q.index();
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const QueryBySymbol& q)
+{
+  using namespace historian;
+  using namespace proto::common;
+  ptime t1 = to_est(as_ptime(q.utc_first_micros()));
+  ptime t2 = to_est(as_ptime(q.utc_last_micros()));
+  out << "Query[symbol=" << q.symbol() << ","
+      << "start=" << t1 << ","
+      << "stop=" << t2 << ","
+      << "index=" << q.index() << "]";
+  return out;
+}
+
 } // historian
 
 

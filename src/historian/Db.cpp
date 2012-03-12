@@ -71,8 +71,6 @@ class Db::implementation
   int query(const std::string& start, const std::string& stop,
             Visitor* visit)
   {
-    LOG(INFO) << "start = " << start << ", stop = " << stop;
-
     if (levelDb_ == NULL) return 0;
 
     boost::scoped_ptr<leveldb::Iterator> iterator(
@@ -115,37 +113,37 @@ bool Db::Open()
   return impl_->Open();
 }
 
-int Db::query(const QueryByRange& query, Visitor* visit)
+int Db::Query(const QueryByRange& query, Visitor* visit)
 {
   return impl_->query(query.first(), query.last(), visit);
 }
 
-int Db::query(const std::string& start, const std::string& stop,
+int Db::Query(const std::string& start, const std::string& stop,
              Visitor* visit)
 {
   return impl_->query(start, stop, visit);
 }
 
-int Db::query(const QueryBySymbol& query, Visitor* visit)
+int Db::Query(const QueryBySymbol& query, Visitor* visit)
 {
   using namespace historian::internal;
   using namespace proto::historian;
   switch (query.type()) {
     case IB_MARKET_DATA: {
       KeyBuilder<MarketData> buildKey;
-      return this->query(buildKey(query.symbol(), query.utc_first_micros()),
+      return this->Query(buildKey(query.symbol(), query.utc_first_micros()),
                          buildKey(query.symbol(), query.utc_last_micros()),
                          visit);
     }
     case IB_MARKET_DEPTH: {
       KeyBuilder<MarketDepth> buildKey;
-      return this->query(buildKey(query.symbol(), query.utc_first_micros()),
+      return this->Query(buildKey(query.symbol(), query.utc_first_micros()),
                          buildKey(query.symbol(), query.utc_last_micros()),
                          visit);
     }
     case SESSION_LOG: {
       KeyBuilder<SessionLog> buildKey;
-      return this->query(buildKey(query.symbol(), query.utc_first_micros()),
+      return this->Query(buildKey(query.symbol(), query.utc_first_micros()),
                          buildKey(query.symbol(), query.utc_last_micros()),
                          visit);
     }
@@ -153,7 +151,7 @@ int Db::query(const QueryBySymbol& query, Visitor* visit)
       if (query.has_index()) {
         // TODO figure out a cleaner way
         Writer<MarketData> writer;
-        return this->query(writer.buildIndexKey(query.symbol(),
+        return this->Query(writer.buildIndexKey(query.symbol(),
                                                 query.index(),
                                                 query.utc_first_micros()),
                            writer.buildIndexKey(query.symbol(),

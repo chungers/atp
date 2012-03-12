@@ -135,7 +135,7 @@ inline int handleQuery(const boost::shared_ptr<Db> db,
                        socket_t& socket, string* message)
 {
   DbVisitor visitor(socket);
-  return db->query(q, &visitor);
+  return db->Query(q, &visitor);
 }
 
 template int handleQuery<QueryByRange>(const boost::shared_ptr<Db>,
@@ -181,6 +181,8 @@ bool DbReactorStrategy::respond(socket_t& socket)
                                     << query.callback() << ", " << e.what();
           }
         }
+      } else {
+        LOG(ERROR) << "Cannot parse query: " << frame1;
       }
 
       // TODO need to start a thread.

@@ -25,10 +25,10 @@ class Db
 
   template <typename T> bool Write(const T& value, bool overwrite = true);
 
-  int query(const std::string& start, const std::string& stop,
+  int Query(const std::string& start, const std::string& stop,
             Visitor* visit);
-  int query(const QueryByRange& query, Visitor* visit);
-  int query(const QueryBySymbol& query, Visitor* visit);
+  int Query(const QueryByRange& query, Visitor* visit);
+  int Query(const QueryBySymbol& query, Visitor* visit);
 
 
  private:

@@ -145,12 +145,9 @@ int main(int argc, char** argv)
     query.set_utc_first_micros(historian::as_micros(start));
     query.set_utc_last_micros(historian::as_micros(end));
 
-    LOG(INFO) << "Query by symbol: " << query.symbol() << ", "
-              << query.utc_first_micros() << ", "
-              << query.utc_last_micros() << ", "
-              << query.index();
+    LOG(INFO) << "Query by symbol: " << query;
 
-    int count = db->query(query, &visit);
+    int count = db->Query(query, &visit);
     std::cout << "Count = " << count;
   } else {
     // Simple by range
@@ -165,8 +162,9 @@ int main(int argc, char** argv)
     query.set_first(FLAGS_first);
     query.set_last(FLAGS_last);
 
-    LOG(INFO) << "Simple query: " << query.first() << ", " << query.last();
-    int count = db->query(query, &visit);
+    LOG(INFO) << "Simple query: " << query;
+
+    int count = db->Query(query, &visit);
     std::cout << "Count = " << count;
   }
 

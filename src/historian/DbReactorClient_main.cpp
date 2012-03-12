@@ -51,6 +51,7 @@ using proto::historian::IndexedValue;
 using proto::historian::QueryBySymbol;
 
 using namespace historian;
+using namespace proto::historian;
 
 
 int main(int argc, char** argv)
@@ -77,50 +78,47 @@ int main(int argc, char** argv)
 
   HISTORIAN_REACTOR_LOGGER << "Connected to " << FLAGS_ep;
 
-  if (FLAGS_symbol.size() > 0) {
+  ptime start;
+  ptime end;
 
-  } else {
+  // EST to UTC
+  historian::parse(FLAGS_first, &start);
+  historian::parse(FLAGS_last, &end);
 
-    ptime start;
-    ptime end;
+  QueryBySymbol q;
+  q.set_symbol(FLAGS_symbol);
+  q.set_utc_first_micros(historian::as_micros(start));
+  q.set_utc_last_micros(historian::as_micros(end));
 
-    // EST to UTC
-    historian::parse(FLAGS_first, &start);
-    historian::parse(FLAGS_last, &end);
-
-    QueryBySymbol q;
-    q.set_symbol(FLAGS_symbol);
-    q.set_utc_first_micros(historian::as_micros(start));
-    q.set_utc_last_micros(historian::as_micros(end));
-
-    // TODO abstract this detail into a cleaner api
-    if (FLAGS_event.size() > 0) {
-      q.set_type(proto::historian::INDEXED_VALUE);
-      q.set_index(FLAGS_event);
-    }
-
-    struct Visitor : public historian::Visitor {
-
-      virtual bool operator()(const Record& data)
-      {
-        using namespace proto::common;
-        using namespace proto::historian;
-
-        std::cout << data.key() << ",";
-        optional<IndexedValue> v1 = as<IndexedValue>(data);
-        if (v1) {
-          std::cout << *v1;
-        }
-        optional<MarketData> v2 = as<MarketData>(data);
-        if (v2) {
-          std::cout << *v2;
-        }
-        std::cout << std::endl;
-        return true;
-      }
-    } visitor;
-
-    int count = client.Query(q, &visitor);
-    HISTORIAN_REACTOR_LOGGER << "Count = " << count;
+  // TODO abstract this detail into a cleaner api
+  if (FLAGS_event.size() > 0) {
+    q.set_type(proto::historian::INDEXED_VALUE);
+    q.set_index(FLAGS_event);
   }
+
+  struct Visitor : public historian::Visitor {
+
+    virtual bool operator()(const Record& data)
+    {
+      using namespace proto::common;
+      using namespace proto::historian;
+
+      std::cout << data.key() << ",";
+      optional<IndexedValue> v1 = as<IndexedValue>(data);
+      if (v1) {
+        std::cout << *v1;
+      }
+      optional<MarketData> v2 = as<MarketData>(data);
+      if (v2) {
+        std::cout << *v2;
+      }
+      std::cout << std::endl;
+      return true;
+    }
+  } visitor;
+
+  LOG(INFO) << "Query: " << q;
+
+  int count = client.Query(q, &visitor);
+  HISTORIAN_REACTOR_LOGGER << "Count = " << count;
 }

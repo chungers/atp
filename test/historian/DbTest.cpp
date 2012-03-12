@@ -71,7 +71,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
   } visitor;
 
   visitor.count = 0;
-  db.query("AAPL.STK", "BAC.STK", &visitor);
+  db.Query("AAPL.STK", "BAC.STK", &visitor);
 
   EXPECT_EQ(500.0, visitor.value);
   EXPECT_EQ(1, visitor.count);
@@ -88,7 +88,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
   visitor.value = 0.;
   visitor.fail = false;
 
-  db.query(key.str(), key2.str(), &visitor);
+  db.Query(key.str(), key2.str(), &visitor);
 
   EXPECT_EQ(500.0, visitor.value);
   EXPECT_EQ(1, visitor.count);
@@ -97,7 +97,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
   visitor.count = 0;
   visitor.value = 0.;
   visitor.fail = false;
-  db.query(key.str(), key.str(), &visitor);
+  db.Query(key.str(), key.str(), &visitor);
   EXPECT_EQ(0, visitor.count);
 
   ///
@@ -110,7 +110,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
     qbr.set_first(key.str());
     qbr.set_last(key2.str());
     qbr.set_index("BID");
-    db.query(qbr, &visitor);
+    db.Query(qbr, &visitor);
     EXPECT_EQ(0, visitor.count);
   }
 
@@ -124,7 +124,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
     qbr.set_first(key.str());
     qbr.set_last(key2.str());
     qbr.set_index("ASK");
-    db.query(qbr, &visitor);
+    db.Query(qbr, &visitor);
     EXPECT_EQ(1, visitor.count);
     EXPECT_EQ(500.0, visitor.value);
   }
@@ -142,7 +142,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
     boost::posix_time::time_duration td(0, 0, 0, 1);
     qbs.set_utc_last_micros(historian::as_micros(t + td));
     qbs.set_index("ASK");
-    db.query(qbs, &visitor);
+    db.Query(qbs, &visitor);
     EXPECT_EQ(1, visitor.count);
     EXPECT_EQ(500.0, visitor.value);
   }
@@ -162,7 +162,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
     qbs.set_index("ASK");
 
 
-    db.query(qbs, &visitor);
+    db.Query(qbs, &visitor);
     EXPECT_EQ(0, visitor.count);
   }
 
