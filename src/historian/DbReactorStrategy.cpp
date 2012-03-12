@@ -1,4 +1,5 @@
 
+#include <iostream>
 #include <boost/lexical_cast.hpp>
 #include <boost/shared_ptr.hpp>
 #include <zmq.hpp>
@@ -14,6 +15,7 @@
 namespace historian {
 
 using std::string;
+using std::ostream;
 using zmq::context_t;
 using zmq::socket_t;
 using atp::zmq::Reactor;
@@ -104,35 +106,45 @@ bool replyDataReady(socket_t& socket)
   return false;
 }
 
-int handleQueryByRange(const boost::shared_ptr<Db> db,
-                       const QueryByRange& q,
+ostream& operator<<(ostream& out, const QueryByRange& q)
+{
+  out << "QueryByRange<"
+      << q.type() << ">["
+      << q.first() << ", " << q.last() << ")"
+      << (q.has_index() ?
+          ", index=" + q.index() : "");
+  return out;
+}
+
+ostream& operator<<(ostream& out, const QueryBySymbol& q)
+{
+  out << "QueryBySymbol<"
+      << q.type() << ">@"
+      << q.symbol()
+      << "[" << q.utc_first_micros()
+      << ", " << q.utc_last_micros()
+      << ")"
+      << (q.has_index() ?
+          ", index=" + q.index() : "");
+  return out;
+}
+
+template <typename Q>
+inline int handleQuery(const boost::shared_ptr<Db> db,
+                       const Q& q,
                        socket_t& socket, string* message)
 {
-  HISTORIAN_REACTOR_DEBUG << "QueryByRange<"
-                          << q.type() << ">["
-                          << q.first() << ", " << q.last() << ")"
-                          << (q.has_index() ?
-                              ", index=" + q.index() : "");
   DbVisitor visitor(socket);
   return db->query(q, &visitor);
 }
 
-int handleQueryBySymbol(const boost::shared_ptr<Db> db,
-                        const QueryBySymbol& q,
-                        socket_t& socket, string* message)
-{
-  HISTORIAN_REACTOR_DEBUG << "QueryBySymbol<"
-                          << q.type() << ">@"
-                          << q.symbol()
-                          << "[" << q.utc_first_micros()
-                          << ", " << q.utc_last_micros()
-                          << ")"
-                          << (q.has_index() ?
-                              ", index=" + q.index() : "");
-  DbVisitor visitor(socket);
-  return db->query(q, &visitor);
-  return 0;
-}
+template int handleQuery<QueryByRange>(const boost::shared_ptr<Db>,
+                                       const QueryByRange&,
+                                       socket_t&, string*);
+template int handleQuery<QueryBySymbol>(const boost::shared_ptr<Db>,
+                                       const QueryBySymbol&,
+                                       socket_t&, string*);
+
 
 
 bool DbReactorStrategy::respond(socket_t& socket)
@@ -184,14 +196,16 @@ bool DbReactorStrategy::respond(socket_t& socket)
           using namespace proto::historian;
 
           case Query_Type_QUERY_BY_RANGE :
-            if ((count = handleQueryByRange(db_, query.query_by_range(),
-                                            *callback, &error)) < 0) {
+            if ((count = handleQuery<QueryByRange>(
+                    db_, query.query_by_range(),
+                    *callback, &error)) < 0) {
               replyError(*callback, error);
             }
             break;
           case Query_Type_QUERY_BY_SYMBOL :
-            if ((count = handleQueryBySymbol(db_, query.query_by_symbol(),
-                                             *callback, &error)) < 0) {
+            if ((count = handleQuery<QueryBySymbol>(
+                    db_, query.query_by_symbol(),
+                    *callback, &error)) < 0) {
               replyError(*callback, error);
             }
             break;

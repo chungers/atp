@@ -14,6 +14,7 @@ using std::string;
 using zmq::context_t;
 using zmq::socket_t;
 using proto::historian::QueryByRange;
+using proto::historian::QueryBySymbol;
 
 
 class DbReactorClient
@@ -25,7 +26,9 @@ class DbReactorClient
 
   bool connect();
 
-  int query(const QueryByRange& query, Visitor* visitor);
+  int Query(const QueryByRange& query, Visitor* visitor);
+
+  int Query(const QueryBySymbol& query, Visitor* visitor);
 
  private:
   string endpoint_;

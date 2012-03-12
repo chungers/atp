@@ -96,7 +96,7 @@ inline const void set_as(proto::historian::Type t,
 }
 
 
-} // MarketDepthernal
+} // internal
 
 using namespace internal;
 
@@ -166,36 +166,6 @@ template <typename T> inline const Record wrap(const T& v)
   Record record;
   proto::historian::set_as<T>(v, &record);
   return record;
-}
-
-// template inline const Record wrap<MarketData>(const MarketData& v);
-// template inline const Record wrap<MarketDepth>(const MarketDepth& v);
-// template inline const Record wrap<SessionLog>(const SessionLog& v);
-// template inline const Record wrap<IndexedValue>(const IndexedValue& v);
-
-
-/** Wraps a MarketData in a copy of Record */
-template <> inline const Record wrap<MarketData>(const MarketData& v)
-{
-  Record record; proto::historian::set_as(v, &record); return record;
-}
-
-/** Wraps a MarketDepth in a copy of Record */
-template <> inline const Record wrap<MarketDepth>(const MarketDepth& v)
-{
-  Record record; proto::historian::set_as(v, &record); return record;
-}
-
-/** Wraps a SessionLog in a copy of Record */
-template <> inline const Record wrap<SessionLog>(const SessionLog& v)
-{
-  Record record; proto::historian::set_as(v, &record); return record;
-}
-
-/** Wraps a IndexedValue in a copy of Record */
-template <> inline const Record wrap<IndexedValue>(const IndexedValue& v)
-{
-  Record record; proto::historian::set_as(v, &record); return record;
 }
 
 } // historian

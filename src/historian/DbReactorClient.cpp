@@ -163,7 +163,7 @@ int processCallback(const boost::scoped_ptr<socket_t>& socket, Visitor* visit)
   return count;
 }
 
-int DbReactorClient::query(const QueryByRange& query, Visitor* visitor)
+int DbReactorClient::Query(const QueryByRange& query, Visitor* visitor)
 {
   using namespace historian::internal;
   if (send(proto::historian::Query_Type_QUERY_BY_RANGE, query, socket_,
@@ -180,6 +180,22 @@ int DbReactorClient::query(const QueryByRange& query, Visitor* visitor)
   return 0;
 }
 
+int DbReactorClient::Query(const QueryBySymbol& query, Visitor* visitor)
+{
+  using namespace historian::internal;
+  if (send(proto::historian::Query_Type_QUERY_BY_SYMBOL, query, socket_,
+           callbackEndpoint_) > 0) {
+    // now wait for the reply and check to see if we should listen on
+    // the callback socket.
+    string message;
+    if (processQueryResponse(socket_, &message)) {
+      return processCallback(callbackSocket_, visitor);
+    } else {
+      HISTORIAN_REACTOR_ERROR << "Error from server: " << message;
+    }
+  }
+  return 0;
+}
 } // historian
 
 

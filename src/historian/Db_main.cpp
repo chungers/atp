@@ -27,6 +27,8 @@
 #include "proto/historian.hpp"
 #include "historian/historian.hpp"
 
+#include "proto/impl.cpp"
+
 
 const static std::string NO_VALUE("");
 
@@ -49,70 +51,6 @@ using namespace proto::historian;
 using boost::optional;
 using std::string;
 
-namespace proto {
-namespace common {
-
-std::ostream& operator<<(std::ostream& out, const Value& v)
-{
-  using namespace proto::common;
-  switch (v.type()) {
-    case Value_Type_INT:
-      out << v.int_value();
-      break;
-    case Value_Type_DOUBLE:
-      out << v.double_value();
-      break;
-    case Value_Type_STRING:
-      out << v.string_value();
-      break;
-  }
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const MarketData& v)
-{
-  using namespace historian;
-  ptime t =to_est(as_ptime(v.timestamp()));
-  out << t << "," << v.symbol() << "," << v.event() << "," << v.value();
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const MarketDepth& v)
-{
-  using namespace historian;
-  ptime t = to_est(as_ptime(v.timestamp()));
-  out << t << "," << v.symbol() << ","
-      << v.operation() << "," << v.level() << ","
-      << v.side() << "," << v.price() << ","
-      << v.size();
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const IndexedValue& iv)
-{
-  using namespace historian;
-  using namespace proto::common;
-  ptime t =to_est(as_ptime(iv.timestamp()));
-  out << t << "," << iv.value();
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const SessionLog& log)
-{
-  using namespace historian;
-  using namespace proto::common;
-  ptime t1 = to_est(as_ptime(log.start_timestamp()));
-  ptime t2 = to_est(as_ptime(log.start_timestamp()));
-
-  out << log.symbol() << ","
-      << "start=" << t1 << ","
-      << "end=" << t2 << ","
-      << "source=" << log.source();
-  return out;
-}
-
-} // common
-} // proto
 
 ////////////////////////////////////////////////////////
 //
@@ -140,6 +78,7 @@ int main(int argc, char** argv)
     virtual bool operator()(const Record& record)
     {
       namespace p = proto::historian;
+      using namespace historian;
 
       if (record.has_key()) {
         std::cout << record.key() << ",";

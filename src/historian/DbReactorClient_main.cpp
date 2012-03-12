@@ -4,10 +4,15 @@
 #include <stdio.h>
 #include <zmq.hpp>
 
+#include <boost/optional.hpp>
+
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include "log_levels.h"
+
+#include "proto/historian.hpp"
+#include "proto/impl.cpp"
 
 #include "historian/time_utils.hpp"
 #include "historian/Visitor.hpp"
@@ -36,10 +41,14 @@ DEFINE_string(event, "", "Event (e.g. BID, ASK)");
 using std::string;
 using zmq::context_t;
 
+using boost::posix_time::ptime;
+using boost::optional;
+
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 using proto::historian::SessionLog;
-using proto::historian::QueryByRange;
+using proto::historian::IndexedValue;
+using proto::historian::QueryBySymbol;
 
 using namespace historian;
 
@@ -72,26 +81,46 @@ int main(int argc, char** argv)
 
   } else {
 
-    QueryByRange q;
-    q.set_first(FLAGS_first);
-    q.set_last(FLAGS_last);
+    ptime start;
+    ptime end;
+
+    // EST to UTC
+    historian::parse(FLAGS_first, &start);
+    historian::parse(FLAGS_last, &end);
+
+    QueryBySymbol q;
+    q.set_symbol(FLAGS_symbol);
+    q.set_utc_first_micros(historian::as_micros(start));
+    q.set_utc_last_micros(historian::as_micros(end));
 
     // TODO abstract this detail into a cleaner api
-    q.set_type(proto::historian::INDEXED_VALUE);
     if (FLAGS_event.size() > 0) {
-      q.set_index(INDEX_IB_MARKET_DATA_BY_EVENT);
+      q.set_type(proto::historian::INDEXED_VALUE);
+      q.set_index(FLAGS_event);
     }
 
-    struct Visitor : public historian::DefaultVisitor {
+    struct Visitor : public historian::Visitor {
 
-      virtual bool operator()(const string& key, const Record& data)
+      virtual bool operator()(const Record& data)
       {
-        // TODO implement this
+        using namespace proto::common;
+        using namespace proto::historian;
+
+        std::cout << data.key() << ",";
+        optional<IndexedValue> v1 = as<IndexedValue>(data);
+        if (v1) {
+          std::cout << *v1;
+        }
+        optional<MarketData> v2 = as<MarketData>(data);
+        if (v2) {
+          std::cout << *v2;
+        }
+        std::cout << std::endl;
         return true;
       }
     } visitor;
 
-    int count = client.query(q, &visitor);
+    int count = client.Query(q, &visitor);
     HISTORIAN_REACTOR_LOGGER << "Count = " << count;
   }
 }
