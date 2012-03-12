@@ -20,7 +20,9 @@ using historian::Db;
 using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
+using proto::historian::IndexedValue;
 using proto::historian::SessionLog;
+using proto::historian::Record;
 using proto::historian::Query;
 using proto::historian::QueryByRange;
 using proto::historian::QueryBySymbol;
@@ -31,7 +33,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
   namespace common = proto::common;
 
   Db db("/tmp/testdb");
-  EXPECT_TRUE(db.open());
+  EXPECT_TRUE(db.Open());
 
   const string est("2012-02-14 04:30:34.567899");
   ptime t;
@@ -45,15 +47,15 @@ TEST(DbTest, DbReadWriteMarketDataTest)
   common::set_as(500., d.mutable_value());
   d.set_contract_id(9999);
 
-  EXPECT_TRUE(db.write(d));
+  EXPECT_TRUE(db.Write(d));
 
   // if this commits following tests will fail.
   d.mutable_value()->set_double_value(700.);
-  EXPECT_FALSE(db.write(d, false)); // no overwrite
+  EXPECT_FALSE(db.Write(d, false)); // no overwrite
 
   // now change the key
   d.set_symbol("GOOG.STK");
-  EXPECT_TRUE(db.write(d, true)); // no overwrite - should commit.
+  EXPECT_TRUE(db.Write(d, true)); // no overwrite - should commit.
 
   struct : public historian::Visitor
   {
@@ -61,24 +63,9 @@ TEST(DbTest, DbReadWriteMarketDataTest)
     bool fail;
     int count;
 
-    bool operator()(const SessionLog& log)
+    bool operator()(const Record& record)
     {
-      fail = true;
-      return false;
-    }
-
-    bool operator()(const MarketData& data)
-    {
-      value = data.value().double_value();
-      count++;
-      fail = false;
       return true;
-    }
-
-    bool operator()(const MarketDepth& data)
-    {
-      fail = true;
-      return false;
     }
 
   } visitor;
@@ -122,7 +109,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
     QueryByRange qbr;
     qbr.set_first(key.str());
     qbr.set_last(key2.str());
-    qbr.set_filter("BID");
+    qbr.set_index("BID");
     db.query(qbr, &visitor);
     EXPECT_EQ(0, visitor.count);
   }
@@ -136,7 +123,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
     QueryByRange qbr;
     qbr.set_first(key.str());
     qbr.set_last(key2.str());
-    qbr.set_filter("ASK");
+    qbr.set_index("ASK");
     db.query(qbr, &visitor);
     EXPECT_EQ(1, visitor.count);
     EXPECT_EQ(500.0, visitor.value);
@@ -154,7 +141,7 @@ TEST(DbTest, DbReadWriteMarketDataTest)
 
     boost::posix_time::time_duration td(0, 0, 0, 1);
     qbs.set_utc_last_micros(historian::as_micros(t + td));
-    qbs.set_filter("ASK");
+    qbs.set_index("ASK");
     db.query(qbs, &visitor);
     EXPECT_EQ(1, visitor.count);
     EXPECT_EQ(500.0, visitor.value);
@@ -172,10 +159,8 @@ TEST(DbTest, DbReadWriteMarketDataTest)
 
     boost::posix_time::time_duration td(0, 0, 0, 1);
     qbs.set_utc_last_micros(historian::as_micros(t + td));
-    qbs.set_filter("ASK");
+    qbs.set_index("ASK");
 
-    // only market depth
-    qbs.set_depth_only(true);
 
     db.query(qbs, &visitor);
     EXPECT_EQ(0, visitor.count);
