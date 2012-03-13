@@ -144,17 +144,12 @@ class CallbackStreamer
                    const boost::shared_ptr<historian::Db>& db,
                    const Query& query,
                    const boost::shared_ptr<zmq::context_t>& context) :
-      responseId_(responseId), db_(db), query_(query), connected_(false)
+      responseId_(responseId),
+      db_(db),
+      query_(query),
+      connected_(false),
+      context_(context)
   {
-    try {
-      callback_.reset(new socket_t(*context, ZMQ_PUSH));
-      callback_->connect(query.callback().c_str());
-      connected_ = true;
-      HISTORIAN_REACTOR_DEBUG << "Connected to callback.";
-    } catch (zmq::error_t e) {
-      HISTORIAN_REACTOR_ERROR << "Error trying to connect callback: "
-                              << query.callback() << ", " << e.what();
-    }
   }
 
   ~CallbackStreamer() {}
@@ -162,6 +157,16 @@ class CallbackStreamer
   /// Stream the data back to the callback socket.
   size_t operator()()
   {
+    try {
+      callback_.reset(new socket_t(*context_, ZMQ_PUSH));
+      callback_->connect(query_.callback().c_str());
+      connected_ = true;
+      HISTORIAN_REACTOR_DEBUG << "Connected to callback.";
+    } catch (zmq::error_t e) {
+      HISTORIAN_REACTOR_ERROR << "Error trying to connect callback: "
+                              << query_.callback() << ", " << e.what();
+    }
+
     if (!connected_) return 0;
     size_t count = 0;
     uint64_t start = now_micros();
@@ -205,6 +210,7 @@ class CallbackStreamer
   boost::shared_ptr<historian::Db> db_;
   Query query_;
   bool connected_;
+  boost::shared_ptr<zmq::context_t> context_;
   boost::scoped_ptr<socket_t> callback_;
 };
 
