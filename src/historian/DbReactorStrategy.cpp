@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <boost/lexical_cast.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <zmq.hpp>
 
@@ -16,6 +17,7 @@ namespace historian {
 
 using std::string;
 using std::ostream;
+using boost::uint64_t;
 using zmq::context_t;
 using zmq::socket_t;
 using atp::zmq::Reactor;
@@ -34,7 +36,8 @@ using proto::historian::QueryBySymbol;
 class DbVisitor : public historian::Visitor
 {
  public:
-  DbVisitor(socket_t& socket) : socket_(socket) {}
+  DbVisitor(socket_t& socket, uint64_t responseId) :
+      socket_(socket), responseId_(boost::lexical_cast<string>(responseId)) {}
   ~DbVisitor() {}
 
   bool operator()(const Record& record)
@@ -54,7 +57,8 @@ class DbVisitor : public historian::Visitor
     }
 
     try {
-      size_t sent = atp::zmq::send_copy(socket_, recordProto, false);
+      size_t sent = atp::zmq::send_copy(socket_, responseId_, true);
+      sent += atp::zmq::send_copy(socket_, recordProto, false);
       return sent;
     } catch (zmq::error_t e) {
       HISTORIAN_REACTOR_ERROR << "Exception while sending: " << e.what();
@@ -64,6 +68,7 @@ class DbVisitor : public historian::Visitor
 
  private:
   socket_t& socket_;
+  string responseId_;
 };
 
 
@@ -78,27 +83,12 @@ DbReactorStrategy::~DbReactorStrategy()
 {
 }
 
-void replyError(socket_t& socket, const string& message)
-{
-  // send two frames.
-  HISTORIAN_REACTOR_ERROR << "Error: " << message;
-  try {
-    atp::zmq::send_copy(socket, boost::lexical_cast<string>(500), true);
-    atp::zmq::send_copy(socket, message, true);
-  } catch (zmq::error_t e) {
-    HISTORIAN_REACTOR_ERROR << "Exception while reply with error: " << e.what();
-  }
-}
-
-bool replyDataReady(socket_t& socket)
+bool replyDataReady(socket_t& socket, uint64_t responseId)
 {
   // send two frames.
   try {
     atp::zmq::send_copy(socket, boost::lexical_cast<string>(200), true);
-    atp::zmq::send_copy(socket, "OK", false);
-
-    HISTORIAN_REACTOR_DEBUG << "Sent data ready.";
-
+    atp::zmq::send_copy(socket, boost::lexical_cast<string>(responseId), false);
     return true;
   } catch (zmq::error_t e) {
     HISTORIAN_REACTOR_ERROR << "Exception while reply with ready: " << e.what();
@@ -130,103 +120,124 @@ ostream& operator<<(ostream& out, const QueryBySymbol& q)
 }
 
 template <typename Q>
-inline int handleQuery(const boost::shared_ptr<Db> db,
-                       const Q& q,
-                       socket_t& socket, string* message)
+inline int handleQuery(const uint64_t responseId,
+                       const boost::shared_ptr<Db> db,
+                       const Q& q, socket_t& socket)
 {
-  DbVisitor visitor(socket);
+  DbVisitor visitor(socket, responseId);
   return db->Query(q, &visitor);
 }
 
-template int handleQuery<QueryByRange>(const boost::shared_ptr<Db>,
-                                       const QueryByRange&,
-                                       socket_t&, string*);
-template int handleQuery<QueryBySymbol>(const boost::shared_ptr<Db>,
-                                       const QueryBySymbol&,
-                                       socket_t&, string*);
+template int handleQuery<QueryByRange>(const uint64_t responseId,
+                                       const boost::shared_ptr<Db>,
+                                       const QueryByRange&, socket_t&);
+
+template int handleQuery<QueryBySymbol>(const uint64_t responseId,
+                                        const boost::shared_ptr<Db>,
+                                        const QueryBySymbol&, socket_t&);
 
 
+class CallbackStreamer
+{
+ public:
+  CallbackStreamer(uint64_t responseId,
+                   const boost::shared_ptr<historian::Db>& db,
+                   const Query& query,
+                   const boost::shared_ptr<zmq::context_t>& context) :
+      responseId_(responseId), db_(db), query_(query), connected_(false)
+  {
+    try {
+      callback_.reset(new socket_t(*context, ZMQ_PUSH));
+      callback_->connect(query.callback().c_str());
+      connected_ = true;
+      HISTORIAN_REACTOR_DEBUG << "Connected to callback.";
+    } catch (zmq::error_t e) {
+      HISTORIAN_REACTOR_ERROR << "Error trying to connect callback: "
+                              << query.callback() << ", " << e.what();
+    }
+  }
+
+  ~CallbackStreamer() {}
+
+  /// Stream the data back to the callback socket.
+  size_t operator()()
+  {
+    if (!connected_) return 0;
+    size_t count = 0;
+    uint64_t start = now_micros();
+
+    string reqId = boost::lexical_cast<string>(responseId_);
+
+    Query_Type type = query_.type();
+    switch (type) {
+
+      using namespace proto::historian;
+
+
+      case Query_Type_QUERY_BY_RANGE :
+        count = handleQuery<QueryByRange>
+            (responseId_, db_, query_.query_by_range(), *callback_);
+        break;
+
+
+      case Query_Type_QUERY_BY_SYMBOL :
+        count = handleQuery<QueryBySymbol>
+            (responseId_, db_, query_.query_by_symbol(), *callback_);
+        break;
+
+    }
+    uint64_t elapsed = now_micros() - start;
+
+    // finally send a terminating frame
+    HISTORIAN_REACTOR_DEBUG << "Finished query: " << count << " records in "
+                            << static_cast<double>(elapsed) / 1000000.
+                            << " seconds."
+                            << " Sending complete command.";
+
+    // Send two frames:
+    atp::zmq::send_copy(*callback_, reqId, true);
+    atp::zmq::send_copy(*callback_, boost::lexical_cast<string>(200), false);
+    return count;
+  }
+
+ private:
+  uint64_t responseId_;
+  boost::shared_ptr<historian::Db> db_;
+  Query query_;
+  bool connected_;
+  boost::scoped_ptr<socket_t> callback_;
+};
 
 bool DbReactorStrategy::respond(socket_t& socket)
 {
   try {
-    while (1) {
-      int more = 1;
-      string frame1;
-      if (more) more = atp::zmq::receive(socket, &frame1);
-      while (more) {
-        string buffer;
-        more = atp::zmq::receive(socket, &buffer);
-        HISTORIAN_REACTOR_ERROR << "Extra frames: " << buffer;
-      }
 
-      // Now process the input request:
-      boost::scoped_ptr<socket_t> callback;
-
-      Query query;
-      if (query.ParseFromString(frame1)) {
-
-        HISTORIAN_REACTOR_DEBUG << "Callback = " << query.callback();
-
-        if (replyDataReady(socket)) {
-
-          callback.reset(new socket_t(*context_, ZMQ_PUSH));
-          try {
-            callback->connect(query.callback().c_str());
-
-            HISTORIAN_REACTOR_DEBUG << "Connected to callback.";
-
-          } catch (zmq::error_t e) {
-            HISTORIAN_REACTOR_ERROR << "Error trying to connect callback: "
-                                    << query.callback() << ", " << e.what();
-          }
-        }
-      } else {
-        LOG(ERROR) << "Cannot parse query: " << frame1;
-      }
-
-      // TODO need to start a thread.
-      int count = 0;
-      boost::uint64_t start = now_micros();
-
-      if (callback.get() != NULL) {
-        Query_Type type = query.type();
-        string error;
-
-        switch (type) {
-
-          using namespace proto::historian;
-
-          case Query_Type_QUERY_BY_RANGE :
-            if ((count = handleQuery<QueryByRange>(
-                    db_, query.query_by_range(),
-                    *callback, &error)) < 0) {
-              replyError(*callback, error);
-            }
-            break;
-          case Query_Type_QUERY_BY_SYMBOL :
-            if ((count = handleQuery<QueryBySymbol>(
-                    db_, query.query_by_symbol(),
-                    *callback, &error)) < 0) {
-              replyError(*callback, error);
-            }
-            break;
-        }
-
-        boost::uint64_t elapsed = now_micros() - start;
-
-        // finally send a terminating frame
-        HISTORIAN_REACTOR_DEBUG << "Finished query: " << count << " records in "
-                                << static_cast<double>(elapsed) / 1000000.
-                                << " seconds."
-                                << " Sending complete command.";
-        string empty("COMPLETED");
-        atp::zmq::send_copy(*callback, empty, false);
-      }
-
+    int more = 1;
+    string frame1;
+    if (more) more = atp::zmq::receive(socket, &frame1);
+    while (more) {
+      string buffer;
+      more = atp::zmq::receive(socket, &buffer);
+      HISTORIAN_REACTOR_ERROR << "Extra frames: " << buffer;
     }
-  } catch (zmq::error_t e) {
 
+    // Process the query:
+    Query query;
+    if (!query.ParseFromString(frame1)) {
+      LOG(ERROR) << "Cannot parse query: " << frame1;
+      return false;
+    }
+
+    // Assign responseId:  make this small to reduce bytes transferred.
+    uint64_t responseId = now_micros() % 1000000LL;
+    if (replyDataReady(socket, responseId)) {
+
+      CallbackStreamer doCallback(responseId, db_, query, context_);
+      doCallback();
+    }
+
+  } catch (zmq::error_t e) {
+    HISTORIAN_REACTOR_ERROR << "Exception from socket: " << e.what();
   }
   return true;
 }

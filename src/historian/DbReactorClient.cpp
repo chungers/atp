@@ -3,12 +3,15 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "log_levels.h"
+#include "utils.hpp"
 #include "zmq/ZmqUtils.hpp"
 #include "proto/ib.pb.h"
 
 #include "historian/DbReactorClient.hpp"
 
 using std::string;
+using boost::uint64_t;
+
 using zmq::context_t;
 using zmq::socket_t;
 
@@ -109,40 +112,54 @@ bool DbReactorClient::connect()
   }
 }
 
-bool processQueryResponse(const boost::scoped_ptr<socket_t>& socket,
-                          string* error)
+uint64_t processQueryResponse(const boost::scoped_ptr<socket_t>& socket,
+                              string* error)
 {
-  while (true) {
-    string frame1, frame2;
-    // Three frames: type, proto
+  string frame1, frame2;
+
+  try {
     size_t more = atp::zmq::receive(*socket, &frame1);
     if (more) more = atp::zmq::receive(*socket, &frame2);
 
     HISTORIAN_REACTOR_DEBUG << "Received from server: "
                             << frame1 << "," << frame2;
 
-    if (boost::lexical_cast<int>(frame1) == 200) {
-      return true;
+    int status = boost::lexical_cast<int>(frame1);
+    uint64_t responseId = boost::lexical_cast<uint64_t>(frame2);
+
+    if (status == 200) {
+      LOG(INFO) << "Response id " << responseId;
+      return responseId;
     } else {
       *error = frame2;
-      break;
+      return 0;
     }
+
+  } catch (zmq::error_t e) {
+    HISTORIAN_REACTOR_ERROR << "Exception from socket: " << e.what();
   }
-  return false;
+  return 0;
 }
 
-int processCallback(const boost::scoped_ptr<socket_t>& socket, Visitor* visit)
+int processCallback(const uint64_t& responseId,
+                    const boost::scoped_ptr<socket_t>& socket, Visitor* visit)
 {
   int count = 0;
   while (true) {
 
-    // A single frame containing the entire record proto itself.
-    // Continue until we cannot deserialize inbound frames.
-    string frame1;
+    // frame1 = responseId, frame2 = proto
+    string frame1, frame2;
 
     try {
 
-      atp::zmq::receive(*socket, &frame1);
+      int more = atp::zmq::receive(*socket, &frame1);
+      if (more) more = atp::zmq::receive(*socket, &frame2);
+
+      uint64_t receivedId = boost::lexical_cast<uint64_t>(frame1);
+      if (responseId != receivedId) {
+        HISTORIAN_REACTOR_ERROR << "Bad response id " << receivedId;
+        return 0; // TODO - need t implement multiplexing.
+      }
 
     } catch (zmq::error_t e) {
       HISTORIAN_REACTOR_ERROR << "Error receiving: " << e.what();
@@ -151,10 +168,13 @@ int processCallback(const boost::scoped_ptr<socket_t>& socket, Visitor* visit)
 
     // Deserialize to Record;
     Record record;
-    if (record.ParseFromString(frame1)) {
+    if (record.ParseFromString(frame2)) {
       if ((*visit)(record)) {
         count++;
       }
+    } else if (200 == boost::lexical_cast<int>(frame2)) {
+      LOG(INFO) << "Response stream " << responseId << " completed.";
+      break;
     } else {
       HISTORIAN_REACTOR_DEBUG << "Not a Record. Received: " << frame1;
       break;
@@ -171,8 +191,9 @@ int DbReactorClient::Query(const QueryByRange& query, Visitor* visitor)
     // now wait for the reply and check to see if we should listen on
     // the callback socket.
     string message;
-    if (processQueryResponse(socket_, &message)) {
-      return processCallback(callbackSocket_, visitor);
+    uint64_t responseId = processQueryResponse(socket_, &message);
+    if (responseId > 0) {
+      return processCallback(responseId, callbackSocket_, visitor);
     } else {
       HISTORIAN_REACTOR_ERROR << "Error from server: " << message;
     }
@@ -188,8 +209,9 @@ int DbReactorClient::Query(const QueryBySymbol& query, Visitor* visitor)
     // now wait for the reply and check to see if we should listen on
     // the callback socket.
     string message;
-    if (processQueryResponse(socket_, &message)) {
-      return processCallback(callbackSocket_, visitor);
+    uint64_t responseId = processQueryResponse(socket_, &message);
+    if (responseId > 0) {
+      return processCallback(responseId, callbackSocket_, visitor);
     } else {
       HISTORIAN_REACTOR_ERROR << "Error from server: " << message;
     }
