@@ -27,7 +27,7 @@ PKG_LIBS = `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` \
 -L@SRC_DIR@/varz -lvarz_components \
 -L@SRC_DIR@/zmq -lzmq_components \
 -L@SRC_DIR@/historian -lhistorian_components \
--L@SRC_DIR@/proto -lhistorian_proto -lib_proto \
+-L@SRC_DIR@/proto -lproto_components
 
 
 

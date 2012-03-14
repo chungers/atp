@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 
+#include "proto/historian.hpp"
 #include "historian/historian.hpp"
 #include "raptor_historian.h"
 
@@ -9,6 +10,8 @@
 using namespace Rcpp ;
 
 using std::string;
+using boost::optional;
+
 using historian::Db;
 
 SEXP raptor_historian_open(SEXP db)
@@ -17,7 +20,7 @@ SEXP raptor_historian_open(SEXP db)
   Db* leveldb = new Db(leveldbFile);
 
   // try to open the file
-  bool status = leveldb->open();
+  bool status = leveldb->Open();
 
   if (status) {
     XPtr<Db> dbPtr(leveldb);
@@ -45,9 +48,12 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
                                     SEXP callback, SEXP est)
 {
   using std::string;
+  using boost::optional;
   using boost::posix_time::ptime;
   using proto::common::Value;
-  using proto::ib::MarketData;
+  using proto::historian::IndexedValue;
+  using proto::historian::QueryBySymbol;
+  using proto::historian::Record;
 
   List handleList(dbHandle);
   XPtr<Db> leveldb(handleList["dbPtr"], R_NilValue, R_NilValue);
@@ -69,10 +75,10 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
 
   struct Visitor : public historian::DefaultVisitor
   {
-    Visitor(Function* cb, const string& event,
+    Visitor(const string& symbol, Function* cb, const string& event,
             NumericVector* tsVectorPtr,
             NumericVector* valueVectorPtr) :
-        callback_(cb), event_(event),
+        symbol_(symbol), callback_(cb), event_(event),
         tsVectorPtr_(tsVectorPtr),
         valueVectorPtr_(valueVectorPtr)
     {
@@ -84,48 +90,63 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
       if (callback_ != NULL) delete callback_;
     }
 
-    bool operator()(const MarketData& data)
+    bool operator()(const Record& data)
     {
       SEXP value;
-      Value v = data.value();
-      switch (v.type()) {
-        case proto::common::Value_Type_INT :
-          value = wrap(static_cast<long>(v.int_value()));
-          break;
-        case proto::common::Value_Type_STRING :
-          value = wrap(v.string_value());
-          break;
-        case proto::common::Value_Type_DOUBLE :
-          value = wrap(v.double_value());
-          break;
-      }
+      Value v;
+      boost::uint64_t utcMicros = 0LL;
 
-      if (callback_ != NULL) {
-        return as<bool>((*callback_)(
-            wrap(data.symbol()),
-            wrap(static_cast<double>(data.timestamp()) / 1000000.f),
-            wrap(data.event()),
-            value));
-      } else if (data.event() == event_) {
-        tsVectorPtr_->push_back(
-            static_cast<double>(data.timestamp()) / 1000000.f);
-        valueVectorPtr_->push_back(as<double>(value));
+      optional<IndexedValue> iv = proto::historian::as<IndexedValue>(data);
+      if (iv) {
+        v = iv->value();
+        utcMicros = iv->timestamp();
+        switch (v.type()) {
+          case proto::common::Value_Type_INT :
+            value = wrap(static_cast<long>(v.int_value()));
+            break;
+          case proto::common::Value_Type_STRING :
+            value = wrap(v.string_value());
+            break;
+          case proto::common::Value_Type_DOUBLE :
+            value = wrap(v.double_value());
+            break;
+        }
+        if (callback_ != NULL) {
+          return as<bool>((*callback_)(
+              wrap(symbol_),
+              wrap(static_cast<double>(utcMicros) / 1000000.f),
+              wrap(event_),
+              value));
+        } else {
+          tsVectorPtr_->push_back(
+              static_cast<double>(utcMicros) / 1000000.f);
+          valueVectorPtr_->push_back(as<double>(value));
 
-        if (tsVectorPtr_->size() % 1000 == 0) {
-          Rprintf(".");
+          if (tsVectorPtr_->size() % 1000 == 0) {
+            Rprintf(".");
+          }
         }
       }
+
       return true; // continue as we collect the values.
     }
 
+    const string symbol_;
     Function* callback_;
     string event_;
     NumericVector* tsVectorPtr_;
     NumericVector* valueVectorPtr_;
-  } visitor(cb, qEvent, &tsVector, &valueVector);
+  } visitor(qSymbol, cb, qEvent, &tsVector, &valueVector);
 
-  // Now actually perform the query
-  int count = leveldb->query(qSymbol, utcStart, utcStop, &visitor);
+  QueryBySymbol query;
+  query.set_symbol(qSymbol);
+  query.set_utc_first_micros(historian::as_micros(utcStart));
+  query.set_utc_last_micros(historian::as_micros(utcStop));
+  // set index
+  query.set_type(proto::historian::INDEXED_VALUE);
+  query.set_index(qEvent);
+
+  int count = leveldb->Query(query, &visitor);
 
   return List::create(Named("symbol", qSymbol),
                       Named("utc_t", tsVector),
