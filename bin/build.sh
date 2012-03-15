@@ -5,26 +5,36 @@ function showHelp {
     echo " -c : clean (default = off)"
     echo " -a : build all (default = off)"
     echo " -t <target> : for target"
+    echo " -d : for deployment to directory (hub/atp)"
+    echo " -m <message> : commit message for release."
     exit 0;
 }
 
 # main
+DIR=$(dirname $0)/..
+
 CLEAN=0
 BUILD=0
 TARGET=""
+DEPLOY_HUB="$DIR/../hub"
+DEPLOY_HUB_ATP="$DEPLOY_HUB/atp"
+DEPLOY=0
+MESSAGE=""
 
-while getopts "t:v:ca" optionName; do
+while getopts "t:m:cad" optionName; do
 case "$optionName" in
 c) CLEAN=1;;
 t) TARGET="$OPTARG"; BUILD=1;;
 a) BUILD=1;;
+d) DEPLOY=1;;
+m) MESSAGE="$OPTARG";;
 [?]) showHelp;;
 esac
 done
 
-DIR=$(dirname $0)/..
-
 pushd $DIR
+
+cmake .
 
 if [[ $TARGET != "" ]]; then
     TARGETS=$TARGET
@@ -55,6 +65,24 @@ if [ $BUILD == 1 ]; then
         fi;
     done
 fi
+
+DEPLOY_TARGET=$DEPLOY_HUB_ATP/$(uname)-$(arch)
+# Deploy to the hub
+if [ $DEPLOY == 1 ]; then
+    pushd $DEPLOY_HUB/
+    git pull
+    popd
+    # run full installation to build/
+    make install
+    mkdir -p $DEPLOY_TARGET
+    cp -r $DIR/install/ $DEPLOY_TARGET
+    git add -v atp/
+    git status
+    echo "Committing with message: $MESSAGE"
+    git commit -m "Build / release: $MESSAGE" -a
+    git push
+fi
+
 popd
 
 

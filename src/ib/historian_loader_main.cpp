@@ -503,7 +503,7 @@ using namespace ib::internal;
 //
 int main(int argc, char** argv)
 {
-  google::SetUsageMessage("Reads and publishes market data from logfile.");
+  google::SetUsageMessage("Reads market data from logfile and writes to db.");
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
