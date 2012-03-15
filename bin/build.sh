@@ -73,6 +73,7 @@ if [ $DEPLOY == 1 ]; then
     git pull
     popd
     # run full installation to build/
+    rm -rf $DIR/install/
     make install
     mkdir -p $DEPLOY_TARGET
     cp -r $DIR/install/ $DEPLOY_TARGET
