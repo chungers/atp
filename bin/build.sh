@@ -76,11 +76,13 @@ if [ $DEPLOY == 1 ]; then
     make install
     mkdir -p $DEPLOY_TARGET
     cp -r $DIR/install/ $DEPLOY_TARGET
+    pushd $DEPLOY_HUB/
     git add -v atp/
     git status
     echo "Committing with message: $MESSAGE"
     git commit -m "Build / release: $MESSAGE" -a
     git push
+    popd
 fi
 
 popd

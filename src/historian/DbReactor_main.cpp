@@ -32,7 +32,7 @@ DEFINE_string(leveldb, "", "Leveldb");
 //
 int main(int argc, char** argv)
 {
-  google::SetUsageMessage("ZMQ Reactor for historian / marketdata db");
+  google::SetUsageMessage("ZMQ Reactor for historian db");
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
   atp::varz::Varz::initialize();

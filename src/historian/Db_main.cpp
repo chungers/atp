@@ -58,7 +58,7 @@ using std::string;
 //
 int main(int argc, char** argv)
 {
-  google::SetUsageMessage("Reads and publishes market data from database.");
+  google::SetUsageMessage("Database client");
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
