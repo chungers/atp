@@ -76,7 +76,7 @@ if [ $DEPLOY == 1 ]; then
     rm -rf $DIR/install/
     make install
     mkdir -p $DEPLOY_TARGET
-    cp -r $DIR/install/ $DEPLOY_TARGET
+    cp -r $DIR/install/* $DEPLOY_TARGET
     pushd $DEPLOY_HUB/
     git add -v atp/
     git status
