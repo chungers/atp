@@ -33,7 +33,6 @@
 const static std::string NO_VALUE("__no_value__");
 
 DEFINE_bool(rth, false, "Regular trading hours");
-DEFINE_bool(delay, false, "True to simulate sample delays when publishing");
 DEFINE_string(logfile, "logfile", "The name of the log file.");
 DEFINE_string(leveldb, NO_VALUE, "leveldb file");
 DEFINE_int64(gapInMinutes, 5,
@@ -477,6 +476,7 @@ static bool WriteDb(const string& source, const T& value,
 static bool WriteSessionLogs(const string& source,
                              const boost::shared_ptr<historian::Db>& db)
 {
+  bool canOverWrite = !FLAGS_checkDuplicate;
   int count = 0;
   for (SessionLogMapIterator itr = SymbolSessionLogs.begin();
        itr != SymbolSessionLogs.end();
@@ -485,7 +485,7 @@ static bool WriteSessionLogs(const string& source,
     const std::string& symbol = itr->first;
     SessionLog& log = *(itr->second);
     log.set_source(source);
-    bool written = db->Write<SessionLog>(log);
+    bool written = db->Write<SessionLog>(log, canOverWrite);
     if (written) count++;
   }
   LOG(INFO) << "Total logs written: " << count;
@@ -558,6 +558,7 @@ int main(int argc, char** argv)
     int dbWrittenRecords = 0;
     int dbDuplicateRecords = 0;
 
+    boost::uint64_t process_start = now_micros();
     boost::int64_t last_ts = 0;
     boost::uint64_t last_log = 0;
     int last_written = 0;
@@ -604,7 +605,7 @@ int main(int argc, char** argv)
                           << ": in " << elapsedSec << " sec. "
                           << ": matchedRecords=" << matchedRecords
                           << ", dbWrittenRecords=" << dbWrittenRecords
-                          << ", written=" << written_so_far
+                          << ", writtenSinceLastCheck=" << written_so_far
                           << ", wQPS=" << writeQps;
                 last_log_t = t;
                 last_log = now;
@@ -658,7 +659,7 @@ int main(int argc, char** argv)
                             << ": in " << elapsedSec << " sec. "
                             << ": matchedRecords=" << matchedRecords
                             << ", dbWrittenRecords=" << dbWrittenRecords
-                            << ", written=" << written_so_far
+                            << ", writtenSinceLastCheck=" << written_so_far
                             << ", wQPS=" << writeQps;
                   last_log_t = t;
                   last_log = now;
@@ -688,15 +689,21 @@ int main(int argc, char** argv)
         lines++;
       }
     }
+
+    boost::uint64_t process_finish = now_micros();
+
     LOG(INFO) << "Processed " << lines << " lines with "
-              << matchedRecords << " records." << std::endl;
-    LOG(INFO) << "Finishing up -- closing file." << std::endl;
+              << matchedRecords << " records.";
+    LOG(INFO) << "Finishing up -- closing file.";
     //infile.close();
     infile.clear();
 
     if (db.get() != NULL) {
+      double processQps = static_cast<double>(dbWrittenRecords) /
+          (static_cast<double>(process_finish - process_start)/1000000.);
+
       LOG(INFO) << "Written: " << dbWrittenRecords << ", Duplicate: " <<
-          dbDuplicateRecords;
+          dbDuplicateRecords << ", ProcessQps: " << processQps;
       // Now write the session logs:
       if (!atp::utils::WriteSessionLogs(source, db)) {
         LOG(ERROR) << "Falied to write session log!";
