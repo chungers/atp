@@ -2,6 +2,8 @@
 
 #include <signal.h>
 #include <stdio.h>
+#include <vector>
+
 #include <zmq.hpp>
 
 #include <boost/optional.hpp>
@@ -26,13 +28,15 @@ void OnTerminate(int param)
   exit(1);
 }
 
-
+DEFINE_bool(stream, true, "True to stream, false to buffer in array.");
+DEFINE_bool(cout, true, "Send output to cout");
 DEFINE_string(ep, "tcp://127.0.0.1:1111", "Reactor port");
 DEFINE_string(cb, "tcp://127.0.0.1:1112", "Callback port");
 DEFINE_string(symbol, "", "Symbol");
 DEFINE_string(first, "", "First of range");
 DEFINE_string(last, "", "Last of range");
 DEFINE_string(event, "", "Event (e.g. BID, ASK)");
+
 
 ////////////////////////////////////////////////////////
 //
@@ -96,6 +100,7 @@ int main(int argc, char** argv)
     q.set_index(FLAGS_event);
   }
 
+
   struct Visitor : public historian::Visitor {
 
     virtual bool operator()(const Record& data)
@@ -103,22 +108,65 @@ int main(int argc, char** argv)
       using namespace proto::common;
       using namespace proto::historian;
 
-      std::cout << data.key() << ",";
       optional<IndexedValue> v1 = as<IndexedValue>(data);
       if (v1) {
-        std::cout << *v1;
+        if (FLAGS_stream) {
+          if (FLAGS_cout) std::cout << data.key() << "," << *v1;
+        } else {
+          indexedValues.push_back(*v1);
+        }
       }
       optional<MarketData> v2 = as<MarketData>(data);
       if (v2) {
-        std::cout << *v2;
+        if (FLAGS_stream) {
+          if (FLAGS_cout) std::cout << data.key() << "," << *v2;
+        } else {
+          marketData.push_back(*v2);
+        }
       }
-      std::cout << std::endl;
+      if (FLAGS_stream) {
+        if (FLAGS_cout) std::cout << std::endl;
+      }
       return true;
     }
+
+    std::vector<IndexedValue> indexedValues;
+    std::vector<MarketData> marketData;
+
   } visitor;
 
   LOG(INFO) << "Query: " << q;
 
+  boost::uint64_t start_micros = now_micros();
   int count = client.Query(q, &visitor);
-  HISTORIAN_REACTOR_LOGGER << "Count = " << count;
+  boost::uint64_t finish_micros = now_micros();
+
+  double totalSeconds = static_cast<double>(finish_micros - start_micros)
+      / 1000000.;
+  double qps = static_cast<double>(count) / totalSeconds;
+
+  LOG(INFO) << "Count = " << count << " in "
+            << totalSeconds << ", qps = " << qps;
+
+
+  if (!FLAGS_stream) {
+    if (visitor.indexedValues.size() > 0) {
+      std::vector<IndexedValue>::const_iterator itr =
+          visitor.indexedValues.begin();
+      for (; itr != visitor.indexedValues.end(); ++itr) {
+        if (FLAGS_cout) std::cout << *itr << std::endl;
+      }
+    }
+    if (visitor.marketData.size() > 0) {
+      std::vector<MarketData>::const_iterator itr =
+          visitor.marketData.begin();
+      for (; itr != visitor.marketData.end(); ++itr) {
+        if (FLAGS_cout) std::cout << *itr << std::endl;
+      }
+    }
+  }
+
+  LOG(INFO) << "Count = " << count << " in "
+            << totalSeconds << ", qps = " << qps;
+
 }
