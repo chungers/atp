@@ -16,6 +16,8 @@
 #include "log_levels.h"
 #include "managed_agent.hpp"
 #include "utils.hpp"
+#include "historian/constants.hpp"
+#include "proto/historian.hpp"
 #include "varz/varz.hpp"
 #include "zmq/ZmqUtils.hpp"
 
@@ -50,7 +52,10 @@ namespace atp {
 
 using namespace std;
 
-class MarketDataSubscriber;
+
+using boost::posix_time::time_duration;
+using proto::ib::MarketData;
+using proto::ib::MarketDepth;
 
 
 class MarketDataSubscriber : public ManagedAgent
@@ -111,7 +116,8 @@ class MarketDataSubscriber : public ManagedAgent
 
   virtual bool stop()
   {
-    MARKET_DATA_SUBSCRIBER_LOGGER << "Stopping marketdata subscription processing.";
+    MARKET_DATA_SUBSCRIBER_LOGGER <<
+        "Stopping marketdata subscription processing.";
     return false;
   }
 
@@ -157,217 +163,154 @@ class MarketDataSubscriber : public ManagedAgent
     offsetLatency_ = value;
   }
 
-
-  bool processMarketData(long& count, const string& frame1)
-  {
-    using namespace boost::posix_time;
-    int more = 1;
-    time_duration latencyOffset;
-    bool continueProcess = false;
-
-    string frame2; // timestamp
-    string frame3; // key
-    string frame4; // value
-    string frame5; // latency
-    if (more) more = atp::zmq::receive(*socketPtr_, &frame2);
-    if (more) more = atp::zmq::receive(*socketPtr_, &frame3);
-    if (more) more = atp::zmq::receive(*socketPtr_, &frame4);
-    if (more) more = atp::zmq::receive(*socketPtr_, &frame5);
-
-    // Special handling of extra frames without blowing up.
-    while (more) {
-      string extra;
-      more = atp::zmq::receive(*socketPtr_, &extra);
-      LOG(ERROR) << "Unexpected frame: " << extra;
-      if (more == 0) break;
-    }
-    if (isAdminMessage(frame1, frame2, frame3)) {
-
-      // handle the admin message
-      continueProcess = handleAdminMessage(frame2, frame3);
-
-    } else {
-
-      boost::uint64_t ts;
-      boost::uint64_t latency;
-
-      istringstream s_ts(frame2);  s_ts >> ts;
-      istringstream s_latency(frame5); s_latency >> latency;
-
-      // Compute the interval of events
-      VARZ_marketdata_event_interval_micros =
-          ts -VARZ_marketdata_event_last_ts;
-      VARZ_marketdata_event_last_ts = ts;
-
-      // Convert timestamp to posix time.
-      ptime t = from_time_t(ts / 1000000LL);
-      time_duration micros(0, 0, 0, ts % 1000000LL);
-      t += micros;
-
-      // Compute the latency from the message's timestamp to now,
-      // accounting for network transport, parsing, etc.
-      ptime now = microsec_clock::universal_time();
-      time_duration total_latency = now - t;
-
-      if (offsetLatency_) {
-        if (++count == 1) {
-          // compute the offset
-          latencyOffset = total_latency;
-          MARKET_DATA_SUBSCRIBER_LOGGER << "Using latency offset "
-                                        << latencyOffset;
-        } else {
-          // compute the true latency with the offset
-          total_latency -= latencyOffset;
-        }
-      }
-
-      boost::uint64_t process_start = now_micros();
-      continueProcess = process(t, frame1, frame3, frame4, total_latency);
-      boost::uint64_t process_dt = now_micros() - process_start;
-
-      VARZ_marketdata_process_latency_micros = process_dt;
-      VARZ_marketdata_process_latency_micros_total += process_dt;
-      VARZ_marketdata_process_latency_micros_count++;
-      VARZ_marketdata_process_latency_drift_micros = now_micros() - ts;
-
-      if (VARZ_marketdata_process_latency_micros >=
-          VARZ_marketdata_event_interval_micros) {
-        VARZ_marketdata_process_latency_over_budget++;
-      }
-    }
-
-    return continueProcess;
-  }
-
-  bool processMarketDepth(long& count, const string& frame1)
-  {
-    using namespace boost::posix_time;
-    int more = 1;
-    time_duration latencyOffset;
-    bool continueProcess = true;
-
-    string tsStr;
-    string sideStr;
-    string levelStr;
-    string operationStr;
-    string priceStr;
-    string sizeStr;
-    string mmStr;
-    string latencyStr;
-
-    if (more) more = atp::zmq::receive(*socketPtr_, &tsStr);
-    if (more) more = atp::zmq::receive(*socketPtr_, &sideStr);
-    if (more) more = atp::zmq::receive(*socketPtr_, &levelStr);
-    if (more) more = atp::zmq::receive(*socketPtr_, &operationStr);
-    if (more) more = atp::zmq::receive(*socketPtr_, &priceStr);
-    if (more) more = atp::zmq::receive(*socketPtr_, &sizeStr);
-    if (more) more = atp::zmq::receive(*socketPtr_, &mmStr);
-    if (more) more = atp::zmq::receive(*socketPtr_, &latencyStr);
-
-    // Special handling of extra frames without blowing up.
-    while (more) {
-      string extra;
-      more = atp::zmq::receive(*socketPtr_, &extra);
-      LOG(ERROR) << "Unexpected frame: " << extra;
-      if (more == 0) break;
-    }
-    if (isAdminMessage(frame1, tsStr, sideStr)) {
-
-      // handle the admin message
-      continueProcess = handleAdminMessage(tsStr, sideStr);
-
-    } else {
-
-      boost::uint64_t ts;
-      boost::uint64_t latency;
-
-      istringstream s_ts(tsStr);  s_ts >> ts;
-      istringstream s_latency(latencyStr); s_latency >> latency;
-
-      // Compute the interval of events
-      VARZ_marketdepth_event_interval_micros =
-          ts -VARZ_marketdepth_event_last_ts;
-      VARZ_marketdepth_event_last_ts = ts;
-
-      // Convert timestamp to posix time.
-      ptime t = from_time_t(ts / 1000000LL);
-      time_duration micros(0, 0, 0, ts % 1000000LL);
-      t += micros;
-
-      // Compute the latency from the message's timestamp to now,
-      // accounting for network transport, parsing, etc.
-      ptime now = microsec_clock::universal_time();
-      time_duration total_latency = now - t;
-
-      if (offsetLatency_) {
-        if (++count == 1) {
-          // compute the offset
-          latencyOffset = total_latency;
-          MARKET_DATA_SUBSCRIBER_LOGGER << "Using latency offset "
-                                        << latencyOffset;
-        } else {
-          // compute the true latency with the offset
-          total_latency -= latencyOffset;
-        }
-      }
-
-      boost::uint64_t process_start = now_micros();
-
-      std::istringstream l_(levelStr);
-      std::istringstream p_(priceStr);
-      std::istringstream s_(sizeStr);
-
-      int level;
-      double price;
-      int size;
-      l_ >> level;
-      p_ >> price;
-      s_ >> size;
-
-      continueProcess = processDepth(t, frame1,
-                                     sideStr, level, operationStr,
-                                     price, size, mmStr, total_latency);
-
-      boost::uint64_t process_dt = now_micros() - process_start;
-
-      VARZ_marketdepth_process_latency_micros = process_dt;
-      VARZ_marketdepth_process_latency_micros_total += process_dt;
-      VARZ_marketdepth_process_latency_micros_count++;
-      VARZ_marketdepth_process_latency_drift_micros = now_micros() - ts;
-
-      if (VARZ_marketdepth_process_latency_micros >=
-          VARZ_marketdepth_event_interval_micros) {
-        VARZ_marketdepth_process_latency_over_budget++;
-      }
-    }
-
-    return continueProcess;
-  }
-
   // The event loop.
   void processInbound()
   {
     using namespace boost::posix_time;
+    using namespace historian;
+    using namespace proto::ib;
+    using boost::uint64_t;
+
+
     long count = 0;
     time_duration latencyOffset;
 
     while (1) {
 
-      string frame1; // topic
+      string frame1, frame2, frame3; // topic, proto
 
       int more = 1;
       if (more) more = atp::zmq::receive(*socketPtr_, &frame1);
 
       bool continueProcess = true;
-
       // check the topic -- for regular data vs. book data
-      if (more) {
-        if (boost::algorithm::ends_with(frame1, "BOOK")) {
-          continueProcess = processMarketDepth(count, frame1);
+      if (boost::algorithm::starts_with(frame1, ENTITY_IB_MARKET_DEPTH)) {
+
+        // MarketDepth
+
+        if (more) atp::zmq::receive(*socketPtr_, &frame2);
+
+        MarketDepth marketDepth;
+        if (marketDepth.ParseFromString(frame2)) {
+
+          uint64_t ts = marketDepth.timestamp();
+          VARZ_marketdepth_event_interval_micros =
+              ts -VARZ_marketdepth_event_last_ts;
+          VARZ_marketdepth_event_last_ts = ts;
+
+          // Convert timestamp to posix time.
+          ptime t = from_time_t(ts / 1000000LL);
+          time_duration micros(0, 0, 0, ts % 1000000LL);
+          t += micros;
+
+          // Compute the latency from the message's timestamp to now,
+          // accounting for network transport, parsing, etc.
+          ptime now = microsec_clock::universal_time();
+          time_duration total_latency = now - t;
+
+          if (offsetLatency_) {
+            if (++count == 1) {
+              // compute the offset
+              latencyOffset = total_latency;
+              MARKET_DATA_SUBSCRIBER_LOGGER << "Using latency offset "
+                                            << latencyOffset;
+            } else {
+              // compute the true latency with the offset
+              total_latency -= latencyOffset;
+            }
+          }
+
+          uint64_t process_start = now_micros();
+          continueProcess = process(frame1, marketDepth);
+
+          uint64_t process_dt = now_micros() - process_start;
+
+          VARZ_marketdepth_process_latency_micros = process_dt;
+          VARZ_marketdepth_process_latency_micros_total += process_dt;
+          VARZ_marketdepth_process_latency_micros_count++;
+          VARZ_marketdepth_process_latency_drift_micros = now_micros() - ts;
+
+          if (VARZ_marketdepth_process_latency_micros >=
+              VARZ_marketdepth_event_interval_micros) {
+            VARZ_marketdepth_process_latency_over_budget++;
+          }
         } else {
-          continueProcess = processMarketData(count, frame1);
+          LOG(ERROR) << "Unable to parse: " << frame1 << ", " << frame2;
+        }
+
+      } else if (boost::algorithm::starts_with(frame1, "admin:")) {
+
+        // Admin message
+
+        if (more) more = atp::zmq::receive(*socketPtr_, &frame2);
+        if (more) more = atp::zmq::receive(*socketPtr_, &frame3);
+
+        continueProcess = handleAdminMessage(frame2, frame3);
+
+      } else {
+
+        // MarketData
+
+        if (more) more = atp::zmq::receive(*socketPtr_, &frame2);
+
+        MarketData marketData;
+        if (marketData.ParseFromString(frame2)) {
+
+          uint64_t ts = marketData.timestamp();
+          VARZ_marketdata_event_interval_micros =
+              ts -VARZ_marketdata_event_last_ts;
+          VARZ_marketdata_event_last_ts = ts;
+
+          // Compute the latency from the message's timestamp to now,
+          // accounting for network transport, parsing, etc.
+
+          // Convert timestamp to posix time.
+          ptime t = from_time_t(ts / 1000000LL);
+          time_duration micros(0, 0, 0, ts % 1000000LL);
+          t += micros;
+
+          ptime now = microsec_clock::universal_time();
+          time_duration total_latency = now - t;
+
+          if (offsetLatency_) {
+            if (++count == 1) {
+              // compute the offset
+              latencyOffset = total_latency;
+              MARKET_DATA_SUBSCRIBER_LOGGER << "Using latency offset "
+                                            << latencyOffset;
+            } else {
+              // compute the true latency with the offset
+              total_latency -= latencyOffset;
+            }
+          }
+
+          uint64_t process_start = now_micros();
+          continueProcess = process(frame1, marketData);
+
+          uint64_t process_dt = now_micros() - process_start;
+
+          VARZ_marketdata_process_latency_micros = process_dt;
+          VARZ_marketdata_process_latency_micros_total += process_dt;
+          VARZ_marketdata_process_latency_micros_count++;
+          VARZ_marketdata_process_latency_drift_micros = now_micros() - ts;
+
+          if (VARZ_marketdata_process_latency_micros >=
+              VARZ_marketdata_event_interval_micros) {
+            VARZ_marketdata_process_latency_over_budget++;
+          }
+        } else {
+          LOG(ERROR) << "Unable to parse: " << frame1 << ", " << frame2;
         }
       }
+
+      // Consume any additional frames
+      while (more) {
+        string extra;
+        more = atp::zmq::receive(*socketPtr_, &extra);
+        LOG(ERROR) << "Unexpected frame: " << extra;
+        if (more == 0) break;
+      }
+
       if (!continueProcess) {
         VARZ_marketdata_process_stopped = true;
         VARZ_marketdepth_process_stopped = true;
@@ -384,47 +327,8 @@ class MarketDataSubscriber : public ManagedAgent
     return socketPtr_;
   }
 
-  /// Process an incoming event.
-  /// utc - timestamp in UTC
-  /// topic - the topic of the event e.g. AAPL.STK
-  /// key - the event name e.g. ASK
-  /// value - string value. Subclasses perform proper conversion based on event.
-  virtual bool process(const boost::posix_time::ptime& utc, const string& topic,
-                       const string& key, const string& value,
-                       const boost::posix_time::time_duration& latency)
-  {
-    // override this to remove the warning
-    LOG(WARNING) << topic << ' ' << utc << ' ' << key << '=' << value;
-    return true;
-  }
-
-  /// Process an incoming event.
-  /// utc - timestamp in UTC
-  /// topic - the topic of the event e.g. AAPL.STK
-  /// key - the event name e.g. ASK
-  /// value - string value. Subclasses perform proper conversion based on event.
-  virtual bool processDepth(const boost::posix_time::ptime& utc,
-                            const string& topic,
-                            const string& side,
-                            const int level,
-                            const string& operation,
-                            const double price,
-                            const int size,
-                            const string& mm,
-                            const boost::posix_time::time_duration& latency)
-  {
-    // override this to remove the warning
-    LOG(WARNING) << topic << ' ' << utc << ' '
-                 << side << ' '
-                 << level << ' '
-                 << operation << ' '
-                 << price << ' '
-                 << size << ' '
-                 << mm << ' '
-                 << latency;
-
-    return true;
-  }
+  virtual bool process(const string& topic, const MarketData& data) = 0;
+  virtual bool process(const string& topic, const MarketDepth& data) = 0;
 
 
  private:

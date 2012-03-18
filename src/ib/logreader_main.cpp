@@ -482,7 +482,7 @@ static bool WriteDb(const string& source, const T& value,
 static bool WriteSessionLogs(const string& source,
                              const boost::shared_ptr<historian::Db>& db)
 {
-  int count = 0;
+  size_t count = 0;
   for (SessionLogMapIterator itr = SymbolSessionLogs.begin();
        itr != SymbolSessionLogs.end();
        ++itr) {
@@ -666,14 +666,17 @@ int main(int argc, char** argv)
                 // wait dt micros
                 usleep(dt / FLAGS_playback);
               }
-              atp::MarketData<double> marketData(event.symbol(),
-                                                 event.timestamp(),
-                                                 event.event(),
-                                                 event.value().double_value());
-              size_t sent = marketData.dispatch(socket);
-              //std::cerr << event.symbol << " " << sent << std::endl;
-              last_ts = event.timestamp();
 
+              std::string proto;
+              if (event.SerializeToString(&proto)) {
+
+                size_t sent = atp::zmq::send_copy(*socket, event.symbol(),
+                                                  true);
+                sent += atp::zmq::send_copy(*socket, proto, false);
+                last_ts = event.timestamp();
+              } else {
+                LOG(ERROR) << "Serialization failed: " << event.symbol();
+              }
             } else {
 
               if (FLAGS_csv) {
@@ -760,17 +763,20 @@ int main(int argc, char** argv)
                   usleep(dt / FLAGS_playback);
                 }
 
-                atp::MarketDepth marketDepth(event.symbol(),
-                                             event.timestamp(),
-                                             event.side(),
-                                             event.level(),
-                                             event.operation(),
-                                             event.price(),
-                                             event.size(),
-                                             event.mm());
-                size_t sent = marketDepth.dispatch(socket);
-                last_ts = event.timestamp();
+                std::string proto;
+                if (event.SerializeToString(&proto)) {
 
+                  std::ostringstream zmq_topic;
+                  zmq_topic << historian::ENTITY_IB_MARKET_DATA << ':'
+                            << event.symbol();
+
+                  size_t sent = atp::zmq::send_copy(*socket, zmq_topic.str(),
+                                                    true);
+                  sent += atp::zmq::send_copy(*socket, proto, false);
+                  last_ts = event.timestamp();
+                } else {
+                  LOG(ERROR) << "Serialization failed: " << event.symbol();
+                }
               } else {
 
                 if (FLAGS_csv) {

@@ -21,10 +21,10 @@ marketdata.get_topics <- function(listOfContractDetails) {
          })
 }
 
-marketdata.default_handler <- function(topic, t, event, value, delay) {
+marketdata.default_handler <- function(topic, t, event, value) {
   utc <- as.POSIXct(t, origin='1970-01-01', tz='GMT');
   nyc <- as.POSIXlt(utc, 'America/New_York');
-  message(paste(nyc, topic, event, value, delay, sep=' '));
+  message(paste(nyc, topic, event, value, sep=' '));
   return(TRUE)
 }
 

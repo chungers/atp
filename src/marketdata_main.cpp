@@ -1,4 +1,5 @@
 
+#include <iostream>
 #include <vector>
 #include <signal.h>
 #include <gflags/gflags.h>
@@ -9,14 +10,8 @@
 #include "varz/varz.hpp"
 
 #include "marketdata_sink.hpp"
+#include "historian/time_utils.hpp"
 
-
-void OnTerminate(int param)
-{
-  LOG(INFO) << "===================== SHUTTING DOWN =======================";
-  LOG(INFO) << "Bye.";
-  exit(1);
-}
 
 DEFINE_string(adminEp, "tcp://127.0.0.1:4444", "Admin endpoint");
 DEFINE_string(eventEp, "tcp://127.0.0.1:4445", "Event endpoint");
@@ -32,6 +27,48 @@ DEFINE_VARZ_string(subscriber_topics, "", "subscriber topics");
 
 
 using namespace std;
+using namespace historian;
+
+using boost::posix_time::ptime;
+using boost::posix_time::time_duration;
+using proto::common::Value;
+using proto::ib::MarketData;
+using proto::ib::MarketDepth;
+
+std::ostream& operator<<(std::ostream& out, const Value& v)
+{
+  using namespace proto::common;
+  switch (v.type()) {
+    case Value_Type_INT:
+      out << v.int_value();
+      break;
+    case Value_Type_DOUBLE:
+      out << v.double_value();
+      break;
+    case Value_Type_STRING:
+      out << v.string_value();
+      break;
+  }
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const MarketData& v)
+{
+  ptime t =to_est(as_ptime(v.timestamp()));
+  out << t << "," << v.symbol() << "," << v.event() << "," << v.value();
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const MarketDepth& v)
+{
+  ptime t = to_est(as_ptime(v.timestamp()));
+  out << t << "," << v.symbol() << ","
+      << v.operation() << "," << v.level() << ","
+      << v.side() << "," << v.price() << ","
+      << v.size();
+  return out;
+}
+
 
 class ConsoleMarketDataSubscriber : public atp::MarketDataSubscriber
 {
@@ -50,42 +87,32 @@ class ConsoleMarketDataSubscriber : public atp::MarketDataSubscriber
   }
 
  protected:
-  virtual bool process(const boost::posix_time::ptime& ts, const string& topic,
-                       const string& key, const string& value,
-                       const boost::posix_time::time_duration& latency)
+  virtual bool process(const string& topic, const MarketData& marketData)
   {
     VARZ_subscriber_messages_received++;
 
-    LOG(INFO) << topic << ' '
-              << us_eastern::utc_to_local(ts)
-              << ' ' << key << ' ' << value << ' ' << latency;
+    LOG(INFO) << topic << ' ' << marketData;
     return true;
   }
 
-  virtual bool processDepth(const boost::posix_time::ptime& utc,
-                            const string& topic,
-                            const string& side,
-                            const int level,
-                            const string& operation,
-                            const double price,
-                            const int size,
-                            const string& mm,
-                            const boost::posix_time::time_duration& latency)
+  virtual bool process(const string& topic, const MarketDepth& marketDepth)
   {
     VARZ_subscriber_messages_received++;
 
-    LOG(INFO) << topic << ' '
-              << us_eastern::utc_to_local(utc) << ' '
-              << side << ' '
-              << level << ' '
-              << operation << ' '
-              << price << ' '
-              << size << ' '
-              << mm << ' '
-              << latency;
+    LOG(INFO) << topic << ' ' << marketDepth;
     return true;
   }
 };
+
+
+
+void OnTerminate(int param)
+{
+  LOG(INFO) << "===================== SHUTTING DOWN =======================";
+  LOG(INFO) << "Bye.";
+  exit(1);
+}
+
 
 int main(int argc, char** argv)
 {

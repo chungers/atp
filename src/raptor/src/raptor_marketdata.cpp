@@ -4,6 +4,8 @@
 
 #include "utils.hpp"
 #include "marketdata_sink.hpp"
+
+#include "historian/historian.hpp"
 #include "varz/varz.hpp"
 #include "zmq/ZmqUtils.hpp"
 #include "raptor_marketdata.h"
@@ -19,6 +21,10 @@ DEFINE_VARZ_int64(marketdata_subscriber_r_callback_over_budget, 0, "");
 
 
 namespace raptor {
+
+using proto::common::Value;
+using proto::ib::MarketData;
+using proto::ib::MarketDepth;
 
 class Subscriber : public atp::MarketDataSubscriber
 {
@@ -47,29 +53,26 @@ class Subscriber : public atp::MarketDataSubscriber
   }
 
  protected:
-  /// Process an incoming event.
-  /// utc - timestamp in UTC
-  /// topic - the topic of the event e.g. AAPL.STK
-  /// key - the event name e.g. ASK
-  /// value - string value. Subclasses perform proper conversion based on event.
-  virtual bool process(const boost::posix_time::ptime& utc, const string& topic,
-                       const string& key, const string& value,
-                       const boost::posix_time::time_duration& latency)
+
+  virtual bool process(const string& topic, const MarketDepth& data)
+  {
+    return true;
+  }
+
+  virtual bool process(const string& topic, const MarketData& data)
   {
     if (callback_ != NULL && environment_ != NULL) {
-      boost::uint64_t ct = (utc - utc_epoch).total_microseconds();
+      boost::uint64_t ct = data.timestamp();
       double t =
           static_cast<double>(ct) / 1000000.0f;
-      double delay =
-          static_cast<double>(latency.total_microseconds())
-        / 1000000.0f;
 
       try {
 
         boost::uint64_t start = now_micros();
 
         SEXP ret = (*callback_)(
-            wrap(topic), wrap(t), wrap(key), wrap(value), wrap(delay));
+            wrap(data.symbol()), wrap(t),
+            wrap(data.event()), wrap(data.value().double_value()));
 
         VARZ_marketdata_subscriber_r_callback_latency_micros =
             now_micros() - start;

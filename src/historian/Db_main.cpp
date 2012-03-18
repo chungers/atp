@@ -21,7 +21,6 @@
 #include <leveldb/iterator.h>
 
 #include "common.hpp"
-#include "marketdata_source.hpp"
 #include "log_levels.h"
 #include "zmq/ZmqUtils.hpp"
 #include "proto/historian.hpp"

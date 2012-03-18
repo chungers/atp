@@ -168,6 +168,8 @@ template <typename T> inline const Record wrap(const T& v)
   return record;
 }
 
+
+
 } // historian
 } // proto
 

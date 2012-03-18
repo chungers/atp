@@ -68,13 +68,19 @@ bool write_db(const string& key, const V& value,
 
   if (okToWrite) {
     string buffer;
-    value.SerializeToString(&buffer);
-    Status putStatus = levelDb->Put(WriteOptions(), key, buffer);
-    if (!putStatus.ok()) {
-      LOG(ERROR) << "Error: write failed: " << putStatus.ToString()
-                 << ", key = " << key << ", buff = " << buffer;
+    if (value.SerializeToString(&buffer)) {
+      Status putStatus = levelDb->Put(WriteOptions(), key, buffer);
+      if (putStatus.ok()) {
+        return true;
+      } else {
+        LOG(ERROR) << "Error: write failed: " << putStatus.ToString()
+                   << ", key = " << key << ", buff = " << buffer;
+        return false;
+      }
+    } else {
+      LOG(ERROR) << "Serialization failed.";
+      return false;
     }
-    return putStatus.ok();
   } else {
     LOG(ERROR) << "Not ok to write: skipped.";
   }
