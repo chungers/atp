@@ -73,6 +73,7 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
   NumericVector tsVector; //(5000);
   NumericVector valueVector; //(5000);
 
+
   struct Visitor : public historian::DefaultVisitor
   {
     Visitor(const string& symbol, Function* cb, const string& event,
@@ -85,12 +86,12 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
       Rprintf("event = %s\t", event_.c_str());
       if (callback_ == NULL) Rprintf("No callback given.\n");
     }
+
     ~Visitor()
     {
-      if (callback_ != NULL) delete callback_;
     }
 
-    bool operator()(const Record& data)
+    virtual bool operator()(const Record& data)
     {
       SEXP value;
       Value v;

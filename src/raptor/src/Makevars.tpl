@@ -16,7 +16,8 @@ PKG_CPPFLAGS = \
 -DIB_USE_STD_STRING
 
 ## Use the R_HOME indirection to support installations of multiple R version
-PKG_LIBS = `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` \
+PKG_LIBS = \
+`$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` \
 -lprotobuf-lite \
 -lzmq \
 -lQuantLib \
@@ -27,7 +28,9 @@ PKG_LIBS = `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` \
 -L@SRC_DIR@/varz -lvarz_components \
 -L@SRC_DIR@/zmq -lzmq_components \
 -L@SRC_DIR@/historian -lhistorian_components \
--L@SRC_DIR@/proto -lproto_components
+-L@SRC_DIR@/proto -lproto_components \
+
+
 
 
 

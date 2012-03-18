@@ -27,8 +27,7 @@ add_dependencies(build_raptor
   zmq_components
   varz_components
   historian_components
-  #historian_proto
-  #ib_proto
+  proto_components
 )
 
 add_dependencies(install_raptor build_raptor)

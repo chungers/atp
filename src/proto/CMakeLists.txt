@@ -1,4 +1,5 @@
 
+add_definitions('-fPIC')
 
 proto_library(common_proto common.proto ${SRC_DIR})
 proto_library(ib_proto ib.proto ${SRC_DIR})
