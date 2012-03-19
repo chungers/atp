@@ -93,12 +93,14 @@ class MarketDataSubscriber : public ManagedAgent
     }
     socketPtr_ = new ::zmq::socket_t(*contextPtr_, ZMQ_SUB);
     socketPtr_->connect(endpoint_.c_str());
+    LOG(INFO) << "Connected to " << endpoint_;
+
     // Set subscriptions
     for (vector<string>::iterator sub = subscriptions_.begin();
          sub != subscriptions_.end();
          ++sub) {
       subscribe(*sub);
-      MARKET_DATA_SUBSCRIBER_LOGGER << "subscribed to topic = " << *sub;
+      LOG(INFO) << "subscribed to topic = " << *sub;
     }
 
     ManagedAgent::initialize();
@@ -116,8 +118,7 @@ class MarketDataSubscriber : public ManagedAgent
 
   virtual bool stop()
   {
-    MARKET_DATA_SUBSCRIBER_LOGGER <<
-        "Stopping marketdata subscription processing.";
+    LOG(INFO) << "Stopping marketdata subscription processing.";
     return false;
   }
 
@@ -304,12 +305,12 @@ class MarketDataSubscriber : public ManagedAgent
       }
 
       // Consume any additional frames
-      while (more) {
-        string extra;
-        more = atp::zmq::receive(*socketPtr_, &extra);
-        LOG(ERROR) << "Unexpected frame: " << extra;
-        if (more == 0) break;
-      }
+      // while (more) {
+      //   string extra;
+      //   more = atp::zmq::receive(*socketPtr_, &extra);
+      //   LOG(ERROR) << "Unexpected frame: " << extra;
+      //   if (more == 0) break;
+      // }
 
       if (!continueProcess) {
         VARZ_marketdata_process_stopped = true;

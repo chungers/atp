@@ -120,6 +120,7 @@ class EventDispatcherBase
       ibMarketDepth.set_timestamp(timed.getMicros());
       ibMarketDepth.set_symbol(topic);
       ibMarketDepth.set_price(price);
+      ibMarketDepth.set_size(size);
       ibMarketDepth.set_level(level);
       ibMarketDepth.set_mm(mm);
       ibMarketDepth.set_contract_id(tickerId);

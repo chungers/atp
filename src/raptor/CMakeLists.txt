@@ -2,6 +2,8 @@
 #
 message(STATUS "ATP R Extensions =============================================")
 
+add_definitions('-fPIC')
+
 # Generate raptor R module MakeVars
 configure_file(
   ./src/Makevars.tpl
@@ -22,6 +24,7 @@ WORKING_DIRECTORY ${SRC_DIR}
 COMMENT "Install R package ${R_PKG}",
 )
 
+
 add_dependencies(build_raptor
   IBAPIConnector
   zmq_components
@@ -30,5 +33,6 @@ add_dependencies(build_raptor
   proto_components
 )
 
-add_dependencies(install_raptor build_raptor)
+add_dependencies(install_raptor build_raptor raptor_protos)
 
+add_subdirectory(src)
