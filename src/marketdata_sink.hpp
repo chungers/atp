@@ -13,6 +13,8 @@
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/thread.hpp>
 
+#include <zmq.h>
+
 #include "log_levels.h"
 #include "managed_agent.hpp"
 #include "utils.hpp"
@@ -181,15 +183,22 @@ class MarketDataSubscriber : public ManagedAgent
       string frame1, frame2, frame3; // topic, proto
 
       int more = 1;
-      if (more) more = atp::zmq::receive(*socketPtr_, &frame1);
+      try {
+        if (more) more = atp::zmq::receive(*socketPtr_, &frame1);
+      } catch (::zmq::error_t e) {
+        LOG(ERROR) << "Got exception: " << e.what();
+      }
 
       bool continueProcess = true;
       // check the topic -- for regular data vs. book data
       if (boost::algorithm::starts_with(frame1, ENTITY_IB_MARKET_DEPTH)) {
 
         // MarketDepth
-
-        if (more) atp::zmq::receive(*socketPtr_, &frame2);
+        try {
+          if (more) atp::zmq::receive(*socketPtr_, &frame2);
+        } catch (::zmq::error_t e) {
+          LOG(ERROR) << "Got exception: " << e.what();
+        }
 
         MarketDepth marketDepth;
         if (marketDepth.ParseFromString(frame2)) {
@@ -243,8 +252,18 @@ class MarketDataSubscriber : public ManagedAgent
 
         // Admin message
 
-        if (more) more = atp::zmq::receive(*socketPtr_, &frame2);
-        if (more) more = atp::zmq::receive(*socketPtr_, &frame3);
+        try {
+          if (more) more = atp::zmq::receive(*socketPtr_, &frame2);
+        } catch (::zmq::error_t e) {
+          LOG(ERROR) << "Got exception: " << e.what();
+        }
+
+        try {
+          if (more) more = atp::zmq::receive(*socketPtr_, &frame3);
+        } catch (::zmq::error_t e) {
+          LOG(ERROR) << "Got exception: " << e.what();
+        }
+
 
         continueProcess = handleAdminMessage(frame2, frame3);
 
@@ -252,7 +271,11 @@ class MarketDataSubscriber : public ManagedAgent
 
         // MarketData
 
-        if (more) more = atp::zmq::receive(*socketPtr_, &frame2);
+        try {
+          if (more) more = atp::zmq::receive(*socketPtr_, &frame2);
+        } catch (::zmq::error_t e) {
+          LOG(ERROR) << "Got exception: " << e.what();
+        }
 
         MarketData marketData;
         if (marketData.ParseFromString(frame2)) {
