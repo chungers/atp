@@ -94,6 +94,11 @@ class Db::implementation
     return count;
   }
 
+  const std::string GetDbPath()
+  {
+    return dbFile_;
+  }
+
  private:
   std::string dbFile_;
   leveldb::DB* levelDb_;
@@ -191,6 +196,10 @@ template bool Db::Write<MarketData>(const MarketData&, bool);
 template bool Db::Write<MarketDepth>(const MarketDepth&, bool);
 template bool Db::Write<SessionLog>(const SessionLog&, bool);
 
+const std::string Db::GetDbPath()
+{
+  return impl_->GetDbPath();
+}
 
 } // namespace historian
 

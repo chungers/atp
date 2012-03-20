@@ -30,6 +30,8 @@ class Db
   int Query(const QueryByRange& query, Visitor* visit);
   int Query(const QueryBySymbol& query, Visitor* visit);
 
+  const std::string GetDbPath();
+
 
  private:
   class implementation;

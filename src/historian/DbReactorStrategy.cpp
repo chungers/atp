@@ -125,7 +125,14 @@ inline int handleQuery(const uint64_t responseId,
                        const Q& q, socket_t& socket)
 {
   DbVisitor visitor(socket, responseId);
-  return db->Query(q, &visitor);
+
+  // Start a new db connection:
+  boost::scoped_ptr<Db> conn(new Db(db->GetDbPath()));
+  if (conn->Open()) {
+    return conn->Query(q, &visitor);
+  }
+  LOG(ERROR) << "Error opening database for read: " << db->GetDbPath();
+  return 0;
 }
 
 template int handleQuery<QueryByRange>(const uint64_t responseId,
