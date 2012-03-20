@@ -5,6 +5,7 @@
 #include <zmq.hpp>
 
 #include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <gflags/gflags.h>
@@ -22,13 +23,6 @@
 #include "historian/time_utils.hpp"
 
 
-void OnTerminate(int param)
-{
-  LOG(INFO) << "===================== SHUTTING DOWN =======================";
-  LOG(INFO) << "Bye.";
-  exit(1);
-}
-
 // Flags for reactor / db query processor
 DEFINE_string(ep, "tcp://127.0.0.1:1111", "Reactor port");
 DEFINE_string(leveldb, "", "Leveldb");
@@ -42,6 +36,8 @@ DEFINE_string(pubsubEp, "tcp://127.0.0.1:7777", "PubSub Event endpoint");
 DEFINE_string(topics, "", "Comma-delimited subscription topics");
 DEFINE_int32(varz, 18001, "varz server port");
 DEFINE_bool(overwrite, true, "True to overwrite db records, false to check.");
+
+DEFINE_int32(messageBlockSize, 10000, "For periodic output to logs.");
 
 DEFINE_VARZ_int64(subscriber_messages_received, 0, "total messages");
 DEFINE_VARZ_int64(subscriber_messages_persisted, 0, "total messages persisted");
@@ -97,7 +93,7 @@ std::ostream& operator<<(std::ostream& out, const MarketDepth& v)
 class DbWriterSubscriber : public atp::MarketDataSubscriber
 {
  public :
-  DbWriterSubscriber(const string& dbfile,
+  DbWriterSubscriber(const boost::shared_ptr<historian::Db>& db,
                      const string& id,
                      const string& adminEndpoint,
                      const string& eventEndpoint,
@@ -108,7 +104,7 @@ class DbWriterSubscriber : public atp::MarketDataSubscriber
       atp::MarketDataSubscriber(id, adminEndpoint, eventEndpoint,
                                 endpoint, subscriptions,
                                 varzPort, context),
-      db_(new historian::Db(dbfile))
+      db_(db)
   {
   }
 
@@ -121,9 +117,14 @@ class DbWriterSubscriber : public atp::MarketDataSubscriber
   {
     VARZ_subscriber_messages_received++;
     if (db_->Write(marketData, FLAGS_overwrite)) {
-      VLOG(20) << "Written " << topic << "=>" << marketData;
+
       VARZ_subscriber_messages_persisted++;
       VARZ_subscriber_messages_persisted_marketdata++;
+
+      if (VARZ_subscriber_messages_persisted % FLAGS_messageBlockSize == 0) {
+        LOG(INFO) << VARZ_subscriber_messages_persisted << " messages written. "
+                  << topic << "=>" << marketData;
+      }
     }
     return true;
   }
@@ -132,16 +133,45 @@ class DbWriterSubscriber : public atp::MarketDataSubscriber
   {
     VARZ_subscriber_messages_received++;
     if (db_->Write(marketDepth, FLAGS_overwrite)) {
-      VLOG(20) << "Written " << topic << "=>" << marketDepth;
+
       VARZ_subscriber_messages_persisted++;
       VARZ_subscriber_messages_persisted_marketdepth++;
+
+      if (VARZ_subscriber_messages_persisted % FLAGS_messageBlockSize == 0) {
+        LOG(INFO) << VARZ_subscriber_messages_persisted << " messages written. "
+                  << topic << "=>" << marketDepth;
+      }
     }
     return true;
   }
 
  private:
-  boost::scoped_ptr<Db> db_;
+  boost::shared_ptr<historian::Db> db_;
 };
+
+
+const boost::shared_ptr<historian::Db>& GetDbSingleton()
+{
+  static boost::shared_ptr<historian::Db> DB( new historian::Db(FLAGS_leveldb));
+  return DB;
+}
+
+void OnTerminate(int param)
+{
+  LOG(INFO) << "===================== SHUTTING DOWN =======================";
+
+  const boost::shared_ptr<historian::Db> db = GetDbSingleton();
+  historian::Db* db_ptr = db.get();
+  const string& f = db->GetDbPath();
+  if (db_ptr != NULL) {
+    delete db_ptr;
+    LOG(INFO) << "Closed database " << f;
+  }
+
+  LOG(INFO) << "Bye.";
+  exit(1);
+}
+
 
 ////////////////////////////////////////////////////////
 //
@@ -165,10 +195,17 @@ int main(int argc, char** argv)
     signal(SIGTERM, SIG_IGN);
   }
 
-  historian::DbReactorStrategy strategy(FLAGS_leveldb);
-  if (!strategy.OpenDb()) {
+  // A single instance of Db is shared across all query handling threads
+  // and the subscriber which performs writes.
+  // This is because leveldb implements isolation at the leveldb::DB instance
+  // leve.  For the readers to see the writes that just committed, they must
+  // share the same leveldb::DB instance (hence an instance of historian::Db)
+  const boost::shared_ptr<historian::Db>& db = GetDbSingleton();
+  if (!db->Open()) {
     LOG(FATAL) << "Cannot open db: " << FLAGS_leveldb;
   }
+
+  historian::DbReactorStrategy strategy(db);
 
   // continue
   LOG(INFO) << "Starting context.";
@@ -183,18 +220,18 @@ int main(int argc, char** argv)
 
   if (FLAGS_subscribe) {
 
-      DbWriterSubscriber subscriber(FLAGS_leveldb,
-                                    FLAGS_id, FLAGS_adminEp, FLAGS_eventEp,
-                                    FLAGS_pubsubEp, subscriptions,
-                                    FLAGS_varz, &context);
+    DbWriterSubscriber subscriber(db,
+                                  FLAGS_id, FLAGS_adminEp, FLAGS_eventEp,
+                                  FLAGS_pubsubEp, subscriptions,
+                                  FLAGS_varz, &context);
 
-      // Open another db connection for writes
-      if (!subscriber.isReady()) {
-        LOG(FATAL) << "Subscriber not ready!";
-      }
+    // Open another db connection for writes
+    if (!subscriber.isReady()) {
+      LOG(FATAL) << "Subscriber not ready!";
+    }
 
-      LOG(INFO) << "Handling inbound messages.";
-      subscriber.processInbound();
+    LOG(INFO) << "Handling inbound messages.";
+    subscriber.processInbound();
 
   } else {
 

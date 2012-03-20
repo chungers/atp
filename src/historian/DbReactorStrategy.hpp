@@ -20,7 +20,7 @@ namespace historian {
 class DbReactorStrategy : public Reactor::Strategy
 {
  public:
-  DbReactorStrategy(const string& leveldbFile);
+  DbReactorStrategy(const boost::shared_ptr<historian::Db>& db);
 
   ~DbReactorStrategy();
 

@@ -17,6 +17,7 @@ namespace historian {
 
 using std::string;
 using std::ostream;
+using boost::shared_ptr;
 using boost::uint64_t;
 using zmq::context_t;
 using zmq::socket_t;
@@ -72,11 +73,10 @@ class DbVisitor : public historian::Visitor
 };
 
 
-DbReactorStrategy::DbReactorStrategy(const string& leveldbFile) :
-    db_(new Db(leveldbFile)),
-    context_(new context_t(1))
+DbReactorStrategy::DbReactorStrategy(const shared_ptr<historian::Db>& db) :
+    db_(db), context_(new context_t(1))
 {
-  HISTORIAN_REACTOR_LOGGER << "Started on " << leveldbFile;
+  HISTORIAN_REACTOR_LOGGER << "Started on " << db_->GetDbPath();
 }
 
 DbReactorStrategy::~DbReactorStrategy()
@@ -121,26 +121,19 @@ ostream& operator<<(ostream& out, const QueryBySymbol& q)
 
 template <typename Q>
 inline int handleQuery(const uint64_t responseId,
-                       const boost::shared_ptr<Db> db,
+                       const boost::shared_ptr<Db>& db,
                        const Q& q, socket_t& socket)
 {
   DbVisitor visitor(socket, responseId);
-
-  // Start a new db connection:
-  boost::scoped_ptr<Db> conn(new Db(db->GetDbPath()));
-  if (conn->Open()) {
-    return conn->Query(q, &visitor);
-  }
-  LOG(ERROR) << "Error opening database for read: " << db->GetDbPath();
-  return 0;
+  return db->Query(q, &visitor);
 }
 
 template int handleQuery<QueryByRange>(const uint64_t responseId,
-                                       const boost::shared_ptr<Db>,
+                                       const boost::shared_ptr<Db>&,
                                        const QueryByRange&, socket_t&);
 
 template int handleQuery<QueryBySymbol>(const uint64_t responseId,
-                                        const boost::shared_ptr<Db>,
+                                        const boost::shared_ptr<Db>&,
                                         const QueryBySymbol&, socket_t&);
 
 
