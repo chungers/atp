@@ -5,6 +5,8 @@
 #include <leveldb/db.h>
 #include <leveldb/write_batch.h>
 
+#include <gflags/gflags.h>
+
 #include "proto/common.pb.h"
 #include "proto/ib.pb.h"
 #include "proto/historian.pb.h"
@@ -14,6 +16,8 @@
 
 #include "historian/historian.hpp"
 #include "historian/internal.hpp"
+
+#include "varz/varz.hpp"
 
 
 using proto::common::Value;
@@ -26,6 +30,21 @@ using proto::historian::Type;
 
 using proto::historian::QueryByRange;
 using proto::historian::QueryBySymbol;
+
+
+DEFINE_int32(leveldb_max_open_files, 0,
+             "Leveldb max open files - default is 1000.");
+DEFINE_int32(leveldb_block_size, 0,
+             "Leveldb block size - default is 4k.");
+DEFINE_int32(leveldb_write_buffer_size, 0,
+             "Leveldb write buffer size - default is 4MB");
+
+DEFINE_VARZ_int64(leveldb_writes, 0, "total writes");
+DEFINE_VARZ_int64(leveldb_write_start, 0, "timestamp for start of write");
+DEFINE_VARZ_int64(leveldb_write_finish, 0, "timestamp for finish of write");
+DEFINE_VARZ_int64(leveldb_write_elapsed, 0, "micros from write start to finish");
+DEFINE_VARZ_int64(leveldb_write_micros, 0, "micros taken to write");
+
 
 namespace historian {
 
@@ -48,7 +67,17 @@ class Db::implementation
   {
     leveldb::Options options;
     options.create_if_missing = true;
-    options.block_size = 4096 * 100;
+
+    if (FLAGS_leveldb_block_size > 0) {
+      options.block_size = FLAGS_leveldb_block_size;
+    }
+    if (FLAGS_leveldb_max_open_files > 0) {
+      options.max_open_files = FLAGS_leveldb_max_open_files;
+    }
+    if (FLAGS_leveldb_write_buffer_size > 0) {
+      options.write_buffer_size = FLAGS_leveldb_write_buffer_size;
+    }
+
     leveldb::Status status = leveldb::DB::Open(options, dbFile_, &levelDb_);
     if (status.ok()) {
       return true;
@@ -65,7 +94,18 @@ class Db::implementation
   bool write(const T& value, bool overwrite = true)
   {
     internal::Writer<T> writer;
-    return writer(value, levelDb_, overwrite);
+    VARZ_leveldb_write_start = now_micros();
+    VARZ_leveldb_write_micros = VARZ_leveldb_write_start;
+
+    // If write blocks for a long time, VARZ_leveldb_write_micros will be a large
+    // value that can be easily detected.
+
+    bool written = writer(value, levelDb_, overwrite);
+    VARZ_leveldb_write_finish = now_micros();
+    VARZ_leveldb_write_elapsed = VARZ_leveldb_write_finish - VARZ_leveldb_write_start;
+    VARZ_leveldb_write_micros = VARZ_leveldb_write_finish - VARZ_leveldb_write_micros;
+    VARZ_leveldb_writes++;
+    return written;
   }
 
   int query(const std::string& start, const std::string& stop,
