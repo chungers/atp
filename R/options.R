@@ -10,6 +10,15 @@ options.nextFriday <- function(t = Sys.Date(), asString = TRUE) {
   return(ifelse(asString, format(nextFriday, "%Y%m%d"), nextFriday))
 }
 
+options.StrikesAboutPrice <- function(price, strikes) {
+# price is the mid-point (ATM)
+# return vector of n strikes about this price
+
+  increment <- ifelse(price > 50, 5, 1)
+  k <- seq(0, ceiling(strikes/2))
+  increment * c(floor(price/increment) - rev(k), ceiling(price/increment) + k)
+}
+
 options.getStrikesFromPrevClosing <- function(symbol, strikes) {
 # Given a symbol, determine a set of strikes based on
 # the last day's closing price.
@@ -28,9 +37,7 @@ options.getStrikesFromPrevClosing <- function(symbol, strikes) {
           ', lastClose = ', lastClose,
           ', increment = ', increment)
 
-  k <- seq(0, ceiling(strikes/2))
-
-  increment * c(floor(lastClose/increment) - rev(k), ceiling(lastClose/increment) + k)
+  options.StrikesAboutPrice(lastClose, strikes);
 }
 
 options.buildOptionStrikes <- function(symbol, expiry,
