@@ -1,0 +1,90 @@
+#!/bin/bash
+#%# family=auto
+#%# capabilities=autoconf
+
+OPTION=$1
+
+function doAutoConf {
+    echo "yes"
+}
+
+function doConfig {
+    cat <<EOF
+multigraph hz_leveldb_writes
+graph_title hz leveldb writes
+graph_order leveldb_writes
+graph_args --base 1000
+graph_vlabel records written
+graph_category hz
+graph_info This graph shows number of messages written in leveldb
+
+leveldb_writes.label leveldb_writes
+leveldb_writes.type COUNTER
+leveldb_writes.min 0
+
+multigraph hz_subscriber_messages_received
+graph_title hz subscriber messages received
+graph_order subscriber_messages_received
+graph_args --base 1000
+graph_vlabel messages received
+graph_category hz
+graph_info This graph shows number of messages written in leveldb
+
+subscriber_messages_received.label messages received
+subscriber_messages_received.type COUNTER
+subscriber_messages_received.min 0
+
+multigraph hz_subscriber_messages_persisted
+graph_title hz subscriber messages persisted
+graph_order subscriber_messages_persisted
+graph_args --base 1000
+graph_vlabel messages persisted
+graph_category hz
+graph_info This graph shows number of messages persisted in leveldb
+
+subscriber_messages_persisted.label messages persisted
+subscriber_messages_persisted.type COUNTER
+subscriber_messages_persisted.min 0
+
+EOF
+}
+
+function parse {
+    grep \"$1\" $2 | cut -f2 -d: | sed -e 's/ //g' -e 's/,//g'
+}
+
+function doSample {
+    varz=/tmp/hz-varz
+    curl "http://stage.lab616.com:18001/varz" 2>/dev/null > $varz
+
+    leveldb_writes=$(parse leveldb_writes $varz)
+    #leveldb_write_elapsed=$(parse leveldb_write_elapsed $varz)
+    #leveldb_write_micros=$(parse leveldb_write_micros $varz)
+    subscriber_messages_received=$(parse subscriber_messages_received $varz)
+    subscriber_messages_persisted=$(parse subscriber_messages_persisted $varz)
+
+cat <<EOF
+multigraph hz_leveldb_writes
+leveldb_writes.value $leveldb_writes
+
+multigraph hz_subscriber_messages_received
+subscriber_messages_received.value $subscriber_messages_received
+
+multigraph hz_subscriber_messages_persisted
+subscriber_messages_persisted.value $subscriber_messages_persisted
+EOF
+}
+
+
+
+case $OPTION in
+
+autoconf) doAutoConf
+;;
+config) doConfig
+;;
+*) doSample
+;;
+esac
+
+exit;
