@@ -1,0 +1,193 @@
+#!/bin/bash
+#%# family=auto
+#%# capabilities=autoconf
+
+OPTION=$1
+
+function doAutoConf {
+    echo "yes"
+}
+
+function doConfig {
+    cat <<EOF
+multigraph fh_api_events
+graph_title fh api events
+graph_order api_events
+graph_args --base 1000
+graph_vlabel api events
+graph_category fh
+graph_info This graph shows number of api events
+
+api_events.label api_events
+api_events.type COUNTER
+api_events.min 0
+
+multigraph fh_event_dispatch_publish_count
+graph_title fh event dispatcher published message count
+graph_order event_dispatch_publish_count
+graph_args --base 1000
+graph_vlabel messages published
+graph_category fh
+graph_info This graph shows number of messages published by event dispatcher
+
+event_dispatch_publish_count.label messages received
+event_dispatch_publish_count.type COUNTER
+event_dispatch_publish_count.min 0
+
+multigraph fh_publisher_messages_sent
+graph_title fh publisher messages sent
+graph_order publisher_messages_sent
+graph_args --base 1000
+graph_vlabel messages published
+graph_category fh
+graph_info This graph shows number of messages sent by publisher
+
+publisher_messages_sent.label messages published
+publisher_messages_sent.type COUNTER
+publisher_messages_sent.min 0
+
+multigraph fh_latencies
+graph_title fh latencies
+graph_order dispatch_interval socket_send
+graph_args --base 1000
+graph_vlabel interval latencies in micros
+graph_category fh
+graph_info This graph shows the latencies / intervals
+
+dispatch_interval.label dispatch event interval
+dispatch_interval.type GAUGE
+dispatch_interval.min 0
+
+socket_send.label socket send latency
+socket_send.type GAUGE
+socket_send.min 0
+
+multigraph fh_asiosocket_stats
+graph_title fh asio socket stats
+graph_order asio_connects asio_closes asio_exceptions asio_resets asio_loop_errors sig_interrupts
+graph_args --base 1000
+graph_vlabel stats
+graph_category fh
+graph_info This graph shows asio socket stats
+
+asio_connects.label asio socket connects
+asio_connects.type COUNTER
+asio_connects.min 0
+
+asio_closes.label asio socket closes
+asio_closes.type COUNTER
+asio_closes.min 0
+
+asio_exceptions.label asio socket exceptions
+asio_exceptions.type COUNTER
+asio_exceptions.min 0
+
+asio_resets.label asio socket resets
+asio_resets.type COUNTER
+asio_resets.min 0
+
+asio_loop_errors.label asio event loop errors
+asio_loop_errors.type COUNTER
+asio_loop_errors.min 0
+
+sig_interrupts.label zmq socket signal interrupts
+sig_interrupts.type COUNTER
+sig_interrupts.min 0
+
+multigraph fh_connector_stats
+graph_title fh connector stats
+graph_order connector_reqs connector_errors connector_exceptions connector_oks
+graph_args --base 1000
+graph_vlabel counts
+graph_category fh
+graph_info This graph shows connector requests, errors and exceptions
+
+connector_reqs.label connector requests
+connector_reqs.type COUNTER
+connector_reqs.min 0
+
+connector_errors.label connector errors
+connector_errors.type COUNTER
+connector_errors.min 0
+
+connector_exceptions.label connector exceptions
+connector_exceptions.type COUNTER
+connector_exceptions.min 0
+
+connector_oks.label connector oks
+connector_oks.type COUNTER
+connector_oks.min 0
+
+EOF
+}
+
+function parse {
+    grep \"$1\" $2 | cut -f2 -d: | sed -e 's/ //g' -e 's/,//g'
+}
+
+function doSample {
+    varz=/tmp/fh-varz
+    curl "http://build.lab616.com:18000/varz" 2>/dev/null > $varz
+
+    api_events=$(parse api_events $varz)
+    event_dispatch_publish_count=$(parse event_dispatch_publish_count $varz)
+    publisher_messages_sent=$(parse publisher_messages_sent $varz)
+
+    asio_connects=$(parse asio_socket_connects $varz)
+    asio_closes=$(parse asio_socket_connection_closes $varz)
+    asio_exceptions=$(parse asio_socket_connection_exceptions $varz)
+    asio_resets=$(parse asio_socket_connection_resets $varz)
+    asio_loop_errors=$(parse asio_socket_event_loop_errors $varz)
+    sig_interrupts=$(parse publisher_sig_interrupts $varz)
+
+    dispatch_interval=$(parse event_dispatch_publish_interval_micros $varz)
+    socket_send=$(parse asio_socket_send_latency_micros $varz)
+
+    connector_reqs=$(parse socket_connector_inbound_requests $varz)
+    connector_errors=$(parse socket_connector_inbound_requests_errors $varz)
+    connector_exceptions=$(parse socket_connector_inbound_requests_exceptions $varz)
+    connector_oks=$(parse socket_connector_inbound_requests_ok $varz)
+
+cat <<EOF
+multigraph fh_api_events
+api_events.value $api_events
+
+multigraph fh_event_dispatch_publish_count
+event_dispatch_publish_count.value $event_dispatch_publish_count
+
+multigraph fh_publisher_messages_sent
+publisher_messages_sent.value $publisher_messages_sent
+
+multigraph fh_asiosocket_stats
+asio_connects.value $asio_connects
+asio_closes.value $asio_closes
+asio_exceptions.value $asio_exceptions
+asio_resets.value $asio_resets
+asio_loop_errors.value $asio_loop_errors
+sig_interrupts.value $sig_interrupts
+
+multigraph fh_latencies
+dispatch_interval.value $dispatch_interval
+socket_send.value $socket_send
+
+multigraph fh_connector_stats
+connector_reqs.value $connector_reqs
+connector_errors.value $connector_errors
+connector_exceptions.value $connector_exceptions
+connector_oks.value $connector_oks
+EOF
+}
+
+
+
+case $OPTION in
+
+autoconf) doAutoConf
+;;
+config) doConfig
+;;
+*) doSample
+;;
+esac
+
+exit;
