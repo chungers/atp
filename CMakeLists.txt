@@ -86,6 +86,10 @@ set(API_ROOT ${COMMON_DIR}/ib/api/${IBAPI_VERSION})
 third_party(gflags)
 set(glog_deps gflags)
 third_party(glog)
+
+# Be sure to update the Makefile to include -fPIC in the 
+# compiler options
+message(STATUS "Make sure leveldb's Makefile has the -fPIC option set for shared libs")
 third_party_plain_make(leveldb)
 
 # Include the subdirectories required for this project:
