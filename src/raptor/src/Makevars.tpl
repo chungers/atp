@@ -18,17 +18,18 @@ PKG_CPPFLAGS = \
 ## Use the R_HOME indirection to support installations of multiple R version
 PKG_LIBS = \
 `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` \
--lprotobuf-lite \
--lzmq \
--lQuantLib \
--lquickfix \
--lgflags -lglog \
 -L@BUILD_DIR@/third_party/lib -lleveldb \
 -L@SRC_DIR@/ib -lIBAPIConnector \
 -L@SRC_DIR@/varz -lvarz_components \
 -L@SRC_DIR@/zmq -lzmq_components \
 -L@SRC_DIR@/historian -lhistorian_components \
 -L@SRC_DIR@/proto -lproto_components \
+-lprotobuf \
+-lprotobuf-lite \
+-lzmq \
+-lQuantLib \
+-lquickfix \
+-lgflags -lglog \
 
 
 

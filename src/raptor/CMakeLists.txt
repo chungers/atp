@@ -10,6 +10,12 @@ configure_file(
   ./src/Makevars
 )
 
+add_custom_target(raptor_protos
+COMMAND protoc --proto_path=proto --cpp_out=${SRC_DIR}/raptor/src proto/*.proto
+WORKING_DIRECTORY ${SRC_DIR}
+COMMENT "Building proto buffs",
+)
+
 set(R_PKG "raptor")
 set(R_BUNDLE "${R_PKG}_1.0.tar.gz")
 add_custom_target(build_raptor
@@ -31,8 +37,7 @@ add_dependencies(build_raptor
   varz_components
   historian_components
   proto_components
+  raptor_protos
 )
 
-add_dependencies(install_raptor build_raptor raptor_protos)
-
-add_subdirectory(src)
+add_dependencies(install_raptor build_raptor)
