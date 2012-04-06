@@ -62,11 +62,14 @@ SEXP raptor_historian_ib_marketdata(SEXP dbHandle,
   if (!ok) {
     return wrap(false);
   }
+
+  bool asEastern = as<bool>(est);
+
   string qSymbol = as<string>(symbol);
   string qEvent = as<string>(event);
   ptime utcStart, utcStop;
-  historian::parse(as<string>(start), &utcStart, true);  // as EST
-  historian::parse(as<string>(stop), &utcStop, true);
+  historian::parse(as<string>(start), &utcStart, asEastern);  // as EST
+  historian::parse(as<string>(stop), &utcStop, asEastern);
 
   Function* cb = (callback != R_NilValue) ? new Function(callback) : NULL;
 
