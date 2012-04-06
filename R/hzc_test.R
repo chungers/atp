@@ -41,28 +41,29 @@ t <- c()
 e <- c()
 v <- c()
 
-dev.new(); p1 <- dev.cur()
-dev.new(); p2 <- dev.cur()
-
 
 qStart <- '2012-04-05 09:30:00'
 qStop <- '2012-04-05 16:00:00'
 
-aapl <- mkdata(client, 'AAPL.STK', 'LAST', qStart, qStop)
+system.time(aapl <- mkdata(client, 'AAPL.STK', 'LAST', qStart, qStop))
 spx <- mkdata(client, 'SPX.IND', 'LAST', qStart, qStop)
-
-# locf - last observation carried forward.
-# this fills in the NA at different sampling instants
-aapl_spx <- na.locf(merge(aapl, spx), fromLast=TRUE)
-dev.set(p1)
-plot.zoo(aapl_spx)
-
 gld <- mkdata(client, 'GLD.STK', 'LAST', qStart, qStop)
 gdx <- mkdata(client, 'GDX.STK', 'LAST', qStart, qStop)
 
 # locf - last observation carried forward.
 # this fills in the NA at different sampling instants
+aapl_spx <- na.locf(merge(aapl, spx), fromLast=TRUE)
+
+# locf - last observation carried forward.
+# this fills in the NA at different sampling instants
 gld_gdx <- na.locf(merge(gld, gdx), fromLast=TRUE)
+
+# Plot them!
+dev.new(); p1 <- dev.cur()
+dev.new(); p2 <- dev.cur()
+
+dev.set(p1)
+plot.zoo(aapl_spx)
 dev.set(p2)
 plot.zoo(gld_gdx)
 
