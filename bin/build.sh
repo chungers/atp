@@ -109,8 +109,8 @@ if [ $DEPLOY == 1 ]; then
     mkdir -p $DEPLOY_TARGET
     mkdir -p $DEPLOY_OPS
     mkdir -p $DEPLOY_TARGET/deps
-    cp -r $DIR/install/* $DEPLOY_TARGET
-    cp -r $DIR/ops/munin $DEPLOY_OPS
+    cp -r -f $DIR/install/* $DEPLOY_TARGET
+    cp -r -f $DIR/ops/munin $DEPLOY_OPS
     # determine the shared library dependencies
     l=$(ls $DEPLOY_TARGET/bin)
     for i in $l; do
