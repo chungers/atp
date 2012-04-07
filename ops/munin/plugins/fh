@@ -22,6 +22,10 @@ api_events.label api_events
 api_events.type COUNTER
 api_events.min 0
 
+api_requests.label api_requests
+api_requests.type COUNTER
+api_requests.min 0
+
 multigraph fh_event_dispatch_publish_count
 graph_title fh event dispatcher published message count
 graph_order event_dispatch_publish_count
@@ -49,8 +53,7 @@ publisher_messages_sent.min 0
 multigraph fh_latencies
 graph_title fh latencies
 graph_order dispatch_interval socket_send publish_micros
-graph_args --base 1000
-graph_vlabel interval latencies in micros
+graph_vlabel usec latencies / intervals
 graph_category fh
 graph_info This graph shows the latencies / intervals
 
@@ -124,7 +127,6 @@ connector_oks.min 0
 
 multigraph fh_api_errors
 graph_title fh ib api errors
-graph_args --base 1000
 graph_vlabel errors
 graph_category fh
 graph_info This graph shows the ib api errors
@@ -162,6 +164,21 @@ ae_8.label cannot connect
 ae_8.type COUNTER
 ae_8.min 0
 
+multigraph fh_ewrapper_latencies
+graph_title fh IB eWrapper impl latencies
+graph_order ew_0 ew_1
+graph_vlabel usec latencies / intervals
+graph_category fh
+graph_info This graph shows the latencies / intervals of the IB API eWrapper
+
+ew_0.label ewrapper event interval usec
+ew_0.type GAUGE
+ew_0.min 0
+
+ew_1.label marketdata process usec
+ew_1.type GAUGE
+ew_1.min 0
+
 EOF
 }
 
@@ -174,6 +191,7 @@ function doSample {
     curl "http://build.lab616.com:18000/varz" 2>/dev/null > $varz
 
     api_events=$(parse api_events $varz)
+    api_requests=$(parse api_requests $varz)
     event_dispatch_publish_count=$(parse event_dispatch_publish_count $varz)
     publisher_messages_sent=$(parse publisher_messages_sent $varz)
 
@@ -202,9 +220,13 @@ function doSample {
     ae_7=$(parse ib_api_error_gateway_server_connection_broken $varz)
     ae_8=$(parse ib_api_error_cannot_connect $varz)
 
+    ew_0=$(parse api_event_interval_micros $varz)
+    ew_1=$(parse api_event_marketdata_process_micros $varz)
+
 cat <<EOF
 multigraph fh_api_events
 api_events.value $api_events
+api_requests.value $api_requests
 
 multigraph fh_event_dispatch_publish_count
 event_dispatch_publish_count.value $event_dispatch_publish_count
@@ -240,6 +262,10 @@ ae_5.value $ae_5
 ae_6.value $ae_6
 ae_7.value $ae_7
 ae_8.value $ae_8
+
+multigraph fh_ewrapper_latencies
+ew_0.value $ew_0
+ew_1.value $ew_1
 
 EOF
 }

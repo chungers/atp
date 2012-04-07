@@ -12,6 +12,7 @@ DEFINE_VARZ_int64(api_events, 0, "");
 DEFINE_VARZ_int64(api_requests, 0, "");
 DEFINE_VARZ_int64(api_last_ts, 0, "");
 DEFINE_VARZ_int64(api_event_interval_micros, 0, "");
+DEFINE_VARZ_int64(api_event_marketdata_process_micros, 0, "");
 
 
 // Macro for writing field value.
@@ -25,6 +26,11 @@ DEFINE_VARZ_int64(api_event_interval_micros, 0, "");
   << ",ts_utc=" << t                                    \
   << ",event=" << __func__                              \
 
+// Macro for recording certain event handling latencies
+#define TIME_EVENT_MARKETDATA \
+  VARZ_api_event_marketdata_process_micros = now() - t;
+
+
 // Macro for tick type enum to string conversion
 #define __tick_type_enum(m) ",field=" << TickTypeNames[m]
 
@@ -32,6 +38,7 @@ namespace ib {
 namespace internal {
 
 LoggingEWrapper::LoggingEWrapper() : TimeTracking() {
+  VARZ_api_last_ts = now();
 }
 
 LoggingEWrapper::~LoggingEWrapper() {
@@ -59,12 +66,14 @@ void LoggingEWrapper::tickPrice(TickerId tickerId, TickType field,
       << __tick_type_enum(field)
       << __f__(price)
       << __f__(canAutoExecute);
+  TIME_EVENT_MARKETDATA;
 }
 void LoggingEWrapper::tickSize(TickerId tickerId, TickType field, int size) {
   LOG_EVENT
       << __f__(tickerId)
       << __tick_type_enum(field)
       << __f__(size);
+  TIME_EVENT_MARKETDATA;
 }
 void LoggingEWrapper::tickOptionComputation(
     TickerId tickerId, TickType tickType,
@@ -83,6 +92,7 @@ void LoggingEWrapper::tickOptionComputation(
       << __f__(vega)
       << __f__(theta)
       << __f__(undPrice);
+  TIME_EVENT_MARKETDATA;
 }
 void LoggingEWrapper::tickGeneric(
     TickerId tickerId, TickType tickType, double value) {
@@ -90,6 +100,7 @@ void LoggingEWrapper::tickGeneric(
       << __f__(tickerId)
       << __tick_type_enum(tickType)
       << __f__(value);
+  TIME_EVENT_MARKETDATA;
 }
 void LoggingEWrapper::tickString(TickerId tickerId, TickType tickType,
                                  const IBString& value) {
@@ -97,6 +108,7 @@ void LoggingEWrapper::tickString(TickerId tickerId, TickType tickType,
       << __f__(tickerId)
       << __tick_type_enum(tickType)
       << __f__(value);
+  TIME_EVENT_MARKETDATA;
 }
 void LoggingEWrapper::tickEFP(TickerId tickerId, TickType tickType,
                               double basisPoints,
@@ -115,6 +127,7 @@ void LoggingEWrapper::tickEFP(TickerId tickerId, TickType tickType,
       << __f__(futureExpiry)
       << __f__(dividendImpact)
       << __f__(dividendsToExpiry);
+  TIME_EVENT_MARKETDATA;
 }
 void LoggingEWrapper::openOrder(OrderId orderId, const Contract& contract,
                                 const Order& order, const OrderState& state) {
@@ -144,6 +157,7 @@ void LoggingEWrapper::updateAccountValue(const IBString& key,
       << __f__(val)
       << __f__(currency)
       << __f__(accountName);
+  TIME_EVENT_MARKETDATA;
 }
 void LoggingEWrapper::updatePortfolio(const Contract& contract, int position,
                                       double marketPrice, double marketValue,
@@ -207,6 +221,7 @@ void LoggingEWrapper::updateMktDepth(TickerId id, int position,
       << __f__(side)
       << __f__(price)
       << __f__(size);
+  TIME_EVENT_MARKETDATA;
 }
 void LoggingEWrapper::updateMktDepthL2(TickerId id, int position,
                                        IBString marketMaker, int operation,
@@ -219,6 +234,7 @@ void LoggingEWrapper::updateMktDepthL2(TickerId id, int position,
       << __f__(side)
       << __f__(price)
       << __f__(size);
+  TIME_EVENT_MARKETDATA;
 }
 void LoggingEWrapper::updateNewsBulletin(int msgId, int msgType,
                                          const IBString& newsMessage,
