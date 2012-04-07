@@ -97,6 +97,7 @@ if [ $BUILD == 1 ]; then
 fi
 
 DEPLOY_TARGET=$DEPLOY_HUB_ATP/$(uname)-$(arch)
+DEPLOY_OPS=$DEPLOY_HUB_ATP/ops
 # Deploy to the hub
 if [ $DEPLOY == 1 ]; then
     pushd $DEPLOY_HUB/
@@ -106,9 +107,10 @@ if [ $DEPLOY == 1 ]; then
     rm -rf $DIR/install/
     make install
     mkdir -p $DEPLOY_TARGET
+    mkdir -p $DEPLOY_OPS
     mkdir -p $DEPLOY_TARGET/deps
     cp -r $DIR/install/* $DEPLOY_TARGET
-
+    cp -r $DIR/ops/munin $DEPLOY_OPS
     # determine the shared library dependencies
     l=$(ls $DEPLOY_TARGET/bin)
     for i in $l; do
