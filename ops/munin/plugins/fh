@@ -28,27 +28,19 @@ api_requests.min 0
 
 multigraph fh_event_dispatch_publish_count
 graph_title fh event dispatcher published message count
-graph_order event_dispatch_publish_count
+graph_order event_dispatch_publish_count event_dispatch_publish_depth_count
 graph_args --base 1000
 graph_vlabel messages published
 graph_category fh
 graph_info This graph shows number of messages published by event dispatcher
 
-event_dispatch_publish_count.label messages received
+event_dispatch_publish_count.label marketdata messages published
 event_dispatch_publish_count.type COUNTER
 event_dispatch_publish_count.min 0
 
-multigraph fh_publisher_messages_sent
-graph_title fh publisher messages sent
-graph_order publisher_messages_sent
-graph_args --base 1000
-graph_vlabel messages published
-graph_category fh
-graph_info This graph shows number of messages sent by publisher
-
-publisher_messages_sent.label messages published
-publisher_messages_sent.type COUNTER
-publisher_messages_sent.min 0
+event_dispatch_publish_depth_count.label marketdepth messages published
+event_dispatch_publish_depth_count.type COUNTER
+event_dispatch_publish_depth_count.min 0
 
 multigraph fh_latencies
 graph_title fh latencies
@@ -193,7 +185,7 @@ function doSample {
     api_events=$(parse api_events $varz)
     api_requests=$(parse api_requests $varz)
     event_dispatch_publish_count=$(parse event_dispatch_publish_count $varz)
-    publisher_messages_sent=$(parse publisher_messages_sent $varz)
+    event_dispatch_publish_depth_count=$(parse event_dispatch_publish_depth_count $varz)
 
     asio_connects=$(parse asio_socket_connects $varz)
     asio_closes=$(parse asio_socket_connection_closes $varz)
@@ -230,9 +222,7 @@ api_requests.value $api_requests
 
 multigraph fh_event_dispatch_publish_count
 event_dispatch_publish_count.value $event_dispatch_publish_count
-
-multigraph fh_publisher_messages_sent
-publisher_messages_sent.value $publisher_messages_sent
+event_dispatch_publish_depth_count.value $event_dispatch_publish_depth_count
 
 multigraph fh_asiosocket_stats
 asio_connects.value $asio_connects
