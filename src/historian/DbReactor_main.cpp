@@ -39,6 +39,7 @@ DEFINE_bool(overwrite, true, "True to overwrite db records, false to check.");
 
 DEFINE_int32(messageBlockSize, 10000, "For periodic output to logs.");
 
+DEFINE_VARZ_int64(subscriber_message_process_micros, 0, "micros in handling message");
 DEFINE_VARZ_int64(subscriber_messages_received, 0, "total messages");
 DEFINE_VARZ_int64(subscriber_messages_persisted, 0, "total messages persisted");
 DEFINE_VARZ_int64(subscriber_messages_persisted_marketdata, 0, "total messages persisted");
@@ -115,6 +116,7 @@ class DbWriterSubscriber : public atp::MarketDataSubscriber
  protected:
   virtual bool process(const string& topic, const MarketData& marketData)
   {
+    boost::uint64_t now = now_micros();
     VARZ_subscriber_messages_received++;
     if (db_->Write(marketData, FLAGS_overwrite)) {
 
@@ -126,11 +128,13 @@ class DbWriterSubscriber : public atp::MarketDataSubscriber
                   << topic << "=>" << marketData;
       }
     }
+    VARZ_subscriber_message_process_micros = now_micros() - now;
     return true;
   }
 
   virtual bool process(const string& topic, const MarketDepth& marketDepth)
   {
+    boost::uint64_t now = now_micros();
     VARZ_subscriber_messages_received++;
     if (db_->Write(marketDepth, FLAGS_overwrite)) {
 
@@ -142,6 +146,7 @@ class DbWriterSubscriber : public atp::MarketDataSubscriber
                   << topic << "=>" << marketDepth;
       }
     }
+    VARZ_subscriber_message_process_micros = now_micros() - now;
     return true;
   }
 

@@ -35,6 +35,7 @@ set(ib_api_libs
   gflags
   glog
   proto_components
+  varz_components
 )
 cpp_library(ib_api)
 

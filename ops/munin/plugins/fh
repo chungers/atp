@@ -48,7 +48,7 @@ publisher_messages_sent.min 0
 
 multigraph fh_latencies
 graph_title fh latencies
-graph_order dispatch_interval socket_send
+graph_order dispatch_interval socket_send publish_micros
 graph_args --base 1000
 graph_vlabel interval latencies in micros
 graph_category fh
@@ -61,6 +61,10 @@ dispatch_interval.min 0
 socket_send.label socket send latency
 socket_send.type GAUGE
 socket_send.min 0
+
+publish_micros.label publish micros
+publish_micros.type GAUGE
+publish_micros.min 0
 
 multigraph fh_asiosocket_stats
 graph_title fh asio socket stats
@@ -118,6 +122,46 @@ connector_oks.label connector oks
 connector_oks.type COUNTER
 connector_oks.min 0
 
+multigraph fh_api_errors
+graph_title fh ib api errors
+graph_args --base 1000
+graph_vlabel errors
+graph_category fh
+graph_info This graph shows the ib api errors
+graph_order ae_1 ae_2 ae_3 ae_4 ae_5 ae_6 ae_7 ae_8
+
+ae_1.label no security definition
+ae_1.type COUNTER
+ae_1.min 0
+
+ae_2.label unhandled error
+ae_2.type COUNTER
+ae_2.min 0
+
+ae_3.label connection reset
+ae_3.type COUNTER
+ae_3.min 0
+
+ae_4.label gateway disconnect
+ae_4.type COUNTER
+ae_4.min 0
+
+ae_5.label marketdata farm connection broken
+ae_5.type COUNTER
+ae_5.min 0
+
+ae_6.label marketdata farm connection ok
+ae_6.type COUNTER
+ae_6.min 0
+
+ae_7.label gateway server connection broken
+ae_7.type COUNTER
+ae_7.min 0
+
+ae_8.label cannot connect
+ae_8.type COUNTER
+ae_8.min 0
+
 EOF
 }
 
@@ -142,11 +186,21 @@ function doSample {
 
     dispatch_interval=$(parse event_dispatch_publish_interval_micros $varz)
     socket_send=$(parse asio_socket_send_latency_micros $varz)
+    publish_micros=$(parse event_dispatch_publish_micros $varz)
 
     connector_reqs=$(parse socket_connector_inbound_requests $varz)
     connector_errors=$(parse socket_connector_inbound_requests_errors $varz)
     connector_exceptions=$(parse socket_connector_inbound_requests_exceptions $varz)
     connector_oks=$(parse socket_connector_inbound_requests_ok $varz)
+
+    ae_1=$(parse ib_api_error_no_security_definition $varz)
+    ae_2=$(parse ib_api_error_unhandled $varz)
+    ae_3=$(parse ib_api_error_connection_reset $varz)
+    ae_4=$(parse ib_api_error_gateway_disconnect $varz)
+    ae_5=$(parse ib_api_error_marketdata_farm_connection_broken $varz)
+    ae_6=$(parse ib_api_error_marketdata_farm_connection_ok $varz)
+    ae_7=$(parse ib_api_error_gateway_server_connection_broken $varz)
+    ae_8=$(parse ib_api_error_cannot_connect $varz)
 
 cat <<EOF
 multigraph fh_api_events
@@ -169,12 +223,24 @@ sig_interrupts.value $sig_interrupts
 multigraph fh_latencies
 dispatch_interval.value $dispatch_interval
 socket_send.value $socket_send
+publish_micros.value $publish_micros
 
 multigraph fh_connector_stats
 connector_reqs.value $connector_reqs
 connector_errors.value $connector_errors
 connector_exceptions.value $connector_exceptions
 connector_oks.value $connector_oks
+
+multigraph fh_api_errors
+ae_1.value $ae_1
+ae_2.value $ae_2
+ae_3.value $ae_3
+ae_4.value $ae_4
+ae_5.value $ae_5
+ae_6.value $ae_6
+ae_7.value $ae_7
+ae_8.value $ae_8
+
 EOF
 }
 

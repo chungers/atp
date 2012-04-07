@@ -46,6 +46,18 @@ subscriber_messages_persisted.label messages persisted
 subscriber_messages_persisted.type COUNTER
 subscriber_messages_persisted.min 0
 
+multigraph hz_subscriber_message_process_latency
+graph_title hz subscriber message process latency
+graph_order subscriber_message_process_micros
+graph_args --base 1000
+graph_vlabel micros handling message
+graph_category hz
+graph_info This graph shows number of usec handling message
+
+subscriber_message_process_micros.label usec processing message
+subscriber_message_process_micros.type GAUGE
+subscriber_message_process_micros.min 0
+
 EOF
 }
 
@@ -58,10 +70,9 @@ function doSample {
     curl "http://stage.lab616.com:18001/varz" 2>/dev/null > $varz
 
     leveldb_writes=$(parse leveldb_writes $varz)
-    #leveldb_write_elapsed=$(parse leveldb_write_elapsed $varz)
-    #leveldb_write_micros=$(parse leveldb_write_micros $varz)
     subscriber_messages_received=$(parse subscriber_messages_received $varz)
     subscriber_messages_persisted=$(parse subscriber_messages_persisted $varz)
+    subscriber_message_process_micros=$(parse subscriber_message_process_micros $varz)
 
 cat <<EOF
 multigraph hz_leveldb_writes
@@ -72,6 +83,9 @@ subscriber_messages_received.value $subscriber_messages_received
 
 multigraph hz_subscriber_messages_persisted
 subscriber_messages_persisted.value $subscriber_messages_persisted
+
+multigraph hz_subscriber_message_process_latency
+subscriber_message_process_micros.value $subscriber_message_process_micros
 EOF
 }
 

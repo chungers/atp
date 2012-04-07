@@ -18,12 +18,11 @@ DEFINE_VARZ_int64(event_dispatch_publish_last_ts, 0, "");
 DEFINE_VARZ_int64(event_dispatch_publish_interval_micros, 0, "");
 DEFINE_VARZ_int64(event_dispatch_publish_serialization_errors, 0, "");
 DEFINE_VARZ_int64(event_dispatch_publish_unresolved_keys, 0, "");
+DEFINE_VARZ_int64(event_dispatch_publish_micros, 0, "");
 
 
 DEFINE_VARZ_int64(event_dispatch_publish_depth_total_bytes, 0, "");
 DEFINE_VARZ_int64(event_dispatch_publish_depth_count, 0, "");
-DEFINE_VARZ_int64(event_dispatch_publish_depth_last_ts, 0, "");
-DEFINE_VARZ_int64(event_dispatch_publish_depth_interval_micros, 0, "");
 DEFINE_VARZ_int64(event_dispatch_publish_depth_unresolved_keys, 0, "");
 
 namespace ib {
@@ -38,6 +37,7 @@ class EventDispatcherBase
   EventDispatcherBase(EWrapperEventCollector& eventCollector) :
       eventCollector_(eventCollector)
   {
+    VARZ_event_dispatch_publish_last_ts = now_micros();
   }
 
   ~EventDispatcherBase() {}
@@ -53,12 +53,13 @@ class EventDispatcherBase
   void publish(TickerId tickerId, TickType tickType, const T& value,
                TimeTracking& timed)
   {
+    boost::uint64_t now = now_micros();
+
     std::string tick = TickTypeNames[tickType];
     std::string topic;
 
     if (TickerMap::getSubscriptionKeyFromId(tickerId, &topic)) {
 
-      boost::uint64_t now = now_micros();
 
       MarketData ibMarketData;
       ibMarketData.set_symbol(topic);
@@ -101,6 +102,8 @@ class EventDispatcherBase
       VARZ_event_dispatch_publish_unresolved_keys++;
 
     }
+
+    VARZ_event_dispatch_publish_micros = now_micros() - now;
   }
 
   void publishDepth(TickerId tickerId, int side, int level, int operation,
@@ -108,10 +111,10 @@ class EventDispatcherBase
                     TimeTracking& timed,
                     const std::string& mm = "L1")
   {
+    boost::uint64_t now = now_micros();
+
     std::string topic;
     if (TickerMap::getSubscriptionKeyFromId(tickerId, &topic)) {
-
-      boost::uint64_t now = now_micros();
 
       std::ostringstream zmq_topic;
       zmq_topic << historian::ENTITY_IB_MARKET_DEPTH << ':' << topic;
@@ -157,9 +160,9 @@ class EventDispatcherBase
 
         VARZ_event_dispatch_publish_depth_count++;
         VARZ_event_dispatch_publish_depth_total_bytes += sent;
-        VARZ_event_dispatch_publish_depth_interval_micros =
-            now - VARZ_event_dispatch_publish_depth_last_ts;
-        VARZ_event_dispatch_publish_depth_last_ts = now;
+        VARZ_event_dispatch_publish_interval_micros =
+            now - VARZ_event_dispatch_publish_last_ts;
+        VARZ_event_dispatch_publish_last_ts = now;
 
       } else {
 
@@ -178,6 +181,8 @@ class EventDispatcherBase
       VARZ_event_dispatch_publish_depth_unresolved_keys++;
 
     }
+
+    VARZ_event_dispatch_publish_micros = now_micros() - now;
   }
 
 
