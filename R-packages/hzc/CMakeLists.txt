@@ -18,6 +18,11 @@ set(R_LIBS "${R_PKG_DIR}/${CMAKE_SYSTEM_NAME}")
 
 set(R_BUNDLE "${R_PKG}_1.0.tar.gz")
 
+add_custom_target(r_mkdirs_hzc
+COMMAND mkdir -p ${R_LIBS}
+COMMENT "Making directory ${R_LIBS}",
+)
+
 add_custom_target(r_gen_protos_hzc
 COMMAND protoc --proto_path=proto --cpp_out=${R_PKG_DIR}/src proto/*.proto
 WORKING_DIRECTORY ${SRC_DIR}
@@ -42,4 +47,4 @@ add_dependencies(r_build_hzc
   proto_components
 )
 
-add_dependencies(r_install_hzc r_build_hzc r_gen_protos_hzc)
+add_dependencies(r_install_hzc r_build_hzc r_gen_protos_hzc r_mkdirs_hzc)
