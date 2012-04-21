@@ -33,17 +33,17 @@ mkdata <- function(client, symbol, event, qStart, qStop) {
 # ssh jenkins@stage.lab616.com -R 1112:localhost:1112 -L 1111:localhost:1111
 
 hzAddress <- "tcp://127.0.0.1:1111";
-cbAddress <- "tcp://127.0.0.1:1112";
+cbAddress <- "tcp://127.0.0.1:1113";
 
-client <- raptor.hzc.connect(); # defaults use the addresses above.
+client <- raptor.hzc.connect(hzAddress, cbAddress);
 
 t <- c()
 e <- c()
 v <- c()
 
 
-qStart <- '2012-04-05 09:30:00'
-qStop <- '2012-04-05 16:00:00'
+qStart <- '2012-04-13 09:30:00'
+qStop <- '2012-04-13 16:00:00'
 
 system.time(aapl <- mkdata(client, 'AAPL.STK', 'LAST', qStart, qStop))
 spx <- mkdata(client, 'SPX.IND', 'LAST', qStart, qStop)
@@ -67,5 +67,5 @@ plot.zoo(aapl_spx)
 dev.set(p2)
 plot.zoo(gld_gdx)
 
-raptor.hzc.close(client)
+#raptor.hzc.close(client)
 
