@@ -25,11 +25,10 @@ COMMENT "Building R package ${R_PKG}",
 )
 
 add_custom_target(install_raptor
-COMMAND R CMD INSTALL --no-multiarch ${R_PKG}
+COMMAND R CMD INSTALL --library=${BUILD_DIR}/R --no-multiarch ${R_PKG}
 WORKING_DIRECTORY ${SRC_DIR}
 COMMENT "Install R package ${R_PKG}",
 )
-
 
 add_dependencies(build_raptor
   IBAPIConnector
