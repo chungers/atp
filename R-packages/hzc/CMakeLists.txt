@@ -18,6 +18,11 @@ set(R_LIBS "${R_PKG_DIR}/${CMAKE_SYSTEM_NAME}")
 
 set(R_BUNDLE "${R_PKG}_1.0.tar.gz")
 
+add_custom_target(r_clean_hzc
+COMMAND rm -rf ${R_LIBS} & rm -f ./src/*.pb.* ./src/*.o ./src/*.so
+COMMENT "Removing directory ${R_LIBS}",
+)
+
 add_custom_target(r_mkdirs_hzc
 COMMAND mkdir -p ${R_LIBS}
 COMMENT "Making directory ${R_LIBS}",
