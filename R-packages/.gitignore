@@ -1,0 +1,25 @@
+
+# CMake Runtime #
+#################
+CMakeFiles/
+CMakeCache.txt
+Makefile
+*.cmake
+
+# Specific to R packages
+Makevars
+*.tar.gz
+
+# Generated code #
+##################
+*.pb.h
+*.pb.cc
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.[oa]
+*.so
