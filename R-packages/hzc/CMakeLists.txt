@@ -52,4 +52,11 @@ add_dependencies(r_build_hzc
   proto_components
 )
 
+add_custom_target(r_package_hzc
+COMMAND R CMD INSTALL --build --no-multiarch --no-inst ${R_PKG}
+WORKING_DIRECTORY ${R_PKGS_DIR}
+COMMENT "Creating precompiled binary package ${R_PKG}",
+)
+
 add_dependencies(r_install_hzc r_build_hzc r_gen_protos_hzc r_mkdirs_hzc)
+add_dependencies(r_package_hzc r_install_hzc)

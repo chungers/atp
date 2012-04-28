@@ -46,6 +46,12 @@ WORKING_DIRECTORY ${R_PKGS_DIR}
 COMMENT "Compile / install R package ${R_PKG}",
 )
 
+add_custom_target(r_package_mds
+COMMAND R CMD INSTALL --build --no-multiarch --no-inst ${R_PKG}
+WORKING_DIRECTORY ${R_PKGS_DIR}
+COMMENT "Creating precompiled binary package ${R_PKG}",
+)
+
 add_dependencies(r_build_mds
   zmq_components
   varz_components
@@ -54,3 +60,4 @@ add_dependencies(r_build_mds
 )
 
 add_dependencies(r_install_mds r_build_mds r_gen_protos_mds r_mkdirs_mds)
+add_dependencies(r_package_mds r_install_mds)
