@@ -98,6 +98,7 @@ fi
 
 DEPLOY_TARGET=$DEPLOY_HUB_ATP/$(uname)-$(arch)
 DEPLOY_OPS=$DEPLOY_HUB_ATP/ops
+DEPLOY_R_PKGS=$DEPLOY_TARGET/R-packages
 # Deploy to the hub
 if [ $DEPLOY == 1 ]; then
     pushd $DEPLOY_HUB/
@@ -108,9 +109,12 @@ if [ $DEPLOY == 1 ]; then
     make install
     mkdir -p $DEPLOY_TARGET
     mkdir -p $DEPLOY_OPS
+    mkdir -p $DEPLOY_R_PKGS
     mkdir -p $DEPLOY_TARGET/deps
     cp -r -f $DIR/install/* $DEPLOY_TARGET
     cp -r -f $DIR/ops/munin $DEPLOY_OPS
+    cp -r -f $(find $DIR/R-packages -name *.tgz) $DEPLOY_R_PKGS
+    cp -r -f $(find $DIR/R-packages -name *.gz) $DEPLOY_R_PKGS
     # determine the shared library dependencies
     l=$(ls $DEPLOY_TARGET/bin)
     for i in $l; do
