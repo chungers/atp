@@ -34,19 +34,19 @@ WORKING_DIRECTORY ${SRC_DIR}
 COMMENT "Building proto buffs",
 )
 
-add_custom_target(r_build_hzc
+add_custom_target(r_bundle_hzc
 COMMAND R CMD build ${R_PKG}
 WORKING_DIRECTORY ${R_PKGS_DIR}
 COMMENT "Building R package ${R_PKG}",
 )
 
-add_custom_target(r_install_hzc
+add_custom_target(r_build_hzc
 COMMAND R CMD INSTALL --library=${R_LIBS} --no-multiarch ${R_PKG}
 WORKING_DIRECTORY ${R_PKGS_DIR}
 COMMENT "Compile / install R package ${R_PKG}",
 )
 
-add_dependencies(r_build_hzc
+add_dependencies(r_bundle_hzc
   zmq_components
   historian_components
   proto_components
@@ -58,5 +58,12 @@ WORKING_DIRECTORY ${R_PKGS_DIR}
 COMMENT "Creating precompiled binary package ${R_PKG}",
 )
 
-add_dependencies(r_install_hzc r_build_hzc r_gen_protos_hzc r_mkdirs_hzc)
-add_dependencies(r_package_hzc r_install_hzc)
+add_custom_target(r_deploy_hzc
+COMMAND R CMD INSTALL --no-multiarch ${R_PKG}
+WORKING_DIRECTORY ${R_PKGS_DIR}
+COMMENT "Install into R locally"
+)
+
+add_dependencies(r_build_hzc r_bundle_hzc r_gen_protos_hzc r_mkdirs_hzc)
+add_dependencies(r_package_hzc r_build_hzc)
+add_dependencies(r_deploy_hzc r_package_hzc)
