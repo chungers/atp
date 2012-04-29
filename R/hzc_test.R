@@ -1,5 +1,5 @@
 
-library(raptor)
+library(hzc)
 options(digits.secs=6)
 
 nycTime <- function(t) {
@@ -20,7 +20,7 @@ h <- function(symbol, ts, event, value) {
 }
 
 mkdata <- function(client, symbol, event, qStart, qStop) {
-  raw <- raptor.hzc.query(client, symbol, event, qStart, qStop)
+  raw <- hzc.query(client, symbol, event, qStart, qStop)
   library(xts)
   data <- as.xts(raw$value,
                  order.by=nycTime(raw$utc_t),
@@ -35,15 +35,15 @@ mkdata <- function(client, symbol, event, qStart, qStop) {
 hzAddress <- "tcp://127.0.0.1:1111";
 cbAddress <- "tcp://127.0.0.1:1113";
 
-client <- raptor.hzc.connect(hzAddress, cbAddress);
+client <- hzc.connect(hzAddress, cbAddress);
 
 t <- c()
 e <- c()
 v <- c()
 
 
-qStart <- '2012-04-13 09:30:00'
-qStop <- '2012-04-13 16:00:00'
+qStart <- '2012-04-27 09:30:00'
+qStop <- '2012-04-27 16:00:00'
 
 system.time(aapl <- mkdata(client, 'AAPL.STK', 'LAST', qStart, qStop))
 spx <- mkdata(client, 'SPX.IND', 'LAST', qStart, qStop)
@@ -52,11 +52,11 @@ gdx <- mkdata(client, 'GDX.STK', 'LAST', qStart, qStop)
 
 # locf - last observation carried forward.
 # this fills in the NA at different sampling instants
-aapl_spx <- na.locf(merge(aapl, spx), fromLast=TRUE)
+aapl_spx <- na.locf(merge(aapl, spx))
 
 # locf - last observation carried forward.
 # this fills in the NA at different sampling instants
-gld_gdx <- na.locf(merge(gld, gdx), fromLast=TRUE)
+gld_gdx <- na.locf(merge(gld, gdx))
 
 # Plot them!
 dev.new(); p1 <- dev.cur()
@@ -67,5 +67,5 @@ plot.zoo(aapl_spx)
 dev.set(p2)
 plot.zoo(gld_gdx)
 
-#raptor.hzc.close(client)
+
 
