@@ -1,9 +1,10 @@
 
-# Assumes a local ssh tunnel is open per
 # https://github.com/lab616/hub/wiki/Historian:---the-Market-Data-Backend
 #
-new.hzc <- function(address = 'tcp://127.0.0.1:1111',
-                    callbackAddress = 'tcp://127.0.0.1:1112') {
+new.hzc <- function(cbPort = 1112, hzPort = 1111,
+                    hzHost = 'stage.lab616.com',
+                    hzUser = 'jenkins',
+                    startTunnel = TRUE) {
 
   library(xts)
   options(digits.secs=6)
@@ -11,8 +12,23 @@ new.hzc <- function(address = 'tcp://127.0.0.1:1111',
   this <- new.env()
   class(this) <- 'hzc'
 
-  this$.historianAddress <- as.character(address)
-  this$.callbackAddress <- as.character(callbackAddress)
+  this$.cbPort = cbPort
+  this$.hzPort = hzPort
+  this$.historianAddress <- paste('tcp://127.0.0.1', hzPort,
+                                  sep=':')
+  this$.callbackAddress <- paste('tcp://127.0.0.1', cbPort,
+                                 sep=':')
+
+  if (startTunnel) {
+    # The tunnel runs as a child process of the R session.
+    # When R session exits, the tunnel will be closed.
+    cmd <- paste('ssh ', hzUser, '@', hzHost,
+                 ' -R ', cbPort, ':localhost:', cbPort,
+                 ' -L ', hzPort, ':localhost:', hzPort,
+                 ' -f -N', sep='')
+    message('Starting tunnel: ', cmd)
+    system(cmd, wait=FALSE)
+  }
 
   # connect
   this$.connection <- .Call("hzc_connect",
@@ -39,6 +55,19 @@ new.hzc <- function(address = 'tcp://127.0.0.1:1111',
   }
   environment(this$mktdata) <- as.environment(this)
 
+
+  killProcess <- function(port) {
+    cmd <- paste('lsof -i TCP@localhost:', port, ' -F p', sep='')
+
+    p <- system(cmd, intern=TRUE)
+    p <- sub('p', '', p)  # remove the 'p'
+
+    if (is.numeric(as.numeric(p))) {
+      cmd <- paste('kill ', p, sep=' ')
+      system(cmd, wait=FALSE)
+    }
+  }
+
   return(this)
 }
 
@@ -46,8 +75,54 @@ new.hzc <- function(address = 'tcp://127.0.0.1:1111',
 mktdata <- function(x, symbol, event, qStart, qStop,
                     callback = NULL, est = TRUE)
   UseMethod('mktdata')
-
 mktdata.hzc <- function(x, symbol, event, qStart, qStop,
                         callback = NULL, est = TRUE)
   x$mktdata(symbol, event, qStart, qStop, callback, est)
 
+# BID
+bid <- function(x, symbol, qStart, qStop,
+                callback = NULL, est = TRUE)
+  UseMethod('bid')
+bid.hzc <- function(x, symbol, qStart, qStop,
+                    callback = NULL, est = TRUE)
+  x$mktdata(symbol, 'BID', qStart, qStop, callback, est)
+
+# ASK
+ask <- function(x, symbol, qStart, qStop,
+                callback = NULL, est = TRUE)
+  UseMethod('ask')
+ask.hzc <- function(x, symbol, qStart, qStop,
+                    callback = NULL, est = TRUE)
+  x$mktdata(symbol, 'ASK', qStart, qStop, callback, est)
+
+# LAST
+lastTrade <- function(x, symbol, qStart, qStop,
+                 callback = NULL, est = TRUE)
+  UseMethod('lastTrade')
+lastTrade.hzc <- function(x, symbol, qStart, qStop,
+                     callback = NULL, est = TRUE)
+  x$mktdata(symbol, 'LAST', qStart, qStop, callback, est)
+
+# BID_SIZE
+bidSize <- function(x, symbol, qStart, qStop,
+                    callback = NULL, est = TRUE)
+  UseMethod('bidSize')
+bidSize.hzc <- function(x, symbol, qStart, qStop,
+                        callback = NULL, est = TRUE)
+  x$mktdata(symbol, 'BID_SIZE', qStart, qStop, callback, est)
+
+# ASK_SIZE
+askSize <- function(x, symbol, qStart, qStop,
+                callback = NULL, est = TRUE)
+  UseMethod('askSize')
+askSize.hzc <- function(x, symbol, qStart, qStop,
+                    callback = NULL, est = TRUE)
+  x$mktdata(symbol, 'ASK_SIZE', qStart, qStop, callback, est)
+
+# LAST_SIZE
+lastSize <- function(x, symbol, qStart, qStop,
+                     callback = NULL, est = TRUE)
+  UseMethod('lastSize')
+lastSize.hzc <- function(x, symbol, qStart, qStop,
+                         callback = NULL, est = TRUE)
+  x$mktdata(symbol, 'LAST_SIZE', qStart, qStop, callback, est)
