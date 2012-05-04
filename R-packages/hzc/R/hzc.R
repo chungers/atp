@@ -1,12 +1,14 @@
 
 # https://github.com/lab616/hub/wiki/Historian:---the-Market-Data-Backend
 #
-new.hzc <- function(cbPort = 1112, hzPort = 1111,
+new.hzc <- function(cbPort = 1112,
+                    hzLocalPort = 1111,
+                    hzPort = 1111,
                     hzHost = 'stage.lab616.com',
                     hzUser = 'jenkins',
                     startTunnel = TRUE) {
 
-  library(xts)
+  stopifnot(require('xts', quietly=TRUE))
   options(digits.secs=6)
   Sys.setenv(TZ='America/New_York')
 
@@ -15,6 +17,7 @@ new.hzc <- function(cbPort = 1112, hzPort = 1111,
 
   this$.cbPort = cbPort
   this$.hzPort = hzPort
+  this$.hzLocalPort = hzLocalPort
   this$.historianAddress <- paste('tcp://127.0.0.1', hzPort,
                                   sep=':')
   this$.callbackAddress <- paste('tcp://127.0.0.1', cbPort,
@@ -25,7 +28,7 @@ new.hzc <- function(cbPort = 1112, hzPort = 1111,
     # When R session exits, the tunnel will be closed.
     cmd <- paste('ssh ', hzUser, '@', hzHost,
                  ' -R ', cbPort, ':localhost:', cbPort,
-                 ' -L ', hzPort, ':localhost:', hzPort,
+                 ' -L ', hzLocalPort, ':localhost:', hzPort,
                  ' -f -N', sep='')
     message('Starting tunnel: ', cmd)
     system(cmd, wait=FALSE)
@@ -62,19 +65,31 @@ new.hzc <- function(cbPort = 1112, hzPort = 1111,
   killProcess <- function(port) {
     cmd <- paste('lsof -i TCP@localhost:', port, ' -F p', sep='')
 
+    # don't kill the parent process which is the R session
+    # find child process
     p <- system(cmd, intern=TRUE)
-    p <- sub('p', '', p)  # remove the 'p'
+    p <- max(as.numeric(sub('p', '', p)))
 
-    if (is.numeric(as.numeric(p))) {
-      cmd <- paste('kill ', p, sep=' ')
+    if (p > 0) {
+      cmd <- paste('kill -9 ', p, sep=' ')
+      message(cmd)
       system(cmd, wait=FALSE)
     }
   }
 
+  this$stopTunnel <- function() {
+    killProcess(this$.hzLocalPort)
+  }
+  environment(this$stopTunnel) <- as.environment(this)
+
   return(this)
 }
 
+
 # S3 function mapping
+stopTunnel <- function(x) UseMethod('stopTunnel')
+stopTunnel.hzc <- function(x) x$stopTunnel()
+
 mktdata <- function(x, symbol, event, qStart, qStop,
                     callback = NULL, est = TRUE)
   UseMethod('mktdata')
@@ -129,3 +144,5 @@ lastSize <- function(x, symbol, qStart, qStop,
 lastSize.hzc <- function(x, symbol, qStart, qStop,
                          callback = NULL, est = TRUE)
   x$mktdata(symbol, 'LAST_SIZE', qStart, qStop, callback, est)
+
+
