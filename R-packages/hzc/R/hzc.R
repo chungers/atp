@@ -8,6 +8,7 @@ new.hzc <- function(cbPort = 1112, hzPort = 1111,
 
   library(xts)
   options(digits.secs=6)
+  Sys.setenv(TZ='America/New_York')
 
   this <- new.env()
   class(this) <- 'hzc'
@@ -50,8 +51,10 @@ new.hzc <- function(cbPort = 1112, hzPort = 1111,
                  callback, est,
                  PACKAGE="hzc")
 
-    as.xts(raw$value, order.by=nycTime(raw$utc_t),
-           tzone='America/New_York')
+    xts <- as.xts(raw$value, order.by=nycTime(raw$utc_t),
+                  tzone='America/New_York')
+    colnames(xts) <- c(paste(symbol, event, sep='.'))
+    return(xts)
   }
   environment(this$mktdata) <- as.environment(this)
 
