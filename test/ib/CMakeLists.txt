@@ -66,42 +66,6 @@ set(SocketConnector_test_libs
 )
 cpp_gtest(SocketConnector_test)
 
-# MarketData test
-set(MarketData_test_incs
-  ${IBAPI_ROOT}
-  ${GEN_DIR}
-  ${SRC_DIR}
-  ${SRC_DIR}/ib/${IBAPI_IMPL_DIR}
-  ${IBAPI_IMPL_DIR}
-  ${TEST_DIR}
-)
-set(MarketData_test_srcs
-  ${TEST_DIR}/AllTests.cpp
-  MarketDataTest.cpp
-  ${IBAPI_IMPL_DIR}/VersionSpecific.cpp
-)
-set(MarketData_test_libs
-  IBAPIConnector
-)
-cpp_gtest(MarketData_test)
-
-# Message test
-set(Message_test_incs
-  ${GEN_DIR}
-  ${SRC_DIR}
-  ${TEST_DIR}
-)
-set(Message_test_srcs
-  ${TEST_DIR}/AllTests.cpp
-  MessageTest.cpp
-  ApiMessageBaseTest.cpp
-)
-set(Message_test_libs
-  IBAPIConnector
-  zmq
-)
-cpp_gtest(Message_test)
-
 # Utils test
 set(utils_test_incs
   ${GEN_DIR}

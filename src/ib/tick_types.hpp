@@ -75,6 +75,14 @@ const std::string TickTypeNames[] = {
   enum_string(TickType::ASK_YIELD),
   enum_string(TickType::LAST_YIELD),
   enum_string(TickType::CUST_OPTION_COMPUTATION),
+
+#ifdef IBAPI_966
+  enum_string(TickType::TRADE_COUNT),
+  enum_string(TickType::TRADE_RATE),
+  enum_string(TickType::VOLUME_RATE),
+  enum_string(TickType::LAST_RTH_TRADE),
+#endif
+  
   enum_string(TickType::NOT_SET)
 };
 
