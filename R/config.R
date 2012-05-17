@@ -28,6 +28,7 @@ CONFIG$symbols <- c(
 'CMG',
 'FAS',
 'FAZ',
+'FB',
 'FFIV',
 'GMCR',
 'GOOG',
@@ -59,7 +60,7 @@ CONFIG$symbols <- c(
 'XLV',
 "ZNGA")
 
-CONFIG$book <- c('AAPL.STK', 'GOOG.STK', 'BIDU.STK')
+CONFIG$book <- c('AAPL.STK', 'GOOG.STK', 'FB.STK')
 
 source("options.R")
 expiry <- options.nextFriday()
