@@ -11,26 +11,28 @@
 #include <Shared/Contract.h>
 #include "log_levels.h"
 #include "ib/internal.hpp"
-#include "ib/IBAPIValues.hpp"
-#include "ib/ApiMessageBase.hpp"
 #include "ib/TickerMap.hpp"
 
+#include "FIXMessage.hpp"
 
 using ib::internal::EClientPtr;
+
+
 
 namespace ib {
 namespace internal {
 
-using ib::internal::ApiMessageBase;
 
-class V964Message : public ApiMessageBase
+using ib::internal::FIXMessage;
+
+class V964Message : public FIXMessage
 {
  public:
-  V964Message(const IBAPI::MsgType& msgType) :
-      ApiMessageBase(msgType, msgType + ".v964.ib")
+  V964Message(const ib::internal::MsgType& msgType) :
+      FIXMessage(msgType, "V964." + msgType)
   {}
 
-  V964Message(const IBAPI::Message& copy) : ApiMessageBase(copy)
+  V964Message(const ib::internal::FIXMessage& copy) : FIXMessage(copy)
   {}
 
   ~V964Message() {}
@@ -102,12 +104,12 @@ class ContractBasedRequest : public V964Message
 
   /// Special form for subclasses to extend with its own
   /// message type
-  ContractBasedRequest(const IBAPI::MsgType& subClassMsgType) :
+  ContractBasedRequest(const ib::internal::MsgType& subClassMsgType) :
       V964Message(subClassMsgType)
   {
   }
 
-  ContractBasedRequest(const IBAPI::Message& copy) : V964Message(copy)
+  ContractBasedRequest(const ib::internal::FIXMessage& copy) : V964Message(copy)
   {
   }
 
@@ -188,12 +190,12 @@ class ContractBasedCancelRequest : public V964Message
  public:
 
   /// For subclass to specify its own message type.
-  ContractBasedCancelRequest(const IBAPI::MsgType& subClassMsgType) :
+  ContractBasedCancelRequest(const ib::internal::MsgType& subClassMsgType) :
       V964Message(subClassMsgType)
   {
   }
 
-  ContractBasedCancelRequest(const IBAPI::Message& copy) : V964Message(copy)
+  ContractBasedCancelRequest(const ib::internal::FIXMessage& copy) : V964Message(copy)
   {
   }
 
@@ -246,7 +248,7 @@ class MarketDataRequest : public internal::ContractBasedRequest
   {
   }
 
-  MarketDataRequest(const IBAPI::Message& copy) :
+  MarketDataRequest(const ib::internal::FIXMessage& copy) :
       internal::ContractBasedRequest(copy)
   {
   }
@@ -285,7 +287,7 @@ class MarketDepthRequest : public internal::ContractBasedRequest
   {
   }
 
-  MarketDepthRequest(const IBAPI::Message& copy) :
+  MarketDepthRequest(const ib::internal::FIXMessage& copy) :
       internal::ContractBasedRequest(copy)
   {
   }
@@ -325,7 +327,7 @@ class MarketOhlcRequest : public internal::ContractBasedRequest
   {
   }
 
-  MarketOhlcRequest(const IBAPI::Message& copy) :
+  MarketOhlcRequest(const ib::internal::FIXMessage& copy) :
       internal::ContractBasedRequest(copy)
   {
   }
@@ -367,12 +369,12 @@ class CancelMarketDataRequest : public internal::ContractBasedCancelRequest
   }
 
   /// For subclass to specify its own message type.
-  CancelMarketDataRequest(const IBAPI::MsgType& subClassMsgType) :
+  CancelMarketDataRequest(const ib::internal::MsgType& subClassMsgType) :
       internal::ContractBasedCancelRequest(subClassMsgType)
   {
   }
 
-  CancelMarketDataRequest(const IBAPI::Message& copy) :
+  CancelMarketDataRequest(const ib::internal::FIXMessage& copy) :
       internal::ContractBasedCancelRequest(copy)
   {
   }
@@ -408,7 +410,7 @@ class CancelMarketDepthRequest : public internal::ContractBasedCancelRequest
   {
   }
 
-  CancelMarketDepthRequest(const IBAPI::Message& copy) :
+  CancelMarketDepthRequest(const ib::internal::FIXMessage& copy) :
       internal::ContractBasedCancelRequest(copy)
   {
   }
@@ -445,12 +447,12 @@ class CancelMarketOhlcRequest : public internal::ContractBasedCancelRequest
   }
 
   /// For subclass to specify its own message type.
-  CancelMarketOhlcRequest(const IBAPI::MsgType& subClassMsgType) :
+  CancelMarketOhlcRequest(const ib::internal::MsgType& subClassMsgType) :
       internal::ContractBasedCancelRequest(subClassMsgType)
   {
   }
 
-  CancelMarketOhlcRequest(const IBAPI::Message& copy) :
+  CancelMarketOhlcRequest(const ib::internal::FIXMessage& copy) :
       internal::ContractBasedCancelRequest(copy)
   {
   }
@@ -484,7 +486,7 @@ class OptionChainRequest : public V964Message
   {
   }
 
-  OptionChainRequest(const IBAPI::Message& copy) : V964Message(copy)
+  OptionChainRequest(const ib::internal::FIXMessage& copy) : V964Message(copy)
   {
   }
 

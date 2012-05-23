@@ -37,6 +37,7 @@ struct PrintContract
   }
 };
 
+
 /**
  * Interface for mapping ticker ids to contracts and symbols.
  */

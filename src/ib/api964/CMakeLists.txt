@@ -28,12 +28,14 @@ set(ib_api_srcs
   ApiImpl.cpp
   ApiMessages.cpp
   EWrapperFactoryImpl.cpp
-  ReactorStrategyFactoryImpl.cpp
+  ZmqMessage.cpp
 )
 set(ib_api_libs
   ib_dist
   gflags
   glog
+  quickfix
+  QuantLib
   proto_components
   varz_components
 )

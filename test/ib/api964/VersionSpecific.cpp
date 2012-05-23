@@ -18,7 +18,7 @@ using IBAPI::V964::MarketDataRequest;
 
 
 
-ib::internal::ApiMessageBase*
+ib::internal::ZmqSendable*
 VersionSpecific::getMarketDataRequestForTest()
 {
   MarketDataRequest* request = new MarketDataRequest();

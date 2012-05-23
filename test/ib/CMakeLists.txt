@@ -84,4 +84,4 @@ cpp_gtest(utils_test)
 
 
 # Version specific unit tests.
-add_subdirectory(api964)
+add_subdirectory(${IBAPI_IMPL_DIR})

@@ -39,3 +39,69 @@ message MarketDepth {
   required uint64 contract_id = 9;
 }
 
+/** Example twsContract (see R/IBrokers module):
+ $ conId          : chr "96099040"
+ $ symbol         : chr "GOOG"
+ $ sectype        : chr "OPT"
+ $ exch           : chr "SMART"
+ $ primary        : chr ""
+ $ expiry         : chr "20111028"
+ $ strike         : chr "590"
+ $ currency       : chr "USD"
+ $ right          : chr "C"
+ $ local          : chr "GOOG  111028C00590000"
+ $ multiplier     : chr "100"
+ $ combo_legs_desc: chr ""
+ $ comboleg       : chr ""
+ $ include_expired: chr ""
+ $ secIdType      : chr ""
+ $ secId          : chr ""
+*/
+message Contract {
+
+  enum Type {
+    INDEX = 0; // IND
+    STOCK = 1; // STK
+    OPTION = 2; // OPT
+  }
+
+  required uint64 id = 1;
+  required string symbol = 2;
+
+  optional Type type = 3 [ default = STOCK ];
+  optional string exchange = 4 [ default = "SMART" ];
+  optional string local_symbol = 5;
+
+  enum Right {
+    PUT = 0; // P
+    CALL = 1;  // C
+  }
+  optional Right right = 6;
+  optional proto.common.Money strike = 7;
+  optional proto.common.Date expiry = 8;
+  optional int32 multiplier = 9 [ default = 100 ];
+
+}
+
+message RequestMarketData {
+  optional string key = 1 [ default = "IBAPI.RequestMarketData" ];
+  required Contract contract = 2;
+  optional string tick_types = 3;
+  optional bool snapshot = 4 [ default = false ];
+}
+
+message CancelMarketData {
+  optional string key = 1 [ default = "IBAPI.CancelMarketData" ];
+  required Contract contract = 2;
+}
+
+message RequestMarketDepth {
+  optional string key = 1 [ default = "IBAPI.RequestMarketDepth" ];
+  required Contract contract = 2;
+  optional uint32 rows = 3 [ default = 10 ];
+}
+
+message CancelMarketDepth {
+  optional string key = 1 [ default = "IBAPI.CancelMarketDepth" ];
+  required Contract contract = 2;
+}

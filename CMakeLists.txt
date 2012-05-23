@@ -21,9 +21,10 @@ include(${PROJECT_SOURCE_DIR}/tools/cmake/Init.cmk)
 #
 
 # IB API VERSION
-set(IBAPI_VERSION 9.64)
-add_definitions('-DIBAPI_964')
-set(IBAPI_IMPL_DIR api964)
+set(IBAPI_VERSION 9.66)
+add_definitions('-DIBAPI_966')
+set(IBAPI_IMPL_DIR api966)
+set(IBAPI_VERSION_TEST_PREFIX V966)
 
 # The class filename that implements the IBAPI messages
 set(IBAPI_ROOT ${THIRD_PARTY_DIR}/interactivebrokers/api-${IBAPI_VERSION})

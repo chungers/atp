@@ -2,9 +2,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "ib/AbstractSocketConnector.hpp"
-#include "ib/ApiMessageBase.hpp"
-#include "ib/Message.hpp"
-#include "ib/ReactorStrategyFactory.hpp"
+#include "ib/ZmqMessage.hpp"
 
 #include "varz/varz.hpp"
 #include "zmq/ZmqUtils.hpp"
@@ -22,10 +20,9 @@ using ib::internal::AbstractSocketConnector;
 using ib::internal::AsioEClientSocket;
 using ib::internal::EWrapperFactory;
 using ib::internal::EClientPtr;
-using ib::internal::ReactorStrategyFactory;
-using ib::internal::ReactorStrategy;
 using ib::internal::ZmqMessage;
 
+using boost::scoped_ptr;
 
 class SocketConnector::implementation : public AbstractSocketConnector
 {
@@ -36,8 +33,7 @@ class SocketConnector::implementation : public AbstractSocketConnector
                  zmq::context_t* inboundContext = NULL,
                  zmq::context_t* outboundContext = NULL) :
       AbstractSocketConnector(reactorAddress, outboundChannels,
-                              app, timeout, inboundContext, outboundContext),
-      reactorStrategyPtr_(ReactorStrategyFactory::getInstance())
+                              app, timeout, inboundContext, outboundContext)
   {
     VARZ_socket_connector_instances++;
   }
@@ -50,38 +46,68 @@ class SocketConnector::implementation : public AbstractSocketConnector
   virtual bool handleReactorInboundMessages(
       zmq::socket_t& socket, EClientPtr eclient)
   {
+    using ib::internal::ZmqMessagePtr;
+
     bool status = false;
 
     try {
       while (1) {
-        ib::internal::ZmqMessage inboundMessage;
-        if (inboundMessage.receive(socket)) {
 
-          VARZ_socket_connector_inbound_requests++;
+        std::string buff;
+        bool more = atp::zmq::receive(socket, &buff);
+        if (more) {
 
-          status = reactorStrategyPtr_->handleInboundMessage(
-              inboundMessage, eclient);
-          if (!status) {
+          LOG(INFO) << "Received message of type " << buff;
 
-            VARZ_socket_connector_inbound_requests_errors++;
+          ZmqMessagePtr inboundMessage;
+          ZmqMessage::createMessage(buff, inboundMessage);
 
-            IBAPI_SOCKET_CONNECTOR_ERROR
-                << "Handle inbound message failed: "
-                << inboundMessage;
+          if (inboundMessage && (*inboundMessage)->receive(socket)) {
 
-            // Similar to HTTP error code - server side error 500.
-            atp::zmq::send_copy(socket, "500");
+            VARZ_socket_connector_inbound_requests++;
 
-          } else {
+            status = (*inboundMessage)->validate();
+            if (!status) {
 
-            VARZ_socket_connector_inbound_requests_ok++;
+              VARZ_socket_connector_inbound_requests_errors++;
 
-            // Send ok reply -- must write something on the ZMQ_REP
-            // socket or an invalid state exception will be thrown by zmq.
-            // For simplicity, just use HTTP status codes.
-            atp::zmq::send_copy(socket, "200");
+              IBAPI_SOCKET_CONNECTOR_ERROR
+                  << "Handle inbound message failed: "
+                  << inboundMessage;
+
+              // Similar to HTTP error code - server side error 500.
+              atp::zmq::send_copy(socket, "500");
+
+            } else {
+
+              status = (*inboundMessage)->callApi(eclient);
+
+              if (!status) {
+
+                VARZ_socket_connector_inbound_requests_errors++;
+
+                // TODO: figure out a better way to log something
+                // helpful - like a message type identifier.
+                IBAPI_SOCKET_CONNECTOR_ERROR
+                    << "Handle inbound message failed: "
+                    << inboundMessage;
+
+                // Similar to HTTP error code - server side error 500.
+                atp::zmq::send_copy(socket, "500");
+
+              } else {
+
+                VARZ_socket_connector_inbound_requests_ok++;
+
+                // Send ok reply -- must write something on the ZMQ_REP
+                // socket or an invalid state exception will be thrown by zmq.
+                // For simplicity, just use HTTP status codes.
+                atp::zmq::send_copy(socket, "200");
+              }
+            }
           }
         }
+
       }
     } catch (zmq::error_t e) {
 
@@ -95,7 +121,6 @@ class SocketConnector::implementation : public AbstractSocketConnector
   }
 
   friend class SocketConnector;
-  boost::scoped_ptr<ReactorStrategy> reactorStrategyPtr_;
 };
 
 

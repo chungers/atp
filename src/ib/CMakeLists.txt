@@ -22,7 +22,6 @@ set(IBAPIConnector_incs
 )
 FILE(GLOB IMPL_FILES "${IBAPI_IMPL_DIR}/*.cpp")
 set(IBAPIConnector_srcs
-  ApiMessageBase.cpp
   AsioEClientSocket.cpp
   SocketConnector.cpp
   SocketInitiator.cpp
@@ -39,8 +38,6 @@ set(IBAPIConnector_libs
  boost_thread
  gflags
  glog
- quickfix
- QuantLib
  zmq
 )
 # Client implementation:

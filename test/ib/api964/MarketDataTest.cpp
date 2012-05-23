@@ -120,7 +120,7 @@ TEST(MarketDataTest, RequestMarketDataTest)
   rClient.connect(reactorAddr.c_str());
 
   // Get a version specific market data request
-  ib::internal::ApiMessageBase* mdr =
+  ib::internal::ZmqSendable* mdr =
       ib::testing::VersionSpecific::getMarketDataRequestForTest();
 
   bool sent = mdr->send(rClient);
@@ -188,7 +188,7 @@ TEST(MarketDataTest, SocketInitiatorRequestMarketDataTest)
   rClient.connect("ipc://_zmq.connector1.in");
 
   // Get a version specific market data request
-  ib::internal::ApiMessageBase* mdr =
+  ib::internal::ZmqSendable* mdr =
       ib::testing::VersionSpecific::getMarketDataRequestForTest();
 
   bool sent = mdr->send(rClient);

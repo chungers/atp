@@ -4,6 +4,14 @@ package proto.common;
 
 option optimize_for = LITE_RUNTIME;
 
+message Money {
+  enum Currency {
+    USD = 0;
+  }
+  required double amount = 1;
+  optional Currency currency = 2 [ default = USD ];
+}
+
 message Date {
   required int32 year = 1;  // YYYY
   required int32 month = 2;  // range: 1 - 12

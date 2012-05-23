@@ -35,6 +35,13 @@ DIR=$(dirname $0)/..
 
 pushd $DIR
 
+# Determine which API version
+IBAPI_VERSION=$(
+    grep -e 'IBAPI_VERSION_TEST_PREFIX' CMakeLists.txt |
+    sed -e 's/)//g' | cut -f2 -d ' ')
+
+echo "IBAPI VERSION = ${IBAPI_VERSION}"
+
 if [[ $TEST != "" ]]; then
     TARGETS=$TEST
 else

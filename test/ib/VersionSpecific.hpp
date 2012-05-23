@@ -1,7 +1,7 @@
 #ifndef TEST_VERSION_SPECIFIC_H_
 #define TEST_VERSION_SPECIFIC_H_
 
-#include "ib/ApiMessageBase.hpp"
+#include "ib/ZmqMessage.hpp"
 
 // This is the version-specific header where the implementations
 // are to be provided by versioned code at build time.
@@ -18,7 +18,7 @@ class VersionSpecific
 
  public:
 
-  static ib::internal::ApiMessageBase* getMarketDataRequestForTest();
+  static ib::internal::ZmqSendable* getMarketDataRequestForTest();
 
 };
 

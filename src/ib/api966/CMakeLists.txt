@@ -26,9 +26,9 @@ set(ib_api_incs
 )
 set(ib_api_srcs
   ApiImpl.cpp
-#  ApiMessages.cpp
+  marshall.cpp
   EWrapperFactoryImpl.cpp
-#  ReactorStrategyFactoryImpl.cpp
+  ZmqMessage.cpp
 )
 set(ib_api_libs
   ib_dist

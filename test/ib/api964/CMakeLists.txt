@@ -11,26 +11,9 @@ endif (IB_USE_STD_STRING)
 
 include_directories(${IBAPI_ROOT}/Shared ${IBAPI_ROOT}/PosixSocketClient)
 
-# Message test
-set(Message_test_incs
-  ${GEN_DIR}
-  ${SRC_DIR}
-  ${TEST_DIR}
-)
-set(Message_test_srcs
-  ${TEST_DIR}/AllTests.cpp
-  MessageTest.cpp
-  ApiMessageBaseTest.cpp
-)
-set(Message_test_libs
-  IBAPIConnector
-  zmq
-)
-cpp_gtest(Message_test)
-
 
 # MarketData test
-set(MarketData_test_incs
+set(V964_MarketData_test_incs
   ${IBAPI_ROOT}
   ${GEN_DIR}
   ${SRC_DIR}
@@ -38,31 +21,31 @@ set(MarketData_test_incs
   ${IBAPI_IMPL_DIR}
   ${TEST_DIR}
 )
-set(MarketData_test_srcs
+set(V964_MarketData_test_srcs
   ${TEST_DIR}/AllTests.cpp
   MarketDataTest.cpp
   VersionSpecific.cpp
 )
-set(MarketData_test_libs
+set(V964_MarketData_test_libs
   IBAPIConnector
 )
-cpp_gtest(MarketData_test)
+cpp_gtest(V964_MarketData_test)
 
 
 # V964Message test
-set(V964Message_test_incs
+set(V964_Message_test_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
 )
-set(V964Message_test_srcs
+set(V964_Message_test_srcs
   ${TEST_DIR}/AllTests.cpp
-  V964MessageTest.cpp
+  V964_MessageTest.cpp
   TestEWrapperFactoryImpl.cpp
 )
-set(V964Message_test_libs
+set(V964_Message_test_libs
   IBAPIConnector
   QuantLib
   zmq
 )
-cpp_gtest(V964Message_test)
+cpp_gtest(V964_Message_test)

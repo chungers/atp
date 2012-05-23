@@ -1,12 +1,13 @@
 
 #include <iostream>
 #include <glog/logging.h>
-
 #include "utils.hpp"
-#include "ib/tick_types.hpp"
-#include "ib/TickerMap.hpp"
+
 #include "varz/varz.hpp"
+#include "ib/tick_types.hpp"
+
 #include "ApiImpl.hpp"
+#include "marshall.hpp"
 
 DEFINE_VARZ_int64(api_events, 0, "");
 DEFINE_VARZ_int64(api_requests, 0, "");
@@ -54,7 +55,6 @@ int LoggingEWrapper::get_connection_id() {
   return connection_id_;
 }
 
-using ib::internal::PrintContract;
 
 ////////////////////////////////////////////////////////////////////////////////
 // EWrapper Methods
@@ -187,14 +187,14 @@ void LoggingEWrapper::contractDetails(int reqId,
   LOG_EVENT
       << __f__(reqId)
       << __f__(&contractDetails)
-      << PrintContract(contractDetails.summary);
+      << contractDetails.summary;
 }
 void LoggingEWrapper::bondContractDetails(
     int reqId, const ContractDetails& contractDetails) {
   LOG_EVENT
       << __f__(reqId)
       << __f__(&contractDetails)
-      << PrintContract(contractDetails.summary);
+      << contractDetails.summary;
 }
 void LoggingEWrapper::contractDetailsEnd(int reqId) {
   LOG_EVENT
@@ -391,7 +391,6 @@ typedef boost::unique_lock<boost::mutex> write_lock;
 
 //////////////////////////////////////////////////////////////
 
-using ib::internal::PrintContract;
 
 LoggingEClientSocket::LoggingEClientSocket(
     EWrapper* e_wrapper)
@@ -432,7 +431,7 @@ void LoggingEClientSocket::reqMktData(TickerId id, const Contract &contract,
       << __f__(&contract)
       << __f__(genericTicks)
       << __f__(snapshot)
-      << PrintContract(contract);
+      << contract;
   LOCK
       EClientSocketBase::reqMktData(id, contract, genericTicks, snapshot);
   LOG_END;
@@ -496,7 +495,7 @@ void LoggingEClientSocket::reqContractDetails(int reqId,
   LOG_START
       << __f__(reqId)
       << __f__(&contract)
-      << PrintContract(contract);
+      << contract;
   LOCK
       EClientSocketBase::reqContractDetails(reqId, contract);
   LOG_END;
@@ -507,7 +506,7 @@ void LoggingEClientSocket::reqMktDepth(TickerId id,
       << __f__(id)
       << __f__(&contract)
       << __f__(numRows)
-      << PrintContract(contract);
+      << contract;
 
   LOCK
       EClientSocketBase::reqMktDepth(id, contract, numRows);
@@ -589,7 +588,7 @@ void LoggingEClientSocket::reqHistoricalData(
       << __f__(whatToShow)
       << __f__(useRTH)
       << __f__(formatDate)
-      << PrintContract(contract);
+      << contract;
   LOCK
       EClientSocketBase::reqHistoricalData(
           id, contract, endDateTime,
@@ -633,7 +632,7 @@ void LoggingEClientSocket::reqRealTimeBars(TickerId id,
       << __f__(barSize)
       << __f__(whatToShow)
       << __f__(useRTH)
-      << PrintContract(contract);
+      << contract;
   LOCK
       EClientSocketBase::reqRealTimeBars(id, contract, barSize,
                                          whatToShow, useRTH);

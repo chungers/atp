@@ -13,12 +13,12 @@
 #include "common.hpp"
 
 #include "ib/internal.hpp"
-#include "ib/ApiMessageBase.hpp"
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/TestHarness.hpp"
 #include "ib/TickerMap.hpp"
-#include "ib/api964/ApiMessages.hpp"
+
+#include "ApiMessages.hpp"
 #include "zmq/Reactor.hpp"
 
 
@@ -47,7 +47,7 @@ static void print(const FIX::FieldMap& request)
   }
 }
 
-TEST(V964MessageTest, ApiTest)
+TEST(V964_MessageTest, ApiTest)
 {
   LOG(INFO) << "Current TimeMicros = " << now_micros() ;
 
@@ -91,17 +91,17 @@ TEST(V964MessageTest, ApiTest)
   EXPECT_EQ("20111119", expiry);
 
   // Get header information
-  const IBAPI::Header& header = request.getHeader();
+  const ib::internal::Header& header = request.getHeader();
 
   FIX::BeginString msgMatchKey; // First field, for zmq subscription matching.
   header.get(msgMatchKey);
-  EXPECT_EQ("MarketDataRequest.v964.ib", msgMatchKey.getString());
+  EXPECT_EQ("V964.MarketDataRequest", msgMatchKey.getString());
 
   FIX::MsgType msgType;
   header.get(msgType);
   EXPECT_EQ("MarketDataRequest", msgType.getString());
 
-  const IBAPI::Trailer& trailer = request.getTrailer();
+  const ib::internal::Trailer& trailer = request.getTrailer();
   IBAPI::Ext_SendingTimeMicros sendingTimeMicros;
   trailer.get(sendingTimeMicros);
 
@@ -141,6 +141,7 @@ TEST(V964MessageTest, ApiTest)
 }
 
 using atp::zmq::Reactor;
+using ib::internal::FIXMessage;
 
 struct ReceiveOneMessage : Reactor::Strategy
 {
@@ -154,7 +155,7 @@ struct ReceiveOneMessage : Reactor::Strategy
     LOG(INFO) << "Done receive: " << done;
     return done;
   }
-  ZmqMessage zmqMessage;
+  FIXMessage zmqMessage;
   bool done;
 };
 
@@ -167,11 +168,11 @@ static std::string FormatOptionExpiry(int year, int month, int day)
   return s1.str();
 }
 
-TEST(V964MessageTest, ZmqSendTest)
+TEST(V964_MessageTest, ZmqSendTest)
 {
   // Set up the reactor
   const std::string& addr =
-      "ipc://_zmq.V964MessageTest_zmqSendTest.in";
+      "ipc://_zmq.V964_MessageTest_zmqSendTest.in";
   ReceiveOneMessage strategy;
   Reactor reactor(addr, strategy);
 
@@ -307,7 +308,7 @@ class TestEWrapperEventCollector : public ib::internal::EWrapperEventCollector
 };
 
 
-TEST(V964MessageTest, EClientSocketTest)
+TEST(V964_MessageTest, EClientSocketTest)
 {
   boost::asio::io_service ioService;
 
@@ -378,7 +379,7 @@ TEST(V964MessageTest, EClientSocketTest)
 }
 
 
-TEST(V964MessageTest, EClientSocketOptionChainMktDataRequestTest)
+TEST(V964_MessageTest, EClientSocketOptionChainMktDataRequestTest)
 {
   boost::asio::io_service ioService;
 

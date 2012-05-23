@@ -26,11 +26,6 @@ namespace ib {
 namespace internal {
 
 
-/**
- * Basic design follows SocketConnector / SocketInitiator in QuickFIX.
- *
- * See https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketConnector.h
- */
 class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
 {
  public:
