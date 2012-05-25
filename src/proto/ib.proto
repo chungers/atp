@@ -80,28 +80,39 @@ message Contract {
   optional proto.common.Money strike = 7;
   optional proto.common.Date expiry = 8;
   optional int32 multiplier = 9 [ default = 100 ];
-
 }
 
 message RequestMarketData {
   optional string key = 1 [ default = "IBAPI.RequestMarketData" ];
-  required Contract contract = 2;
-  optional string tick_types = 3;
-  optional bool snapshot = 4 [ default = false ];
+  required uint64 timestamp = 2;
+  required uint64 message_id = 3;
+
+  required Contract contract = 4;
+  optional string tick_types = 5;
+  optional bool snapshot = 6 [ default = false ];
 }
 
 message CancelMarketData {
   optional string key = 1 [ default = "IBAPI.CancelMarketData" ];
-  required Contract contract = 2;
+  required uint64 timestamp = 2;
+  required uint64 message_id = 3;
+
+  required Contract contract = 4;
 }
 
 message RequestMarketDepth {
   optional string key = 1 [ default = "IBAPI.RequestMarketDepth" ];
-  required Contract contract = 2;
-  optional uint32 rows = 3 [ default = 10 ];
+  required uint64 timestamp = 2;
+  required uint64 message_id = 3;
+
+  required Contract contract = 4;
+  optional uint32 rows = 5 [ default = 10 ];
 }
 
 message CancelMarketDepth {
   optional string key = 1 [ default = "IBAPI.CancelMarketDepth" ];
-  required Contract contract = 2;
+  required uint64 timestamp = 2;
+  required uint64 message_id = 3;
+
+  required Contract contract = 4;
 }

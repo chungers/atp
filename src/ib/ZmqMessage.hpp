@@ -6,6 +6,8 @@
 #include <zmq.hpp>
 
 #include "log_levels.h"
+#include "utils.hpp"
+
 #include "ib/internal.hpp"
 #include "ib/Message.hpp"
 
@@ -19,12 +21,17 @@ using ib::internal::EClientPtr;
 
 class ZmqMessage;
 
+typedef boost::uint64_t Timestamp;
+typedef boost::uint64_t MessageId;
 typedef boost::optional< boost::shared_ptr<ZmqMessage> > ZmqMessagePtr;
 
 class ZmqMessage : public IBAPI::Message
 {
 
  public:
+
+  ZmqMessage() : timestamp_(now_micros()), messageId_(0)
+  {}
 
   /**
    * Given the buffer read from zmq as the topic / message key,
@@ -34,6 +41,18 @@ class ZmqMessage : public IBAPI::Message
    */
   static void createMessage(const std::string& msgKey, ZmqMessagePtr& ptr);
 
+  /**
+   * conventions: valid message id must be > 0
+   */
+  const MessageId& messageId() const
+  {
+    return messageId_;
+  }
+
+  const Timestamp& timestamp() const
+  {
+    return timestamp_;
+  }
 
   virtual const std::string& key() const = 0;
 
@@ -42,13 +61,16 @@ class ZmqMessage : public IBAPI::Message
   virtual bool callApi(EClientPtr eclient) = 0;
 
   virtual bool receive(zmq::socket_t& socket) = 0;
+
+ protected:
+  Timestamp timestamp_;
+  MessageId messageId_;
 };
 
 class ZmqSendable
 {
  public:
-
-  virtual size_t send(zmq::socket_t& destination) = 0;
+  virtual size_t send(zmq::socket_t& destination, MessageId messageId = 0) = 0;
 };
 
 } // namespace internal

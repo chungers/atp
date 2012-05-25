@@ -5,6 +5,8 @@
 #include "proto/ib.pb.h"
 
 #include "ib/ProtoBufferMessage.hpp"
+#include "ib/TickerMap.hpp"
+
 #include "marshall.hpp"
 
 namespace IBAPI {
@@ -27,10 +29,15 @@ class RequestMarketData : public ProtoBufferMessage<p::RequestMarketData>
     long requestId = proto.contract().id();
     Contract c;
     if (proto.contract() >> c) {
-      eclient->reqMktData(requestId, c,
-                          proto.tick_types(),
-                          proto.snapshot());
-      return true;
+
+      // register the contract
+      long tickerId = ib::internal::TickerMap::registerContract(c);
+      if (tickerId > 0) {
+        eclient->reqMktData(requestId, c,
+                            proto.tick_types(),
+                            proto.snapshot());
+        return true;
+      }
     }
     return false;
   }

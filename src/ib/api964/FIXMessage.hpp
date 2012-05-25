@@ -193,7 +193,7 @@ class FIXMessage : public FIX::FieldMap,
     return false;
   }
 
-  virtual size_t send(zmq::socket_t& destination)
+  virtual size_t send(zmq::socket_t& destination, MessageId id)
   {
     size_t sent = 0;
     // Send the message key first

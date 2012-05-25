@@ -3,6 +3,15 @@
 
 #include "marshall.hpp"
 
+bool ParseDate(const std::string& date, int* year, int* month, int* day)
+{
+  if (date.length() != 8) return false;
+
+  *year = boost::lexical_cast<int>(date.substr(0,4));
+  *month = boost::lexical_cast<int>(date.substr(4,2));
+  *day = boost::lexical_cast<int>(date.substr(6,2));
+  return true;
+}
 
 std::ostream& operator<<(std::ostream& os, const Contract& c)
 {
@@ -27,6 +36,7 @@ std::string FormatExpiry(int year, int month, int day)
   s1 << boost::format(fmt) % year % month << boost::format(fmt2) % day;
   return s1.str();
 }
+
 
 bool operator<<(Contract& c, const proto::ib::Contract& p)
 {
@@ -116,15 +126,11 @@ bool operator<<(proto::ib::Contract& p, const Contract& c)
   if (c.expiry.length() == 8) {
 
     int year, month, day;
-    std::istringstream y(c.expiry.substr(0,4));
-    std::istringstream m(c.expiry.substr(4,2));
-    std::istringstream d(c.expiry.substr(6,2));
-
-    y >> year; m >> month; d >> day;
-
-    p.mutable_expiry()->set_year(year);
-    p.mutable_expiry()->set_month(month);
-    p.mutable_expiry()->set_day(day);
+    if (ParseDate(c.expiry, &year, &month, &day)) {
+      p.mutable_expiry()->set_year(year);
+      p.mutable_expiry()->set_month(month);
+      p.mutable_expiry()->set_day(day);
+    }
   }
   return true;
 }

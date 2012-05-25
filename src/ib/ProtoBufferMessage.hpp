@@ -1,6 +1,9 @@
 #ifndef IBAPI_PROTOBUFF_MESSAGE_H_
 #define IBAPI_PROTOBUFF_MESSAGE_H_
 
+#include "log_levels.h"
+#include "utils.hpp"
+
 #include "ib/ZmqMessage.hpp"
 #include "zmq/ZmqUtils.hpp"
 
@@ -36,39 +39,58 @@ class ProtoBufferMessage : public ZmqMessage, public ZmqSendable
 
   virtual bool callApi(EClientPtr eclient)
   {
+    proto_.set_timestamp(timestamp_);
     return callApi(proto_, eclient);
   }
 
-  virtual size_t send(zmq::socket_t& socket)
+  virtual size_t send(zmq::socket_t& socket, MessageId messageId)
   {
+    // Copy the proto to another proto and then commit the changes
+    P copy;
+    copy.CopyFrom(proto_);
+    copy.set_message_id(messageId);
+    copy.set_timestamp(timestamp_);
+
     std::string buff;
-    if (!proto_.SerializeToString(&buff)) {
+    if (!copy.SerializeToString(&buff)) {
       return 0;
     }
+
     size_t sent = 0;
-    sent += atp::zmq::send_copy(socket, key(), true);
-    sent += atp::zmq::send_copy(socket, buff, false);
+    try {
+
+      sent += atp::zmq::send_copy(socket, key(), true);
+      sent += atp::zmq::send_copy(socket, buff, false);
+
+      messageId_ = messageId;
+      proto_.CopyFrom(copy);
+
+    } catch (zmq::error_t e) {
+      API_MESSAGES_ERROR << "Error sending: " << e.what();
+    }
     return sent;
   }
 
   virtual bool receive(zmq::socket_t& socket)
   {
-    std::string buff;
-    bool more = atp::zmq::receive(socket, &buff);
+    std::string frame1;
+    bool more = atp::zmq::receive(socket, &frame1);
     if (more) {
       // Something wrong -- we are supposed to read only one
       // frame and all of protobuffer's data is in it.
       API_MESSAGE_BASE_LOGGER << "More data than expected: "
-                              << proto_.key() << ":" << buff;
+                              << proto_.key() << ":" << frame1;
       return false;
     } else {
       P p;
-      p.ParseFromString(buff);
+      p.ParseFromString(frame1);
       if (p.IsInitialized()) {
         proto_.CopyFrom(p);
+        messageId_ = proto_.message_id();
+        return true;
       }
     }
-    return proto_.IsInitialized();
+    return false;
   }
 
  protected:
@@ -76,6 +98,7 @@ class ProtoBufferMessage : public ZmqMessage, public ZmqSendable
 
  private:
   P proto_;
+  MessageId messageId_;
 };
 
 } // internal

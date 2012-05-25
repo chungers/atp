@@ -7,6 +7,9 @@
 #include "ib/TickerMap.hpp"
 #include "proto/ib.pb.h"
 
+
+bool ParseDate(const std::string& date, int* year, int* month, int* day);
+
 bool operator<<(Contract& c, const proto::ib::Contract& p);
 bool operator<<(proto::ib::Contract& p, const Contract& c);
 
