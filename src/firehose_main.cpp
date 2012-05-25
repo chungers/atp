@@ -1,4 +1,4 @@
-
+#include <signal.h>
 #include <sstream>
 #include <map>
 #include <vector>
