@@ -35,6 +35,24 @@ new.ib <- function(apiAddress = 'tcp://127.0.0.1:6666') {
   }
   environment(this$cancelMarketdata) <- as.environment(this)
 
+  # Request marketdepth
+  this$requestMarketdepth <- function(contract, rows=10) {
+    raw <- .Call("api_request_marketdepth",
+                 this$.apiConnection, contract, rows,
+                 PACKAGE="ib")
+    return(raw)
+  }
+  environment(this$requestMarketdepth) <- as.environment(this)
+
+  # Cancel marketdepth
+  this$cancelMarketdepth <- function(contract) {
+    raw <- .Call("api_cancel_marketdepth",
+                 this$.apiConnection, contract,
+                 PACKAGE="ib")
+    return(raw)
+  }
+  environment(this$cancelMarketdepth) <- as.environment(this)
+
   return(this)
 }
 
@@ -53,4 +71,15 @@ cancelMarketdata <- function(x, ...)
 cancelMarketdata.ib <- function(x, ...)
   x$cancelMarketdata(...)
 
+# RequestMarketdepth
+requestMarketdepth <- function(x, ...)
+  UseMethod('requestMarketdepth')
+requestMarketdepth.ib <- function(x, ...)
+  x$requestMarketdepth(...)
+
+# CancelMarketdepth
+cancelMarketdepth <- function(x, ...)
+  UseMethod('cancelMarketdepth')
+cancelMarketdepth.ib <- function(x, ...)
+  x$cancelMarketdepth(...)
 

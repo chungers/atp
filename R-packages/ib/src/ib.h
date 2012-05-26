@@ -15,4 +15,11 @@ RcppExport SEXP api_request_marketdata(SEXP connectionHandle,
 RcppExport SEXP api_cancel_marketdata(SEXP connectionHandle,
                                       SEXP contractList);
 
+RcppExport SEXP api_request_marketdepth(SEXP connectionHandle,
+                                        SEXP contractList,
+                                        SEXP rowsInt);
+
+RcppExport SEXP api_cancel_marketdepth(SEXP connectionHandle,
+                                       SEXP contractList);
+
 #endif // RIB_H

@@ -1,6 +1,7 @@
 #ifndef IBAPI_MESSAGE_H_
 #define IBAPI_MESSAGE_H_
 
+#include <boost/cstdint.hpp>
 #include "utils.hpp"
 
 

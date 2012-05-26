@@ -1,9 +1,7 @@
 
-#include <string>
-#include <vector>
-#include <zmq.hpp>
-
 #include "ApiMessages.hpp"
+
+#include "convert.hpp"
 #include "ib.h"
 
 using namespace Rcpp ;
@@ -19,8 +17,31 @@ using zmq::socket_t;
 
 
 // IB API Version 9.66
-using namespace IBAPI::V966;
+namespace api = IBAPI::V966;
 
+template<typename P>
+void BlockingCall(SEXP connection, P& req, string* out)
+{
+  List handleList(connection);
+  XPtr<zmq::socket_t> socket(handleList["socketPtr"], R_NilValue, R_NilValue);
+
+  ib::internal::MessageId messageId = now_micros();
+  size_t sent = req.send(*socket, messageId);
+
+  // Now wait for the response
+  string buff;
+  atp::zmq::receive(*socket, &buff);
+  int response = boost::lexical_cast<int>(buff);
+
+  switch (response) {
+    case 200 :
+      out->assign(boost::lexical_cast<string>(messageId));
+      break;
+
+    case 500 :
+      break;
+  }
+}
 
 SEXP api_connect(SEXP address)
 {
@@ -53,9 +74,9 @@ SEXP api_connect(SEXP address)
 }
 
 
-RcppExport SEXP ib_close(SEXP connectionHandle)
+RcppExport SEXP ib_close(SEXP connection)
 {
-  List handleList(connectionHandle);
+  List handleList(connection);
   XPtr<context_t> contextPtr(handleList["contextPtr"],
                              R_NilValue, R_NilValue);
   XPtr<socket_t> socketPtr(handleList["socketPtr"],
@@ -69,92 +90,15 @@ RcppExport SEXP ib_close(SEXP connectionHandle)
 }
 
 
-#define R_STRING(x) Rcpp::as<std::string>(x)
-#define R_BOOL(x) Rcpp::as<bool>(x)
-#define R_INT(x) boost::lexical_cast<int>(R_STRING(x))
-#define R_LONG(x) boost::lexical_cast<long>(R_STRING(x))
-#define R_DOUBLE(x) boost::lexical_cast<double>(R_STRING(x))
 
-bool operator>>(List& contractList, proto::ib::Contract* contract)
-{
-  contract->set_id(R_LONG(contractList["conId"]));
-  contract->set_symbol(R_STRING(contractList["symbol"]));
-
-  if (R_STRING(contractList["sectype"]) == "STK") {
-    contract->set_type(proto::ib::Contract::STOCK);
-
-  } else if (R_STRING(contractList["sectype"]) == "IND") {
-    contract->set_type(proto::ib::Contract::INDEX);
-
-  } else if (R_STRING(contractList["sectype"]) == "OPT") {
-    contract->set_type(proto::ib::Contract::OPTION);
-
-    if (R_STRING(contractList["right"]) == "P") {
-      contract->set_right(proto::ib::Contract::PUT);
-    } else if (R_STRING(contractList["right"]) == "C") {
-      contract->set_right(proto::ib::Contract::CALL);
-    }
-
-    contract->mutable_strike()->set_amount(R_DOUBLE(contractList["strike"]));
-    if (R_STRING(contractList["currency"]) == "USD") {
-      contract->mutable_strike()->set_currency(proto::common::Money::USD);
-    }
-    contract->set_multiplier(R_INT(contractList["multiplier"]));
-
-    int year, month, day;
-    if (ParseDate(R_STRING(contractList["expiry"]), &year, &month, &day)) {
-      contract->mutable_expiry()->set_year(year);
-      contract->mutable_expiry()->set_month(month);
-      contract->mutable_expiry()->set_day(day);
-    }
-  }
-
-  if (R_STRING(contractList["exch"]).length() > 0) {
-    contract->set_exchange(R_STRING(contractList["exch"]));
-  }
-  if (R_STRING(contractList["local"]).length() > 0) {
-    contract->set_local_symbol(R_STRING(contractList["local"]));
-  }
-
-  // Do a test before we send it over the wire.  This is so that
-  // we catch problems here instead of blowing up on the receiver side.
-  Contract ibContract;
-  return *contract >> ibContract;
-}
-
-template <typename P>
-size_t send(P& message, SEXP connectionHandle)
-{
-  List handleList(connectionHandle);
-  XPtr<zmq::socket_t> socket(handleList["socketPtr"], R_NilValue, R_NilValue);
-
-  ib::internal::MessageId messageId = now_micros();
-  return message.send(*socket, messageId);
-}
-
-int receive(SEXP connectionHandle)
-{
-  List handleList(connectionHandle);
-  XPtr<zmq::socket_t> socket(handleList["socketPtr"], R_NilValue, R_NilValue);
-
-  std::string buff;
-  atp::zmq::receive(*socket, &buff);
-  int response = boost::lexical_cast<int>(buff);
-  switch (response) {
-    case 200 :
-      break;
-    case 500 :
-      break;
-  }
-  return response;
-}
-
-RcppExport SEXP api_request_marketdata(SEXP connectionHandle,
+RcppExport SEXP api_request_marketdata(SEXP connection,
                                        SEXP contractList,
                                        SEXP tickTypesString,
                                        SEXP snapShotBool)
 {
-  IBAPI::V966::RequestMarketData req;
+  string resp("0");
+
+  api::RequestMarketData req;
   proto::ib::Contract *contract = req.proto().mutable_contract();
 
   Rprintf("Created contract proto.");
@@ -167,26 +111,66 @@ RcppExport SEXP api_request_marketdata(SEXP connectionHandle,
 
     req.proto().set_snapshot(R_BOOL(snapShotBool));
 
-    if (send<RequestMarketData>(req, connectionHandle) > 0) {
-      return wrap(receive(connectionHandle));
-    }
-    return wrap(0);
+    // synchronous call
+    BlockingCall<api::RequestMarketData>(connection, req, &resp);
   }
+  return wrap(resp);
 }
 
 
-RcppExport SEXP api_cancel_marketdata(SEXP connectionHandle,
+RcppExport SEXP api_cancel_marketdata(SEXP connection,
                                       SEXP contractList)
 {
-  IBAPI::V966::CancelMarketData req;
+  string resp("0");
+
+  api::CancelMarketData req;
+  proto::ib::Contract *contract = req.proto().mutable_contract();
+
+  List rContractList(contractList);
+  if (rContractList >> contract) {
+    // sychronous call
+    BlockingCall<api::CancelMarketData>(connection, req, &resp);
+  }
+  return wrap(resp);
+}
+
+RcppExport SEXP api_request_marketdepth(SEXP connection,
+                                        SEXP contractList,
+                                        SEXP rowsInt)
+{
+  string resp("0");
+
+  api::RequestMarketDepth req;
+  proto::ib::Contract *contract = req.proto().mutable_contract();
+
+  Rprintf("Created contract proto.");
+  List rContractList(contractList);
+  if (rContractList >> contract) {
+
+    if (R_INT(rowsInt) > 0) {
+      req.proto().set_rows(R_INT(rowsInt));
+    }
+
+    // sychronous call
+    BlockingCall<api::RequestMarketDepth>(connection, req, &resp);
+  }
+  return wrap(resp);
+}
+
+
+RcppExport SEXP api_cancel_marketdepth(SEXP connection,
+                                       SEXP contractList)
+{
+  string resp("0");
+
+  api::CancelMarketDepth req;
   proto::ib::Contract *contract = req.proto().mutable_contract();
 
   List rContractList(contractList);
   if (rContractList >> contract) {
 
-    if (send<CancelMarketData>(req, connectionHandle) > 0) {
-      return wrap(receive(connectionHandle));
-    }
-    return wrap(0);
+    // sychronous call
+    BlockingCall<api::CancelMarketDepth>(connection, req, &resp);
   }
+  return wrap(resp);
 }
