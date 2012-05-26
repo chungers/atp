@@ -91,21 +91,21 @@ cpp_executable(hloader)
 
 ##########################################
 # Historian - DB command line client
-set(hc_incs
+set(hdb_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(hc_srcs
-  Db_main.cpp
+set(hdb_srcs
+  hdb_main.cpp
 )
-set(hc_libs
+set(hdb_libs
   gflags
   glog
   historian_components
   varz_components
   zmq_components
 )
-cpp_executable(hc)
+cpp_executable(hdb)
 
 
 ##########################################
@@ -115,7 +115,7 @@ set(hz_incs
   ${SRC_DIR}
 )
 set(hz_srcs
-  DbReactor_main.cpp
+  hz_main.cpp
 )
 set(hz_libs
   gflags
@@ -133,7 +133,7 @@ set(hzc_incs
   ${SRC_DIR}
 )
 set(hzc_srcs
-  DbReactorClient_main.cpp
+  hzc_main.cpp
 )
 set(hzc_libs
   gflags
@@ -167,6 +167,7 @@ add_dependencies(all_mains
   firehose
   logreader
   hloader
+  hdb
   hz
   hzc
   zmq_reactor

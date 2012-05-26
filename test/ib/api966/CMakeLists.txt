@@ -32,3 +32,9 @@ set(V966_Marshall_test_libs
 #  IBAPIConnector
 )
 cpp_gtest(V966_Marshall_test)
+
+
+add_custom_target(all_versioned_tests)
+add_dependencies(all_versioned_tests
+  V966_Marshall_test
+)

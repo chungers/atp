@@ -108,3 +108,9 @@ add_subdirectory(test)
 
 add_subdirectory(R-packages)
 
+
+add_custom_target(world)
+add_dependencies(world
+  alL_mains
+  all_versioned_tests
+)
