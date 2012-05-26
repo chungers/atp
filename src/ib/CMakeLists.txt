@@ -66,52 +66,6 @@ set(IBAPIConnector_libs
 # Client implementation:
 cpp_library(IBAPIConnector)
 
-##########################################
-# Simple Log File Reader
-set(logreader_incs
-  ${GEN_DIR}
-  ${SRC_DIR}
-)
-set(logreader_srcs
-  logreader_main.cpp
-)
-set(logreader_libs
-  IBAPIConnector
-  boost_system
-  boost_iostreams
-  gflags
-  glog
-  historian_components
-  protobuf-lite
-  leveldb
-  bz2
-  z
-)
-cpp_executable(logreader)
-
-
-##########################################
-# Log File to Db loader
-set(hloader_incs
-  ${GEN_DIR}
-  ${SRC_DIR}
-)
-set(hloader_srcs
-  historian_loader_main.cpp
-)
-set(hloader_libs
-  IBAPIConnector
-  boost_system
-  boost_iostreams
-  gflags
-  glog
-  historian_components
-  protobuf-lite
-  leveldb
-  bz2
-  z
-)
-cpp_executable(hloader)
 
 
 # Add the versioned api subdirectory

@@ -8,41 +8,6 @@ configure_file(
 )
 
 
-##########################################
-# Firehose - gateway to zmq bridge
-set(firehose_incs
-  ${GEN_DIR}
-  ${SRC_DIR}
-)
-set(firehose_srcs
-  firehose_main.cpp
-)
-set(firehose_libs
-  IBAPIConnector
-  boost_system
-  gflags
-  glog
-)
-cpp_executable(firehose)
-
-
-##########################################
-# Marketdata subscriber
-set(marketdata_incs
-  ${GEN_DIR}
-  ${SRC_DIR}
-)
-set(marketdata_srcs
-  marketdata_main.cpp
-)
-set(marketdata_libs
-  IBAPIConnector
-  boost_system
-  gflags
-  glog
-)
-cpp_executable(marketdata)
-
 # Boost support for gzip
 add_subdirectory(boost/iostreams)
 
@@ -63,3 +28,6 @@ add_subdirectory(raptor)
 
 # Historian
 add_subdirectory(historian)
+
+# Actual mains / programs
+add_subdirectory(main)
