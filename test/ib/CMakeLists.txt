@@ -85,3 +85,12 @@ cpp_gtest(utils_test)
 
 # Version specific unit tests.
 add_subdirectory(${IBAPI_IMPL_DIR})
+
+add_custom_target(all_ib_tests)
+add_dependencies(all_ib_tests
+  AsioEClientSocket_test
+  SocketInitiator_test
+  SocketConnector_test
+  utils_test
+  all_versioned_tests
+)

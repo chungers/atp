@@ -105,12 +105,12 @@ third_party_plain_make(leveldb)
 # Include the subdirectories required for this project:
 add_subdirectory(src)
 add_subdirectory(test)
-
 add_subdirectory(R-packages)
 
 
 add_custom_target(world)
 add_dependencies(world
   alL_mains
-  all_versioned_tests
+  all_tests
+  all_R_packages
 )

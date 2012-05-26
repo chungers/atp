@@ -22,5 +22,9 @@ set(varz_test_libs
 )
 cpp_gtest(varz_test)
 
+add_custom_target(all_varz_tests)
+add_dependencies(all_varz_tests
+  varz_test
+)
 
 

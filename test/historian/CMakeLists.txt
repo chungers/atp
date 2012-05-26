@@ -35,3 +35,8 @@ set(historian_tests_libs
 )
 cpp_gtest(historian_tests)
 
+add_custom_target(all_historian_tests)
+add_dependencies(all_historian_tests
+  historian_internal_tests
+  historian_tests
+)

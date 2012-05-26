@@ -23,3 +23,7 @@ set(ZmqTestSuite_libs
 )
 cpp_gtest(ZmqTestSuite)
 
+add_custom_target(all_zmq_tests)
+add_dependencies(all_zmq_tests
+  ZmqTestSuite
+)
