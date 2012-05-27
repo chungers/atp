@@ -7,5 +7,5 @@ library('ib')
 ib <- new.ib()
 ib
 
-r <- requestMarketdata(ib, aapl)
+#r <- requestMarketdata(ib, aapl)
 

@@ -13,6 +13,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "constants.h"
 #include "ib/SocketInitiator.hpp"
 #include "varz/varz.hpp"
 #include "varz/VarzServer.hpp"
@@ -39,6 +40,9 @@ DEFINE_int32(varz, 18000, "The port varz server runs on.");
 DEFINE_VARZ_bool(fh_as_publisher, false, "if instance is also a publisher.");
 DEFINE_VARZ_string(fh_connector_specs, "", "Connector specs");
 DEFINE_VARZ_string(fh_outbound_endpoints, "", "Outbound endpoints");
+
+DEFINE_VARZ_string(ib_api_version, IB_API_VERSION, "IB api version");
+
 
 void OnTerminate(int param)
 {
@@ -91,6 +95,8 @@ int main(int argc, char** argv)
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
   atp::varz::Varz::initialize();
+
+  LOG(INFO) << "IB API version: " << IB_API_VERSION;
 
   // Signal handler: Ctrl-C
   signal(SIGINT, OnTerminate);

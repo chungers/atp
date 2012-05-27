@@ -36,7 +36,7 @@ new.ib <- function(apiAddress = 'tcp://127.0.0.1:6666') {
   environment(this$cancelMarketdata) <- as.environment(this)
 
   # Request marketdepth
-  this$requestMarketdepth <- function(contract, rows=10) {
+  this$requestMarketdepth <- function(contract, rows=20) {
     raw <- .Call("api_request_marketdepth",
                  this$.apiConnection, contract, rows,
                  PACKAGE="ib")

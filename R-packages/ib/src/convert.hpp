@@ -18,11 +18,16 @@ using boost::optional;
 using boost::posix_time::ptime;
 using boost::uint64_t;
 
+// This is special parsing from string and cast to other scalar
+// types.  This is because the Contract list in R has all the
+// member properties as strings.
+
 #define R_STRING(x) Rcpp::as<string>(x)
-#define R_BOOL(x) Rcpp::as<bool>(x)
+#define R_BOOL(x) boost::lexical_cast<bool>(R_STRING(x))
 #define R_INT(x) boost::lexical_cast<int>(R_STRING(x))
 #define R_LONG(x) boost::lexical_cast<long>(R_STRING(x))
 #define R_DOUBLE(x) boost::lexical_cast<double>(R_STRING(x))
+
 
 bool operator>>(List& contractList, proto::ib::Contract* contract)
 {

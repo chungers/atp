@@ -101,7 +101,6 @@ RcppExport SEXP api_request_marketdata(SEXP connection,
   api::RequestMarketData req;
   proto::ib::Contract *contract = req.proto().mutable_contract();
 
-  Rprintf("Created contract proto.");
   List rContractList(contractList);
   if (rContractList >> contract) {
 
@@ -109,7 +108,8 @@ RcppExport SEXP api_request_marketdata(SEXP connection,
       req.proto().set_tick_types(R_STRING(tickTypesString));
     }
 
-    req.proto().set_snapshot(R_BOOL(snapShotBool));
+    bool snapshot = Rcpp::as<bool>(snapShotBool);
+    req.proto().set_snapshot(snapshot);
 
     // synchronous call
     BlockingCall<api::RequestMarketData>(connection, req, &resp);
@@ -128,6 +128,7 @@ RcppExport SEXP api_cancel_marketdata(SEXP connection,
 
   List rContractList(contractList);
   if (rContractList >> contract) {
+
     // sychronous call
     BlockingCall<api::CancelMarketData>(connection, req, &resp);
   }
@@ -143,12 +144,12 @@ RcppExport SEXP api_request_marketdepth(SEXP connection,
   api::RequestMarketDepth req;
   proto::ib::Contract *contract = req.proto().mutable_contract();
 
-  Rprintf("Created contract proto.");
   List rContractList(contractList);
   if (rContractList >> contract) {
 
-    if (R_INT(rowsInt) > 0) {
-      req.proto().set_rows(R_INT(rowsInt));
+    int rows = Rcpp::as<int>(rowsInt);
+    if (rows > 0) {
+      req.proto().set_rows(rows);
     }
 
     // sychronous call
