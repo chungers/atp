@@ -1,6 +1,7 @@
 #include <signal.h>
 #include <sstream>
 #include <map>
+#include <set>
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
@@ -59,12 +60,26 @@ void OnTerminate(int param)
   exit(1);
 }
 
+// Firehose only supports messages related to market data.
+const set<string> FIREHOSE_VALID_MESSAGES_ =
+               boost::assign::list_of
+               ("IBAPI.RequestMarketData")
+               ("IBAPI.CancelMarketData")
+               ("IBAPI.RequestMarketDepth")
+               ("IBAPI.CancelMarketDepth")
+               ;
+
 class Firehose : public IBAPI::ApplicationBase
 {
  public:
 
   Firehose() {}
   ~Firehose() {}
+
+  virtual bool IsMessageSupported(const std::string& key)
+  {
+    return FIREHOSE_VALID_MESSAGES_.find(key) != FIREHOSE_VALID_MESSAGES_.end();
+  }
 
   void onLogon(const IBAPI::SessionID& sessionId)
   {
@@ -75,6 +90,7 @@ class Firehose : public IBAPI::ApplicationBase
   {
     LOG(INFO) << "Session " << sessionId << " logged off.";
   }
+
 };
 
 using std::map;

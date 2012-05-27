@@ -1,6 +1,9 @@
 #ifndef IBAPI_APPLICATION_H_
 #define IBAPI_APPLICATION_H_
 
+#include <string>
+#include <set>
+
 #include "log_levels.h"
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
@@ -18,7 +21,13 @@ namespace IBAPI {
 class Application {
 
  public :
+
   virtual ~Application() {};
+
+  virtual bool IsMessageSupported(const std::string& key)
+  {
+    return true;
+  }
 
   virtual void onCreate( const SessionID& ) = 0;
 
