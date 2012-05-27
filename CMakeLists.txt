@@ -110,7 +110,7 @@ add_subdirectory(R-packages)
 
 add_custom_target(world)
 add_dependencies(world
-  alL_mains
+  all_mains
   all_tests
   all_R_packages
 )

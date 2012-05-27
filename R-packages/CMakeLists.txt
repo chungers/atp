@@ -21,3 +21,10 @@ add_dependencies(clean_all_R_packages
   r_clean_hzc
   r_clean_mds
 )
+
+add_custom_target(deploy_all_R_packages)
+add_dependencies(deploy_all_R_packages
+  r_deploy_ib
+  r_deploy_hzc
+  r_deploy_mds
+)
