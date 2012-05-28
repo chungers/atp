@@ -14,6 +14,7 @@
 
 #include "ib/internal.hpp"
 #include "ib/Application.hpp"
+#include "ib/ApplicationBase.hpp"
 #include "ib/GenericTickRequest.hpp"
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"

@@ -16,6 +16,7 @@
 #include <ql/quantlib.hpp>
 
 #include "ib/GenericTickRequest.hpp"
+#include "ib/ApplicationBase.hpp"
 
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
