@@ -43,59 +43,66 @@ class SocketConnector::implementation : public AbstractSocketConnector
   }
 
  protected:
-  virtual bool handleReactorInboundMessages(
-      zmq::socket_t& socket, EClientPtr eclient)
+  virtual bool handleReactorInboundMessages(zmq::socket_t& socket,
+                                            EClientPtr eclient)
   {
     using ib::internal::ZmqMessagePtr;
 
-    bool status = false;
-
     try {
+
       while (1) {
 
-        std::string buff;
-        bool more = atp::zmq::receive(socket, &buff);
+        std::string messageKeyFrame;
+        bool more = atp::zmq::receive(socket, &messageKeyFrame);
+        bool supported = GetApplication().IsMessageSupported(messageKeyFrame);
+
+        if (!supported) {
+
+          IBAPI_SOCKET_CONNECTOR_ERROR << "Unsupported message received: "
+                                       << messageKeyFrame;
+          // keep reading to consume the extra frames:
+          while (more) {
+            std::string buff;
+            more = atp::zmq::receive(socket, &buff);
+            IBAPI_SOCKET_CONNECTOR_ERROR << "Unsupported message received: "
+                                         << messageKeyFrame
+                                         << ", extra frame: " << buff;
+          }
+
+          // Similar to HTTP error code - server side error 404.
+          atp::zmq::send_copy(socket, "404");
+
+          // now skip this loop
+          continue;
+        }
+
+        // Message is supported.  Now create the message and delegate it
+        // to the actual reading and parsing from the socket.
         if (more) {
 
-          LOG(INFO) << "Received message of type " << buff;
+          LOG(INFO) << "Received message of type " << messageKeyFrame;
 
           ZmqMessagePtr inboundMessage;
-          ZmqMessage::createMessage(buff, inboundMessage);
+          ZmqMessage::createMessage(messageKeyFrame, inboundMessage);
 
           if (inboundMessage && (*inboundMessage)->receive(socket)) {
 
             VARZ_socket_connector_inbound_requests++;
 
-            status = (*inboundMessage)->validate();
-            if (!status) {
+            if (!(*inboundMessage)->validate()) {
 
               VARZ_socket_connector_inbound_requests_errors++;
+
+              // Similar to HTTP error code - server side error 500.
+              atp::zmq::send_copy(socket, "500");
 
               IBAPI_SOCKET_CONNECTOR_ERROR
                   << "Handle inbound message failed: "
                   << inboundMessage;
 
-              // Similar to HTTP error code - server side error 500.
-              atp::zmq::send_copy(socket, "500");
-
             } else {
 
-              status = (*inboundMessage)->callApi(eclient);
-
-              if (!status) {
-
-                VARZ_socket_connector_inbound_requests_errors++;
-
-                // TODO: figure out a better way to log something
-                // helpful - like a message type identifier.
-                IBAPI_SOCKET_CONNECTOR_ERROR
-                    << "Handle inbound message failed: "
-                    << inboundMessage;
-
-                // Similar to HTTP error code - server side error 500.
-                atp::zmq::send_copy(socket, "500");
-
-              } else {
+              if ((*inboundMessage)->callApi(eclient)) {
 
                 VARZ_socket_connector_inbound_requests_ok++;
 
@@ -103,11 +110,24 @@ class SocketConnector::implementation : public AbstractSocketConnector
                 // socket or an invalid state exception will be thrown by zmq.
                 // For simplicity, just use HTTP status codes.
                 atp::zmq::send_copy(socket, "200");
+
+              } else {
+
+                VARZ_socket_connector_inbound_requests_errors++;
+
+                // Similar to HTTP error code - server side error 500.
+                atp::zmq::send_copy(socket, "500");
+
+                // TODO: figure out a better way to log something
+                // helpful - like a message type identifier.
+                IBAPI_SOCKET_CONNECTOR_ERROR
+                    << "Handle inbound message failed: "
+                    << inboundMessage;
+
               }
             }
           }
         }
-
       }
     } catch (zmq::error_t e) {
 
@@ -115,9 +135,10 @@ class SocketConnector::implementation : public AbstractSocketConnector
 
       LOG(ERROR) << "Got exception while handling reactor inbound message: "
                  << e.what();
-      status = false;
+
+      return false; // stop processing
     }
-    return status;
+    return true; // continue processing
   }
 
   friend class SocketConnector;

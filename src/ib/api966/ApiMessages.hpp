@@ -69,8 +69,13 @@ class RequestMarketDepth : public ProtoBufferMessage<p::RequestMarketDepth>
     long requestId = proto.contract().id();
     Contract c;
     if (proto.contract() >> c) {
-      eclient->reqMktDepth(requestId, c, proto.rows());
-      return true;
+
+      // register the contract
+      long tickerId = ib::internal::TickerMap::registerContract(c);
+      if (tickerId > 0) {
+        eclient->reqMktDepth(requestId, c, proto.rows());
+        return true;
+      }
     }
     return false;
   }

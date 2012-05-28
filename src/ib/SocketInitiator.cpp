@@ -1,7 +1,9 @@
 
 #include <map>
 #include <list>
+#include <vector>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
@@ -29,6 +31,92 @@ static bool isInProc(const std::string& address)
 } // namespace internal
 } // namespace ib
 namespace IBAPI {
+
+
+bool SocketInitiator::ParseSessionSettingsFromFlag(
+    const string& flagValue,
+    SocketInitiator::SessionSettings& settings)
+{
+  vector<string> connectorSpecs;
+  boost::split(connectorSpecs, flagValue, boost::is_any_of(","));
+
+  for (vector<string>::iterator spec = connectorSpecs.begin();
+       spec != connectorSpecs.end(); ++spec) {
+
+    unsigned int sessionId, port;
+    string host, reactor;
+
+    if (SessionSetting::ParseSessionSettingFromString(*spec, &sessionId,
+                                                      &host, &port, &reactor)) {
+      SessionSetting setting(sessionId, host, port, reactor);
+      settings.push_back(setting);
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ParseChannelSettingFromString(const string& input,
+                                   unsigned int* channelId,
+                                   string* endpoint)
+{
+  /// format:  {channel_id}={push_endpoint}
+  stringstream iss(input);
+
+  string channel_id;
+  std::getline(iss, channel_id, '=');
+  *channelId = boost::lexical_cast<unsigned int>(channel_id);
+
+  string push_endpoint;
+  iss >> push_endpoint;
+
+  endpoint->assign(push_endpoint);
+  return true;
+}
+
+bool SocketInitiator::ParseOutboundChannelMapFromFlag(
+    const string& flagValue,
+    map<int, string>& outboundMap)
+{
+  vector<string> outboundSpecs;
+  boost::split(outboundSpecs, flagValue, boost::is_any_of(","));
+  for (vector<string>::iterator spec = outboundSpecs.begin();
+       spec != outboundSpecs.end(); ++spec) {
+
+    unsigned int channel;
+    string endpoint;
+
+    if (ParseChannelSettingFromString(*spec, &channel, &endpoint)) {
+      outboundMap[channel] = endpoint;
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool SocketInitiator::Configure(SocketInitiator& initiator,
+                                map<int, string>& outboundMap,
+                                bool publish)
+{
+  map<int, string>::iterator outboundEndpoint = outboundMap.begin();
+  for (; outboundEndpoint != outboundMap.end(); ++outboundEndpoint) {
+    int channel = outboundEndpoint->first;
+    string endpoint = outboundEndpoint->second;
+
+    if (publish) {
+      IBAPI_SOCKET_INITIATOR_LOGGER
+          << "Channel " << channel << ", PUBLISH to " << endpoint;
+      initiator.publish(channel, endpoint);
+    } else {
+      IBAPI_SOCKET_INITIATOR_LOGGER
+          << "Channel " << channel << ", PUSH to " << endpoint;
+      initiator.push(channel, endpoint);
+    }
+  }
+  return true;
+}
 
 class SocketInitiatorImpl : public SocketInitiator {
 

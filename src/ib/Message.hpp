@@ -11,6 +11,12 @@ class Message
 {
  public:
 
+  /**
+   * key is the message type / key, e.g., 'LimitOrder'
+   */
+  virtual const std::string& key() const = 0;
+
+
   virtual bool validate() = 0;
 
 };

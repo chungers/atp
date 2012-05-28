@@ -54,8 +54,6 @@ class ZmqMessage : public IBAPI::Message
     return timestamp_;
   }
 
-  virtual const std::string& key() const = 0;
-
   virtual bool validate() = 0;
 
   virtual bool callApi(EClientPtr eclient) = 0;

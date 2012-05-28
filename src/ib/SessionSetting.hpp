@@ -2,14 +2,25 @@
 #define IBAPI_SESSION_SETTING_H_
 
 #include <iostream>
+#include <string>
+
 
 namespace IBAPI {
 
 using std::string;
 
+
 class SessionSetting {
 
  public:
+
+  static bool ParseSessionSettingFromString(const string& input,
+                                            unsigned int* sessionId,
+                                            string* host,
+                                            unsigned int* port,
+                                            string* reactor);
+
+
   SessionSetting(unsigned int id = 0,
                  const string& gatewayIp = "127.0.0.1",
                  unsigned int gatewayPort = 4001,

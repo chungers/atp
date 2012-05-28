@@ -307,6 +307,11 @@ class AbstractSocketConnector :
 
  protected:
 
+  Application& GetApplication()
+  {
+    return app_;
+  }
+
   /**
    * Process messages from the socket and return true if ok.  This
    * is part of the Reactor implementation that handles any inbound
