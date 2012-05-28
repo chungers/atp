@@ -3,7 +3,7 @@
 #include "ib/Application.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ApiImpl.hpp"
-#include "EventDispatcher.hpp"
+#include "MarketEventDispatcher.hpp"
 
 
 namespace ib {
@@ -14,7 +14,7 @@ EWrapper* EWrapperFactory::getInstance(IBAPI::Application& app,
                                        EWrapperEventCollector& eventCollector,
                                        int clientId)
 {
-  return new EventDispatcher(app, eventCollector, clientId);
+  return new MarketEventDispatcher(app, eventCollector, clientId);
 }
 
 

@@ -49,3 +49,9 @@ set(V964_Message_test_libs
   zmq
 )
 cpp_gtest(V964_Message_test)
+
+add_custom_target(all_versioned_tests)
+add_dependencies(all_versioned_tests
+  V964_Message_test
+  V964_MarketData_test
+)

@@ -13,6 +13,7 @@
 #include "common.hpp"
 
 #include "ib/internal.hpp"
+#include "ib/ApplicationBase.hpp"
 #include "ib/AsioEClientSocket.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/TestHarness.hpp"
@@ -208,7 +209,7 @@ TEST(V964_MessageTest, ZmqSendTest)
 
   LOG(INFO) << "Next Friday = " << nextFriday << ", " << dateString;
 
-  request.send(client);
+  request.send(client, 100);
 
   LOG(INFO) << "Message sent";
 

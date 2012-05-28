@@ -8,7 +8,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "ib/Application.hpp"
+#include "ib/ApplicationBase.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/SocketConnector.hpp"
 #include "ib/SocketInitiator.hpp"

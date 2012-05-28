@@ -1,5 +1,5 @@
-#ifndef IB_INTERNAL_EVENT_DISPATCHER_BASE_
-#define IB_INTERNAL_EVENT_DISPATCHER_BASE_
+#ifndef IB_INTERNAL_MARKET_EVENT_DISPATCHER_BASE_
+#define IB_INTERNAL_MARKET_EVENT_DISPATCHER_BASE_
 
 #include <sstream>
 #include "common.hpp"
@@ -31,16 +31,16 @@ namespace internal {
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 
-class EventDispatcherBase
+class MarketEventDispatcherBase
 {
  public:
-  EventDispatcherBase(EWrapperEventCollector& eventCollector) :
+  MarketEventDispatcherBase(EWrapperEventCollector& eventCollector) :
       eventCollector_(eventCollector)
   {
     VARZ_event_dispatch_publish_last_ts = now_micros();
   }
 
-  ~EventDispatcherBase() {}
+  ~MarketEventDispatcherBase() {}
 
  protected:
 
@@ -195,4 +195,4 @@ class EventDispatcherBase
 } // ib
 
 
-#endif // IB_INTERNAL_EVENT_DISPATCHER_BASE_
+#endif // IB_INTERNAL_MARKET_EVENT_DISPATCHER_BASE_

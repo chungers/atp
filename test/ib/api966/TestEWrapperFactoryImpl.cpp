@@ -15,17 +15,17 @@
 #include "ib/TestHarness.hpp"
 
 
-#include "ib/api966/EventDispatcher.hpp"
+#include "ib/api966/MarketEventDispatcher.hpp"
 
 namespace ib {
 namespace internal {
 
 
-class TestEWrapper : public EventDispatcher, public TestHarness {
+class TestEWrapper : public MarketEventDispatcher, public TestHarness {
  public:
   TestEWrapper(IBAPI::Application& app, EWrapperEventCollector& eventCollector,
                int clientId)
-      : EventDispatcher(app, eventCollector, clientId),
+      : MarketEventDispatcher(app, eventCollector, clientId),
         TestHarness()
   {
     LOG(INFO) << "Initialized LoggingEWrapper." << std:: endl;
@@ -35,7 +35,7 @@ class TestEWrapper : public EventDispatcher, public TestHarness {
 
   // @Override
   void nextValidId(OrderId orderId) {
-    EventDispatcher::nextValidId(orderId);
+    MarketEventDispatcher::nextValidId(orderId);
     incr(NEXT_VALID_ID);
 
     zmq::socket_t* eventCollector = getOutboundSocket();
@@ -45,32 +45,36 @@ class TestEWrapper : public EventDispatcher, public TestHarness {
   }
 
   // @Override
-  void tickPrice(TickerId tickerId, TickType tickType, double price, int canAutoExecute) {
-    EventDispatcher::tickPrice(tickerId, tickType, price, canAutoExecute);
+  void tickPrice(TickerId tickerId, TickType tickType,
+                 double price, int canAutoExecute) {
+    MarketEventDispatcher::tickPrice(tickerId, tickType, price, canAutoExecute);
     incr(TICK_PRICE);
     seen(tickerId);
   }
 
   // @Override
   void tickSize(TickerId tickerId, TickType tickType, int size) {
-    EventDispatcher::tickSize(tickerId, tickType, size);
+    MarketEventDispatcher::tickSize(tickerId, tickType, size);
     incr(TICK_SIZE);
     seen(tickerId);
   }
 
   // @Override
   void tickGeneric(TickerId tickerId, TickType tickType, double value) {
-    EventDispatcher::tickGeneric(tickerId, tickType, value);
+    MarketEventDispatcher::tickGeneric(tickerId, tickType, value);
     incr(TICK_GENERIC);
     seen(tickerId);
   }
 
   // @Override
-  void tickOptionComputation(TickerId tickerId, TickType tickType, double impliedVol, double delta,
+  void tickOptionComputation(TickerId tickerId, TickType tickType,
+                             double impliedVol, double delta,
                              double optPrice, double pvDividend,
-                             double gamma, double vega, double theta, double undPrice) {
-    EventDispatcher::tickOptionComputation(tickerId, tickType, impliedVol, delta,
-                                           optPrice, pvDividend, gamma, vega, theta, undPrice);
+                             double gamma, double vega, double theta,
+                             double undPrice) {
+    MarketEventDispatcher::tickOptionComputation(
+        tickerId, tickType, impliedVol, delta,
+        optPrice, pvDividend, gamma, vega, theta, undPrice);
     incr(TICK_OPTION_COMPUTATION);
     seen(tickerId);
   }
@@ -78,14 +82,15 @@ class TestEWrapper : public EventDispatcher, public TestHarness {
   // @Override
   void updateMktDepth(TickerId id, int position, int operation, int side,
                       double price, int size) {
-    EventDispatcher::updateMktDepth(id, position, operation, side, price, size);
+    MarketEventDispatcher::updateMktDepth(
+        id, position, operation, side, price, size);
     incr(UPDATE_MKT_DEPTH);
     seen(id);
    }
 
   // @Override
   void contractDetails( int reqId, const ContractDetails& contractDetails) {
-    EventDispatcher::contractDetails(reqId, contractDetails);
+    MarketEventDispatcher::contractDetails(reqId, contractDetails);
     incr(CONTRACT_DETAILS);
     seen(reqId);
     if (optionChain_) {
@@ -96,7 +101,7 @@ class TestEWrapper : public EventDispatcher, public TestHarness {
 
   // @Override
   void contractDetailsEnd( int reqId) {
-    EventDispatcher::contractDetailsEnd(reqId);
+    MarketEventDispatcher::contractDetailsEnd(reqId);
     incr(CONTRACT_DETAILS_END);
     seen(reqId);
   }

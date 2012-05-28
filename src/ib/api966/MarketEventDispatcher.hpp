@@ -1,5 +1,5 @@
-#ifndef IB_EVENT_DISPATCHER_H_
-#define IB_EVENT_DISPATCHER_H_
+#ifndef IB_MARKET_EVENT_DISPATCHER_H_
+#define IB_MARKET_EVENT_DISPATCHER_H_
 
 #include <sstream>
 #include <glog/logging.h>
@@ -8,7 +8,7 @@
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
 #include "ApiImpl.hpp"
-#include "ib/EventDispatcherBase.hpp"
+#include "ib/MarketEventDispatcherBase.hpp"
 #include "varz/varz.hpp"
 
 
@@ -26,14 +26,16 @@ namespace ib {
 namespace internal {
 
 
-class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
+class MarketEventDispatcher :
+      public MarketEventDispatcherBase,
+      public LoggingEWrapper
 {
  public:
 
-  EventDispatcher(IBAPI::Application& app,
+  MarketEventDispatcher(IBAPI::Application& app,
                   EWrapperEventCollector& eventCollector,
                   int clientId) :
-      EventDispatcherBase(eventCollector),
+      MarketEventDispatcherBase(eventCollector),
       app_(app),
       clientId_(clientId)
   {
@@ -229,4 +231,4 @@ class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
 } // internal
 } // ib
 
-#endif // IB_EVENT_DISPATCHER_H_
+#endif // IB_MARKET_EVENT_DISPATCHER_H_

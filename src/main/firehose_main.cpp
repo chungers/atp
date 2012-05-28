@@ -28,8 +28,7 @@ static atp::varz::VarzServer* VARZ_INSTANCE;
 const std::string CONNECTOR_SPECS =
     "100=127.0.0.1:4001@tcp://127.0.0.1:6666";
 
-const std::string OUTBOUND_ENDPOINTS =
-    "0=tcp://127.0.0.1:7777,1=tcp://127.0.0.1:7778";
+const std::string OUTBOUND_ENDPOINTS = "0=tcp://127.0.0.1:7777";
 
 DEFINE_string(connectors, CONNECTOR_SPECS,
               "Comma-delimited list of gateway ip/port @ control endpoints.");
@@ -64,10 +63,10 @@ void OnTerminate(int param)
 // Firehose only supports messages related to market data.
 const set<string> FIREHOSE_VALID_MESSAGES_ =
                boost::assign::list_of
-               ("IBAPI.RequestMarketData")
-               ("IBAPI.CancelMarketData")
-               ("IBAPI.RequestMarketDepth")
-               ("IBAPI.CancelMarketDepth")
+               ("IBAPI.FEED.RequestMarketData")
+               ("IBAPI.FEED.CancelMarketData")
+               ("IBAPI.FEED.RequestMarketDepth")
+               ("IBAPI.FEED.CancelMarketDepth")
                ;
 
 class Firehose : public IBAPI::ApplicationBase
@@ -107,6 +106,8 @@ using IBAPI::SocketInitiator;
 //
 // MAIN
 //
+// Firehose - Market data gateway
+//
 int main(int argc, char** argv)
 {
   google::SetUsageMessage("Firehose connecting message queue and IB gateways.");
@@ -114,7 +115,7 @@ int main(int argc, char** argv)
   google::InitGoogleLogging(argv[0]);
   atp::varz::Varz::initialize();
 
-  LOG(INFO) << "IB API version: " << IB_API_VERSION;
+  LOG(INFO) << "Firehose - IB API version: " << IB_API_VERSION;
 
   // Signal handler: Ctrl-C
   signal(SIGINT, OnTerminate);

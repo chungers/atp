@@ -8,7 +8,7 @@
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
 #include "ApiImpl.hpp"
-#include "ib/EventDispatcherBase.hpp"
+#include "ib/MarketEventDispatcherBase.hpp"
 #include "varz/varz.hpp"
 
 
@@ -31,14 +31,14 @@ namespace internal {
  *
  * See https://github.com/lab616/third_party/blob/master/quickfix-1.13.3/src/C++/SocketConnector.h
  */
-class EventDispatcher : public EventDispatcherBase, public LoggingEWrapper
+class EventDispatcher : public MarketEventDispatcherBase, public LoggingEWrapper
 {
  public:
 
   EventDispatcher(IBAPI::Application& app,
                   EWrapperEventCollector& eventCollector,
                   int clientId) :
-      EventDispatcherBase(eventCollector),
+      MarketEventDispatcherBase(eventCollector),
       app_(app),
       clientId_(clientId)
   {

@@ -26,7 +26,6 @@
 #include "log_levels.h"
 #include "ib/ticker_id.hpp"
 #include "ib/tick_types.hpp"
-#include "ib/EventDispatcherBase.hpp"
 #include "ib/TickerMap.hpp"
 #include "historian/historian.hpp"
 #include "zmq/ZmqUtils.hpp"
@@ -502,31 +501,6 @@ static bool WriteSessionLogs(const string& source,
 
 using namespace ib::internal;
 
-// class PublisherSocket : public EWrapperEventCollector
-// {
-//  public:
-//   PublisherSocket(zmq::socket_t* socket) : socket_(socket) {}
-
-//   virtual zmq::socket_t* getOutboundSocket(int channel = 0)
-//   { return socket_; }
-
-//  private:
-//   zmq::socket_t* socket_;
-// };
-
-// class MarketDataPublisher : public EventDispatcherBase
-// {
-//  public:
-
-//   MarketDataPublisher(zmq::socket_t* socket) :
-//       EventDispatcherBase(collector_),
-//       collector_(socket)
-//   {
-//   }
-
-//  private:
-//   PublisherSocket collector_;
-// };
 
 ////////////////////////////////////////////////////////
 //

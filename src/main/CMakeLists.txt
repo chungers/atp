@@ -19,6 +19,22 @@ set(firehose_libs
 )
 cpp_executable(firehose)
 
+##########################################
+# EM - Execution Manager
+set(em_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(em_srcs
+  em_main.cpp
+)
+set(em_libs
+  IBAPIConnector
+  boost_system
+  gflags
+  glog
+)
+cpp_executable(em)
 
 ##########################################
 # Marketdata subscriber
