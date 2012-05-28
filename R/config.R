@@ -8,6 +8,8 @@ CONFIG$firehose <- list(remote = 'tcp://69.164.211.61:6666',
 
 CONFIG$gatewayPort <- 4002
 
+CONFIG$hzHost <- '50.116.57.10'
+CONFIG$hzPort <- 1111
 
 CONFIG$indexes <- c(
 'INDU',
