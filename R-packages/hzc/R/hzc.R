@@ -4,7 +4,7 @@
 new.hzc <- function(cbPort = 1112,
                     hzLocalPort = 1111,
                     hzPort = 1111,
-                    hzHost = 'stage.lab616.com',
+                    hzHost = 'prod1.lab616.com',
                     hzUser = 'jenkins',
                     startTunnel = TRUE) {
 
