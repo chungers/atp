@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
-#include "boost/assign.hpp"
+#include <boost/assign.hpp>
 #include <boost/date_time/gregorian/greg_month.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
@@ -15,6 +15,7 @@
 #include <glog/logging.h>
 
 #include "constants.h"
+#include "ib/ApplicationBase.hpp"
 #include "ib/SocketInitiator.hpp"
 #include "varz/varz.hpp"
 #include "varz/VarzServer.hpp"
@@ -101,6 +102,7 @@ using std::istringstream;
 using IBAPI::SessionSetting;
 using IBAPI::SocketInitiator;
 
+
 ////////////////////////////////////////////////////////
 //
 // MAIN
@@ -133,96 +135,50 @@ int main(int argc, char** argv)
   VARZ_INSTANCE = &varz;
   varz.start();
 
-  // Get the connector specs
-  vector<string> connectorSpecs;
-  boost::split(connectorSpecs, FLAGS_connectors, boost::is_any_of(","));
-
+  // SessionSettings for the initiator
   SocketInitiator::SessionSettings settings;
-  for (vector<string>::iterator spec = connectorSpecs.begin();
-       spec != connectorSpecs.end(); ++spec) {
-
-    /// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
-    stringstream iss(*spec);
-
-    string sessionIdStr;
-    std::getline(iss, sessionIdStr, '=');
-    string gateway;
-    std::getline(iss, gateway, '@');
-    string reactor;
-    iss >> reactor;
-
-    istringstream session_parse(sessionIdStr);
-    unsigned int sessionId = 0;
-    session_parse >> sessionId;
-
-    // Need to split the gateway
-    vector<string> gatewayParts;
-    boost::split(gatewayParts, gateway, boost::is_any_of(":"));
-    istringstream port_parse(gatewayParts[1]);
-    int port = 0;
-    port_parse >> port;
-
-    string host = gatewayParts[0];
-
-    LOG(INFO) << "session = " << sessionId << ", "
-              << "gateway = " << host << ":" << port << ", "
-              << "reactor = " << reactor;
-
-    SessionSetting setting(sessionId, host, port, reactor);
-    settings.push_back(setting);
-  }
 
   // Outbound publisher endpoints for different channels
   map<int, string> outboundMap;
 
-  vector<string> outboundSpecs;
-  boost::split(outboundSpecs, FLAGS_outbound, boost::is_any_of(","));
-  for (vector<string>::iterator spec = outboundSpecs.begin();
-       spec != outboundSpecs.end(); ++spec) {
+  if (SocketInitiator::ParseSessionSettingsFromFlag(
+          FLAGS_connectors, settings) &&
+      SocketInitiator::ParseOutboundChannelMapFromFlag(
+          FLAGS_outbound, outboundMap)) {
 
-    /// format:  {channel_id}={push_endpoint}
-    stringstream iss(*spec);
+    LOG(INFO) << "Starting initiator.";
+    Firehose firehose;
+    SocketInitiator initiator(firehose, settings);
 
-    string channelIdStr;
-    std::getline(iss, channelIdStr, '=');
-    string endpoint;
-    iss >> endpoint;
+    INITIATOR_INSTANCE = &initiator;
 
-    istringstream channel_parse(channelIdStr);
-    int channel = 0;
-    channel_parse >> channel;
+    map<int, string>::iterator outboundEndpoint = outboundMap.begin();
+    for (; outboundEndpoint != outboundMap.end(); ++outboundEndpoint) {
+      int channel = outboundEndpoint->first;
+      string endpoint = outboundEndpoint->second;
 
-    LOG(INFO) << "channel = " << channel << ", "
-              << "endpoint = " << endpoint;
-
-    outboundMap[channel] = endpoint;
-  }
-
-  LOG(INFO) << "Starting initiator.";
-  Firehose firehose;
-  SocketInitiator initiator(firehose, settings);
-
-  INITIATOR_INSTANCE = &initiator;
-
-  map<int, string>::iterator outboundEndpoint = outboundMap.begin();
-  for (; outboundEndpoint != outboundMap.end(); ++outboundEndpoint) {
-    int channel = outboundEndpoint->first;
-    string endpoint = outboundEndpoint->second;
-
-    if (FLAGS_publish) {
-      LOG(INFO) << "Channel " << channel << ", PUBLISH to " << endpoint;
-      initiator.publish(channel, endpoint);
-    } else {
-      LOG(INFO) << "Channel " << channel << ", PUSH to " << endpoint;
-      initiator.push(channel, endpoint);
+      if (FLAGS_publish) {
+        LOG(INFO) << "Channel " << channel << ", PUBLISH to " << endpoint;
+        initiator.publish(channel, endpoint);
+      } else {
+        LOG(INFO) << "Channel " << channel << ", PUSH to " << endpoint;
+        initiator.push(channel, endpoint);
+      }
     }
+
+    LOG(INFO) << "Start connections";
+    initiator.start();
+
+    initiator.block();
+
+    return 0;
+
+  } else {
+
+    LOG(ERROR) << "Invalid flags: " << FLAGS_connectors
+               << ", " << FLAGS_outbound;
+    return 1;
   }
-
-  LOG(INFO) << "Start connections";
-  initiator.start();
-
-  initiator.block();
-  return 0;
 }
 
 

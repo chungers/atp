@@ -4,6 +4,7 @@
 #include <zmq.hpp>
 
 #include <list>
+#include <map>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 
@@ -28,6 +29,13 @@ class SocketInitiator : public Initiator,
  public:
 
   typedef std::list< SessionSetting > SessionSettings;
+
+  static bool ParseSessionSettingsFromFlag(const string& flagValue,
+                                           SessionSettings& settings);
+
+  static bool ParseOutboundChannelMapFromFlag(const string& flagValue,
+                                              map<int, string>& outboundMap);
+
 
   SocketInitiator(Application& app, const SessionSettings& settings);
   ~SocketInitiator();

@@ -56,62 +56,6 @@ class Application {
              UnsupportedMessageType ) = 0;
 };
 
-
-class ApplicationBase : public Application {
- public:
-  ApplicationBase() {}
-  ~ApplicationBase() {}
-
-  void onCreate( const SessionID& sessionId)
-  {
-    IBAPI_APPLICATION_LOGGER << "onCreate(" << sessionId << ")";
-  }
-
-
-  void onLogon( const SessionID& sessionId)
-  {
-    IBAPI_APPLICATION_LOGGER << "onLogon(" << sessionId << ")";
-  }
-
-
-  void onLogout( const SessionID& sessionId)
-  {
-    IBAPI_APPLICATION_LOGGER << "onLogout(" << sessionId << ")";
-  }
-
-
-  void toAdmin( Message& message, const SessionID& sessionId)
-  {
-    IBAPI_APPLICATION_LOGGER << "toAdmin(" << sessionId
-                             << "," << &message
-                             << ")";
-  }
-
-  void toApp( Message& message, const SessionID& sessionId) throw( DoNotSend )
-  {
-    IBAPI_APPLICATION_LOGGER << "toApp(" << sessionId
-                             << "," << &message
-                             << ")";
-  }
-
-  void fromAdmin( const Message& message, const SessionID& sessionId)
-      throw( IncorrectDataFormat, IncorrectTagValue, RejectLogon )
-  {
-    IBAPI_APPLICATION_LOGGER << "fromAdmin(" << sessionId
-                             << "," << &message
-                             << ")";
-  }
-
-  void fromApp( const Message& message, const SessionID& sessionId)
-      throw( IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType )
-  {
-    IBAPI_APPLICATION_LOGGER << "fromApp(" << sessionId
-                             << "," << &message
-                             << ")";
-  }
-
-};
-
 } // namespace IBAPI
 
 #endif // IBAPI_APPLICATION_H_

@@ -47,6 +47,7 @@ set(IBAPIConnector_incs
 FILE(GLOB IMPL_FILES "${IBAPI_IMPL_DIR}/*.cpp")
 set(IBAPIConnector_srcs
   AsioEClientSocket.cpp
+  SessionSetting.cpp
   SocketConnector.cpp
   SocketInitiator.cpp
   ${IMPL_FILES}
