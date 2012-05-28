@@ -198,7 +198,7 @@ class AbstractSocketConnector :
   }
 
   /// @see Reactor::Strategy
-  int socketType() { return ZMQ_REP; }
+  virtual int socketType() = 0;
 
   /// @see Reactor::Strategy
   /// This method is run from the Reactor's thread.

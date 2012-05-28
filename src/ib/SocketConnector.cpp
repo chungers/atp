@@ -42,6 +42,11 @@ class SocketConnector::implementation : public AbstractSocketConnector
   {
   }
 
+  virtual int socketType()
+  {
+    return ZMQ_REP;
+  }
+
  protected:
   virtual bool handleReactorInboundMessages(zmq::socket_t& socket,
                                             EClientPtr eclient)

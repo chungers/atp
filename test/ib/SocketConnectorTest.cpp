@@ -99,6 +99,11 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
               << ", context = " << inboundContext;
   }
 
+  virtual int socketType()
+  {
+    return ZMQ_REP;
+  }
+
  protected:
 
   bool handleReactorInboundMessages(
