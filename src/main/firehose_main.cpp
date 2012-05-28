@@ -147,38 +147,28 @@ int main(int argc, char** argv)
           FLAGS_outbound, outboundMap)) {
 
     LOG(INFO) << "Starting initiator.";
+
     Firehose firehose;
     SocketInitiator initiator(firehose, settings);
 
     INITIATOR_INSTANCE = &initiator;
 
-    map<int, string>::iterator outboundEndpoint = outboundMap.begin();
-    for (; outboundEndpoint != outboundMap.end(); ++outboundEndpoint) {
-      int channel = outboundEndpoint->first;
-      string endpoint = outboundEndpoint->second;
+    if (SocketInitiator::Configure(initiator, outboundMap, FLAGS_publish)) {
 
-      if (FLAGS_publish) {
-        LOG(INFO) << "Channel " << channel << ", PUBLISH to " << endpoint;
-        initiator.publish(channel, endpoint);
-      } else {
-        LOG(INFO) << "Channel " << channel << ", PUSH to " << endpoint;
-        initiator.push(channel, endpoint);
-      }
+      LOG(INFO) << "Start connections";
+      initiator.start();
+
+      // Now waiting for shutdown
+      initiator.block();
+
+      LOG(INFO) << "Firehose terminated.";
+      return 0;
     }
-
-    LOG(INFO) << "Start connections";
-    initiator.start();
-
-    initiator.block();
-
-    return 0;
-
-  } else {
-
-    LOG(ERROR) << "Invalid flags: " << FLAGS_connectors
-               << ", " << FLAGS_outbound;
-    return 1;
   }
+
+  LOG(ERROR) << "Invalid flags: " << FLAGS_connectors
+             << ", " << FLAGS_outbound;
+  return 1;
 }
 
 

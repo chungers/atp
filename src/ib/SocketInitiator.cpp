@@ -96,7 +96,27 @@ bool SocketInitiator::ParseOutboundChannelMapFromFlag(
   return true;
 }
 
+bool SocketInitiator::Configure(SocketInitiator& initiator,
+                                map<int, string>& outboundMap,
+                                bool publish)
+{
+  map<int, string>::iterator outboundEndpoint = outboundMap.begin();
+  for (; outboundEndpoint != outboundMap.end(); ++outboundEndpoint) {
+    int channel = outboundEndpoint->first;
+    string endpoint = outboundEndpoint->second;
 
+    if (publish) {
+      IBAPI_SOCKET_INITIATOR_LOGGER
+          << "Channel " << channel << ", PUBLISH to " << endpoint;
+      initiator.publish(channel, endpoint);
+    } else {
+      IBAPI_SOCKET_INITIATOR_LOGGER
+          << "Channel " << channel << ", PUSH to " << endpoint;
+      initiator.push(channel, endpoint);
+    }
+  }
+  return true;
+}
 
 class SocketInitiatorImpl : public SocketInitiator {
 

@@ -30,11 +30,16 @@ class SocketInitiator : public Initiator,
 
   typedef std::list< SessionSetting > SessionSettings;
 
+  /// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
   static bool ParseSessionSettingsFromFlag(const string& flagValue,
                                            SessionSettings& settings);
 
+  /// format:  {channel_id}={push_endpoint}
   static bool ParseOutboundChannelMapFromFlag(const string& flagValue,
                                               map<int, string>& outboundMap);
+
+  static bool Configure(SocketInitiator& i, map<int, string>& outboundMap,
+                        bool publish);
 
 
   SocketInitiator(Application& app, const SessionSettings& settings);
