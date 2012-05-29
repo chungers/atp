@@ -106,8 +106,8 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
 
  protected:
 
-  bool handleReactorInboundMessages(
-      zmq::socket_t& reactorSocket, ib::internal::EClientPtr eclient)
+  bool handleReactorInboundMessages(zmq::socket_t& reactorSocket,
+                                    ib::internal::EClientPtr eclient)
   {
     // Make sure that the eclient pointer is not null
     EClient* ptr = eclient.get();

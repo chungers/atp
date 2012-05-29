@@ -42,12 +42,23 @@ class SocketConnector::implementation : public AbstractSocketConnector
   {
   }
 
+  /// Reactor's socket type -- req/reply
   virtual int socketType()
   {
     return ZMQ_REP;
   }
 
  protected:
+
+  virtual void afterMessage(unsigned int responseCode,
+                            zmq::socket_t& socket,
+                            ib::internal::ZmqMessagePtr& origMessageOptional)
+  {
+    if (socketType() == ZMQ_REP) {
+      atp::zmq::send_copy(socket, boost::lexical_cast<string>(responseCode));
+    }
+  }
+
   virtual bool handleReactorInboundMessages(zmq::socket_t& socket,
                                             EClientPtr eclient)
   {
@@ -74,12 +85,15 @@ class SocketConnector::implementation : public AbstractSocketConnector
                                          << ", extra frame: " << buff;
           }
 
-          // Similar to HTTP error code - server side error 404.
-          atp::zmq::send_copy(socket, "404");
+          ZmqMessagePtr empty;
+          afterMessage(404, socket, empty);
 
           // now skip this loop
           continue;
         }
+
+        ZmqMessagePtr inboundMessage;
+        int responseCode = 500;
 
         // Message is supported.  Now create the message and delegate it
         // to the actual reading and parsing from the socket.
@@ -87,7 +101,6 @@ class SocketConnector::implementation : public AbstractSocketConnector
 
           LOG(INFO) << "Received message of type " << messageKeyFrame;
 
-          ZmqMessagePtr inboundMessage;
           ZmqMessage::createMessage(messageKeyFrame, inboundMessage);
 
           if (inboundMessage && (*inboundMessage)->receive(socket)) {
@@ -98,8 +111,7 @@ class SocketConnector::implementation : public AbstractSocketConnector
 
               VARZ_socket_connector_inbound_requests_errors++;
 
-              // Similar to HTTP error code - server side error 500.
-              atp::zmq::send_copy(socket, "500");
+              responseCode = 412; // pre conditional failed
 
               IBAPI_SOCKET_CONNECTOR_ERROR
                   << "Handle inbound message failed: "
@@ -111,17 +123,13 @@ class SocketConnector::implementation : public AbstractSocketConnector
 
                 VARZ_socket_connector_inbound_requests_ok++;
 
-                // Send ok reply -- must write something on the ZMQ_REP
-                // socket or an invalid state exception will be thrown by zmq.
-                // For simplicity, just use HTTP status codes.
-                atp::zmq::send_copy(socket, "200");
+                responseCode = 200;
 
               } else {
 
                 VARZ_socket_connector_inbound_requests_errors++;
 
-                // Similar to HTTP error code - server side error 500.
-                atp::zmq::send_copy(socket, "500");
+                responseCode = 502; // bad gateway
 
                 // TODO: figure out a better way to log something
                 // helpful - like a message type identifier.
@@ -131,8 +139,15 @@ class SocketConnector::implementation : public AbstractSocketConnector
 
               }
             }
+          } else {
+            responseCode = (inboundMessage) ?
+                400 : // bad request
+                503; // service unavailable
           }
-        }
+        } // if more
+
+        // Process response after message handled.
+        afterMessage(responseCode, socket, inboundMessage);
       }
     } catch (zmq::error_t e) {
 
