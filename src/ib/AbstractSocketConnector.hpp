@@ -49,6 +49,7 @@ class AbstractSocketConnector :
  public:
 
   AbstractSocketConnector(
+      const int reactorSocketType,
       const SocketConnector::ZmqAddress& reactorAddress,
       const SocketConnector::ZmqAddressMap& outboundChannels,
       Application& app, int timeout,
@@ -57,8 +58,9 @@ class AbstractSocketConnector :
 
       app_(app),
       timeoutSeconds_(timeout),
+      reactorSocketType_(reactorSocketType),
       reactorAddress_(reactorAddress),
-      reactor_(reactorAddress, *this, inboundContext),
+      reactor_(reactorSocketType, reactorAddress, *this, inboundContext),
       outboundChannels_(outboundChannels),
       outboundContext_(outboundContext),
       socketConnector_(NULL)
@@ -71,7 +73,6 @@ class AbstractSocketConnector :
     //   IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Shutting down " << stop();
     // }
   }
-
 
 
  public:
@@ -198,9 +199,6 @@ class AbstractSocketConnector :
   }
 
   /// @see Reactor::Strategy
-  virtual int socketType() = 0;
-
-  /// @see Reactor::Strategy
   /// This method is run from the Reactor's thread.
   bool respond(zmq::socket_t& socket)
   {
@@ -312,6 +310,11 @@ class AbstractSocketConnector :
     return app_;
   }
 
+  const int GetReactorSocketType()
+  {
+    return reactorSocketType_;
+  }
+
   /**
    * Process messages from the socket and return true if ok.  This
    * is part of the Reactor implementation that handles any inbound
@@ -332,6 +335,7 @@ class AbstractSocketConnector :
   boost::mutex mutex_;
 
   // For handling inbound requests.
+  const int reactorSocketType_;
   const SocketConnector::ZmqAddress& reactorAddress_;
   atp::zmq::Reactor reactor_;
 

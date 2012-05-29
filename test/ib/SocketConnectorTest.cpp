@@ -91,17 +91,13 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
                       Application& app, int timeout,
                       zmq::context_t* inboundContext = NULL,
                       zmq::context_t* outboundContext = NULL) :
-      AbstractSocketConnector(responderAddress, outboundChannels, app, timeout,
+      AbstractSocketConnector(ZMQ_REP,
+                              responderAddress, outboundChannels, app, timeout,
                               inboundContext, outboundContext)
   {
     LOG(INFO) << "TestConnector initialized.";
     LOG(INFO) << "Inbound @ " << responderAddress
               << ", context = " << inboundContext;
-  }
-
-  virtual int socketType()
-  {
-    return ZMQ_REP;
   }
 
  protected:

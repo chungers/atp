@@ -1,4 +1,6 @@
 
+#include "ib/protocol.h"
+
 #include "ApiMessages.hpp"
 
 #include "convert.hpp"
@@ -19,28 +21,37 @@ using zmq::socket_t;
 // IB API Version 9.66
 namespace api = IBAPI::V966;
 
+
 template<typename P>
-void BlockingCall(SEXP connection, P& req, string* out)
+unsigned int DispatchMessage(SEXP connection, P& req, string* out)
 {
   List handleList(connection);
   XPtr<zmq::socket_t> socket(handleList["socketPtr"], R_NilValue, R_NilValue);
 
   ib::internal::MessageId messageId = now_micros();
+  out->assign(boost::lexical_cast<string>(messageId));
+
   size_t sent = req.send(*socket, messageId);
 
-  // Now wait for the response
+  int responseCode = 0;
+
+#ifdef SOCKET_CONNECTOR_USES_BLOCKING_REACTOR
+
   string buff;
   atp::zmq::receive(*socket, &buff);
   int response = boost::lexical_cast<int>(buff);
 
   switch (response) {
     case 200 :
-      out->assign(boost::lexical_cast<string>(messageId));
       break;
 
-    case 500 :
+    default:
+      Rprintf("Error: %d\n", response);
       break;
   }
+#endif
+
+  return responseCode;
 }
 
 SEXP api_connect(SEXP address)
@@ -54,7 +65,7 @@ SEXP api_connect(SEXP address)
 
   bool status = true;
   try {
-    socket = new socket_t(*context, ZMQ_REQ);
+    socket = new socket_t(*context, ZMQ_PUSH);
     socket->connect(zAddress.c_str());
 
     Rprintf("Connected to %s\n", zAddress.c_str());
@@ -96,6 +107,7 @@ RcppExport SEXP api_request_marketdata(SEXP connection,
                                        SEXP tickTypesString,
                                        SEXP snapShotBool)
 {
+  unsigned int code = 0;
   string resp("0");
 
   api::RequestMarketData req;
@@ -111,16 +123,16 @@ RcppExport SEXP api_request_marketdata(SEXP connection,
     bool snapshot = Rcpp::as<bool>(snapShotBool);
     req.proto().set_snapshot(snapshot);
 
-    // synchronous call
-    BlockingCall<api::RequestMarketData>(connection, req, &resp);
+    code = DispatchMessage<api::RequestMarketData>(connection, req, &resp);
   }
-  return wrap(resp);
+  return List::create(Named("messageId",wrap(resp)), Named("code", wrap(code)));
 }
 
 
 RcppExport SEXP api_cancel_marketdata(SEXP connection,
                                       SEXP contractList)
 {
+  unsigned int code = 0;
   string resp("0");
 
   api::CancelMarketData req;
@@ -128,17 +140,16 @@ RcppExport SEXP api_cancel_marketdata(SEXP connection,
 
   List rContractList(contractList);
   if (rContractList >> contract) {
-
-    // sychronous call
-    BlockingCall<api::CancelMarketData>(connection, req, &resp);
+    code = DispatchMessage<api::CancelMarketData>(connection, req, &resp);
   }
-  return wrap(resp);
+  return List::create(Named("messageId",wrap(resp)), Named("code", wrap(code)));
 }
 
 RcppExport SEXP api_request_marketdepth(SEXP connection,
                                         SEXP contractList,
                                         SEXP rowsInt)
 {
+  unsigned int code = 0;
   string resp("0");
 
   api::RequestMarketDepth req;
@@ -152,16 +163,16 @@ RcppExport SEXP api_request_marketdepth(SEXP connection,
       req.proto().set_rows(rows);
     }
 
-    // sychronous call
-    BlockingCall<api::RequestMarketDepth>(connection, req, &resp);
+    code = DispatchMessage<api::RequestMarketDepth>(connection, req, &resp);
   }
-  return wrap(resp);
+  return List::create(Named("messageId",wrap(resp)), Named("code", wrap(code)));
 }
 
 
 RcppExport SEXP api_cancel_marketdepth(SEXP connection,
                                        SEXP contractList)
 {
+  unsigned int code = 0;
   string resp("0");
 
   api::CancelMarketDepth req;
@@ -169,9 +180,7 @@ RcppExport SEXP api_cancel_marketdepth(SEXP connection,
 
   List rContractList(contractList);
   if (rContractList >> contract) {
-
-    // sychronous call
-    BlockingCall<api::CancelMarketDepth>(connection, req, &resp);
+    code = DispatchMessage<api::CancelMarketDepth>(connection, req, &resp);
   }
-  return wrap(resp);
+  return List::create(Named("messageId",wrap(resp)), Named("code", wrap(code)));
 }

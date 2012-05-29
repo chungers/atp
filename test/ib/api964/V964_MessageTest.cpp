@@ -175,7 +175,7 @@ TEST(V964_MessageTest, ZmqSendTest)
   const std::string& addr =
       "ipc://_zmq.V964_MessageTest_zmqSendTest.in";
   ReceiveOneMessage strategy;
-  Reactor reactor(addr, strategy);
+  Reactor reactor(strategy.socketType(), addr, strategy);
 
   LOG(INFO) << "Client connecting.";
 

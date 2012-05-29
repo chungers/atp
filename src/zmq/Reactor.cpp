@@ -13,9 +13,11 @@
 namespace atp {
 namespace zmq {
 
-Reactor::Reactor(const string& addr,
+Reactor::Reactor(const int socket_type,
+                 const string& addr,
                  Reactor::Strategy& strategy,
                  ::zmq::context_t* context) :
+    socket_type_(socket_type),
     addr_(addr),
     strategy_(strategy),
     context_(context),
@@ -60,8 +62,7 @@ void Reactor::process()
     ZMQ_REACTOR_LOGGER << "Using shared context: " << context_;
   }
 
-  int socketType = strategy_.socketType();
-  switch (socketType) {
+  switch (socket_type_) {
     case ZMQ_PULL : ZMQ_REACTOR_LOGGER << "ZMQ_PULL/" << ZMQ_PULL;
       break;
     case ZMQ_REP : ZMQ_REACTOR_LOGGER << "ZMQ_REP/" << ZMQ_REP;
@@ -69,7 +70,7 @@ void Reactor::process()
     default : LOG(FATAL) << "NOT SUPPORTED";
   }
 
-  ::zmq::socket_t socket(*context_, socketType);
+  ::zmq::socket_t socket(*context_, socket_type_);
 
   try {
     socket.bind(addr_.c_str());

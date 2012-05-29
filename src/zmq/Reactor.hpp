@@ -21,12 +21,12 @@ class Reactor
 
     virtual bool respond(::zmq::socket_t& socket) = 0;
 
-    /** should be either ZMQ_REP or ZMQ_PULL */
-    virtual int socketType() = 0;
   };
 
 
-  Reactor(const std::string& addr, Strategy& strategy,
+  Reactor(const int socket_type,
+          const std::string& addr,
+          Strategy& strategy,
           ::zmq::context_t* context = NULL);
   ~Reactor();
 
@@ -40,6 +40,7 @@ class Reactor
   void process();
 
  private:
+  const int socket_type_;
   const std::string& addr_;
   boost::shared_ptr<boost::thread> thread_;
   Strategy& strategy_;

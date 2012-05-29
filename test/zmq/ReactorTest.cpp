@@ -76,7 +76,7 @@ TEST(ReactorTest, SimpleIPCSendReceiveTest)
 
   const std::string& addr = atp::zmq::EndPoint::ipc("test1");
   // Immediately starts a listening thread at the given address.
-  Reactor reactor(addr, testStrategy);
+  Reactor reactor(testStrategy.socketType(), addr, testStrategy);
 
   // For inproc endpoint, we need to use a shared context. Otherwise, the
   // program will crash.
@@ -118,7 +118,7 @@ TEST(ReactorTest, InProcSendReceiveTest)
 
   const std::string& addr = atp::zmq::EndPoint::inproc("test.inproc");
   // Immediately starts a listening thread at the given address.
-  Reactor reactor(addr, testStrategy, &context);
+  Reactor reactor(testStrategy.socketType(), addr, testStrategy, &context);
 
   // For inproc endpoint, we need to use a shared context. Otherwise, the
   // program will crash.
@@ -158,7 +158,7 @@ TEST(ReactorTest, IPCMultiSendReceiveTest)
 
   const std::string& addr = atp::zmq::EndPoint::ipc("test2");
 
-  Reactor reactor(addr, testStrategy);
+  Reactor reactor(testStrategy.socketType(), addr, testStrategy);
 
   sleep(1);
 
@@ -221,7 +221,7 @@ TEST(ReactorTest, InProcMultiSendReceiveTest)
   const std::string& addr = atp::zmq::EndPoint::inproc("test2.inproc");
 
   zmq::context_t context(1); // shared context for inproc
-  Reactor reactor(addr, testStrategy, &context);
+  Reactor reactor(testStrategy.socketType(), addr, testStrategy, &context);
 
   LOGGER << "Starting client." << std::endl;
 

@@ -216,7 +216,8 @@ int main(int argc, char** argv)
   LOG(INFO) << "Starting context.";
   zmq::context_t context(1);
 
-  atp::zmq::Reactor reactor(FLAGS_ep, strategy, &context);
+  atp::zmq::Reactor reactor(strategy.socketType(),
+                            FLAGS_ep, strategy, &context);
 
   LOG(INFO) << "Db ready for write.";
 

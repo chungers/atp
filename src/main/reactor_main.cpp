@@ -32,7 +32,6 @@ DEFINE_string(subscription, "", "Subscription");
 
 struct NoEchoStrategy : Reactor::Strategy
 {
-  int socketType() { return ZMQ_PULL; }
   bool respond(zmq::socket_t& socket)
   {
     std::string buff;
@@ -60,7 +59,6 @@ typedef std::vector<std::string>::iterator MessageFrames;
 
 struct EchoStrategy : Reactor::Strategy
 {
-  int socketType() { return ZMQ_REP; }
   bool respond(zmq::socket_t& socket)
   {
     Message message;
@@ -147,12 +145,12 @@ int main(int argc, char** argv)
       // Start as a server listening at given endpoint.
       if (FLAGS_echo) {
         EchoStrategy strategy;
-        Reactor reactor(FLAGS_endpoint, strategy);
+        Reactor reactor(ZMQ_REP, FLAGS_endpoint, strategy);
         DEBUG_LOG << "Server started in ECHO mode." << std::endl;
         reactor.block();
       } else {
         NoEchoStrategy strategy;
-        Reactor reactor(FLAGS_endpoint, strategy);
+        Reactor reactor(ZMQ_PULL, FLAGS_endpoint, strategy);
         reactor.block();
       }
 
