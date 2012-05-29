@@ -25,6 +25,11 @@ message Time {
   required double second = 3; // 0-59 with decimal for microseconds
 }
 
+message DateTime {
+  required Date date = 1;
+  required Time time = 2;
+}
+
 // Convention is similar to ranges in STL - [start, end)
 message Duration {
   // Start datetime - inclusive.
