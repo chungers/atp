@@ -156,7 +156,6 @@ message Order {
     DAY = 1;
     GTC = 2;
     IOC = 3;
-    GTD = 4;
   }
 
   required uint64 id = 1;
@@ -171,9 +170,6 @@ message Order {
 
   optional bool outside_rth = 8 [ default = false ];
   optional TimeInForce time_in_force = 9 [ default = IOC ];
-
-  // ToString format to YYYYMMDD hh:mm:ss (optional time zone)
-  optional proto.common.DateTime good_till_date = 10; // if TimeInForce == 'GTD'
 }
 
 message MarketOrder {

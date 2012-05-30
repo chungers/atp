@@ -63,10 +63,10 @@ void OnTerminate(int param)
 // Firehose only supports messages related to market data.
 const set<string> EM_VALID_MESSAGES_ =
                boost::assign::list_of
-               ("IBAPI.RequestMarketData")
-               ("IBAPI.CancelMarketData")
-               ("IBAPI.RequestMarketDepth")
-               ("IBAPI.CancelMarketDepth")
+               ("IBAPI.EXEC.CancelOrder")
+               ("IBAPI.EXEC.MarketOrder")
+               ("IBAPI.EXEC.LimitOrder")
+               ("IBAPI.EXEC.StopLimitOrder")
                ;
 
 class ExecutionManager : public IBAPI::ApplicationBase

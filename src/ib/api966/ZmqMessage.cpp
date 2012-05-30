@@ -37,6 +37,22 @@ const CallApiHandlerMap& _handlerMap()
     ZmqMessagePtr p(new CancelMarketDepth());
     handlerMap[ (*p)->key() ] = p;
   }
+  {
+    ZmqMessagePtr p(new CancelOrder());
+    handlerMap[ (*p)->key() ] = p;
+  }
+  {
+    ZmqMessagePtr p(new MarketOrder());
+    handlerMap[ (*p)->key() ] = p;
+  }
+  {
+    ZmqMessagePtr p(new LimitOrder());
+    handlerMap[ (*p)->key() ] = p;
+  }
+  {
+    ZmqMessagePtr p(new StopLimitOrder());
+    handlerMap[ (*p)->key() ] = p;
+  }
   return handlerMap;
 }
 

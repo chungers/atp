@@ -95,6 +95,77 @@ class CancelMarketDepth : public ProtoBufferMessage<p::CancelMarketDepth>
   }
 };
 
+
+/**
+ * CancelOrder
+ */
+class CancelOrder : public ProtoBufferMessage<p::CancelOrder>
+{
+ protected:
+  virtual bool callApi(const p::CancelOrder& proto, EClientPtr eclient)
+  {
+    eclient->cancelOrder(proto.order_id());
+    return true;
+  }
+};
+
+
+/**
+ * MarketOrder
+ */
+class MarketOrder : public ProtoBufferMessage<p::MarketOrder>
+{
+ protected:
+  virtual bool callApi(const p::MarketOrder& proto, EClientPtr eclient)
+  {
+    Contract contract;
+    Order order;
+    if (proto >> order && proto.base().contract() >> contract) {
+      eclient->placeOrder(proto.base().id(), contract, order);
+      return true;
+    }
+    return false;
+  }
+};
+
+
+/**
+ * LimitOrder
+ */
+class LimitOrder : public ProtoBufferMessage<p::LimitOrder>
+{
+ protected:
+  virtual bool callApi(const p::LimitOrder& proto, EClientPtr eclient)
+  {
+    Contract contract;
+    Order order;
+    if (proto >> order && proto.base().contract() >> contract) {
+      eclient->placeOrder(proto.base().id(), contract, order);
+      return true;
+    }
+    return false;
+  }
+};
+
+
+/**
+ * StopLimitOrder
+ */
+class StopLimitOrder : public ProtoBufferMessage<p::StopLimitOrder>
+{
+ protected:
+  virtual bool callApi(const p::StopLimitOrder& proto, EClientPtr eclient)
+  {
+    Contract contract;
+    Order order;
+    if (proto >> order && proto.base().contract() >> contract) {
+      eclient->placeOrder(proto.base().id(), contract, order);
+      return true;
+    }
+    return false;
+  }
+};
+
 } // V966
 } // IBAPI
 
