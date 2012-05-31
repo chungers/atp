@@ -8,9 +8,6 @@ namespace ib {
 namespace internal {
 
 
-/**
- * Base class for IB clients
- */
 class IBClient : public LoggingEClientSocket, NoCopyAndAssign
 {
  public:

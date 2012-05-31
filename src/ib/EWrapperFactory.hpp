@@ -5,24 +5,13 @@
 #include <Shared/EWrapper.h>
 #include <zmq.hpp>
 
+#include "ib/internal.hpp"
 #include "ib/Application.hpp"
 #include "ib/SocketConnector.hpp"
 
 
 namespace ib {
 namespace internal {
-
-class EWrapperEventCollector
-{
- public:
-  ~EWrapperEventCollector() {}
-
-  /// Returns the ZMQ socket that will be written to.
-  virtual zmq::socket_t* getOutboundSocket(int channel = 0) = 0;
-
-  // TODO: add a << operator
-};
-
 
 /// Simple factory class for getting a EWrapper that can receive events
 /// from IB's API.  This is basically an interface, with a static function

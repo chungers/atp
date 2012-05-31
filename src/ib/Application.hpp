@@ -4,11 +4,21 @@
 #include <string>
 #include <set>
 
+#include <boost/shared_ptr.hpp>
+
+#include <Shared/EWrapper.h>
+
+
 #include "log_levels.h"
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
 #include "ib/SessionID.hpp"
 
+namespace ib {
+
+typedef boost::shared_ptr<EWrapper> EWrapperPtr;
+
+}
 
 namespace IBAPI {
 
@@ -23,6 +33,11 @@ class Application {
  public :
 
   virtual ~Application() {};
+
+  virtual ib::EWrapperPtr GetEWrapper()
+  {
+    return ib::EWrapperPtr();
+  }
 
   virtual bool IsMessageSupported(const std::string& key)
   {
