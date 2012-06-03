@@ -5,13 +5,10 @@
 #include <boost/shared_ptr.hpp>
 
 #include <Shared/EClientSocketBase.h>
+#include <Shared/EClient.h>
 
 #include "ib/ticker_id.hpp"
 
-// All versioned implementation must provide this header
-// file which defines the class EClient as a subclass of
-// some adapter class that implements IB's EClient interface.
-#include "EClient.hpp"
 
 
 namespace ib {
@@ -29,12 +26,7 @@ class EWrapperEventCollector
   // TODO: add a << operator
 };
 
-typedef boost::shared_ptr<IBClient> EClientPtr;
-
-typedef boost::shared_ptr<EClientSocketBase> ApiSocketProtocol;
-
-
-
+typedef boost::shared_ptr<EClient> EClientPtr;
 
 
 } // internal

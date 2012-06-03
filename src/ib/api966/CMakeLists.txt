@@ -26,6 +26,7 @@ set(ib_api_incs
 )
 set(ib_api_srcs
   ApiImpl.cpp
+  ApiProtocolHandler.cpp
   marshall_contract.cpp
   marshall_order.cpp
   EWrapperFactoryImpl.cpp
