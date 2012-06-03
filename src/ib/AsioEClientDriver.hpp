@@ -1,5 +1,5 @@
-#ifndef IB_ASIO_ECLIENT_SOCKET_H_
-#define IB_ASIO_ECLIENT_SOCKET_H_
+#ifndef IB_ASIO_ECLIENT_DRIVER_H_
+#define IB_ASIO_ECLIENT_DRIVER_H_
 
 #include <boost/asio.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -7,8 +7,8 @@
 #include <boost/thread.hpp>
 
 #include "ib/internal.hpp"
+#include "ib/ApiProtocolHandler.hpp"
 
-class EWrapper;
 
 using boost::asio::ip::tcp;
 
@@ -16,15 +16,7 @@ namespace ib {
 namespace internal {
 
 
-/**
-   EClientSocket implementation using Boost ASIO socket.
-   Note that this implementation starts its own thread and calls the
-   public methods available from the base class to check messages.
-   It would be nice to be able to use socket.async_receive() instead; however,
-   the IB socket base implementation assumes an event loop where the socket
-   data is continuously polled and read.
- */
-class AsioEClientSocket : public IBClient {
+class AsioEClientDriver : public ApiSocket {
 
  public:
 
@@ -37,20 +29,30 @@ class AsioEClientSocket : public IBClient {
     virtual void onSocketClose(bool success) = 0;
   };
 
-  explicit AsioEClientSocket(boost::asio::io_service& ioService,
-                             EWrapper& wrapper,
+  explicit AsioEClientDriver(boost::asio::io_service& ioService,
+                             ApiProtocolHandler& protocolHandler,
                              EventCallback* callback = NULL);
 
-  ~AsioEClientSocket();
+  ~AsioEClientDriver();
 
-  /// @overload EClientSocketBase
-  bool eConnect(const char *host, unsigned int port, int clientId=0);
+  bool Connect(const char *host, unsigned int port, int clientId=0);
+
+  void Disconnect();
+
+  int Send(const char* buf, size_t sz);
+
+  int Receive(char* buf, size_t sz);
+
+  bool IsConnected() const;
+
+  bool IsSocketOK() const;
 
   /// Returns clientId
   int getClientId();
 
-  /// @overload EClientSocketBase
-  void eDisconnect();
+  EClientPtr GetEClient();
+
+
 
   /// Event loop that checks messages on the socket
   void block();
@@ -59,18 +61,12 @@ class AsioEClientSocket : public IBClient {
 
  private:
 
-  /// @overload EClientSocketBase
-  bool isSocketOK() const;
-
-  /// @overload EClientSocketBase
-  int send(const char* buf, size_t sz);
-
-  /// @overload EClientSocketBase
-  int receive(char* buf, size_t sz);
 
   bool closeSocket();
 
   boost::asio::io_service& ioService_;
+  ApiProtocolHandler& protocolHandler_;
+
   tcp::socket socket_;
   boost::mutex socketMutex_;
 
@@ -97,4 +93,4 @@ class AsioEClientSocket : public IBClient {
 } // namespace ib
 
 
-#endif //IB_ASIO_ECLIENT_SOCKET_H_
+#endif //IB_ASIO_ECLIENT_DRIVER_H_

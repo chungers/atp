@@ -10,8 +10,8 @@ if (IB_USE_STD_STRING)
   add_definitions('-DIB_USE_STD_STRING')
 endif (IB_USE_STD_STRING)
 
-# AsioEClientSocket test
-set(AsioEClientSocket_test_incs
+# AsioEClientDriver test
+set(AsioEClientDriver_test_incs
   ${IBAPI_ROOT}
   ${GEN_DIR}
   ${SRC_DIR}
@@ -19,16 +19,16 @@ set(AsioEClientSocket_test_incs
   ${IBAPI_IMPL_DIR}
   ${TEST_DIR}
 )
-set(AsioEClientSocket_test_srcs
+set(AsioEClientDriver_test_srcs
   ${TEST_DIR}/AllTests.cpp
-  AsioEClientSocketTest.cpp
+  AsioEClientDriverTest.cpp
   ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
 )
-set(AsioEClientSocket_test_libs
+set(AsioEClientDriver_test_libs
   IBAPIConnector
   QuantLib
 )
-cpp_gtest(AsioEClientSocket_test)
+cpp_gtest(AsioEClientDriver_test)
 
 # SocketInitiator test
 set(SocketInitiator_test_incs
@@ -88,7 +88,7 @@ add_subdirectory(${IBAPI_IMPL_DIR})
 
 add_custom_target(all_ib_tests)
 add_dependencies(all_ib_tests
-  AsioEClientSocket_test
+  AsioEClientDriver_test
   SocketInitiator_test
   SocketConnector_test
   utils_test

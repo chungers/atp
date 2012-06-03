@@ -9,8 +9,9 @@
 #include <TwsSocketClientErrors.h>
 
 #include "common.hpp"
-#include "ib/AsioEClientSocket.hpp"
 #include "varz/varz.hpp"
+
+#include "ib/AsioEClientDriver.hpp"
 
 
 using boost::asio::ip::tcp;
@@ -33,13 +34,12 @@ DEFINE_VARZ_int64(asio_socket_event_loop_stopped, false, "");
 namespace ib {
 namespace internal {
 
-class IBClient;
 
-AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
-                                     EWrapper& wrapper,
-                                     AsioEClientSocket::EventCallback* cb) :
-    IBClient(&wrapper),
+AsioEClientDriver::AsioEClientDriver(boost::asio::io_service& ioService,
+                                     ApiProtocolHandler& protocolHandler,
+                                     EventCallback* cb) :
     ioService_(ioService),
+    protocolHandler_(protocolHandler),
     socket_(ioService),
     callback_(cb),
     socketOk_(false),
@@ -48,17 +48,20 @@ AsioEClientSocket::AsioEClientSocket(boost::asio::io_service& ioService,
 {
   // Schedule async read handler for incoming packets.
   assert(!thread_);
+
+  protocolHandler_.SetApiSocket(*this);
+
   ASIO_ECLIENT_SOCKET_DEBUG << "Starting event listener thread." << std::endl;
   thread_ = boost::shared_ptr<boost::thread>(
-      new boost::thread(boost::bind(&AsioEClientSocket::block, this)));
+      new boost::thread(boost::bind(&AsioEClientDriver::block, this)));
 }
 
-AsioEClientSocket::~AsioEClientSocket()
+AsioEClientDriver::~AsioEClientDriver()
 {
   ASIO_ECLIENT_SOCKET_DEBUG << "Done" << std::endl;
 }
 
-int AsioEClientSocket::getClientId()
+int AsioEClientDriver::getClientId()
 {
   return clientId_;
 }
@@ -66,11 +69,11 @@ int AsioEClientSocket::getClientId()
 /**
    Connects to the gateway.
 */
-bool AsioEClientSocket::eConnect(const char *host,
-                                 unsigned int port,
-                                 int clientId)
+bool AsioEClientDriver::Connect(const char *host,
+                                unsigned int port,
+                                int clientId)
 {
-  setClientId(clientId);
+  protocolHandler_.SetClientId(clientId);
   clientId_ = clientId;
 
   tcp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
@@ -94,7 +97,7 @@ bool AsioEClientSocket::eConnect(const char *host,
               << std::endl;
 
     // Sends client version to server
-    onConnectBase();
+    protocolHandler_.OnConnect();
 
     // Update the state and notify the waiting listener thread.
     boost::lock_guard<boost::mutex> lock(mutex_);
@@ -115,7 +118,7 @@ bool AsioEClientSocket::eConnect(const char *host,
   return result;
 }
 
-void AsioEClientSocket::reset()
+void AsioEClientDriver::reset()
 {
   boost::unique_lock<boost::mutex> lock(socketMutex_);
 
@@ -133,7 +136,8 @@ void AsioEClientSocket::reset()
     }
   }
 }
-bool AsioEClientSocket::closeSocket()
+
+bool AsioEClientDriver::closeSocket()
 {
   boost::unique_lock<boost::mutex> lock(socketMutex_);
 
@@ -169,9 +173,9 @@ bool AsioEClientSocket::closeSocket()
 /**
    Disconnects the client from the gateway.
  */
-void AsioEClientSocket::eDisconnect()
+void AsioEClientDriver::Disconnect()
 {
-  eDisconnectBase();
+  protocolHandler_.OnDisconnect();
 
   VARZ_asio_socket_disconnects++;
 
@@ -186,20 +190,32 @@ void AsioEClientSocket::eDisconnect()
   state_ = STOPPED;
 }
 
-bool AsioEClientSocket::isSocketOK() const
+bool AsioEClientDriver::IsConnected() const
+{
+  return protocolHandler_.IsConnected();
+}
+
+bool AsioEClientDriver::IsSocketOK() const
 {
   return socketOk_ && state_ == RUNNING;
 }
 
+EClientPtr AsioEClientDriver::GetEClient()
+{
+  return EClientPtr(&(protocolHandler_.GetEClient()));
+}
 
-int AsioEClientSocket::send(const char* buf, size_t sz) {
+/// @implements ApiSocket::Send
+int AsioEClientDriver::Send(const char* buf, size_t sz) {
   // Use synchronous send because the base clientImpl expects a
   // return value of the number of bytes transferred.
   size_t sent = 0;
   try {
 
     int64 start = now_micros();
+
     sent = socket_.send(boost::asio::buffer(buf, sz));
+
     sendDt_ = now_micros() - start;
 
     VARZ_asio_socket_send_latency_micros = sendDt_;
@@ -222,7 +238,8 @@ int AsioEClientSocket::send(const char* buf, size_t sz) {
 }
 
 
-int AsioEClientSocket::receive(char* buf, size_t sz) {
+/// @implement ApiSocket::Receive
+int AsioEClientDriver::Receive(char* buf, size_t sz) {
   size_t read = -1;
   try {
 
@@ -244,7 +261,7 @@ int AsioEClientSocket::receive(char* buf, size_t sz) {
 
 
 // Event handling loop.  This runs in a separate thread.
-void AsioEClientSocket::block() {
+void AsioEClientDriver::block() {
 
   if (callback_) {
     callback_->onEventThreadStart();
@@ -262,18 +279,22 @@ void AsioEClientSocket::block() {
             << elapsed << " microseconds)." << std::endl;
 
   bool processed = true;
-  while (isSocketOK() && processed) {
+  while (IsSocketOK() && processed) {
     try {
 
-      processed = checkMessages();
+      processed = protocolHandler_.CheckMessages();
 
     } catch (...) {
       // Implementation taken from http://goo.gl/aiOKm
       VARZ_asio_socket_event_loop_errors++;
 
-      getWrapper()->error(NO_VALID_ID,
-                          CONNECT_FAIL.code(),
-                          CONNECT_FAIL.msg());
+      // getWrapper()->error(NO_VALID_ID,
+      //                     CONNECT_FAIL.code(),
+      //                     CONNECT_FAIL.msg());
+      protocolHandler_.OnError(NO_VALID_ID,
+                               CONNECT_FAIL.code(),
+                               CONNECT_FAIL.msg());
+
       processed = false;
       LOG(ERROR) << "Setting state to STOPPING and closing socket.";
       state_ = STOPPING;

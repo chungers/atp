@@ -11,7 +11,9 @@ PKG_CPPFLAGS = \
 -I@IBAPI_ROOT@ \
 -I@SRC_DIR@ \
 -I@SRC_DIR@/ib/@IBAPI_IMPL_DIR@ \
--DR_EXTENSION
+-I@SRC_DIR@/ib/@IBAPI_IMPL_DIR@/Shared \
+-DR_EXTENSION \
+-DIB_USE_STD_STRING
 
 ## Use the R_HOME indirection to support installations of multiple R version
 PKG_LIBS = \

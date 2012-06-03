@@ -19,7 +19,7 @@
 
 #include "ib/internal.hpp"
 #include "ib/Application.hpp"
-#include "ib/AsioEClientSocket.hpp"
+#include "ib/AsioEClientDriver.hpp"
 #include "ib/EWrapperFactory.hpp"
 #include "ib/SocketConnector.hpp"
 
@@ -43,7 +43,7 @@ namespace internal {
 class AbstractSocketConnector :
       public atp::zmq::Reactor::Strategy,
       public ib::internal::EWrapperEventCollector,
-      public ib::internal::AsioEClientSocket::EventCallback
+      public ib::internal::AsioEClientDriver::EventCallback
 {
 
  public:
@@ -69,14 +69,14 @@ class AbstractSocketConnector :
 
   ~AbstractSocketConnector()
   {
-    // if (socket_.get() != 0 || outboundSocket_.get() != 0) {
+    // if (driver_.get() != 0 || outboundSocket_.get() != 0) {
     //   IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Shutting down " << stop();
     // }
   }
 
 
  public:
-  /// @see AsioEClientSocket::EventCallback
+  /// @see AsioEClientDriver::EventCallback
   void onEventThreadStart()
   {
     // on successful connection. here we connect to the outbound sockets
@@ -157,7 +157,7 @@ class AbstractSocketConnector :
     }
   }
 
-  /// @see AsioEClientSocket::EventCallback
+  /// @see AsioEClientDriver::EventCallback
   void onEventThreadStop()
   {
     IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Closing outbound sockets.";
@@ -173,7 +173,7 @@ class AbstractSocketConnector :
     }
   }
 
-  /// @see AsioEClientSocket::EventCallback
+  /// @see AsioEClientDriver::EventCallback
   void onSocketConnect(bool success)
   {
     IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
@@ -181,7 +181,7 @@ class AbstractSocketConnector :
   }
 
 
-  /// @see AsioEClientSocket::EventCallback
+  /// @see AsioEClientDriver::EventCallback
   void onSocketClose(bool success)
   {
     IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
@@ -202,11 +202,11 @@ class AbstractSocketConnector :
   /// This method is run from the Reactor's thread.
   bool respond(zmq::socket_t& socket)
   {
-    if (socket_.get() == 0 || !socket_->isConnected()) {
+    if (driver_.get() == 0 || !driver_->IsConnected()) {
       return true; // No-op -- don't read the messages from socket yet.
     }
     // Now we are connected.  Process the received messages.
-    return handleReactorInboundMessages(socket, socket_);
+    return handleReactorInboundMessages(socket, driver_->GetEClient());
   }
 
   /// @overload
@@ -217,11 +217,11 @@ class AbstractSocketConnector :
               int maxAttempts = 60)
   {
     // Check on the state.
-    if (socket_.get() != 0 && socket_->isConnected()) {
+    if (driver_.get() != 0 && driver_->IsConnected()) {
         CONNECTOR_IMPL_WARNING
             << "Calling eConnect when already connected.";
 
-        return socket_->getClientId();
+        return driver_->getClientId();
     }
 
     EWrapper* ew = EWrapperFactory::getInstance(app_, *this, clientId);
@@ -232,25 +232,30 @@ class AbstractSocketConnector :
     boost::lock_guard<boost::mutex> lock(mutex_);
 
     // If shared pointer hasn't been set, alloc new socket.
-    if (socket_.get() == 0) {
-      socket_ = boost::shared_ptr<AsioEClientSocket>(
-          new AsioEClientSocket(ioService_, *ew, this));
+    if (driver_.get() == 0) {
+      protocolHandler_ = boost::shared_ptr<ApiProtocolHandler>(
+          new ApiProtocolHandler(*ew));
+      driver_ = boost::shared_ptr<AsioEClientDriver>(
+          new AsioEClientDriver(ioService_, *protocolHandler_, this));
     }
 
     for (int attempts = 0;
          attempts < maxAttempts;
          ++attempts, sleep(1)) {
 
+      LOG(ERROR) << "About to start ";
       int64 start = now_micros();
-      bool socketOk = socket_->eConnect(host.c_str(), port, clientId);
+
+      LOG(ERROR) << "About to connect " << start << ", clientId = " << clientId;
+      bool socketOk = driver_->Connect(host.c_str(), port, clientId);
 
       if (socketOk) {
         // Spin until connected -- including the part where some handshake
         // occurs with the IB gateway.
         int64 limit = timeoutSeconds_ * 1000000;
-        while (!socket_->isConnected() && now_micros() - start < limit) { }
+        while (!driver_->IsConnected() && now_micros() - start < limit) { }
 
-        if (socket_->isConnected()) {
+        if (driver_->IsConnected()) {
 
           int64 elapsed = now_micros() - start;
           IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
@@ -262,7 +267,7 @@ class AbstractSocketConnector :
         }
       } else {
 
-        socket_->reset();
+        driver_->reset();
         IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
             << "Unable to connect to gateway. Attempts = " << attempts;
       }
@@ -279,10 +284,10 @@ class AbstractSocketConnector :
 
   bool stop(bool blockForReactor = false)
   {
-    if (socket_.get() != 0) {
+    if (driver_.get() != 0) {
       IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Disconnecting from gateway.";
-      socket_->eDisconnect();
-      for (int i = 0; socket_->isConnected(); ++i) {
+      driver_->Disconnect();
+      for (int i = 0; driver_->IsConnected(); ++i) {
         IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
             << "Waiting for EClientSocket to stop.";
         sleep(1);
@@ -292,7 +297,7 @@ class AbstractSocketConnector :
           break;
         }
       }
-      socket_.reset();
+      driver_.reset();
     }
     // Wait for the reactor to stop -- this potentially can block forever
     // if the reactor doesn't not exit out of its processing loop.
@@ -329,7 +334,8 @@ class AbstractSocketConnector :
   Application& app_;
   int timeoutSeconds_;
   boost::asio::io_service ioService_; // Dedicated per connector
-  boost::shared_ptr<AsioEClientSocket> socket_;
+  boost::shared_ptr<ApiProtocolHandler> protocolHandler_;
+  boost::shared_ptr<AsioEClientDriver> driver_;
 
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
