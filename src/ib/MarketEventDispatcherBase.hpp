@@ -3,7 +3,7 @@
 
 #include <sstream>
 #include "common.hpp"
-#include "ib/EWrapperFactory.hpp"
+
 #include "ib/TickerMap.hpp"
 #include "ib/tick_types.hpp"
 #include "proto/common.hpp"

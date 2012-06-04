@@ -19,10 +19,10 @@
 #include "ib/ApplicationBase.hpp"
 
 #include "ib/AsioEClientDriver.hpp"
-#include "ib/EWrapperFactory.hpp"
 #include "ib/TestHarness.hpp"
 #include "ib/TickerMap.hpp"
 
+#include "ib/api966/MarketEventDispatcher.hpp"
 
 using namespace ib::internal;
 using namespace IBAPI;
@@ -42,7 +42,6 @@ static std::string FormatOptionExpiry(int year, int month, int day)
   return s1.str();
 }
 
-
 // Spin around until connection is made.
 bool waitForConnection(AsioEClientDriver& ec, int attempts) {
   int tries = 0;
@@ -52,6 +51,16 @@ bool waitForConnection(AsioEClientDriver& ec, int attempts) {
   }
   return ec.IsConnected();
 }
+
+class TestApp : public IBAPI::ApplicationBase
+{
+ public:
+  virtual ib::EWrapperPtr GetEWrapper(int clientId,
+                                      ib::internal::EWrapperEventCollector& c)
+  {
+    return new ib::internal::MarketEventDispatcher(*this, c, clientId);
+  }
+};
 
 class TestEWrapperEventCollector : public ib::internal::EWrapperEventCollector
 {
@@ -80,10 +89,10 @@ TEST(AsioEClientDriverTest, ConnectionTest)
 {
   boost::asio::io_service ioService;
 
-  ApplicationBase app;
+  TestApp app;
 
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
+  EWrapper* ew = app.GetEWrapper(0, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   ApiProtocolHandler h(*ew);
   AsioEClientDriver ec(ioService, h);
@@ -111,10 +120,10 @@ TEST(AsioEClientDriverTest, ConnectionTest)
 TEST(AsioEClientDriverTest, RequestMarketDataTest)
 {
   boost::asio::io_service ioService;
-  ApplicationBase app;
+  TestApp app;
 
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
+  EWrapper* ew = app.GetEWrapper(0, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   ApiProtocolHandler h(*ew);
   AsioEClientDriver ec(ioService, h);
@@ -174,10 +183,10 @@ TEST(AsioEClientDriverTest, RequestMarketDataTest)
 TEST(AsioEClientDriverTest, RequestIndexMarketDataTest)
 {
   boost::asio::io_service ioService;
-  ApplicationBase app;
+  TestApp app;
 
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
+  EWrapper* ew = app.GetEWrapper(0, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   ApiProtocolHandler h(*ew);
   AsioEClientDriver ec(ioService, h);
@@ -236,10 +245,10 @@ TEST(AsioEClientDriverTest, RequestIndexMarketDataTest)
 TEST(AsioEClientDriverTest, RequestMarketDepthTest)
 {
   boost::asio::io_service ioService;
-  ApplicationBase app;
+  TestApp app;
 
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
+  EWrapper* ew = app.GetEWrapper(0, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   ApiProtocolHandler h(*ew);
   AsioEClientDriver ec(ioService, h);
@@ -292,10 +301,10 @@ struct SortByStrike {
 TEST(AsioEClientDriverTest, RequestOptionChainTest)
 {
   boost::asio::io_service ioService;
-  ApplicationBase app;
+  TestApp app;
 
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
+  EWrapper* ew = app.GetEWrapper(0, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   ApiProtocolHandler h(*ew);
   AsioEClientDriver ec(ioService, h);
@@ -417,10 +426,10 @@ TickerId buildContract(Contract& c, const std::string& symbol)
 TEST(AsioEClientDriverTest, RequestMarketDataLoadTest)
 {
   boost::asio::io_service ioService;
-  ApplicationBase app;
+  TestApp app;
 
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = EWrapperFactory::getInstance(app, eventCollector);
+  EWrapper* ew = app.GetEWrapper(0, eventCollector);
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   ApiProtocolHandler h(*ew);

@@ -10,13 +10,15 @@
 
 
 #include "log_levels.h"
+#include "ib/internal.hpp"
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
 #include "ib/SessionID.hpp"
 
 namespace ib {
 
-typedef boost::shared_ptr<EWrapper> EWrapperPtr;
+typedef EWrapper* EWrapperPtr;
+//typedef boost::shared_ptr<EWrapper> EWrapperPtr;
 
 }
 
@@ -34,9 +36,10 @@ class Application {
 
   virtual ~Application() {};
 
-  virtual ib::EWrapperPtr GetEWrapper()
+  virtual ib::EWrapperPtr GetEWrapper(int clientId,
+                                      ib::internal::EWrapperEventCollector& c)
   {
-    return ib::EWrapperPtr();
+    return NULL;
   }
 
   virtual bool IsMessageSupported(const std::string& key)

@@ -14,7 +14,6 @@
 #include "ib/Application.hpp"
 #include "ib/ApplicationBase.hpp"
 #include "ib/GenericTickRequest.hpp"
-#include "ib/EWrapperFactory.hpp"
 #include "ib/SessionSetting.hpp"
 #include "ib/SocketConnector.hpp"
 #include "ib/SocketInitiator.hpp"

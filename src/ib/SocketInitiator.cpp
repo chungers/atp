@@ -13,12 +13,9 @@
 #include "common.hpp"
 #include "log_levels.h"
 #include "ib/SocketInitiator.hpp"
-#include "ib/EWrapperFactory.hpp"
 #include "ib/SessionID.hpp"
 #include "zmq/Publisher.hpp"
 
-
-using ib::internal::EWrapperFactory;
 
 namespace ib {
 namespace internal {

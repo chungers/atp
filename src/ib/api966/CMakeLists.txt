@@ -29,7 +29,6 @@ set(ib_api_srcs
   ApiProtocolHandler.cpp
   marshall_contract.cpp
   marshall_order.cpp
-  EWrapperFactoryImpl.cpp
   ZmqMessage.cpp
 )
 set(ib_api_libs

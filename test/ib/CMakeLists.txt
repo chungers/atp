@@ -22,7 +22,6 @@ set(AsioEClientDriver_test_incs
 set(AsioEClientDriver_test_srcs
   ${TEST_DIR}/AllTests.cpp
   AsioEClientDriverTest.cpp
-  ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
 )
 set(AsioEClientDriver_test_libs
   IBAPIConnector
@@ -59,7 +58,6 @@ set(SocketConnector_test_incs
 set(SocketConnector_test_srcs
   ${TEST_DIR}/AllTests.cpp
   SocketConnectorTest.cpp
-  ${IBAPI_IMPL_DIR}/TestEWrapperFactoryImpl.cpp
 )
 set(SocketConnector_test_libs
   IBAPIConnector

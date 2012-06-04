@@ -20,6 +20,9 @@
 #include "varz/varz.hpp"
 #include "varz/VarzServer.hpp"
 
+#include "ib/api966/MarketEventDispatcher.hpp"
+
+
 static IBAPI::SocketInitiator* INITIATOR_INSTANCE;
 static atp::varz::VarzServer* VARZ_INSTANCE;
 
@@ -79,6 +82,12 @@ class Firehose : public IBAPI::ApplicationBase
   virtual bool IsMessageSupported(const std::string& key)
   {
     return FIREHOSE_VALID_MESSAGES_.find(key) != FIREHOSE_VALID_MESSAGES_.end();
+  }
+
+  virtual ib::EWrapperPtr GetEWrapper(int clientId,
+                                      ib::internal::EWrapperEventCollector& c)
+  {
+    return new ib::internal::MarketEventDispatcher(*this, c, clientId);
   }
 
   void onLogon(const IBAPI::SessionID& sessionId)

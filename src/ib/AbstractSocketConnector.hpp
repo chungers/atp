@@ -20,7 +20,6 @@
 #include "ib/internal.hpp"
 #include "ib/Application.hpp"
 #include "ib/AsioEClientDriver.hpp"
-#include "ib/EWrapperFactory.hpp"
 #include "ib/SocketConnector.hpp"
 
 #include "varz/varz.hpp"
@@ -224,7 +223,8 @@ class AbstractSocketConnector :
         return driver_->getClientId();
     }
 
-    EWrapper* ew = EWrapperFactory::getInstance(app_, *this, clientId);
+    //EWrapper* ew = EWrapperFactory::getInstance(app_, *this, clientId);
+    ib::EWrapperPtr ew = app_.GetEWrapper(clientId, *this);
 
     assert (ew != NULL);
 
