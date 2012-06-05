@@ -67,7 +67,7 @@ function parse {
 
 function doSample {
     varz=/tmp/hz-varz
-    curl "http://stage.lab616.com:18001/varz" 2>/dev/null > $varz
+    curl "http://localhost:18001/varz" 2>/dev/null > $varz
 
     leveldb_writes=$(parse leveldb_writes $varz)
     subscriber_messages_received=$(parse subscriber_messages_received $varz)

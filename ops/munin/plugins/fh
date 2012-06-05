@@ -180,7 +180,7 @@ function parse {
 
 function doSample {
     varz=/tmp/fh-varz
-    curl "http://build.lab616.com:18000/varz" 2>/dev/null > $varz
+    curl "http://localhost:18000/varz" 2>/dev/null > $varz
 
     api_events=$(parse api_events $varz)
     api_requests=$(parse api_requests $varz)
