@@ -50,6 +50,7 @@ set(IBAPIConnector_srcs
   SessionSetting.cpp
   SocketConnector.cpp
   SocketInitiator.cpp
+  MarketEventDispatcher.cpp
   ${IMPL_FILES}
 )
 set(IBAPIConnector_libs

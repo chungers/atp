@@ -27,6 +27,7 @@ set(ib_api_incs
 set(ib_api_srcs
   ApiImpl.cpp
   ApiProtocolHandler.cpp
+  MarketEventDispatcher.cpp
   marshall_contract.cpp
   marshall_order.cpp
   ZmqMessage.cpp

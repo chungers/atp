@@ -19,10 +19,10 @@
 #include "ib/ApplicationBase.hpp"
 
 #include "ib/AsioEClientDriver.hpp"
+#include "ib/MarketEventDispatcher.hpp"
 #include "ib/TestHarness.hpp"
 #include "ib/TickerMap.hpp"
 
-#include "ib/api966/MarketEventDispatcher.hpp"
 
 using namespace ib::internal;
 using namespace IBAPI;
@@ -55,14 +55,14 @@ bool waitForConnection(AsioEClientDriver& ec, int attempts) {
 class TestApp : public IBAPI::ApplicationBase
 {
  public:
-  virtual ib::EWrapperPtr GetEWrapper(int clientId,
-                                      ib::internal::EWrapperEventCollector& c)
+  virtual IBAPI::ApiEventDispatcher*
+  GetApiEventDispatcher(const IBAPI::SessionID& sessionId)
   {
-    return new ib::internal::MarketEventDispatcher(*this, c, clientId);
+    return new ib::internal::MarketEventDispatcher(*this, sessionId);
   }
 };
 
-class TestEWrapperEventCollector : public ib::internal::EWrapperEventCollector
+class TestEWrapperEventCollector : public IBAPI::OutboundChannels
 {
  public:
   TestEWrapperEventCollector() : context_(1), socket_(context_, ZMQ_PUB)
@@ -72,7 +72,7 @@ class TestEWrapperEventCollector : public ib::internal::EWrapperEventCollector
     socket_.bind(endpoint.c_str());
   }
 
-  zmq::socket_t* getOutboundSocket(int channel = 0)
+  virtual zmq::socket_t* getOutboundSocket(unsigned int channel = 0)
   {
     return &socket_;
   }
@@ -91,8 +91,11 @@ TEST(AsioEClientDriverTest, ConnectionTest)
 
   TestApp app;
 
+  IBAPI::ApiEventDispatcher* dispatcher = app.GetApiEventDispatcher(0);
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = app.GetEWrapper(0, eventCollector);
+  dispatcher->SetOutboundSockets(eventCollector);
+  EWrapper* ew = dispatcher->GetEWrapper();
+
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   ApiProtocolHandler h(*ew);
   AsioEClientDriver ec(ioService, h);
@@ -122,8 +125,12 @@ TEST(AsioEClientDriverTest, RequestMarketDataTest)
   boost::asio::io_service ioService;
   TestApp app;
 
+
+  IBAPI::ApiEventDispatcher* dispatcher = app.GetApiEventDispatcher(0);
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = app.GetEWrapper(0, eventCollector);
+  dispatcher->SetOutboundSockets(eventCollector);
+  EWrapper* ew = dispatcher->GetEWrapper();
+
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   ApiProtocolHandler h(*ew);
   AsioEClientDriver ec(ioService, h);
@@ -185,8 +192,11 @@ TEST(AsioEClientDriverTest, RequestIndexMarketDataTest)
   boost::asio::io_service ioService;
   TestApp app;
 
+  IBAPI::ApiEventDispatcher* dispatcher = app.GetApiEventDispatcher(0);
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = app.GetEWrapper(0, eventCollector);
+  dispatcher->SetOutboundSockets(eventCollector);
+  EWrapper* ew = dispatcher->GetEWrapper();
+
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   ApiProtocolHandler h(*ew);
   AsioEClientDriver ec(ioService, h);
@@ -247,8 +257,11 @@ TEST(AsioEClientDriverTest, RequestMarketDepthTest)
   boost::asio::io_service ioService;
   TestApp app;
 
+  IBAPI::ApiEventDispatcher* dispatcher = app.GetApiEventDispatcher(0);
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = app.GetEWrapper(0, eventCollector);
+  dispatcher->SetOutboundSockets(eventCollector);
+  EWrapper* ew = dispatcher->GetEWrapper();
+
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   ApiProtocolHandler h(*ew);
   AsioEClientDriver ec(ioService, h);
@@ -303,8 +316,11 @@ TEST(AsioEClientDriverTest, RequestOptionChainTest)
   boost::asio::io_service ioService;
   TestApp app;
 
+  IBAPI::ApiEventDispatcher* dispatcher = app.GetApiEventDispatcher(0);
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = app.GetEWrapper(0, eventCollector);
+  dispatcher->SetOutboundSockets(eventCollector);
+  EWrapper* ew = dispatcher->GetEWrapper();
+
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
   ApiProtocolHandler h(*ew);
   AsioEClientDriver ec(ioService, h);
@@ -428,8 +444,11 @@ TEST(AsioEClientDriverTest, RequestMarketDataLoadTest)
   boost::asio::io_service ioService;
   TestApp app;
 
+  IBAPI::ApiEventDispatcher* dispatcher = app.GetApiEventDispatcher(0);
   TestEWrapperEventCollector eventCollector;
-  EWrapper* ew = app.GetEWrapper(0, eventCollector);
+  dispatcher->SetOutboundSockets(eventCollector);
+  EWrapper* ew = dispatcher->GetEWrapper();
+
   TestHarness* th = dynamic_cast<TestHarness*>(ew);
 
   ApiProtocolHandler h(*ew);

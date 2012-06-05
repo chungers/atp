@@ -18,6 +18,7 @@
 #include "utils.hpp"
 
 #include "ib/internal.hpp"
+#include "ib/ApiEventDispatcher.hpp"
 #include "ib/Application.hpp"
 #include "ib/AsioEClientDriver.hpp"
 #include "ib/SocketConnector.hpp"
@@ -41,7 +42,8 @@ namespace internal {
 
 class AbstractSocketConnector :
       public atp::zmq::Reactor::Strategy,
-      public ib::internal::EWrapperEventCollector,
+      // public ib::internal::EWrapperEventCollector,
+      IBAPI::OutboundChannels,
       public ib::internal::AsioEClientDriver::EventCallback
 {
 
@@ -62,6 +64,7 @@ class AbstractSocketConnector :
       reactor_(reactorSocketType, reactorAddress, *this, inboundContext),
       outboundChannels_(outboundChannels),
       outboundContext_(outboundContext),
+      dispatcher_(NULL),
       socketConnector_(NULL)
   {
   }
@@ -71,6 +74,9 @@ class AbstractSocketConnector :
     // if (driver_.get() != 0 || outboundSocket_.get() != 0) {
     //   IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Shutting down " << stop();
     // }
+    if (dispatcher_ != NULL) {
+      delete dispatcher_;
+    }
   }
 
 
@@ -188,7 +194,7 @@ class AbstractSocketConnector :
   }
 
   /// @see EWrapperEventCollector
-  zmq::socket_t* getOutboundSocket(int channel = 0)
+  zmq::socket_t* getOutboundSocket(unsigned int channel = 0)
   {
     if (outboundSockets_.get() != NULL &&
         outboundSockets_->find(channel) != outboundSockets_->end()) {
@@ -224,9 +230,16 @@ class AbstractSocketConnector :
     }
 
     //EWrapper* ew = EWrapperFactory::getInstance(app_, *this, clientId);
-    ib::EWrapperPtr ew = app_.GetEWrapper(clientId, *this);
+    // ib::EWrapperPtr ew = app_.GetEWrapper(clientId, *this);
 
-    assert (ew != NULL);
+    dispatcher_ = app_.GetApiEventDispatcher(clientId);
+
+    assert(dispatcher_ != NULL);
+
+    dispatcher_->SetOutboundSockets(*this);
+    EWrapper* ew = dispatcher_->GetEWrapper();
+
+    assert(ew != NULL);
 
     // Start a new socket.
     boost::lock_guard<boost::mutex> lock(mutex_);
@@ -352,6 +365,8 @@ class AbstractSocketConnector :
   boost::thread_specific_ptr<SocketMap> outboundSockets_;
 
   zmq::context_t* outboundContext_;
+
+  IBAPI::ApiEventDispatcher* dispatcher_;
 
  protected:
   SocketConnector* socketConnector_;

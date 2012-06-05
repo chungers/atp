@@ -15,12 +15,14 @@
 #include <glog/logging.h>
 
 #include "constants.h"
+#include "ib/ApiEventDispatcher.hpp"
 #include "ib/ApplicationBase.hpp"
 #include "ib/SocketInitiator.hpp"
+#include "ib/MarketEventDispatcher.hpp"
 #include "varz/varz.hpp"
 #include "varz/VarzServer.hpp"
 
-#include "ib/api966/MarketEventDispatcher.hpp"
+
 
 
 static IBAPI::SocketInitiator* INITIATOR_INSTANCE;
@@ -72,6 +74,17 @@ const set<string> FIREHOSE_VALID_MESSAGES_ =
                ("IBAPI.FEED.CancelMarketDepth")
                ;
 
+using std::map;
+using std::vector;
+using std::string;
+using std::stringstream;
+using std::istringstream;
+using IBAPI::SessionID;
+using IBAPI::SessionSetting;
+using IBAPI::SocketInitiator;
+using IBAPI::ApiEventDispatcher;
+
+
 class Firehose : public IBAPI::ApplicationBase
 {
  public:
@@ -84,31 +97,22 @@ class Firehose : public IBAPI::ApplicationBase
     return FIREHOSE_VALID_MESSAGES_.find(key) != FIREHOSE_VALID_MESSAGES_.end();
   }
 
-  virtual ib::EWrapperPtr GetEWrapper(int clientId,
-                                      ib::internal::EWrapperEventCollector& c)
+  virtual ApiEventDispatcher* GetApiEventDispatcher(const SessionID& sessionId)
   {
-    return new ib::internal::MarketEventDispatcher(*this, c, clientId);
+    return new ib::internal::MarketEventDispatcher(*this, sessionId);
   }
 
-  void onLogon(const IBAPI::SessionID& sessionId)
+  void onLogon(const SessionID& sessionId)
   {
     LOG(INFO) << "Session " << sessionId << " logged on.";
   }
 
-  void onLogout(const IBAPI::SessionID& sessionId)
+  void onLogout(const SessionID& sessionId)
   {
     LOG(INFO) << "Session " << sessionId << " logged off.";
   }
 
 };
-
-using std::map;
-using std::vector;
-using std::string;
-using std::stringstream;
-using std::istringstream;
-using IBAPI::SessionSetting;
-using IBAPI::SocketInitiator;
 
 
 ////////////////////////////////////////////////////////

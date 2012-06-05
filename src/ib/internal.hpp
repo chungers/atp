@@ -15,17 +15,6 @@ namespace ib {
 namespace internal {
 
 
-class EWrapperEventCollector
-{
- public:
-  ~EWrapperEventCollector() {}
-
-  /// Returns the ZMQ socket that will be written to.
-  virtual zmq::socket_t* getOutboundSocket(int channel = 0) = 0;
-
-  // TODO: add a << operator
-};
-
 typedef boost::shared_ptr<EClient> EClientPtr;
 
 

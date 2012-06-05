@@ -1,14 +1,13 @@
-#ifndef IB_MARKET_EVENT_DISPATCHER_H_
-#define IB_MARKET_EVENT_DISPATCHER_H_
-
 #include <sstream>
 #include <glog/logging.h>
 
+#include "common.hpp"
 #include "ib/Application.hpp"
+#include "ib/SessionID.hpp"
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
 #include "ApiImpl.hpp"
-#include "ib/MarketEventDispatcherBase.hpp"
+#include "ib/MarketEventDispatcher.hpp"
 #include "varz/varz.hpp"
 
 
@@ -26,24 +25,23 @@ namespace ib {
 namespace internal {
 
 
-class MarketEventDispatcher :
-      public MarketEventDispatcherBase,
-      public LoggingEWrapper
+class MarketEventEWrapper : public LoggingEWrapper, NoCopyAndAssign
 {
  public:
 
-  MarketEventDispatcher(IBAPI::Application& app,
-                  EWrapperEventCollector& eventCollector,
-                  int clientId) :
-      MarketEventDispatcherBase(eventCollector),
+  explicit MarketEventEWrapper(IBAPI::Application& app,
+                               const IBAPI::SessionID& sessionId,
+                               MarketEventDispatcher& dispatcher) :
       app_(app),
-      clientId_(clientId)
+      sessionId_(sessionId),
+      dispatcher_(dispatcher)
   {
   }
 
  private:
   IBAPI::Application& app_;
-  int clientId_;
+  const IBAPI::SessionID& sessionId_;
+  MarketEventDispatcher& dispatcher_;
 
  public:
 
@@ -126,7 +124,7 @@ class MarketEventDispatcher :
     LoggingEWrapper::nextValidId(orderId);
     LOG(INFO) << "Connection confirmed wth next order id = "
               << orderId;
-    app_.onLogon(clientId_);
+    app_.onLogon(sessionId_);
   }
 
   /// @overload EWrapper
@@ -141,14 +139,14 @@ class MarketEventDispatcher :
                  int canAutoExecute)
   {
     LoggingEWrapper::tickPrice(tickerId, field, price, canAutoExecute);
-    publish<double>(tickerId, field, price, *this);
+    dispatcher_.publish<double>(tickerId, field, price, *this);
   }
 
   /// @overload EWrapper
   void tickSize(TickerId tickerId, TickType field, int size)
   {
     LoggingEWrapper::tickSize(tickerId, field, size);
-    publish<int>(tickerId, field, size, *this);
+    dispatcher_.publish<int>(tickerId, field, size, *this);
   }
 
   /// @overload EWrapper
@@ -169,7 +167,7 @@ class MarketEventDispatcher :
    void tickGeneric(TickerId tickerId, TickType tickType, double value)
   {
     LoggingEWrapper::tickGeneric(tickerId, tickType, value);
-    publish<double>(tickerId, tickType, value, *this);
+    dispatcher_.publish<double>(tickerId, tickType, value, *this);
   }
 
   /// @overload EWrapper
@@ -177,7 +175,7 @@ class MarketEventDispatcher :
                    const IBString& value)
   {
     LoggingEWrapper::tickString(tickerId, tickType, value);
-    publish<std::string>(tickerId, tickType, value, *this);
+    dispatcher_.publish<std::string>(tickerId, tickType, value, *this);
   }
 
   /// @overload EWrapper
@@ -192,7 +190,7 @@ class MarketEventDispatcher :
   {
     LoggingEWrapper::updateMktDepth(id, position, operation, side,
                                     price, size);
-    publishDepth(id, side, position, operation, price, size, *this);
+    dispatcher_.publishDepth(id, side, position, operation, price, size, *this);
   }
 
   /// @overload EWrapper
@@ -202,8 +200,8 @@ class MarketEventDispatcher :
   {
     LoggingEWrapper::updateMktDepthL2(id, position, marketMaker, operation,
                                       side, price, size);
-    publishDepth(id, side, position, operation, price, size, *this,
-                 marketMaker);
+    dispatcher_.publishDepth(id, side, position, operation, price, size, *this,
+                             marketMaker);
   }
 
   /// @overload EWrapper
@@ -228,7 +226,11 @@ class MarketEventDispatcher :
 };
 
 
+EWrapper* MarketEventDispatcher::GetEWrapper()
+{
+  return new MarketEventEWrapper(Application(), SessionId(), *this);
+}
+
+
 } // internal
 } // ib
-
-#endif // IB_MARKET_EVENT_DISPATCHER_H_

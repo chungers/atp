@@ -24,6 +24,9 @@ typedef EWrapper* EWrapperPtr;
 
 namespace IBAPI {
 
+
+class ApiEventDispatcher;
+
 ///
 /// This interface models after the Application interface in QuickFIX.
 /// To receive messages from the IB gateway, an applicatio implements
@@ -36,8 +39,7 @@ class Application {
 
   virtual ~Application() {};
 
-  virtual ib::EWrapperPtr GetEWrapper(int clientId,
-                                      ib::internal::EWrapperEventCollector& c)
+  virtual ApiEventDispatcher* GetApiEventDispatcher(const SessionID& sessionId)
   {
     return NULL;
   }
