@@ -51,6 +51,7 @@ set(IBAPIConnector_srcs
   SocketConnector.cpp
   SocketInitiator.cpp
   MarketEventDispatcher.cpp
+  OrderEventDispatcher.cpp
   ${IMPL_FILES}
 )
 set(IBAPIConnector_libs

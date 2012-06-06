@@ -71,9 +71,6 @@ class AbstractSocketConnector :
 
   ~AbstractSocketConnector()
   {
-    // if (driver_.get() != 0 || outboundSocket_.get() != 0) {
-    //   IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Shutting down " << stop();
-    // }
     if (dispatcher_ != NULL) {
       delete dispatcher_;
     }
@@ -116,6 +113,7 @@ class AbstractSocketConnector :
 
       int retry = 0;
       do {
+
         try {
 
           IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER

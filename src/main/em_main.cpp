@@ -14,11 +14,14 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "varz/varz.hpp"
+#include "varz/VarzServer.hpp"
+
 #include "constants.h"
 #include "ib/ApplicationBase.hpp"
 #include "ib/SocketInitiator.hpp"
-#include "varz/varz.hpp"
-#include "varz/VarzServer.hpp"
+#include "ib/OrderEventDispatcher.hpp"
+
 
 static IBAPI::SocketInitiator* INITIATOR_INSTANCE;
 static atp::varz::VarzServer* VARZ_INSTANCE;
@@ -69,6 +72,17 @@ const set<string> EM_VALID_MESSAGES_ =
                ("IBAPI.EXEC.StopLimitOrder")
                ;
 
+using std::map;
+using std::vector;
+using std::string;
+using std::stringstream;
+using std::istringstream;
+using IBAPI::ApiEventDispatcher;
+using IBAPI::SessionID;
+using IBAPI::SessionSetting;
+using IBAPI::SocketInitiator;
+
+
 class ExecutionManager : public IBAPI::ApplicationBase
 {
  public:
@@ -76,9 +90,15 @@ class ExecutionManager : public IBAPI::ApplicationBase
   ExecutionManager() {}
   ~ExecutionManager() {}
 
+
   virtual bool IsMessageSupported(const std::string& key)
   {
     return EM_VALID_MESSAGES_.find(key) != EM_VALID_MESSAGES_.end();
+  }
+
+  virtual ApiEventDispatcher* GetApiEventDispatcher(const SessionID& sessionId)
+  {
+    return new ib::internal::OrderEventDispatcher(*this, sessionId);
   }
 
   void onLogon(const IBAPI::SessionID& sessionId)
@@ -92,14 +112,6 @@ class ExecutionManager : public IBAPI::ApplicationBase
   }
 
 };
-
-using std::map;
-using std::vector;
-using std::string;
-using std::stringstream;
-using std::istringstream;
-using IBAPI::SessionSetting;
-using IBAPI::SocketInitiator;
 
 
 ////////////////////////////////////////////////////////

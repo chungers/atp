@@ -26,21 +26,21 @@ api_requests.label api_requests
 api_requests.type COUNTER
 api_requests.min 0
 
-multigraph fh_event_dispatch_publish_count
+multigraph fh_mk_event_dispatch_publish_count
 graph_title fh event dispatcher published message count
-graph_order event_dispatch_publish_count event_dispatch_publish_depth_count
+graph_order mk_event_dispatch_publish_count mk_event_dispatch_publish_depth_count
 graph_args --base 1000
 graph_vlabel messages published
 graph_category fh
 graph_info This graph shows number of messages published by event dispatcher
 
-event_dispatch_publish_count.label marketdata messages published
-event_dispatch_publish_count.type COUNTER
-event_dispatch_publish_count.min 0
+mk_event_dispatch_publish_count.label marketdata messages published
+mk_event_dispatch_publish_count.type COUNTER
+mk_event_dispatch_publish_count.min 0
 
-event_dispatch_publish_depth_count.label marketdepth messages published
-event_dispatch_publish_depth_count.type COUNTER
-event_dispatch_publish_depth_count.min 0
+mk_event_dispatch_publish_depth_count.label marketdepth messages published
+mk_event_dispatch_publish_depth_count.type COUNTER
+mk_event_dispatch_publish_depth_count.min 0
 
 multigraph fh_latencies
 graph_title fh latencies
@@ -184,8 +184,8 @@ function doSample {
 
     api_events=$(parse api_events $varz)
     api_requests=$(parse api_requests $varz)
-    event_dispatch_publish_count=$(parse event_dispatch_publish_count $varz)
-    event_dispatch_publish_depth_count=$(parse event_dispatch_publish_depth_count $varz)
+    mk_event_dispatch_publish_count=$(parse mk_event_dispatch_publish_count $varz)
+    mk_event_dispatch_publish_depth_count=$(parse mk_event_dispatch_publish_depth_count $varz)
 
     asio_connects=$(parse asio_socket_connects $varz)
     asio_closes=$(parse asio_socket_connection_closes $varz)
@@ -194,9 +194,9 @@ function doSample {
     asio_loop_errors=$(parse asio_socket_event_loop_errors $varz)
     sig_interrupts=$(parse publisher_sig_interrupts $varz)
 
-    dispatch_interval=$(parse event_dispatch_publish_interval_micros $varz)
+    dispatch_interval=$(parse mk_event_dispatch_publish_interval_micros $varz)
     socket_send=$(parse asio_socket_send_latency_micros $varz)
-    publish_micros=$(parse event_dispatch_publish_micros $varz)
+    publish_micros=$(parse mk_event_dispatch_publish_micros $varz)
 
     connector_reqs=$(parse socket_connector_inbound_requests $varz)
     connector_errors=$(parse socket_connector_inbound_requests_errors $varz)
@@ -220,9 +220,9 @@ multigraph fh_api_events
 api_events.value $api_events
 api_requests.value $api_requests
 
-multigraph fh_event_dispatch_publish_count
-event_dispatch_publish_count.value $event_dispatch_publish_count
-event_dispatch_publish_depth_count.value $event_dispatch_publish_depth_count
+multigraph fh_mk_event_dispatch_publish_count
+mk_event_dispatch_publish_count.value $mk_event_dispatch_publish_count
+mk_event_dispatch_publish_depth_count.value $mk_event_dispatch_publish_depth_count
 
 multigraph fh_asiosocket_stats
 asio_connects.value $asio_connects

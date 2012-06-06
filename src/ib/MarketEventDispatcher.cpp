@@ -16,18 +16,18 @@
 #include "ib/MarketEventDispatcher.hpp"
 
 
-DEFINE_VARZ_int64(event_dispatch_publish_total_bytes, 0, "");
-DEFINE_VARZ_int64(event_dispatch_publish_count, 0, "");
-DEFINE_VARZ_int64(event_dispatch_publish_last_ts, 0, "");
-DEFINE_VARZ_int64(event_dispatch_publish_interval_micros, 0, "");
-DEFINE_VARZ_int64(event_dispatch_publish_serialization_errors, 0, "");
-DEFINE_VARZ_int64(event_dispatch_publish_unresolved_keys, 0, "");
-DEFINE_VARZ_int64(event_dispatch_publish_micros, 0, "");
+DEFINE_VARZ_int64(mk_event_dispatch_publish_total_bytes, 0, "");
+DEFINE_VARZ_int64(mk_event_dispatch_publish_count, 0, "");
+DEFINE_VARZ_int64(mk_event_dispatch_publish_last_ts, 0, "");
+DEFINE_VARZ_int64(mk_event_dispatch_publish_interval_micros, 0, "");
+DEFINE_VARZ_int64(mk_event_dispatch_publish_serialization_errors, 0, "");
+DEFINE_VARZ_int64(mk_event_dispatch_publish_unresolved_keys, 0, "");
+DEFINE_VARZ_int64(mk_event_dispatch_publish_micros, 0, "");
 
 
-DEFINE_VARZ_int64(event_dispatch_publish_depth_total_bytes, 0, "");
-DEFINE_VARZ_int64(event_dispatch_publish_depth_count, 0, "");
-DEFINE_VARZ_int64(event_dispatch_publish_depth_unresolved_keys, 0, "");
+DEFINE_VARZ_int64(mk_event_dispatch_publish_depth_total_bytes, 0, "");
+DEFINE_VARZ_int64(mk_event_dispatch_publish_depth_count, 0, "");
+DEFINE_VARZ_int64(mk_event_dispatch_publish_depth_unresolved_keys, 0, "");
 
 namespace ib {
 namespace internal {
@@ -41,7 +41,7 @@ MarketEventDispatcher::MarketEventDispatcher(
     const IBAPI::SessionID& sessionId) :
     IBAPI::ApiEventDispatcher(app, sessionId)
 {
-  VARZ_event_dispatch_publish_last_ts = now_micros();
+  VARZ_mk_event_dispatch_publish_last_ts = now_micros();
 }
 
 MarketEventDispatcher::~MarketEventDispatcher() {}
@@ -49,26 +49,26 @@ MarketEventDispatcher::~MarketEventDispatcher() {}
 
 void MarketEventDispatcher::onPublish(boost::uint64_t start, size_t sent)
 {
-  VARZ_event_dispatch_publish_count++;
-  VARZ_event_dispatch_publish_total_bytes += sent;
-  VARZ_event_dispatch_publish_interval_micros =
-      start - VARZ_event_dispatch_publish_last_ts;
-  VARZ_event_dispatch_publish_last_ts = start;
+  VARZ_mk_event_dispatch_publish_count++;
+  VARZ_mk_event_dispatch_publish_total_bytes += sent;
+  VARZ_mk_event_dispatch_publish_interval_micros =
+      start - VARZ_mk_event_dispatch_publish_last_ts;
+  VARZ_mk_event_dispatch_publish_last_ts = start;
 }
 
 void MarketEventDispatcher::onSerializeError()
 {
-  VARZ_event_dispatch_publish_serialization_errors++;
+  VARZ_mk_event_dispatch_publish_serialization_errors++;
 }
 
 void MarketEventDispatcher::onUnresolvedTopic()
 {
-    VARZ_event_dispatch_publish_unresolved_keys++;
+    VARZ_mk_event_dispatch_publish_unresolved_keys++;
 }
 
 void MarketEventDispatcher::onCompletedPublishRequest(boost::uint64_t start)
 {
-  VARZ_event_dispatch_publish_micros = now_micros() - start;
+  VARZ_mk_event_dispatch_publish_micros = now_micros() - start;
 }
 
 void MarketEventDispatcher::publishDepth(TickerId tickerId,
@@ -124,18 +124,18 @@ void MarketEventDispatcher::publishDepth(TickerId tickerId,
       size_t sent = atp::zmq::send_copy(*socket, zmq_topic.str(), true);
       sent += atp::zmq::send_copy(*socket, proto, false);
 
-      VARZ_event_dispatch_publish_depth_count++;
-      VARZ_event_dispatch_publish_depth_total_bytes += sent;
-      VARZ_event_dispatch_publish_interval_micros =
-          now - VARZ_event_dispatch_publish_last_ts;
-      VARZ_event_dispatch_publish_last_ts = now;
+      VARZ_mk_event_dispatch_publish_depth_count++;
+      VARZ_mk_event_dispatch_publish_depth_total_bytes += sent;
+      VARZ_mk_event_dispatch_publish_interval_micros =
+          now - VARZ_mk_event_dispatch_publish_last_ts;
+      VARZ_mk_event_dispatch_publish_last_ts = now;
 
     } else {
 
       LOG(ERROR) << "Unable to serialize: " << timed.getMicros()
                  << zmq_topic.str();
 
-      VARZ_event_dispatch_publish_serialization_errors++;
+      VARZ_mk_event_dispatch_publish_serialization_errors++;
 
     }
 
@@ -144,11 +144,11 @@ void MarketEventDispatcher::publishDepth(TickerId tickerId,
     LOG(ERROR) << "Cannot get subscription key / topic for " << tickerId
                << ", market depth";
 
-    VARZ_event_dispatch_publish_depth_unresolved_keys++;
+    VARZ_mk_event_dispatch_publish_depth_unresolved_keys++;
 
   }
 
-  VARZ_event_dispatch_publish_micros = now_micros() - now;
+  VARZ_mk_event_dispatch_publish_micros = now_micros() - now;
 }
 
 

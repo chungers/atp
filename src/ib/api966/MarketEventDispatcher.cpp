@@ -4,29 +4,32 @@
 #include "common.hpp"
 #include "log_levels.h"
 
+#include "varz/varz.hpp"
+
 #include "ib/Application.hpp"
 #include "ib/SessionID.hpp"
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
 #include "ApiImpl.hpp"
 #include "ib/MarketEventDispatcher.hpp"
-#include "varz/varz.hpp"
+
+#include "EventDispatcherEWrapperBase.hpp"
 
 
-DEFINE_VARZ_int64(ib_api_error_no_security_definition, 0, "");
-DEFINE_VARZ_int64(ib_api_error_unhandled, 0, "");
-DEFINE_VARZ_int64(ib_api_error_connection_reset, 0, "");
-DEFINE_VARZ_int64(ib_api_error_gateway_disconnect, 0, "");
-DEFINE_VARZ_int64(ib_api_error_marketdata_farm_connection_broken, 0, "");
-DEFINE_VARZ_int64(ib_api_error_marketdata_farm_connection_ok, 0, "");
-DEFINE_VARZ_int64(ib_api_error_gateway_server_connection_broken, 0, "");
-DEFINE_VARZ_int64(ib_api_error_cannot_connect, 0, "");
+// DEFINE_VARZ_int64(ib_api_error_no_security_definition, 0, "");
+// DEFINE_VARZ_int64(ib_api_error_unhandled, 0, "");
+// DEFINE_VARZ_int64(ib_api_error_connection_reset, 0, "");
+// DEFINE_VARZ_int64(ib_api_error_gateway_disconnect, 0, "");
+// DEFINE_VARZ_int64(ib_api_error_marketdata_farm_connection_broken, 0, "");
+// DEFINE_VARZ_int64(ib_api_error_marketdata_farm_connection_ok, 0, "");
+// DEFINE_VARZ_int64(ib_api_error_gateway_server_connection_broken, 0, "");
+// DEFINE_VARZ_int64(ib_api_error_cannot_connect, 0, "");
 
 
 namespace ib {
 namespace internal {
 
-
+/*
 class MarketEventEWrapper : public LoggingEWrapper, NoCopyAndAssign
 {
  public:
@@ -118,6 +121,20 @@ class MarketEventEWrapper : public LoggingEWrapper, NoCopyAndAssign
     if (terminate) {
         throw IBAPI::RuntimeError(msg.str());
     }
+  }
+
+*/
+
+class MarketEventEWrapper :
+      public EventDispatcherEWrapperBase<MarketEventDispatcher>
+{
+ public:
+
+  explicit MarketEventEWrapper(IBAPI::Application& app,
+                               const IBAPI::SessionID& sessionId,
+                               MarketEventDispatcher& dispatcher) :
+      EventDispatcherEWrapperBase<MarketEventDispatcher>(app, sessionId, dispatcher)
+  {
   }
 
   /// @overload EWrapper

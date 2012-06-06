@@ -126,13 +126,15 @@ message OrderStatus {
 
   required uint64 order_id = 4;
   required string status = 5;
-  optional uint32 filled = 6;
-  optional uint32 remaining = 7;
-  optional proto.common.Money avg_fill_price = 8;
-  optional proto.common.Money last_filled_price = 9;
+  required uint32 filled = 6;
+  required uint32 remaining = 7;
+  required proto.common.Money avg_fill_price = 8;
+  required proto.common.Money last_fill_price = 9;
 
   required uint32 client_id = 10;
-  optional string why_held = 11 [ default = "locate" ];
+  required uint32 perm_id = 11;
+  required uint32 parent_id = 12;
+  required string why_held = 13 [ default = "locate" ];
 }
 
 message CancelOrder {

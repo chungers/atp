@@ -14,14 +14,14 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "varz/varz.hpp"
+#include "varz/VarzServer.hpp"
+
 #include "constants.h"
 #include "ib/ApiEventDispatcher.hpp"
 #include "ib/ApplicationBase.hpp"
 #include "ib/SocketInitiator.hpp"
 #include "ib/MarketEventDispatcher.hpp"
-#include "varz/varz.hpp"
-#include "varz/VarzServer.hpp"
-
 
 
 
@@ -79,10 +79,10 @@ using std::vector;
 using std::string;
 using std::stringstream;
 using std::istringstream;
+using IBAPI::ApiEventDispatcher;
 using IBAPI::SessionID;
 using IBAPI::SessionSetting;
 using IBAPI::SocketInitiator;
-using IBAPI::ApiEventDispatcher;
 
 
 class Firehose : public IBAPI::ApplicationBase
