@@ -2,6 +2,8 @@
 #include <glog/logging.h>
 
 #include "common.hpp"
+#include "log_levels.h"
+
 #include "ib/Application.hpp"
 #include "ib/SessionID.hpp"
 #include "ib/Exceptions.hpp"

@@ -1,7 +1,7 @@
 
 #include <sstream>
 #include "common.hpp"
-
+#include "log_levels.h"
 
 #include "ib/TickerMap.hpp"
 #include "ib/tick_types.hpp"
@@ -35,6 +35,7 @@ namespace internal {
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 
+
 MarketEventDispatcher::MarketEventDispatcher(
     IBAPI::Application& app,
     const IBAPI::SessionID& sessionId) :
@@ -46,66 +47,29 @@ MarketEventDispatcher::MarketEventDispatcher(
 MarketEventDispatcher::~MarketEventDispatcher() {}
 
 
-
-template <typename T>
-void MarketEventDispatcher::publish(TickerId tickerId,
-                                    TickType tickType, const T& value,
-                                    TimeTracking& timed)
+void MarketEventDispatcher::onPublish(boost::uint64_t start, size_t sent)
 {
-  boost::uint64_t now = now_micros();
-
-  std::string tick = TickTypeNames[tickType];
-  std::string topic;
-
-  if (TickerMap::getSubscriptionKeyFromId(tickerId, &topic)) {
-
-
-    MarketData ibMarketData;
-    ibMarketData.set_symbol(topic);
-    ibMarketData.set_timestamp(timed.getMicros());
-    ibMarketData.set_event(tick);
-    ibMarketData.set_contract_id(tickerId);
-    proto::common::set_as(value, ibMarketData.mutable_value());
-
-    // frames
-    // 1. topic
-    // 2. protobuff
-
-    std::string proto;
-    if (ibMarketData.SerializeToString(&proto)) {
-
-      zmq::socket_t* socket = getOutboundSocket(0);
-      size_t sent = atp::zmq::send_copy(*socket, topic, true);
-      sent += atp::zmq::send_copy(*socket, proto, false);
-
-      VARZ_event_dispatch_publish_count++;
-      VARZ_event_dispatch_publish_total_bytes += sent;
-      VARZ_event_dispatch_publish_interval_micros =
-          now - VARZ_event_dispatch_publish_last_ts;
-      VARZ_event_dispatch_publish_last_ts = now;
-
-    } else {
-
-      LOG(ERROR) << "Unable to serialize: " << timed.getMicros()
-                 << topic << ", event=" << tick << ", value=" << value;
-
-      VARZ_event_dispatch_publish_serialization_errors++;
-
-    }
-
-  } else {
-
-    LOG(ERROR) << "Cannot get subscription key / topic for " << tickerId
-               << ", event = " << tickType << ", value " << value;
-
-    VARZ_event_dispatch_publish_unresolved_keys++;
-
-  }
-
-  VARZ_event_dispatch_publish_micros = now_micros() - now;
+  VARZ_event_dispatch_publish_count++;
+  VARZ_event_dispatch_publish_total_bytes += sent;
+  VARZ_event_dispatch_publish_interval_micros =
+      start - VARZ_event_dispatch_publish_last_ts;
+  VARZ_event_dispatch_publish_last_ts = start;
 }
 
+void MarketEventDispatcher::onSerializeError()
+{
+  VARZ_event_dispatch_publish_serialization_errors++;
+}
 
+void MarketEventDispatcher::onUnresolvedTopic()
+{
+    VARZ_event_dispatch_publish_unresolved_keys++;
+}
+
+void MarketEventDispatcher::onCompletedPublishRequest(boost::uint64_t start)
+{
+  VARZ_event_dispatch_publish_micros = now_micros() - start;
+}
 
 void MarketEventDispatcher::publishDepth(TickerId tickerId,
                                          int side, int level, int operation,

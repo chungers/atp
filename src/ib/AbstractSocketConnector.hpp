@@ -229,6 +229,9 @@ class AbstractSocketConnector :
         return driver_->getClientId();
     }
 
+    // Start a new socket.
+    boost::lock_guard<boost::mutex> lock(mutex_);
+
     //EWrapper* ew = EWrapperFactory::getInstance(app_, *this, clientId);
     // ib::EWrapperPtr ew = app_.GetEWrapper(clientId, *this);
 
@@ -240,9 +243,6 @@ class AbstractSocketConnector :
     EWrapper* ew = dispatcher_->GetEWrapper();
 
     assert(ew != NULL);
-
-    // Start a new socket.
-    boost::lock_guard<boost::mutex> lock(mutex_);
 
     // If shared pointer hasn't been set, alloc new socket.
     if (driver_.get() == 0) {
