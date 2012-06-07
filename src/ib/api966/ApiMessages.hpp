@@ -121,6 +121,7 @@ class MarketOrder : public ProtoBufferMessage<p::MarketOrder>
     Contract contract;
     Order order;
     if (proto >> order && proto.base().contract() >> contract) {
+      order.orderType = "MKT";
       eclient->placeOrder(proto.base().id(), contract, order);
       return true;
     }
@@ -140,6 +141,7 @@ class LimitOrder : public ProtoBufferMessage<p::LimitOrder>
     Contract contract;
     Order order;
     if (proto >> order && proto.base().contract() >> contract) {
+      order.orderType = "LMT";
       eclient->placeOrder(proto.base().id(), contract, order);
       return true;
     }
@@ -159,6 +161,7 @@ class StopLimitOrder : public ProtoBufferMessage<p::StopLimitOrder>
     Contract contract;
     Order order;
     if (proto >> order && proto.base().contract() >> contract) {
+      order.orderType = "STPLMT";
       eclient->placeOrder(proto.base().id(), contract, order);
       return true;
     }

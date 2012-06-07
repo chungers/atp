@@ -1,6 +1,7 @@
 
 #
-new.ib <- function(apiAddress = 'tcp://127.0.0.1:6666') {
+new.ib <- function(fhAddress = 'tcp://127.0.0.1:6666',
+                   emAddress = 'tcp://127.0.0.1:6667') {
 
   options(digits.secs=6)
   Sys.setenv(TZ='America/New_York')
@@ -8,50 +9,20 @@ new.ib <- function(apiAddress = 'tcp://127.0.0.1:6666') {
   this <- new.env()
   class(this) <- 'ib'
 
-  this$.apiAddress = apiAddress
+  this$.fhAddress = fhAddress
+  this$.emAddress = emAddress
 
-  this$.apiConnection <- .Call("api_connect", this$.apiAddress, PACKAGE='ib')
-
-  nycTime <- function(t) {
-    utc <- as.POSIXct(t, origin='1970-01-01', tz='GMT');
-    as.POSIXlt(utc, 'America/New_York');
+  # Get fh (firehose) client
+  this$fh <- function() {
+    new.fh(this$fhAddress)
   }
+  environment(this$fh) <- as.environment(this)
 
-  # Request marketdata
-  this$requestMarketdata <- function(contract, tick_types="", snapshot=FALSE) {
-    raw <- .Call("api_request_marketdata",
-                 this$.apiConnection, contract, tick_types, snapshot,
-                 PACKAGE="ib")
-    return(raw)
+  # Get em (execution manager) client
+  this$em <- function() {
+    new.em(this$fhAddress)
   }
-  environment(this$requestMarketdata) <- as.environment(this)
-
-  # Cancel marketdata
-  this$cancelMarketdata <- function(contract) {
-    raw <- .Call("api_cancel_marketdata",
-                 this$.apiConnection, contract,
-                 PACKAGE="ib")
-    return(raw)
-  }
-  environment(this$cancelMarketdata) <- as.environment(this)
-
-  # Request marketdepth
-  this$requestMarketdepth <- function(contract, rows=20) {
-    raw <- .Call("api_request_marketdepth",
-                 this$.apiConnection, contract, rows,
-                 PACKAGE="ib")
-    return(raw)
-  }
-  environment(this$requestMarketdepth) <- as.environment(this)
-
-  # Cancel marketdepth
-  this$cancelMarketdepth <- function(contract) {
-    raw <- .Call("api_cancel_marketdepth",
-                 this$.apiConnection, contract,
-                 PACKAGE="ib")
-    return(raw)
-  }
-  environment(this$cancelMarketdepth) <- as.environment(this)
+  environment(this$fh) <- as.environment(this)
 
   return(this)
 }
@@ -59,27 +30,15 @@ new.ib <- function(apiAddress = 'tcp://127.0.0.1:6666') {
 
 # S3 function mapping
 
-# RequestMarketdata
-requestMarketdata <- function(x, ...)
-  UseMethod('requestMarketdata')
-requestMarketdata.ib <- function(x, ...)
-  x$requestMarketdata(...)
+# Get fh client
+fh <- function(x, ...)
+  UseMethod('fh')
+fh.ib <- function(x, ...)
+  x$fh(...)
 
-# CancelMarketdata
-cancelMarketdata <- function(x, ...)
-  UseMethod('cancelMarketdata')
-cancelMarketdata.ib <- function(x, ...)
-  x$cancelMarketdata(...)
-
-# RequestMarketdepth
-requestMarketdepth <- function(x, ...)
-  UseMethod('requestMarketdepth')
-requestMarketdepth.ib <- function(x, ...)
-  x$requestMarketdepth(...)
-
-# CancelMarketdepth
-cancelMarketdepth <- function(x, ...)
-  UseMethod('cancelMarketdepth')
-cancelMarketdepth.ib <- function(x, ...)
-  x$cancelMarketdepth(...)
+# Get em client
+em <- function(x, ...)
+  UseMethod('em')
+em.ib <- function(x, ...)
+  x$em(...)
 
