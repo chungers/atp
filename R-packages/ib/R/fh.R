@@ -64,24 +64,24 @@ new.fh <- function(apiAddress = 'tcp://127.0.0.1:6666') {
 # RequestMarketdata
 requestMarketdata <- function(x, ...)
   UseMethod('requestMarketdata')
-requestMarketdata.ib <- function(x, ...)
+requestMarketdata.fh <- function(x, ...)
   x$requestMarketdata(...)
 
 # CancelMarketdata
 cancelMarketdata <- function(x, ...)
   UseMethod('cancelMarketdata')
-cancelMarketdata.ib <- function(x, ...)
+cancelMarketdata.fh <- function(x, ...)
   x$cancelMarketdata(...)
 
 # RequestMarketdepth
 requestMarketdepth <- function(x, ...)
   UseMethod('requestMarketdepth')
-requestMarketdepth.ib <- function(x, ...)
+requestMarketdepth.fh <- function(x, ...)
   x$requestMarketdepth(...)
 
 # CancelMarketdepth
 cancelMarketdepth <- function(x, ...)
   UseMethod('cancelMarketdepth')
-cancelMarketdepth.ib <- function(x, ...)
+cancelMarketdepth.fh <- function(x, ...)
   x$cancelMarketdepth(...)
 

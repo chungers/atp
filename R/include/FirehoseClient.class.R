@@ -20,7 +20,7 @@ new.FirehoseClient <- function(contractDb,
 
 
   # connect to zmq
-  this$.ib <- new.ib(this$.connector_endpoint)
+  this$.fh <- new.fh(this$.connector_endpoint)
 
   #
   # Request market data
@@ -35,7 +35,7 @@ new.FirehoseClient <- function(contractDb,
     }
     result <- foreach(s = matches, .combine="c") %do% {
       ret <- list()
-      ret[[s]] <- requestMarketdata(this$.ib, this$.contractDb[[s]]$contract,
+      ret[[s]] <- requestMarketdata(this$.fh, this$.contractDb[[s]]$contract,
                                     tick_types, snapshot)
 
       message('Requested market data ', s, ' ', ret)
@@ -59,7 +59,7 @@ new.FirehoseClient <- function(contractDb,
 
     result <- foreach(s = matches, .combine="c") %do% {
       ret <- list()
-      ret[[s]] <- cancelMarketdata(this$.ib, this$.contractDb[[s]]$contract)
+      ret[[s]] <- cancelMarketdata(this$.fh, this$.contractDb[[s]]$contract)
 
       message('Canceled market data ', s, ' ', ret)
       return(ret)
@@ -81,7 +81,7 @@ new.FirehoseClient <- function(contractDb,
     }
     result <- foreach(s = matches, .combine="c") %do% {
       ret <- list()
-      ret[[s]] <- requestMarketdepth(this$.ib, this$.contractDb[[s]]$contract)
+      ret[[s]] <- requestMarketdepth(this$.fh, this$.contractDb[[s]]$contract)
       message('Requested market depth ', s, ' ', ret)
       return(ret)
     }
@@ -103,7 +103,7 @@ new.FirehoseClient <- function(contractDb,
 
     result <- foreach(s = matches, .combine="c") %do% {
       ret <- list()
-      ret[[s]] <- cancelMarketdepth(this$.ib, this$.contractDb[[s]]$contract)
+      ret[[s]] <- cancelMarketdepth(this$.fh, this$.contractDb[[s]]$contract)
       message('Canceled market depth ', s, ' ', ret)
       return(ret)
     }
