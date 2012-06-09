@@ -7,22 +7,9 @@
 #include "proto/historian.pb.h"
 #include "proto/ib.pb.h"
 
-
-
-using proto::common::Date;
-using proto::common::DateTime;
-using proto::common::Time;
-using proto::common::Money;
-using proto::common::Value;
-using proto::ib::MarketData;
-using proto::ib::MarketDepth;
-using proto::ib::Order;
-using proto::ib::OrderStatus;
-using proto::historian::IndexedValue;
-using proto::historian::SessionLog;
-using proto::historian::Record;
 using namespace proto::common;
 using namespace proto::historian;
+using namespace proto::ib;
 
 std::ostream& operator<<(std::ostream& out, const Date& v);
 
