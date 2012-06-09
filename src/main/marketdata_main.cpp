@@ -9,8 +9,10 @@
 
 #include "varz/varz.hpp"
 
-#include "marketdata_sink.hpp"
 #include "historian/time_utils.hpp"
+#include "proto/ostream.hpp"
+
+#include "marketdata_sink.hpp"
 
 
 DEFINE_string(adminEp, "tcp://127.0.0.1:4444", "Admin endpoint");
@@ -34,40 +36,6 @@ using boost::posix_time::time_duration;
 using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
-
-std::ostream& operator<<(std::ostream& out, const Value& v)
-{
-  using namespace proto::common;
-  switch (v.type()) {
-    case Value_Type_INT:
-      out << v.int_value();
-      break;
-    case Value_Type_DOUBLE:
-      out << v.double_value();
-      break;
-    case Value_Type_STRING:
-      out << v.string_value();
-      break;
-  }
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const MarketData& v)
-{
-  ptime t =to_est(as_ptime(v.timestamp()));
-  out << t << "," << v.symbol() << "," << v.event() << "," << v.value();
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const MarketDepth& v)
-{
-  ptime t = to_est(as_ptime(v.timestamp()));
-  out << t << "," << v.symbol() << ","
-      << v.operation() << "," << v.level() << ","
-      << v.side() << "," << v.price() << ","
-      << v.size();
-  return out;
-}
 
 
 class ConsoleMarketDataSubscriber : public atp::MarketDataSubscriber

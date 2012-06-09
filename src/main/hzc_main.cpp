@@ -14,7 +14,7 @@
 #include "log_levels.h"
 
 #include "proto/historian.hpp"
-#include "proto/impl.cpp"
+#include "proto/ostream.hpp"
 
 #include "historian/time_utils.hpp"
 #include "historian/Visitor.hpp"

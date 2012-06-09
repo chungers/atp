@@ -24,9 +24,9 @@
 #include "log_levels.h"
 #include "zmq/ZmqUtils.hpp"
 #include "proto/historian.hpp"
+#include "proto/ostream.hpp"
 #include "historian/historian.hpp"
 
-#include "proto/impl.cpp"
 
 
 const static std::string NO_VALUE("");

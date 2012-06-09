@@ -16,7 +16,8 @@ set(proto_components_incs
   ${SRC_DIR}
 )
 set(proto_components_srcs
-  impl.cpp
+  ostream.cpp
+  template_instantiations.cpp
 )
 set(proto_components_libs
   historian_proto

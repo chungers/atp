@@ -1,46 +1,77 @@
 
-#include <iostream>
-#include <string>
-
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include "proto/common.hpp"
-#include "proto/historian.hpp"
 #include "historian/time_utils.hpp"
 
-
-// This file contains the instantiations of templates.
-
-namespace proto {
-namespace historian {
-
-using proto::ib::MarketData;
-using proto::ib::MarketDepth;
-using proto::historian::IndexedValue;
-using proto::historian::SessionLog;
-using proto::historian::Record;
-
-template const Record wrap<MarketData>(const MarketData& v);
-template const Record wrap<MarketDepth>(const MarketDepth& v);
-template const Record wrap<SessionLog>(const SessionLog& v);
-template const Record wrap<IndexedValue>(const IndexedValue& v);
-
-} // historian
-} // proto
+#include "proto/ostream.hpp"
 
 
-namespace historian {
 
 using boost::posix_time::ptime;
+using proto::common::Date;
+using proto::common::DateTime;
+using proto::common::Time;
+using proto::common::Money;
 using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
+using proto::ib::Order;
+using proto::ib::OrderStatus;
 using proto::historian::IndexedValue;
 using proto::historian::SessionLog;
 using proto::historian::Record;
 using namespace proto::common;
 using namespace proto::historian;
+using namespace historian;
 
+namespace proto {
+namespace common {
+std::ostream& format(std::ostream& out, const int v)
+{
+  if (v > 9) { out << '0' << v; }
+  else { out << v; }
+  return out;
+}
+} // common
+} // proto
+
+std::ostream& operator<<(std::ostream& out, const Date& v)
+{
+  using namespace proto::common;
+  out << v.year() << '-';
+  format(out, v.month()) << '-';
+  format(out, v.day());
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const Time& v)
+{
+  using namespace proto::common;
+  out << v.hour() << ':';
+  format(out, v.minute()) << ':';
+  format(out, v.second());
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const DateTime& v)
+{
+  using namespace proto::common;
+  out << v.date() << '-' << v.time();
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const Money& v)
+{
+  using namespace proto::common;
+  out << v.amount() << '(';
+  switch (v.currency()) {
+    case Money::USD :
+      out << "USD";
+      break;
+  }
+  out << ')';
+  return out;
+}
 
 std::ostream& operator<<(std::ostream& out, const Value& v)
 {
@@ -120,6 +151,20 @@ std::ostream& operator<<(std::ostream& out, const QueryBySymbol& q)
   return out;
 }
 
-} // historian
+std::ostream& operator<<(std::ostream& os, const OrderStatus& o)
+{
+  os << "OrderStatus="
+     << "timestamp:" << o.timestamp()
+     << ",message_id:" << o.message_id()
+     << ",order_id:" << o.order_id()
+     << ",status:" << o.status()
+     << ",filled:" << o.filled()
+     << ",remaining:" << o.remaining()
+     << ",avg_fill_price:" << o.avg_fill_price()
+     << ",last_fill_price:" << o.last_fill_price()
+     << ",client_id:" << o.client_id()
+     << ",why_held:" << o.why_held();
 
+  return os;
+}
 

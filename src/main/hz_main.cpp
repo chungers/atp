@@ -17,6 +17,7 @@
 #include "zmq/Reactor.hpp"
 
 #include "proto/historian.hpp"
+#include "proto/ostream.hpp"
 
 #include "historian/Db.hpp"
 #include "historian/DbReactorStrategy.hpp"
@@ -54,41 +55,6 @@ using boost::posix_time::time_duration;
 using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
-
-
-std::ostream& operator<<(std::ostream& out, const Value& v)
-{
-  using namespace proto::common;
-  switch (v.type()) {
-    case Value_Type_INT:
-      out << v.int_value();
-      break;
-    case Value_Type_DOUBLE:
-      out << v.double_value();
-      break;
-    case Value_Type_STRING:
-      out << v.string_value();
-      break;
-  }
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const MarketData& v)
-{
-  ptime t =to_est(as_ptime(v.timestamp()));
-  out << t << "," << v.symbol() << "," << v.event() << "," << v.value();
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const MarketDepth& v)
-{
-  ptime t = to_est(as_ptime(v.timestamp()));
-  out << t << "," << v.symbol() << ","
-      << v.operation() << "," << v.level() << ","
-      << v.side() << "," << v.price() << ","
-      << v.size();
-  return out;
-}
 
 
 class DbWriterSubscriber : public atp::MarketDataSubscriber

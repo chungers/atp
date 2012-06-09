@@ -2,22 +2,6 @@
 #include "marshall.hpp"
 
 
-// std::ostream& operator<<(std::ostream& os, const proto::ib::OrderStatus& o)
-// {
-//   os << "OrderStatus="
-//      << "timestamp:" << o.timestamp()
-//      << ",message_id:" << o.message_id()
-//      << ",order_id:" << o.order_id()
-//      << ",status:" << o.status()
-//      << ",filled:" << o.filled()
-//      << ",remaining:" << o.remaining()
-//      << ",avg_fill_price:" << o.avg_fill_price()
-//      << ",last_fill_price:" << o.last_fill_price()
-//      << ",client_id:" << o.client_id()
-//      << ",why_held:" << o.why_held()
-
-//   return os;
-// }
 
 std::ostream& operator<<(std::ostream& os, const Order& o)
 {
