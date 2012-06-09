@@ -37,6 +37,8 @@ RcppExport SEXP api_place_order(SEXP connection,
     api::LimitOrder req;
     proto::ib::Order *order = req.proto().mutable_base();
 
+    Rprintf("LimitOrder\n");
+
     if (order << rOrder << rContract) {
       req.proto().mutable_limit_price()->set_amount(
           R_DOUBLE(rOrder["lmtPrice"]));
@@ -47,6 +49,8 @@ RcppExport SEXP api_place_order(SEXP connection,
 
     api::MarketOrder req;
     proto::ib::Order *order = req.proto().mutable_base();
+
+    Rprintf("MarketOrder\n");
 
     if (order << rOrder << rContract) {
       code = DispatchMessage<api::MarketOrder>(connection, req, &resp);

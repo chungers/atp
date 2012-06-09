@@ -11,7 +11,7 @@ using zmq::context_t;
 using zmq::socket_t;
 
 
-SEXP api_connect(SEXP address)
+RcppExport SEXP api_connect(SEXP address)
 {
   // create a zmq context
   context_t* context = new context_t(1);

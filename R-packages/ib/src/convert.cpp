@@ -67,12 +67,22 @@ bool operator>>(List& contractList, p::Contract* contract)
 
 p::Contract* operator>>(List& orderList, p::Order* order)
 {
-  order->set_id(R_LONG(orderList["orderId"]));
+  std::cerr << "****";
+
+  long orderId = Rcpp::as<long>(orderList["orderId"]);
+  std::cerr << orderId;
+
+  order->set_id(orderId);
+
+  std::cerr << "****111";
+  Rprintf("1\n");
 
   std::string orderRef = R_STRING(orderList["orderRef"]);
   if (orderRef.length() > 0) {
     order->set_ref(orderRef);
   }
+
+  Rprintf("2\n");
 
   std::string action = R_STRING(orderList["action"]);
   if (action == "BUY") {
@@ -83,21 +93,32 @@ p::Contract* operator>>(List& orderList, p::Order* order)
     order->set_action(p::Order::SSHORT);
   }
 
+  Rprintf("3\n");
 
-  order->set_quantity(R_INT(orderList["totalQuantity"]));
+  int totalQuantity = R_INT(orderList["totalQuantity"]);
+  order->set_quantity(totalQuantity);
+
+  Rprintf("4\n");
 
   if (R_INT(orderList["allOrNone"]) > 0) {
     order->set_all_or_none(true);
   }
 
-  int minQty = R_INT(orderList["minQty"]);
-  if (minQty > 0) {
+  Rprintf("5\n");
+
+  std::string mq = R_STRING(orderList["minQty"]);
+  if (mq.length() > 0) {
+    int minQty = boost::lexical_cast<int>(mq);
     order->set_min_quantity(minQty);
   }
+
+  Rprintf("6\n");
 
   if (R_INT(orderList["outsideRTH"]) > 0) {
     order->set_outside_rth(true);
   }
+
+  Rprintf("7\n");
 
   std::string tif = R_STRING(orderList["tif"]);
   if (tif == "DAY") {
@@ -108,5 +129,6 @@ p::Contract* operator>>(List& orderList, p::Order* order)
     order->set_time_in_force(p::Order::IOC);
   }
 
+  Rprintf("8\n");
   return order->mutable_contract();
 }

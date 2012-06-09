@@ -24,6 +24,7 @@ inline bool operator<<(p::Contract* contract, List& contractList)
 p::Contract* operator>>(List& orderList, p::Order* order);
 inline p::Contract* operator<<(p::Order* order, List& orderList)
 {
+  Rprintf("Converting order\n");
   return orderList >> order;
 }
 
