@@ -2,27 +2,6 @@
 #include "marshall.hpp"
 
 
-
-std::ostream& operator<<(std::ostream& os, const Order& o)
-{
-  os << "order="
-     << "orderId:" << o.orderId
-     << ",clientId:" << o.clientId
-     << ",permId:" << o.permId
-     << ",orderRef:" << o.orderRef
-     << ",action:" << o.action
-     << ",totalQuantity:" << o.totalQuantity
-     << ",orderType:" << o.orderType
-     << ",lmtPrice:" << o.lmtPrice
-     << ",auxPrice:" << o.auxPrice
-     << ",outsideRth:" << o.outsideRth
-     << ",tif:" << o.tif
-     << ",allOrNone:" << o.allOrNone
-     << ",minQty:" << o.minQty;
-
-  return os;
-}
-
 bool operator<<(Order& o, const proto::ib::Order& p)
 {
   // check required:

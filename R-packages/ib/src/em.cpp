@@ -41,7 +41,7 @@ RcppExport SEXP api_place_order(SEXP connection,
 
     if (order << rOrder << rContract) {
       req.proto().mutable_limit_price()->set_amount(
-          R_DOUBLE(rOrder["lmtPrice"]));
+          Rcpp::as<double>(rOrder["lmtPrice"]));
       code = DispatchMessage<api::LimitOrder>(connection, req, &resp);
     }
 
@@ -63,9 +63,9 @@ RcppExport SEXP api_place_order(SEXP connection,
 
     if (order << rOrder << rContract) {
       req.proto().mutable_limit_price()->set_amount(
-          R_DOUBLE(rOrder["lmtPrice"]));
+          Rcpp::as<double>(rOrder["lmtPrice"]));
       req.proto().mutable_stop_price()->set_amount(
-          R_DOUBLE(rOrder["auxPrice"]));
+          Rcpp::as<double>(rOrder["auxPrice"]));
       code = DispatchMessage<api::StopLimitOrder>(connection, req, &resp);
     }
   }

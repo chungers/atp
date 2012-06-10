@@ -31,6 +31,7 @@ set(ib_api_srcs
   OrderEventDispatcher.cpp
   marshall_contract.cpp
   marshall_order.cpp
+  ostream.cpp
   ZmqMessage.cpp
 )
 set(ib_api_libs

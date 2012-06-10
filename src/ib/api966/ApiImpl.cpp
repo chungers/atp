@@ -8,6 +8,8 @@
 
 #include "ApiImpl.hpp"
 #include "marshall.hpp"
+#include "ostream.hpp"
+
 
 DEFINE_VARZ_int64(api_events, 0, "");
 DEFINE_VARZ_int64(api_requests, 0, "");
@@ -134,8 +136,8 @@ void LoggingEWrapper::openOrder(OrderId orderId, const Contract& contract,
   LOG_EVENT
       << __f__(orderId)
       << __f__(&contract)
-      << __f__(&order)
-      << __f__(&state);
+      << ',' << order
+      << ',' << state;
 }
 void LoggingEWrapper::openOrderEnd() {
   LOG_EVENT;
@@ -205,7 +207,7 @@ void LoggingEWrapper::execDetails(int reqId, const Contract& contract,
   LOG_EVENT
       << __f__(reqId)
       << __f__(&contract)
-      << __f__(&execution);
+      << ',' << execution;
 }
 void LoggingEWrapper::execDetailsEnd(int reqId) {
   LOG_EVENT
@@ -447,7 +449,8 @@ void LoggingEClientSocket::placeOrder(OrderId id, const Contract &contract,
   LOG_START
       << __f__(id)
       << __f__(&contract)
-      << __f__(&order);
+      //      << __f__(&order);
+      << ',' << order;
   LOCK
       EClientSocketBase::placeOrder(id, contract, order);
   LOG_END;

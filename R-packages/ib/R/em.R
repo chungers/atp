@@ -17,12 +17,24 @@ new.em <- function(apiAddress = 'tcp://127.0.0.1:6667') {
     as.POSIXlt(utc, 'America/New_York');
   }
 
+  scrub <- function(o) {
+    o$orderId <- as.numeric(o$orderId)
+    o$lmtPrice <- as.numeric(o$lmtPrice)
+    o$auxPrice <- as.numeric(o$auxPrice)
+    o$totalQuantity <- as.numeric(o$totalQuantity)
+    o$minQty <- as.character(o$minQty)
+    o$outsideRTH <- as.numeric(o$outsideRTH)
+    o$allOrNone <- as.numeric(o$allOrNone)
+    return(o)
+  }
+
   # Methods
 
   # orderSend
   this$orderSend <- function(contract, order) {
     .Call("api_place_order",
-          this$.apiConnection, order, contract, PACKAGE="ib")
+          this$.apiConnection, scrub(order),
+          contract, PACKAGE="ib")
   }
   environment(this$orderSend) <- as.environment(this)
 
