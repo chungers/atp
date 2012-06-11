@@ -16,12 +16,13 @@
 #include <zmq.h>
 
 #include "log_levels.h"
-#include "managed_agent.hpp"
 #include "utils.hpp"
 #include "historian/constants.hpp"
 #include "proto/historian.hpp"
 #include "varz/varz.hpp"
 #include "zmq/ZmqUtils.hpp"
+
+#include "ManagedAgent.hpp"
 
 
 DEFINE_VARZ_int64(marketdata_process_latency_micros, 0, "");

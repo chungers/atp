@@ -12,7 +12,6 @@
 #include <glog/logging.h>
 
 #include "log_levels.h"
-#include "marketdata_sink.hpp"
 #include "varz/varz.hpp"
 #include "zmq/Reactor.hpp"
 
@@ -22,6 +21,8 @@
 #include "historian/Db.hpp"
 #include "historian/DbReactorStrategy.hpp"
 #include "historian/time_utils.hpp"
+
+#include "MarketDataSubscriber.hpp"
 
 
 // Flags for reactor / db query processor
