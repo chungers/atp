@@ -25,8 +25,6 @@ inline bool operator>>(const p::Contract& p, Contract& c)
 inline bool operator>>(const Contract& c, p::Contract& p)
 { return p << c; }
 
-std::ostream& operator<<(std::ostream& os, const Contract& c);
-
 
 //////////////// ORDER /////////////////
 
@@ -41,10 +39,7 @@ inline bool operator>>(const p::Order& p, Order& o)
 inline bool operator>>(const Order& o, p::Order& p)
 { return p << o; }
 
-std::ostream& operator<<(std::ostream& os, const Order& o);
-
 // Specific order types:
-
 
 // MarketOrder --------------
 
@@ -70,9 +65,6 @@ bool operator<<(p::StopLimitOrder& p, const Order& o);
 
 inline bool operator>>(const p::StopLimitOrder& p, Order& o) { return o << p; }
 inline bool operator>>(const Order& o, p::StopLimitOrder& p) { return p << o; }
-
-
-
 
 
 

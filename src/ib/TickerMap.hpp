@@ -16,28 +16,6 @@ bool symbol_from_contract(const std::map<std::string, std::string>& contract,
 bool convert_to_contract(const std::map<std::string, std::string> input,
                          Contract* output);
 
-struct PrintContract
-{
-  PrintContract(const Contract& c) : c_(c) {}
-  const Contract& c_;
-  friend std::ostream& operator<<(std::ostream& os, const PrintContract& c)
-  {
-    os << ","
-       << "contract="
-       << "conId:" << c.c_.conId
-       << ";symbol:" << c.c_.symbol
-       << ";secType:" << c.c_.secType
-       << ";right:" << c.c_.right
-       << ";strike:" << c.c_.strike
-       << ";currency:" << c.c_.currency
-       << ";multiplier:" << c.c_.multiplier
-       << ";expiry:" << c.c_.expiry
-       << ";localSymbol:" << c.c_.localSymbol;
-    return os;
-  }
-};
-
-
 /**
  * Interface for mapping ticker ids to contracts and symbols.
  */

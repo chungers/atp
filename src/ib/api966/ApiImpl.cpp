@@ -135,7 +135,7 @@ void LoggingEWrapper::openOrder(OrderId orderId, const Contract& contract,
                                 const Order& order, const OrderState& state) {
   LOG_EVENT
       << __f__(orderId)
-      << __f__(&contract)
+      << ',' << contract
       << ',' << order
       << ',' << state;
 }
@@ -206,7 +206,7 @@ void LoggingEWrapper::execDetails(int reqId, const Contract& contract,
                                   const Execution& execution) {
   LOG_EVENT
       << __f__(reqId)
-      << __f__(&contract)
+      << ',' << contract
       << ',' << execution;
 }
 void LoggingEWrapper::execDetailsEnd(int reqId) {

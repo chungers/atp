@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include "ib/api966/marshall.hpp"
+#include "ib/api966/ostream.hpp"
 
 namespace IBAPI {
 namespace V966 {

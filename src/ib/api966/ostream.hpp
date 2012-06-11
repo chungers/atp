@@ -3,10 +3,13 @@
 
 #include <iostream>
 
+#include <Shared/Contract.h>
 #include <Shared/Execution.h>
 #include <Shared/Order.h>
 #include <Shared/OrderState.h>
 
+
+std::ostream& operator<<(std::ostream& out, const Contract& v);
 
 std::ostream& operator<<(std::ostream& out, const Order& v);
 

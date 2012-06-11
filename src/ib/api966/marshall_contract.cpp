@@ -14,21 +14,6 @@ bool ParseDate(const std::string& date, int* year, int* month, int* day)
   return true;
 }
 
-std::ostream& operator<<(std::ostream& os, const Contract& c)
-{
-  os << "contract="
-     << "conId:" << c.conId
-     << ";symbol:" << c.symbol
-     << ";secType:" << c.secType
-     << ";right:" << c.right
-     << ";strike:" << c.strike
-     << ";currency:" << c.currency
-     << ";multiplier:" << c.multiplier
-     << ";expiry:" << c.expiry
-     << ";localSymbol:" << c.localSymbol;
-  return os;
-}
-
 std::string FormatExpiry(int year, int month, int day)
 {
   ostringstream s1;
