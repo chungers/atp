@@ -20,6 +20,9 @@ class ProtoBufferMessage : public ZmqMessage, public ZmqSendable
   ProtoBufferMessage() : ZmqMessage(), ZmqSendable()
   { }
 
+  ProtoBufferMessage(const P& p) : ZmqMessage(), ZmqSendable(), proto_(p)
+  { }
+
   ~ProtoBufferMessage() {}
 
   virtual const std::string& key() const

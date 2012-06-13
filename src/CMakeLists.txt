@@ -7,6 +7,27 @@ configure_file(
   ${SRC_DIR}/constants.h
 )
 
+##########################################
+# core api
+set(core_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(core_srcs
+  OrderManager.cpp
+)
+set(core_libs
+ proto_components
+ zmq_components
+ boost_system
+ boost_thread
+ gflags
+ glog
+ zmq
+)
+
+# Client implementation:
+cpp_library(core)
 
 # Boost support for gzip
 add_subdirectory(boost/iostreams)
