@@ -5,6 +5,8 @@
 #include <vector>
 #include <zmq.hpp>
 
+#include <boost/scoped_ptr.hpp>
+
 #include "proto/ib.pb.h"
 
 #include "AsyncResponse.hpp"
@@ -23,6 +25,7 @@ using proto::ib::StopLimitOrder;
 
 namespace atp {
 
+typedef boost::shared_ptr< AsyncResponse<OrderStatus> > AsyncOrderStatus;
 
 class OrderManager
 {
@@ -33,12 +36,17 @@ class OrderManager
 
   ~OrderManager();
 
-  typedef boost::shared_ptr< AsyncResponse< OrderStatus > > AsyncOrderStatus;
 
-  const AsyncOrderStatus& send(MarketOrder& order);
-  const AsyncOrderStatus& send(LimitOrder& order);
-  const AsyncOrderStatus& send(StopLimitOrder& order);
-  const AsyncOrderStatus& send(CancelOrder& order);
+  const AsyncOrderStatus send(CancelOrder& order);
+
+  const AsyncOrderStatus send(MarketOrder& order);
+  const AsyncOrderStatus send(LimitOrder& order);
+  const AsyncOrderStatus send(StopLimitOrder& order);
+
+ private:
+
+  class implementation;
+  boost::scoped_ptr<implementation> impl_;
 
 };
 

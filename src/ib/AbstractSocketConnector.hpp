@@ -230,9 +230,6 @@ class AbstractSocketConnector :
     // Start a new socket.
     boost::lock_guard<boost::mutex> lock(mutex_);
 
-    //EWrapper* ew = EWrapperFactory::getInstance(app_, *this, clientId);
-    // ib::EWrapperPtr ew = app_.GetEWrapper(clientId, *this);
-
     dispatcher_ = app_.GetApiEventDispatcher(clientId);
 
     assert(dispatcher_ != NULL);

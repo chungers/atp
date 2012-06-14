@@ -4,7 +4,7 @@
 // api966
 #include "proto/ib.pb.h"
 
-#include "ib/ProtoBufferMessage.hpp"
+#include "ib/ProtoBufferApiMessage.hpp"
 #include "ib/TickerMap.hpp"
 
 #include "marshall.hpp"
@@ -12,7 +12,7 @@
 namespace IBAPI {
 namespace V966 {
 
-using ib::internal::ProtoBufferMessage;
+using ib::internal::ProtoBufferApiMessage;
 using ib::internal::EClientPtr;
 
 namespace p = proto::ib;
@@ -21,7 +21,7 @@ namespace p = proto::ib;
 /**
  * RequestMarketData
  */
-class RequestMarketData : public ProtoBufferMessage<p::RequestMarketData>
+class RequestMarketData : public ProtoBufferApiMessage<p::RequestMarketData>
 {
  protected:
   virtual bool callApi(const p::RequestMarketData& proto, EClientPtr eclient)
@@ -47,7 +47,7 @@ class RequestMarketData : public ProtoBufferMessage<p::RequestMarketData>
 /**
  * CancelMarketData
  */
-class CancelMarketData : public ProtoBufferMessage<p::CancelMarketData>
+class CancelMarketData : public ProtoBufferApiMessage<p::CancelMarketData>
 {
  protected:
   virtual bool callApi(const p::CancelMarketData& proto, EClientPtr eclient)
@@ -61,7 +61,7 @@ class CancelMarketData : public ProtoBufferMessage<p::CancelMarketData>
 /**
  * RequestMarketDepth
  */
-class RequestMarketDepth : public ProtoBufferMessage<p::RequestMarketDepth>
+class RequestMarketDepth : public ProtoBufferApiMessage<p::RequestMarketDepth>
 {
  protected:
   virtual bool callApi(const p::RequestMarketDepth& proto, EClientPtr eclient)
@@ -85,7 +85,7 @@ class RequestMarketDepth : public ProtoBufferMessage<p::RequestMarketDepth>
 /**
  * CancelMarketDepth
  */
-class CancelMarketDepth : public ProtoBufferMessage<p::CancelMarketDepth>
+class CancelMarketDepth : public ProtoBufferApiMessage<p::CancelMarketDepth>
 {
  protected:
   virtual bool callApi(const p::CancelMarketDepth& proto, EClientPtr eclient)
@@ -99,7 +99,7 @@ class CancelMarketDepth : public ProtoBufferMessage<p::CancelMarketDepth>
 /**
  * CancelOrder
  */
-class CancelOrder : public ProtoBufferMessage<p::CancelOrder>
+class CancelOrder : public ProtoBufferApiMessage<p::CancelOrder>
 {
  protected:
   virtual bool callApi(const p::CancelOrder& proto, EClientPtr eclient)
@@ -113,7 +113,7 @@ class CancelOrder : public ProtoBufferMessage<p::CancelOrder>
 /**
  * MarketOrder
  */
-class MarketOrder : public ProtoBufferMessage<p::MarketOrder>
+class MarketOrder : public ProtoBufferApiMessage<p::MarketOrder>
 {
  protected:
   virtual bool callApi(const p::MarketOrder& proto, EClientPtr eclient)
@@ -133,7 +133,7 @@ class MarketOrder : public ProtoBufferMessage<p::MarketOrder>
 /**
  * LimitOrder
  */
-class LimitOrder : public ProtoBufferMessage<p::LimitOrder>
+class LimitOrder : public ProtoBufferApiMessage<p::LimitOrder>
 {
  protected:
   virtual bool callApi(const p::LimitOrder& proto, EClientPtr eclient)
@@ -153,7 +153,7 @@ class LimitOrder : public ProtoBufferMessage<p::LimitOrder>
 /**
  * StopLimitOrder
  */
-class StopLimitOrder : public ProtoBufferMessage<p::StopLimitOrder>
+class StopLimitOrder : public ProtoBufferApiMessage<p::StopLimitOrder>
 {
  protected:
   virtual bool callApi(const p::StopLimitOrder& proto, EClientPtr eclient)

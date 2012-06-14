@@ -1,5 +1,5 @@
-#ifndef IBAPI_PROTOBUFF_MESSAGE_H_
-#define IBAPI_PROTOBUFF_MESSAGE_H_
+#ifndef IBAPI_PROTOBUFF_API_MESSAGE_H_
+#define IBAPI_PROTOBUFF_API_MESSAGE_H_
 
 #include "log_levels.h"
 #include "utils.hpp"
@@ -12,18 +12,20 @@
 namespace ib {
 namespace internal {
 
+/// This class bridges received protobuffer to actual api calls.
+
 template <typename P>
-class ProtoBufferMessage : public ZmqMessage, public ZmqSendable
+class ProtoBufferApiMessage : public ZmqMessage, public ZmqSendable
 {
  public:
 
-  ProtoBufferMessage() : ZmqMessage(), ZmqSendable()
+  ProtoBufferApiMessage() : ZmqMessage(), ZmqSendable()
   { }
 
-  ProtoBufferMessage(const P& p) : ZmqMessage(), ZmqSendable(), proto_(p)
+  ProtoBufferApiMessage(P& p) : ZmqMessage(), ZmqSendable(), proto_(p)
   { }
 
-  ~ProtoBufferMessage() {}
+  ~ProtoBufferApiMessage() {}
 
   virtual const std::string& key() const
   {
@@ -108,4 +110,4 @@ class ProtoBufferMessage : public ZmqMessage, public ZmqSendable
 } // ib
 
 
-#endif // IBAPI_PROTOBUFF_MESSAGE_H_
+#endif // IBAPI_PROTOBUFF_API_MESSAGE_H_
