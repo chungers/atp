@@ -3,6 +3,7 @@
 
 #include "log_levels.h"
 #include "utils.hpp"
+#include "ZmqProtoBuffer.hpp"
 
 #include "ib/ZmqMessage.hpp"
 #include "zmq/ZmqUtils.hpp"
@@ -50,6 +51,21 @@ class ProtoBufferApiMessage : public ZmqMessage, public ZmqSendable
 
   virtual size_t send(zmq::socket_t& socket, MessageId messageId)
   {
+    return atp::send<P>(socket, timestamp_, messageId, proto_);
+  }
+
+  virtual bool receive(zmq::socket_t& socket)
+  {
+    bool success = atp::receive<P>(socket, proto_);
+    if (success) {
+      messageId_ = proto_.message_id();
+    }
+    return success;
+  }
+
+  /*
+  virtual size_t send(zmq::socket_t& socket, MessageId messageId)
+  {
     // Copy the proto to another proto and then commit the changes
     P copy;
     copy.CopyFrom(proto_);
@@ -76,6 +92,7 @@ class ProtoBufferApiMessage : public ZmqMessage, public ZmqSendable
     return sent;
   }
 
+
   virtual bool receive(zmq::socket_t& socket)
   {
     std::string frame1;
@@ -98,6 +115,7 @@ class ProtoBufferApiMessage : public ZmqMessage, public ZmqSendable
     return false;
   }
 
+  */
  protected:
   virtual bool callApi(const P& proto, EClientPtr eclient) = 0;
 

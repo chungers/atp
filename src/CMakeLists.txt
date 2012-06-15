@@ -8,15 +8,15 @@ configure_file(
 )
 
 ##########################################
-# core api
-set(core_incs
+# order_manager api
+set(order_manager_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(core_srcs
+set(order_manager_srcs
   OrderManager.cpp
 )
-set(core_libs
+set(order_manager_libs
  proto_components
  zmq_components
  boost_system
@@ -27,7 +27,7 @@ set(core_libs
 )
 
 # Client implementation:
-cpp_library(core)
+cpp_library(order_manager)
 
 # Boost support for gzip
 add_subdirectory(boost/iostreams)

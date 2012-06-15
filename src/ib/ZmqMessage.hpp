@@ -21,8 +21,8 @@ using ib::internal::EClientPtr;
 
 class ZmqMessage;
 
-typedef boost::uint64_t Timestamp;
 typedef boost::uint64_t MessageId;
+typedef boost::uint64_t Timestamp;
 typedef boost::optional< boost::shared_ptr<ZmqMessage> > ZmqMessagePtr;
 
 class ZmqMessage : public IBAPI::Message

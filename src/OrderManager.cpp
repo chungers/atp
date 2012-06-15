@@ -1,5 +1,5 @@
 
-
+#include "ZmqProtoBuffer.hpp"
 #include "OrderManager.hpp"
 
 using std::string;
@@ -26,15 +26,29 @@ class OrderManager::implementation
     if (context_ == NULL) {
       context_ = new context_t(1);
     }
+    // Connect to Execution Manager socket (outbound)
     em_socket_ = new socket_t(*context_, ZMQ_PUSH);
     em_socket_->connect(em_endpoint.c_str());
+
+    ORDER_MANAGER_LOGGER << "Connected to " << em_endpoint_;
+
+    // Start inbound subscriber for OrderStatus coming from EM
+
   }
 
 
   template <typename P>
   const AsyncOrderStatus send(P& proto)
   {
-    return AsyncOrderStatus(new AsyncResponse<p::OrderStatus>());
+    AsyncResponse<p::OrderStatus>* response = NULL;
+    if (em_socket_ != NULL) {
+      size_t sent = atp::send(*em_socket_, now_micros(), now_micros(), proto);
+
+      ORDER_MANAGER_LOGGER << "Sent " << proto.key() << " (" << sent << ")";
+
+      response = new AsyncResponse<p::OrderStatus>();
+    }
+    return AsyncOrderStatus(response);
   }
 
  private:
