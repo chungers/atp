@@ -14,6 +14,7 @@ set(zmq_components_incs
 set(zmq_components_srcs
   Reactor.cpp
   Publisher.cpp
+  Subscriber.cpp
 )
 set(zmq_components_libs
   boost_system
