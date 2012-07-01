@@ -9,6 +9,7 @@
 
 #include "proto/ib.pb.h"
 
+#include "common.hpp"
 #include "AsyncResponse.hpp"
 
 
@@ -27,11 +28,15 @@ namespace atp {
 
 typedef boost::shared_ptr< AsyncResponse<OrderStatus> > AsyncOrderStatus;
 
-class OrderManager
+static const vector<string> ALL_ORDER_EVENTS;
+
+class OrderManager : NoCopyAndAssign
 {
  public:
-  OrderManager(const string& em_endpoint,
-               const vector<string>& filters,
+
+  OrderManager(const string& em_endpoint,  // receives orders
+               const string& em_messages_endpoint, // order status
+               const vector<string>& filters = ALL_ORDER_EVENTS,
                context_t* context = NULL);
 
   ~OrderManager();

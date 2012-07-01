@@ -1,27 +1,36 @@
 
+#include "zmq/Subscriber.hpp"
+#include "zmq/ZmqUtils.hpp"
+
 #include "ZmqProtoBuffer.hpp"
 #include "OrderManager.hpp"
 
 using std::string;
 using std::vector;
-using zmq::context_t;
-using zmq::socket_t;
+using ::zmq::context_t;
+using ::zmq::socket_t;
+
+using atp::zmq::Subscriber;
 
 namespace p = proto::ib;
 
 
 namespace atp {
 
-class OrderManager::implementation
+class OrderManager::implementation : public Subscriber::Strategy
 {
 
  public:
-  implementation(const string& em_endpoint,
-                 const vector<string>& filters,
-                 context_t* context) :
+
+  explicit implementation(const string& em_endpoint,
+                          const string& em_messages_endpoint,
+                          const vector<string>& filters,
+                          context_t* context) :
       em_endpoint_(em_endpoint),
+      em_messages_endpoint_(em_messages_endpoint),
       filters_(filters),
-      context_(context)
+      context_(context),
+      order_status_subscriber_(NULL)
   {
     if (context_ == NULL) {
       context_ = new context_t(1);
@@ -33,9 +42,31 @@ class OrderManager::implementation
     ORDER_MANAGER_LOGGER << "Connected to " << em_endpoint_;
 
     // Start inbound subscriber for OrderStatus coming from EM
+    order_status_subscriber_.reset(new Subscriber(em_messages_endpoint_,
+                                                  filters_, *this, context_));
+
+    ORDER_MANAGER_LOGGER << "OrderManager ready.";
 
   }
 
+  // implements Strategy
+  virtual bool check_message(socket_t& socket)
+  {
+    try {
+      string messageKeyFrame;
+      bool more = atp::zmq::receive(socket, &messageKeyFrame);
+      if (more) {
+
+        if (messageKeyFrame == ORDER_STATUS_MESSAGE_.key()) {
+          p::OrderStatus status;
+          bool received = atp::receive<p::OrderStatus>(socket, status);
+        }
+      }
+    } catch (error_t e) {
+
+    }
+    return false;
+  }
 
   template <typename P>
   const AsyncOrderStatus send(P& proto)
@@ -52,19 +83,25 @@ class OrderManager::implementation
   }
 
  private:
-  const string& em_endpoint_;
-  const vector<string>& filters_;
+  const string em_endpoint_;
+  const string em_messages_endpoint_;
+  const vector<string> filters_;
 
   context_t* context_;
   socket_t* em_socket_;
 
+  boost::scoped_ptr<Subscriber> order_status_subscriber_;
+
+  p::OrderStatus ORDER_STATUS_MESSAGE_;
 };
 
 
 OrderManager::OrderManager(const string& em_endpoint,
+                           const string& em_messages_endpoint,
                            const vector<string>& filters,
                            context_t* context) :
-    impl_(new implementation(em_endpoint, filters, context))
+    impl_(new implementation(em_endpoint, em_messages_endpoint,
+                             filters, context))
 {
 }
 

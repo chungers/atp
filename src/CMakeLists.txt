@@ -25,9 +25,15 @@ set(order_manager_libs
  glog
  zmq
 )
-
 # Client implementation:
 cpp_library(order_manager)
+
+
+add_custom_target(core)
+add_dependencies(core
+  order_manager
+)
+
 
 # Boost support for gzip
 add_subdirectory(boost/iostreams)
@@ -52,3 +58,6 @@ add_subdirectory(historian)
 
 # Actual mains / programs
 add_subdirectory(main)
+
+
+

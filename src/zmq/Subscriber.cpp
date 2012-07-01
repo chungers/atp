@@ -32,9 +32,11 @@ Subscriber::Subscriber(const string& publisher_endpoint,
       boost::bind(&Subscriber::process, this)));
 
   // Wait here for the connection to be ready.
-  boost::unique_lock<boost::mutex> lock(mutex_);
-  while (!ready_) {
-    isReady_.wait(lock);
+  {
+    boost::unique_lock<boost::mutex> lock(mutex_);
+    while (!ready_) {
+      isReady_.wait(lock);
+    }
   }
 
   ZMQ_SUBSCRIBER_LOGGER << "Subscriber is ready.";
@@ -51,8 +53,6 @@ const string& Subscriber::publisher_addr() const
 
 void Subscriber::process()
 {
-  boost::lock_guard<boost::mutex> lock(mutex_);
-
   bool localContext = false;
   if (context_ == NULL) {
     // Create own context
@@ -77,6 +77,8 @@ void Subscriber::process()
   }
 
   // now add subscriptions
+  ZMQ_SUBSCRIBER_LOGGER << "Adding " << subscriptions_.size()
+                        << " subscriptions";
   try {
 
     for (vector<string>::const_iterator topic = subscriptions_.begin();
@@ -92,10 +94,18 @@ void Subscriber::process()
     LOG(FATAL) << "Cannot add subscriptions: " << e.what();
   }
 
-  ready_ = connected;
-  isReady_.notify_all();
+  {
+    // Must make sure the lock returned before entering the processing loop.
+    // Otherwise, the lock is not returned and we deadlock the waiters.
+    boost::lock_guard<boost::mutex> lock(mutex_);
+    ready_ = connected;
+    isReady_.notify_all();
+  }
 
   if (connected) {
+
+    ZMQ_SUBSCRIBER_LOGGER << "Start checking messages.";
+
     try {
       while (strategy_.check_message(socket)) {
         // just loop
