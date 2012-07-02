@@ -37,7 +37,7 @@ size_t send(socket_t& socket,
 
     proto.CopyFrom(copy);
 
-  } catch (error_t e) {
+  } catch (::zmq::error_t e) {
     ZMQ_PROTO_MESSAGE_ERROR << "Error sending: " << e.what();
   }
   return sent;
