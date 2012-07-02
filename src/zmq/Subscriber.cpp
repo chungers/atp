@@ -72,7 +72,7 @@ void Subscriber::process()
     connected = true;
     ZMQ_SUBSCRIBER_LOGGER << "Connected to publisher " << publisher_endpoint_;
 
-  } catch (error_t e) {
+  } catch (::zmq::error_t e) {
     LOG(FATAL) << "Cannot connect " << publisher_endpoint_ << ":" << e.what();
   }
 
@@ -90,7 +90,7 @@ void Subscriber::process()
       ZMQ_SUBSCRIBER_LOGGER << "subscribed to topic = " << *topic;
     }
 
-  } catch (error_t e) {
+  } catch (::zmq::error_t e) {
     LOG(FATAL) << "Cannot add subscriptions: " << e.what();
   }
 
