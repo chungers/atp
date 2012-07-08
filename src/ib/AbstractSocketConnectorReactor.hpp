@@ -28,8 +28,9 @@ class AbstractSocketConnectorReactor : public atp::zmq::Reactor::Strategy
                                ZmqMessagePtr& resultOptional) = 0;
 
     /// Tells the message to call the api
-    virtual bool CallApi(ZmqMessagePtr& message) = 0;
+    virtual bool Process(ZmqMessagePtr& message) = 0;
 
+    virtual bool IsTerminate(ZmqMessagePtr& message) = 0;
   };
 
   AbstractSocketConnectorReactor(int socket_type, const std::string& address,

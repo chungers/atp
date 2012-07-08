@@ -75,7 +75,7 @@ bool AbstractSocketConnectorReactor::respond(zmq::socket_t& socket)
 
             } else {
 
-              if (strategy_.CallApi(inboundMessage)) {
+              if (strategy_.Process(inboundMessage)) {
 
                 VARZ_socket_connector_inbound_requests_ok++;
 
@@ -104,6 +104,13 @@ bool AbstractSocketConnectorReactor::respond(zmq::socket_t& socket)
 
         // Process response after message handled.
         AfterMessage(responseCode, socket, inboundMessage);
+
+        if (strategy_.IsTerminate(inboundMessage)) {
+          LOG(INFO) << "Inbound reactor terminating on "
+                    << messageKeyFrame;
+
+          return false;
+        }
       }
     } catch (zmq::error_t e) {
 
