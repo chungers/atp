@@ -1,10 +1,6 @@
 #ifndef IB_ABSTRACT_SOCKET_CONNECTOR_H_
 #define IB_ABSTRACT_SOCKET_CONNECTOR_H_
 
-#include <sstream>
-#include <sys/select.h>
-#include <sys/time.h>
-
 #include <gflags/gflags.h>
 
 #include <boost/asio.hpp>
@@ -42,7 +38,6 @@ namespace internal {
 
 class AbstractSocketConnector :
       public atp::zmq::Reactor::Strategy,
-      // public ib::internal::EWrapperEventCollector,
       IBAPI::OutboundChannels,
       public ib::internal::AsioEClientDriver::EventCallback
 {
