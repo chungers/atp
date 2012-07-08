@@ -15,15 +15,6 @@ const static std::string EM_ENDPOINT("tcp://127.0.0.1:6667");
 const static std::string EM_EVENT_ENDPOINT("tcp://127.0.0.1:7778");
 
 
-struct ExecutionManager : zmq::Reactor::Strategy
-{
-
-  bool respond(::zmq::socket_t& socket)
-  {
-
-  }
-};
-
 
 TEST(OrderManagerTest, OrderManagerCreateTest)
 {
