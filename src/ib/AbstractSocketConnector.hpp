@@ -14,7 +14,6 @@
 #include "utils.hpp"
 
 #include "ib/internal.hpp"
-#include "ib/AbstractSocketConnectorReactor.hpp"
 #include "ib/ApiEventDispatcher.hpp"
 #include "ib/Application.hpp"
 #include "ib/AsioEClientDriver.hpp"
@@ -38,7 +37,7 @@ namespace internal {
 
 
 class AbstractSocketConnector :
-      public AbstractSocketConnectorReactor::Strategy,
+      public atp::zmq::Reactor::Strategy,
       IBAPI::OutboundChannels,
       public ib::internal::AsioEClientDriver::EventCallback
 {
@@ -46,11 +45,18 @@ class AbstractSocketConnector :
  public:
 
   AbstractSocketConnector(
-      Application& app, int timeout,
+      const int reactorSocketType,
+      const SocketConnector::ZmqAddress& reactorAddress,
       const SocketConnector::ZmqAddressMap& outboundChannels,
+      Application& app, int timeout,
+      zmq::context_t* inboundContext = NULL,
       zmq::context_t* outboundContext = NULL) :
+
       app_(app),
       timeoutSeconds_(timeout),
+      reactorSocketType_(reactorSocketType),
+      reactorAddress_(reactorAddress),
+      reactor_(reactorSocketType, reactorAddress, *this, inboundContext),
       outboundChannels_(outboundChannels),
       outboundContext_(outboundContext),
       dispatcher_(NULL),
@@ -67,38 +73,6 @@ class AbstractSocketConnector :
 
 
  public:
-
-  // @see AbstractSocketConnectorReactor::IsReady
-  virtual bool IsReady()
-  {
-    return (driver_.get() != 0 && driver_->IsConnected());
-  }
-
-  // @see AbstractSocketConnectorReactor::IsMessageSupported
-  virtual bool IsMessageSupported(const std::string& messageKeyFrame)
-  {
-    return GetApplication().IsMessageSupported(messageKeyFrame);
-  }
-
-  /// @see AbstractSocketConnectorReactor::CreateMessage
-  /// Constructs a typed message from the message key.  The result is
-  /// optional.  @see typedef of ZmqMessagePtr
-  virtual void CreateMessage(const std::string& messageKeyFrame,
-                             ZmqMessagePtr& result)
-  {
-    ZmqMessage::createMessage(messageKeyFrame, result);
-  }
-
-  /// @see AbstractSocketConnectorReactor::CallApi
-  /// Tells the message to call the api
-  virtual bool CallApi(ZmqMessagePtr& message)
-  {
-    if (message) {
-      return (*message)->callApi(driver_->GetEClient());
-    }
-    return false;
-  }
-
   /// @see AsioEClientDriver::EventCallback
   void onEventThreadStart()
   {
@@ -222,6 +196,17 @@ class AbstractSocketConnector :
     return NULL;
   }
 
+  /// @see Reactor::Strategy
+  /// This method is run from the Reactor's thread.
+  bool respond(zmq::socket_t& socket)
+  {
+    if (driver_.get() == 0 || !driver_->IsConnected()) {
+      return true; // No-op -- don't read the messages from socket yet.
+    }
+    // Now we are connected.  Process the received messages.
+    return handleReactorInboundMessages(socket, driver_->GetEClient());
+  }
+
   /// @overload
   int connect(const string& host,
               unsigned int port,
@@ -320,13 +305,11 @@ class AbstractSocketConnector :
     // Wait for the reactor to stop -- this potentially can block forever
     // if the reactor doesn't not exit out of its processing loop.
     if (blockForReactor) {
-      ReactorBlock();
+      reactor_.block();
     }
 
     return true;
   }
-
-  friend class IBAPI::SocketConnector;
 
  protected:
 
@@ -335,7 +318,19 @@ class AbstractSocketConnector :
     return app_;
   }
 
-  virtual void ReactorBlock() = 0;
+  const int GetReactorSocketType()
+  {
+    return reactorSocketType_;
+  }
+
+  /**
+   * Process messages from the socket and return true if ok.  This
+   * is part of the Reactor implementation that handles any inbound
+   * control messages (e.g. market data requests, orders, etc.)
+   */
+  virtual bool handleReactorInboundMessages(
+      zmq::socket_t& socket, EClientPtr eclient) = 0;
+
 
  private:
 
@@ -347,6 +342,11 @@ class AbstractSocketConnector :
 
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
+
+  // For handling inbound requests.
+  const int reactorSocketType_;
+  const SocketConnector::ZmqAddress& reactorAddress_;
+  atp::zmq::Reactor reactor_;
 
   // For outbound messages
   const SocketConnector::ZmqAddressMap& outboundChannels_;

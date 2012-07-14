@@ -46,7 +46,6 @@ set(IBAPIConnector_incs
 )
 FILE(GLOB IMPL_FILES "${IBAPI_IMPL_DIR}/*.cpp")
 set(IBAPIConnector_srcs
-  AbstractSocketConnectorReactor.cpp
   AsioEClientDriver.cpp
   SessionSetting.cpp
   SocketConnector.cpp
