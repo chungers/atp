@@ -30,7 +30,6 @@
 
 using namespace IBAPI;
 
-DEFINE_VARZ_int64(socket_connector_instances, 0, "");
 DEFINE_VARZ_int64(socket_connector_connection_retries, 0, "");
 DEFINE_VARZ_int64(socket_connector_connection_timeouts, 0, "");
 
@@ -90,20 +89,13 @@ class AbstractSocketConnector :
     ZmqMessage::createMessage(messageKeyFrame, result);
   }
 
-  /// @see AbstractSocketConnectorReactor::Process
+  /// @see AbstractSocketConnectorReactor::CallApi
   /// Tells the message to call the api
-  virtual bool Process(ZmqMessagePtr& message)
+  virtual bool CallApi(ZmqMessagePtr& message)
   {
     if (message) {
       return (*message)->callApi(driver_->GetEClient());
     }
-    return false;
-  }
-
-  /// @see AbstractSocketConnectorReactor::IsTerminate
-  /// Terminates the reactor if true.
-  virtual bool IsTerminate(ZmqMessagePtr& message)
-  {
     return false;
   }
 
@@ -369,71 +361,6 @@ class AbstractSocketConnector :
  protected:
   SocketConnector* socketConnector_;
 };
-
-
-
-class BlockingReactorImpl : public AbstractSocketConnector
-{
- public:
-  BlockingReactorImpl(const SocketConnector::ZmqAddress& reactorAddress,
-                      const SocketConnector::ZmqAddressMap& outboundChannels,
-                      Application& app, int timeout,
-                      zmq::context_t* inboundContext = NULL,
-                      zmq::context_t* outboundContext = NULL) :
-      AbstractSocketConnector(app, timeout, outboundChannels,
-                              inboundContext),
-      reactor_(reactorAddress, *this, outboundContext)
-  {
-    VARZ_socket_connector_instances++;
-  }
-
-  ~BlockingReactorImpl()
-  {
-  }
-
- protected:
-  virtual void ReactorBlock()
-  {
-    reactor_.Block();
-  }
-
- private:
-  BlockingReactor reactor_;
-};
-
-
-class NonBlockingReactorImpl : public AbstractSocketConnector
-{
- public:
-  NonBlockingReactorImpl(const SocketConnector::ZmqAddress& reactorAddress,
-                         const SocketConnector::ZmqAddressMap& outboundChannels,
-                         Application& app, int timeout,
-                         zmq::context_t* inboundContext = NULL,
-                         zmq::context_t* outboundContext = NULL) :
-      AbstractSocketConnector(app, timeout, outboundChannels,
-                              inboundContext),
-      reactor_(reactorAddress, *this, outboundContext)
-  {
-    VARZ_socket_connector_instances++;
-  }
-
-  ~NonBlockingReactorImpl()
-  {
-  }
-
- protected:
-  virtual void ReactorBlock()
-  {
-    reactor_.Block();
-  }
-
- private:
-  NonBlockingReactor reactor_;
-};
-
-
-
-
 
 } // namespace internal
 } // namespace ib

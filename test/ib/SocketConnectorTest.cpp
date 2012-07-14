@@ -20,7 +20,6 @@
 #include "ib/SocketConnector.hpp"
 #include "ib/AbstractSocketConnector.hpp"
 #include "ib/SocketInitiator.hpp"
-#include "ib/ZmqMessage.hpp"
 
 #include "ib/TestHarness.hpp"
 #include "ib/ticker_id.hpp"
@@ -29,8 +28,6 @@
 
 
 using namespace IBAPI;
-using ib::internal::ZmqMessage;
-using ib::internal::ZmqMessagePtr;
 
 enum Event {
   // Strategy
@@ -82,7 +79,7 @@ class TestStrategy :
   }
 };
 
-class TestSocketConnector : public ib::internal::BlockingReactorImpl
+class TestSocketConnector : public ib::internal::AbstractSocketConnector
 {
  public:
   TestSocketConnector(const SocketConnector::ZmqAddress& responderAddress,
@@ -90,53 +87,17 @@ class TestSocketConnector : public ib::internal::BlockingReactorImpl
                       Application& app, int timeout,
                       zmq::context_t* inboundContext = NULL,
                       zmq::context_t* outboundContext = NULL) :
-      ib::internal::BlockingReactorImpl(responderAddress, outboundChannels,
-                                        app, timeout,
-                                        inboundContext, outboundContext)
+      AbstractSocketConnector(ZMQ_REP,
+                              responderAddress, outboundChannels, app, timeout,
+                              inboundContext, outboundContext)
   {
     LOG(INFO) << "TestConnector initialized.";
     LOG(INFO) << "Inbound @ " << responderAddress
               << ", context = " << inboundContext;
   }
 
-  // @see AbstractSocketConnectorReactor::IsReady
-  virtual bool IsReady()
-  {
-    return true;
-  }
-
-  // @see AbstractSocketConnectorReactor::IsMessageSupported
-  virtual bool IsMessageSupported(const std::string& messageKeyFrame)
-  {
-    return true;
-  }
-
-  /// @see AbstractSocketConnectorReactor::CreateMessage
-  /// Constructs a typed message from the message key.  The result is
-  /// optional.  @see typedef of ZmqMessagePtr
-  virtual void CreateMessage(const std::string& messageKeyFrame,
-                             ZmqMessagePtr& result)
-  {
-    ZmqMessage::createMessage(messageKeyFrame, result);
-  }
-
-  /// @see AbstractSocketConnectorReactor::Process
-  /// Tells the message to call the api
-  virtual bool Process(ZmqMessagePtr& message)
-  {
-    return true;
-  }
-
-  /// @see AbstractSocketConnectorReactor::IsTerminate
-  /// Terminates the reactor if true.
-  virtual bool IsTerminate(ZmqMessagePtr& message)
-  {
-    return (*message)->key() == "STOP";
-  }
-
  protected:
 
-  /// @deprecated
   bool handleReactorInboundMessages(zmq::socket_t& reactorSocket,
                                     ib::internal::EClientPtr eclient)
   {
