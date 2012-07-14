@@ -16,14 +16,14 @@ namespace internal {
 /// This class bridges received protobuffer to actual api calls.
 
 template <typename P>
-class ProtoBufferApiMessage : public ZmqMessage, public ZmqSendable
+class ProtoBufferApiMessage : public ZmqMessage
 {
  public:
 
-  ProtoBufferApiMessage() : ZmqMessage(), ZmqSendable()
+  ProtoBufferApiMessage() : ZmqMessage()
   { }
 
-  ProtoBufferApiMessage(P& p) : ZmqMessage(), ZmqSendable(), proto_(p)
+  ProtoBufferApiMessage(P& p) : ZmqMessage(), proto_(p)
   { }
 
   ~ProtoBufferApiMessage() {}
@@ -62,60 +62,6 @@ class ProtoBufferApiMessage : public ZmqMessage, public ZmqSendable
     }
     return success;
   }
-
-  /*
-  virtual size_t send(zmq::socket_t& socket, MessageId messageId)
-  {
-    // Copy the proto to another proto and then commit the changes
-    P copy;
-    copy.CopyFrom(proto_);
-    copy.set_message_id(messageId);
-    copy.set_timestamp(timestamp_);
-
-    std::string buff;
-    if (!copy.SerializeToString(&buff)) {
-      return 0;
-    }
-
-    size_t sent = 0;
-    try {
-
-      sent += atp::zmq::send_copy(socket, key(), true);
-      sent += atp::zmq::send_copy(socket, buff, false);
-
-      messageId_ = messageId;
-      proto_.CopyFrom(copy);
-
-    } catch (zmq::error_t e) {
-      API_MESSAGES_ERROR << "Error sending: " << e.what();
-    }
-    return sent;
-  }
-
-
-  virtual bool receive(zmq::socket_t& socket)
-  {
-    std::string frame1;
-    bool more = atp::zmq::receive(socket, &frame1);
-    if (more) {
-      // Something wrong -- we are supposed to read only one
-      // frame and all of protobuffer's data is in it.
-      API_MESSAGE_BASE_LOGGER << "More data than expected: "
-                              << proto_.key() << ":" << frame1;
-      return false;
-    } else {
-      P p;
-      p.ParseFromString(frame1);
-      if (p.IsInitialized()) {
-        proto_.CopyFrom(p);
-        messageId_ = proto_.message_id();
-        return true;
-      }
-    }
-    return false;
-  }
-
-  */
  protected:
   virtual bool callApi(const P& proto, EClientPtr eclient) = 0;
 

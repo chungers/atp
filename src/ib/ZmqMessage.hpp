@@ -65,12 +65,6 @@ class ZmqMessage : public IBAPI::Message
   MessageId messageId_;
 };
 
-class ZmqSendable
-{
- public:
-  virtual size_t send(zmq::socket_t& destination, MessageId messageId = 0) = 0;
-};
-
 } // namespace internal
 } // namespace ib
 
