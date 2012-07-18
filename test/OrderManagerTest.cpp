@@ -92,3 +92,8 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
   LOG(INFO) << "OrderManager ready.";
 }
 
+TEST(OrderManagerTest, OrderManagerCreateTest2)
+{
+  OrderManager om(EM_ENDPOINT, EM_EVENT_ENDPOINT);
+  LOG(INFO) << "OrderManager ready.";
+}

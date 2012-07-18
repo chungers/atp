@@ -1,7 +1,4 @@
 
-#include <boost/scoped_ptr.hpp>
-
-#include "ib/protocol.h"
 #include "ib/AbstractSocketConnector.hpp"
 #include "ib/ZmqMessage.hpp"
 
@@ -9,168 +6,36 @@
 #include "zmq/ZmqUtils.hpp"
 
 
-DEFINE_VARZ_int64(socket_connector_instances, 0, "");
-DEFINE_VARZ_int64(socket_connector_inbound_requests, 0, "");
-DEFINE_VARZ_int64(socket_connector_inbound_requests_ok, 0, "");
-DEFINE_VARZ_int64(socket_connector_inbound_requests_errors, 0, "");
-DEFINE_VARZ_int64(socket_connector_inbound_requests_exceptions, 0, "");
+namespace IBAPI {
 
+using ib::internal::AbstractSocketConnector;
 
-
-using boost::scoped_ptr;
-
-
-namespace ib {
-namespace internal {
-
-class BaseConnectorImpl : public AbstractSocketConnector
+class SocketConnector::implementation : AbstractSocketConnector
 {
  public:
-  BaseConnectorImpl(const int reactorSocketType,
-                    const SocketConnector::ZmqAddress& reactorAddress,
-                    const SocketConnector::ZmqAddressMap& outboundChannels,
-                    Application& app, int timeout,
-                    zmq::context_t* inboundContext = NULL,
-                    zmq::context_t* outboundContext = NULL) :
-      AbstractSocketConnector(reactorSocketType, reactorAddress,
+  implementation(const ZmqAddress& reactorAddress,
+                 const ZmqAddressMap& outboundChannels,
+                 Application& app, int timeout,
+                 zmq::context_t* inboundContext = NULL,
+                 zmq::context_t* outboundContext = NULL) :
+      AbstractSocketConnector(app, timeout,
                               outboundChannels,
-                              app, timeout, inboundContext, outboundContext)
+                              outboundContext),
+
+#ifdef SOCKET_CONNECTOR_USES_BLOCKING_REACTOR
+      reactorSocketType_(ZMQ_REP),
+#else
+      reactorSocketType_(ZMQ_PULL),
+#endif
+      reactorAddress_(reactorAddress)
   {
-    VARZ_socket_connector_instances++;
+    reactor_ = new atp::zmq::Reactor(
+        reactorSocketType_, reactorAddress, *this, inboundContext);
   }
 
-  ~BaseConnectorImpl()
+  ~implementation()
   {
-  }
-
- protected:
-
-  /// After the reactor message has been received, parsed and / or processed.
-  virtual void afterMessage(unsigned int responseCode,
-                            zmq::socket_t& socket,
-                            ZmqMessagePtr& origMessageOptional) = 0;
-
-  virtual bool handleReactorInboundMessages(zmq::socket_t& socket,
-                                            EClientPtr eclient)
-  {
-    using ib::internal::ZmqMessagePtr;
-
-    try {
-
-      while (1) {
-
-        std::string messageKeyFrame;
-        bool more = atp::zmq::receive(socket, &messageKeyFrame);
-        bool supported = GetApplication().IsMessageSupported(messageKeyFrame);
-
-        if (!supported) {
-
-          IBAPI_SOCKET_CONNECTOR_ERROR << "Unsupported message received: "
-                                       << messageKeyFrame;
-          // keep reading to consume the extra frames:
-          while (more) {
-            std::string buff;
-            more = atp::zmq::receive(socket, &buff);
-            IBAPI_SOCKET_CONNECTOR_ERROR << "Unsupported message received: "
-                                         << messageKeyFrame
-                                         << ", extra frame: " << buff;
-          }
-
-          ZmqMessagePtr empty;
-          afterMessage(404, socket, empty);
-
-          // now skip this loop
-          continue;
-        }
-
-        ZmqMessagePtr inboundMessage;
-        int responseCode = 500;
-
-        // Message is supported.  Now create the message and delegate it
-        // to the actual reading and parsing from the socket.
-        if (more) {
-
-          LOG(INFO) << "Received message of type " << messageKeyFrame;
-
-          ZmqMessage::createMessage(messageKeyFrame, inboundMessage);
-
-          if (inboundMessage && (*inboundMessage)->receive(socket)) {
-
-            VARZ_socket_connector_inbound_requests++;
-
-            if (!(*inboundMessage)->validate()) {
-
-              VARZ_socket_connector_inbound_requests_errors++;
-
-              responseCode = 412; // pre conditional failed
-
-              IBAPI_SOCKET_CONNECTOR_ERROR
-                  << "Handle inbound message failed: "
-                  << inboundMessage;
-
-            } else {
-
-              if ((*inboundMessage)->callApi(eclient)) {
-
-                VARZ_socket_connector_inbound_requests_ok++;
-
-                responseCode = 200;
-
-              } else {
-
-                VARZ_socket_connector_inbound_requests_errors++;
-
-                responseCode = 502; // bad gateway
-
-                // TODO: figure out a better way to log something
-                // helpful - like a message type identifier.
-                IBAPI_SOCKET_CONNECTOR_ERROR
-                    << "Handle inbound message failed: "
-                    << inboundMessage;
-
-              }
-            }
-          } else {
-            responseCode = (inboundMessage) ?
-                400 : // bad request
-                503; // service unavailable
-          }
-        } // if more
-
-        // Process response after message handled.
-        afterMessage(responseCode, socket, inboundMessage);
-      }
-    } catch (zmq::error_t e) {
-
-      VARZ_socket_connector_inbound_requests_exceptions++;
-
-      LOG(ERROR) << "Got exception while handling reactor inbound message: "
-                 << e.what();
-
-      return false; // stop processing
-    }
-    return true; // continue processing
-  }
-
-  friend class IBAPI::SocketConnector;
-};
-
-class BlockingReactorImpl : public BaseConnectorImpl
-{
- public:
-  BlockingReactorImpl(const SocketConnector::ZmqAddress& reactorAddress,
-                      const SocketConnector::ZmqAddressMap& outboundChannels,
-                      Application& app, int timeout,
-                      zmq::context_t* inboundContext = NULL,
-                      zmq::context_t* outboundContext = NULL) :
-      BaseConnectorImpl(ZMQ_REP, reactorAddress,
-                        outboundChannels,
-                        app, timeout, inboundContext, outboundContext)
-  {
-  }
-
-  ~BlockingReactorImpl()
-  {
+    delete reactor_;
   }
 
   /// After the reactor message has been received, parsed and / or processed.
@@ -183,61 +48,26 @@ class BlockingReactorImpl : public BaseConnectorImpl
     }
   }
 
-};
+ protected:
 
-
-class NonBlockingReactorImpl : public BaseConnectorImpl
-{
- public:
-  NonBlockingReactorImpl(const SocketConnector::ZmqAddress& reactorAddress,
-                         const SocketConnector::ZmqAddressMap& outboundChannels,
-                         Application& app, int timeout,
-                         zmq::context_t* inboundContext = NULL,
-                         zmq::context_t* outboundContext = NULL) :
-      BaseConnectorImpl(ZMQ_PULL, reactorAddress,
-                        outboundChannels,
-                        app, timeout, inboundContext, outboundContext)
+  virtual const int GetReactorSocketType()
   {
+    return reactorSocketType_;
   }
 
-  ~NonBlockingReactorImpl()
+  virtual void ReactorBlock()
   {
+    reactor_->block();
   }
 
-  /// After the reactor message has been received, parsed and / or processed.
-  virtual void afterMessage(unsigned int responseCode,
-                            zmq::socket_t& socket,
-                            ib::internal::ZmqMessagePtr& origMessageOptional)
-  {
-    // Do nothing.
-  }
-};
+ private:
+  // For handling inbound requests.
+  const int reactorSocketType_;
+  const SocketConnector::ZmqAddress& reactorAddress_;
+  atp::zmq::Reactor* reactor_;
 
+  friend class IBAPI::SocketConnector;
 
-} // internal
-} // ib
-
-namespace IBAPI {
-
-using ib::internal::BlockingReactorImpl;
-using ib::internal::NonBlockingReactorImpl;
-
-class SocketConnector::implementation : public SOCKET_CONNECTOR_IMPL
-{
- public:
-  implementation(const ZmqAddress& reactorAddress,
-                 const ZmqAddressMap& outboundChannels,
-                 Application& app, int timeout,
-                 zmq::context_t* inboundContext = NULL,
-                 zmq::context_t* outboundContext = NULL) :
-      SOCKET_CONNECTOR_IMPL(reactorAddress, outboundChannels,
-                            app, timeout, inboundContext, outboundContext)
-  {
-  }
-
-  ~implementation()
-  {
-  }
 };
 
 SocketConnector::SocketConnector(const ZmqAddress& reactorAddress,

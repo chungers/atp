@@ -18,6 +18,7 @@
 #include "ib/Application.hpp"
 #include "ib/AsioEClientDriver.hpp"
 #include "ib/SocketConnector.hpp"
+#include "ib/ZmqMessage.hpp"
 
 #include "varz/varz.hpp"
 
@@ -31,6 +32,11 @@ using namespace IBAPI;
 
 DEFINE_VARZ_int64(socket_connector_connection_retries, 0, "");
 DEFINE_VARZ_int64(socket_connector_connection_timeouts, 0, "");
+DEFINE_VARZ_int64(socket_connector_instances, 0, "");
+DEFINE_VARZ_int64(socket_connector_inbound_requests, 0, "");
+DEFINE_VARZ_int64(socket_connector_inbound_requests_ok, 0, "");
+DEFINE_VARZ_int64(socket_connector_inbound_requests_errors, 0, "");
+DEFINE_VARZ_int64(socket_connector_inbound_requests_exceptions, 0, "");
 
 namespace ib {
 namespace internal {
@@ -45,18 +51,12 @@ class AbstractSocketConnector :
  public:
 
   AbstractSocketConnector(
-      const int reactorSocketType,
-      const SocketConnector::ZmqAddress& reactorAddress,
-      const SocketConnector::ZmqAddressMap& outboundChannels,
       Application& app, int timeout,
-      zmq::context_t* inboundContext = NULL,
+      const SocketConnector::ZmqAddressMap& outboundChannels,
       zmq::context_t* outboundContext = NULL) :
 
       app_(app),
       timeoutSeconds_(timeout),
-      reactorSocketType_(reactorSocketType),
-      reactorAddress_(reactorAddress),
-      reactor_(reactorSocketType, reactorAddress, *this, inboundContext),
       outboundChannels_(outboundChannels),
       outboundContext_(outboundContext),
       dispatcher_(NULL),
@@ -305,7 +305,7 @@ class AbstractSocketConnector :
     // Wait for the reactor to stop -- this potentially can block forever
     // if the reactor doesn't not exit out of its processing loop.
     if (blockForReactor) {
-      reactor_.block();
+      ReactorBlock();
     }
 
     return true;
@@ -318,9 +318,13 @@ class AbstractSocketConnector :
     return app_;
   }
 
-  const int GetReactorSocketType()
+  virtual const int GetReactorSocketType()
   {
-    return reactorSocketType_;
+    return ZMQ_PULL;
+  }
+
+  virtual void ReactorBlock()
+  {
   }
 
   /**
@@ -329,8 +333,114 @@ class AbstractSocketConnector :
    * control messages (e.g. market data requests, orders, etc.)
    */
   virtual bool handleReactorInboundMessages(
-      zmq::socket_t& socket, EClientPtr eclient) = 0;
+      zmq::socket_t& socket, EClientPtr eclient)
+  {
+    using ib::internal::ZmqMessagePtr;
 
+    try {
+
+      while (1) {
+
+        std::string messageKeyFrame;
+        bool more = atp::zmq::receive(socket, &messageKeyFrame);
+        bool supported = GetApplication().IsMessageSupported(messageKeyFrame);
+
+        if (!supported) {
+
+          IBAPI_SOCKET_CONNECTOR_ERROR << "Unsupported message received: "
+                                       << messageKeyFrame;
+          // keep reading to consume the extra frames:
+          while (more) {
+            std::string buff;
+            more = atp::zmq::receive(socket, &buff);
+            IBAPI_SOCKET_CONNECTOR_ERROR << "Unsupported message received: "
+                                         << messageKeyFrame
+                                         << ", extra frame: " << buff;
+          }
+
+          ZmqMessagePtr empty;
+          afterMessage(404, socket, empty);
+
+          // now skip this loop
+          continue;
+        }
+
+        ZmqMessagePtr inboundMessage;
+        int responseCode = 500;
+
+        // Message is supported.  Now create the message and delegate it
+        // to the actual reading and parsing from the socket.
+        if (more) {
+
+          LOG(INFO) << "Received message of type " << messageKeyFrame;
+
+          ZmqMessage::createMessage(messageKeyFrame, inboundMessage);
+
+          if (inboundMessage && (*inboundMessage)->receive(socket)) {
+
+            VARZ_socket_connector_inbound_requests++;
+
+            if (!(*inboundMessage)->validate()) {
+
+              VARZ_socket_connector_inbound_requests_errors++;
+
+              responseCode = 412; // pre conditional failed
+
+              IBAPI_SOCKET_CONNECTOR_ERROR
+                  << "Handle inbound message failed: "
+                  << inboundMessage;
+
+            } else {
+
+              if ((*inboundMessage)->callApi(eclient)) {
+
+                VARZ_socket_connector_inbound_requests_ok++;
+
+                responseCode = 200;
+
+              } else {
+
+                VARZ_socket_connector_inbound_requests_errors++;
+
+                responseCode = 502; // bad gateway
+
+                // TODO: figure out a better way to log something
+                // helpful - like a message type identifier.
+                IBAPI_SOCKET_CONNECTOR_ERROR
+                    << "Handle inbound message failed: "
+                    << inboundMessage;
+
+              }
+            }
+          } else {
+            responseCode = (inboundMessage) ?
+                400 : // bad request
+                503; // service unavailable
+          }
+        } // if more
+
+        // Process response after message handled.
+        afterMessage(responseCode, socket, inboundMessage);
+      }
+    } catch (zmq::error_t e) {
+
+      VARZ_socket_connector_inbound_requests_exceptions++;
+
+      LOG(ERROR) << "Got exception while handling reactor inbound message: "
+                 << e.what();
+
+      return false; // stop processing
+    }
+    return true; // continue processing
+  }
+
+ protected:
+
+  virtual void afterMessage(unsigned int responseCode,
+                            zmq::socket_t& socket,
+                            ZmqMessagePtr& origMessageOptional)
+  {
+  }
 
  private:
 
@@ -342,11 +452,6 @@ class AbstractSocketConnector :
 
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
-
-  // For handling inbound requests.
-  const int reactorSocketType_;
-  const SocketConnector::ZmqAddress& reactorAddress_;
-  atp::zmq::Reactor reactor_;
 
   // For outbound messages
   const SocketConnector::ZmqAddressMap& outboundChannels_;
