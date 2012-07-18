@@ -56,11 +56,10 @@ class SocketInitiator : public Initiator,
       throw ( ConfigError, RuntimeError);
 
   /// Starts connections to gateway
-  void start() throw ( ConfigError, RuntimeError );
-  void block() throw ( ConfigError, RuntimeError );
-  void stop(bool force = false);
-
-  bool isLoggedOn();
+  virtual void start(bool connect=true) throw ( ConfigError, RuntimeError );
+  virtual void block() throw ( ConfigError, RuntimeError );
+  virtual void stop(bool force = false);
+  virtual bool isLoggedOn();
 
   /// @implement SocketConnector::Strategy
   void onConnect(SocketConnector&, int clientId);

@@ -19,7 +19,7 @@ class Initiator : NoCopyAndAssign
 
   ~Initiator() {};
 
-  virtual void start() throw ( ConfigError, RuntimeError ) = 0;
+  virtual void start(bool connect=true) throw ( ConfigError, RuntimeError ) = 0;
   virtual void block() throw ( ConfigError, RuntimeError ) = 0;
 
   virtual void stop(bool force = false) = 0;

@@ -8,6 +8,8 @@
 #include <boost/assign.hpp>
 
 #include "ib/ApplicationBase.hpp"
+#include "ib/SocketInitiator.hpp"
+#include "ib/OrderEventDispatcher.hpp"
 
 using std::map;
 using std::set;

@@ -32,11 +32,13 @@ set(api_base_libs
  glog
  zmq
 )
-# Client implementation:
 cpp_library(api_base)
 
 ##########################################
 # Connector to the IB API Gateway
+# Note that this has dependency on the actual
+# libraries that implement the hpp classes
+# such as ApiProtocolHandler.hpp
 set(IBAPIConnector_incs
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
@@ -44,7 +46,6 @@ set(IBAPIConnector_incs
   ${SRC_DIR}
   ${IBAPI_IMPL_DIR}
 )
-FILE(GLOB IMPL_FILES "${IBAPI_IMPL_DIR}/*.cpp")
 set(IBAPIConnector_srcs
   AsioEClientDriver.cpp
   SessionSetting.cpp
@@ -52,11 +53,9 @@ set(IBAPIConnector_srcs
   SocketInitiator.cpp
   MarketEventDispatcher.cpp
   OrderEventDispatcher.cpp
-  ${IMPL_FILES}
 )
 set(IBAPIConnector_libs
  api_base
- ib_api   # version-specific: see IBAPI_IMPL_DIR
  proto_components
  varz_components
  zmq_components
@@ -66,9 +65,7 @@ set(IBAPIConnector_libs
  glog
  zmq
 )
-# Client implementation:
 cpp_library(IBAPIConnector)
-
 
 
 # Add the versioned api subdirectory

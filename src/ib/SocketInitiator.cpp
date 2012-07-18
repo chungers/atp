@@ -226,7 +226,7 @@ class SocketInitiatorImpl : public SocketInitiator {
   }
 
   /// @overload Initiator
-  void start() throw ( ConfigError, RuntimeError )
+  void start(bool connect) throw ( ConfigError, RuntimeError )
   {
     boost::unique_lock<boost::mutex> lock(mutex_);
 
@@ -264,8 +264,11 @@ class SocketInitiatorImpl : public SocketInitiator {
       socketConnectors_[sessionId] = socketConnector;
 
       IBAPI_SOCKET_INITIATOR_LOGGER << "SocketConnector: " << *itr;
-      unsigned int id = socketConnector->connect(itr->getIp(), itr->getPort(),
-                                        sessionId, &strategy_);
+      unsigned int id = 0;
+      if (connect) {
+        id = socketConnector->connect(itr->getIp(), itr->getPort(),
+                                      sessionId, &strategy_);
+      }
 
       if (id == sessionId) {
         IBAPI_SOCKET_INITIATOR_LOGGER << "Session " << sessionId << " ready: "
@@ -274,8 +277,10 @@ class SocketInitiatorImpl : public SocketInitiator {
                                       << itr->getConnectorReactorAddress();
 
       } else {
-        LOG(FATAL) << "Session " << sessionId << " cannot start.";
-        strategy_.onError(*socketConnector);
+        if (connect) {
+          LOG(FATAL) << "Session " << sessionId << " cannot start.";
+          strategy_.onError(*socketConnector);
+        }
       }
       sleep(1); // Wait a bit.
     }
@@ -379,9 +384,9 @@ void SocketInitiator::push(int channel, const std::string& address)
 }
 
 /// @overload Initiator
-void SocketInitiator::start() throw ( ConfigError, RuntimeError )
+void SocketInitiator::start(bool connect) throw ( ConfigError, RuntimeError )
 {
-  impl_->start();
+  impl_->start(connect);
 }
 
 /// @overload Initiator

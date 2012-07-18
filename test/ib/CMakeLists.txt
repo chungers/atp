@@ -25,6 +25,7 @@ set(AsioEClientDriver_test_srcs
 )
 set(AsioEClientDriver_test_libs
   IBAPIConnector
+  ib_api_versioned
   QuantLib
 )
 cpp_gtest(AsioEClientDriver_test)
@@ -43,6 +44,7 @@ set(SocketInitiator_test_srcs
 )
 set(SocketInitiator_test_libs
   IBAPIConnector
+  ib_api_versioned
 )
 cpp_gtest(SocketInitiator_test)
 
@@ -61,6 +63,7 @@ set(SocketConnector_test_srcs
 )
 set(SocketConnector_test_libs
   IBAPIConnector
+  ib_api_versioned
 )
 cpp_gtest(SocketConnector_test)
 
@@ -77,6 +80,7 @@ set(utils_test_srcs
 )
 set(utils_test_libs
   IBAPIConnector
+  ib_api_versioned
 )
 cpp_gtest(utils_test)
 

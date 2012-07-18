@@ -28,8 +28,7 @@ set(V966_Marshall_test_srcs
   MarshallTest.cpp
 )
 set(V966_Marshall_test_libs
-  ib_api
-#  IBAPIConnector
+  ib_api_versioned
 )
 cpp_gtest(V966_Marshall_test)
 
