@@ -13,6 +13,7 @@ set(firehose_srcs
 )
 set(firehose_libs
   IBAPIConnector
+  ib_api_versioned
   boost_system
   gflags
   glog
@@ -30,6 +31,7 @@ set(em_srcs
 )
 set(em_libs
   IBAPIConnector
+  ib_api_versioned
   boost_system
   gflags
   glog
@@ -47,6 +49,7 @@ set(marketdata_srcs
 )
 set(marketdata_libs
   IBAPIConnector
+  ib_api_versioned
   boost_system
   gflags
   glog
@@ -66,8 +69,8 @@ set(logreader_srcs
   logreader_main.cpp
 )
 set(logreader_libs
-  ib_api
   IBAPIConnector
+  ib_api_versioned
   boost_system
   boost_iostreams
   gflags
@@ -92,6 +95,7 @@ set(hloader_srcs
 )
 set(hloader_libs
   IBAPIConnector
+  ib_api_versioned
   boost_system
   boost_iostreams
   gflags
