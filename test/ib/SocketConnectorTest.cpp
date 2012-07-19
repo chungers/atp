@@ -82,18 +82,31 @@ class TestStrategy :
 class TestSocketConnector : public ib::internal::AbstractSocketConnector
 {
  public:
-  TestSocketConnector(const SocketConnector::ZmqAddress& responderAddress,
+  TestSocketConnector(const SocketConnector::ZmqAddress& reactorAddress,
                       const SocketConnector::ZmqAddressMap& outboundChannels,
                       Application& app, int timeout,
                       zmq::context_t* inboundContext = NULL,
                       zmq::context_t* outboundContext = NULL) :
-      AbstractSocketConnector(ZMQ_REP,
-                              responderAddress, outboundChannels, app, timeout,
-                              inboundContext, outboundContext)
+      AbstractSocketConnector(app, timeout,
+                              outboundChannels, outboundContext),
+      reactorSocketType_(ZMQ_REP),
+      reactorAddress_(reactorAddress),
+      inboundContext_(inboundContext)
   {
     LOG(INFO) << "TestConnector initialized.";
-    LOG(INFO) << "Inbound @ " << responderAddress
+    LOG(INFO) << "Inbound @ " << reactorAddress
               << ", context = " << inboundContext;
+  }
+
+  ~TestSocketConnector()
+  {
+    delete reactor_;
+  }
+
+  void start()
+  {
+    reactor_ = new atp::zmq::Reactor(
+        reactorSocketType_, reactorAddress_, *this, inboundContext_);
   }
 
  protected:
@@ -130,7 +143,24 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
     }
   }
 
+  virtual const int GetReactorSocketType()
+  {
+    return reactorSocketType_;
+  }
+
+  virtual void BlockUntilCleanStop()
+  {
+    reactor_->block();
+  }
+
  private:
+  // For handling inbound requests.
+  const int reactorSocketType_;
+  const SocketConnector::ZmqAddress& reactorAddress_;
+  zmq::context_t* inboundContext_;
+  atp::zmq::Reactor* reactor_;
+
+
   std::string msg;
 };
 

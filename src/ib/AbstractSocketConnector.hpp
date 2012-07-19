@@ -44,6 +44,7 @@ namespace internal {
 
 class AbstractSocketConnector :
       IBAPI::OutboundChannels,
+      public atp::zmq::Reactor::Strategy,
       public ib::internal::AsioEClientDriver::EventCallback
 {
 
@@ -296,6 +297,19 @@ class AbstractSocketConnector :
 
     return true;
   }
+
+  /// @see Reactor::Strategy
+  /// This method is run from the Reactor's thread.
+  virtual bool respond(zmq::socket_t& socket)
+  {
+    if (!IsDriverReady()) {
+      return true; // No-op -- don't read the messages from socket yet.
+    }
+    // Now we are connected.  Process the received messages.
+    return handleReactorInboundMessages(socket, GetEClient());
+  }
+
+ protected:
 
   bool IsDriverReady()
   {

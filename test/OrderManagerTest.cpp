@@ -19,7 +19,7 @@ using atp::OrderManager;
 using IBAPI::SocketInitiator;
 
 const static std::string EM_ENDPOINT("tcp://127.0.0.1:6667");
-const static std::string EM_EVENT_ENDPOINT("tcp://127.0.0.1:7778");
+const static std::string EM_EVENT_ENDPOINT("tcp://127.0.0.1:8888");
 
 #include "ApiProtocolHandler.cpp"
 
