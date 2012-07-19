@@ -31,6 +31,8 @@ class SocketConnector : NoCopyAndAssign {
                   zmq::context_t* outboundContext = NULL);
   ~SocketConnector();
 
+  bool start();
+
   /// Blocking connect, up to the timeout limit in seconds.
   int connect(const std::string& host, unsigned int port, unsigned int clientId,
               Strategy* s, int maxAttempts = 60);

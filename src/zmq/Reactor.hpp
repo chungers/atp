@@ -19,7 +19,7 @@ class Reactor
 
   struct Strategy : NoCopyAndAssign {
 
-    virtual bool respond(::zmq::socket_t& socket) = 0;
+    virtual bool respond(::zmq::socket_t& socket) { return false; }
 
   };
 

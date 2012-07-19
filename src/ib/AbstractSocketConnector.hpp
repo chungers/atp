@@ -43,7 +43,6 @@ namespace internal {
 
 
 class AbstractSocketConnector :
-      public atp::zmq::Reactor::Strategy,
       IBAPI::OutboundChannels,
       public ib::internal::AsioEClientDriver::EventCallback
 {
@@ -196,17 +195,6 @@ class AbstractSocketConnector :
     return NULL;
   }
 
-  /// @see Reactor::Strategy
-  /// This method is run from the Reactor's thread.
-  bool respond(zmq::socket_t& socket)
-  {
-    if (driver_.get() == 0 || !driver_->IsConnected()) {
-      return true; // No-op -- don't read the messages from socket yet.
-    }
-    // Now we are connected.  Process the received messages.
-    return handleReactorInboundMessages(socket, driver_->GetEClient());
-  }
-
   /// @overload
   int connect(const string& host,
               unsigned int port,
@@ -285,7 +273,7 @@ class AbstractSocketConnector :
     return -1;
   }
 
-  bool stop(bool blockForReactor = false)
+  bool stop(bool blockForCleanStop = false)
   {
     if (driver_.get() != 0) {
       IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Disconnecting from gateway.";
@@ -302,28 +290,29 @@ class AbstractSocketConnector :
       }
       driver_.reset();
     }
-    // Wait for the reactor to stop -- this potentially can block forever
-    // if the reactor doesn't not exit out of its processing loop.
-    if (blockForReactor) {
-      ReactorBlock();
+    if (blockForCleanStop) {
+      BlockUntilCleanStop();
     }
 
     return true;
   }
 
- protected:
+  bool IsDriverReady()
+  {
+    return (driver_.get() != 0 && !driver_->IsConnected());
+  }
+
+  EClientPtr GetEClient()
+  {
+    return driver_->GetEClient();
+  }
 
   Application& GetApplication()
   {
     return app_;
   }
 
-  virtual const int GetReactorSocketType()
-  {
-    return ZMQ_PULL;
-  }
-
-  virtual void ReactorBlock()
+  virtual void BlockUntilCleanStop()
   {
   }
 
@@ -332,8 +321,8 @@ class AbstractSocketConnector :
    * is part of the Reactor implementation that handles any inbound
    * control messages (e.g. market data requests, orders, etc.)
    */
-  virtual bool handleReactorInboundMessages(
-      zmq::socket_t& socket, EClientPtr eclient)
+  virtual bool handleReactorInboundMessages(zmq::socket_t& socket,
+                                            EClientPtr eclient)
   {
     using ib::internal::ZmqMessagePtr;
 
@@ -413,6 +402,7 @@ class AbstractSocketConnector :
               }
             }
           } else {
+
             responseCode = (inboundMessage) ?
                 400 : // bad request
                 503; // service unavailable
