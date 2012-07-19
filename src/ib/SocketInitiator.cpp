@@ -264,6 +264,15 @@ class SocketInitiatorImpl : public SocketInitiator {
       socketConnectors_[sessionId] = socketConnector;
 
       IBAPI_SOCKET_INITIATOR_LOGGER << "SocketConnector: " << *itr;
+
+
+      // Start the connector
+      if (!socketConnector->start()) {
+          strategy_.onError(*socketConnector);
+          LOG(FATAL) << "Session " << sessionId << " cannot start reactor.";
+      }
+
+      // Connect
       unsigned int id = 0;
       if (connect) {
         id = socketConnector->connect(itr->getIp(), itr->getPort(),
@@ -277,10 +286,12 @@ class SocketInitiatorImpl : public SocketInitiator {
                                       << itr->getConnectorReactorAddress();
 
       } else {
+
         if (connect) {
-          LOG(FATAL) << "Session " << sessionId << " cannot start.";
           strategy_.onError(*socketConnector);
+          LOG(FATAL) << "Session " << sessionId << " cannot start.";
         }
+
       }
       sleep(1); // Wait a bit.
     }

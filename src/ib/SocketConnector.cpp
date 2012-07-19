@@ -10,7 +10,33 @@ namespace IBAPI {
 
 using ib::internal::AbstractSocketConnector;
 
-class SocketConnector::implementation : AbstractSocketConnector
+class ReactorStrategy : public atp::zmq::Reactor::Strategy
+{
+ public:
+  ReactorStrategy(AbstractSocketConnector& connectorBase) :
+      connector_(connectorBase)
+  {
+  }
+
+  /// @see Reactor::Strategy
+  /// This method is run from the Reactor's thread.
+  virtual bool respond(zmq::socket_t& socket)
+  {
+    if (!connector_.IsDriverReady()) {
+      return true; // No-op -- don't read the messages from socket yet.
+    }
+    // Now we are connected.  Process the received messages.
+    return connector_.handleReactorInboundMessages(
+        socket, connector_.GetEClient());
+  }
+
+ private:
+  AbstractSocketConnector& connector_;
+};
+
+
+class SocketConnector::implementation :
+      public AbstractSocketConnector, NoCopyAndAssign
 {
  public:
   implementation(const ZmqAddress& reactorAddress,
@@ -35,12 +61,14 @@ class SocketConnector::implementation : AbstractSocketConnector
   ~implementation()
   {
     delete reactor_;
+    delete strategy_;
   }
 
   void start()
   {
+    strategy_ = new ReactorStrategy(*this);
     reactor_ = new atp::zmq::Reactor(
-        reactorSocketType_, reactorAddress_, *this, inboundContext_);
+        reactorSocketType_, reactorAddress_, *strategy_, inboundContext_);
   }
 
   /// After the reactor message has been received, parsed and / or processed.
@@ -60,7 +88,7 @@ class SocketConnector::implementation : AbstractSocketConnector
     return reactorSocketType_;
   }
 
-  virtual void ReactorBlock()
+  virtual void BlockUntilCleanStop()
   {
     reactor_->block();
   }
@@ -70,10 +98,11 @@ class SocketConnector::implementation : AbstractSocketConnector
   const int reactorSocketType_;
   const SocketConnector::ZmqAddress& reactorAddress_;
   zmq::context_t* inboundContext_;
+  ReactorStrategy* strategy_;
   atp::zmq::Reactor* reactor_;
 
   friend class IBAPI::SocketConnector;
-
+  friend class ReactorStrategy;
 };
 
 SocketConnector::SocketConnector(const ZmqAddress& reactorAddress,
@@ -103,11 +132,15 @@ int SocketConnector::connect(const string& host,
                              Strategy* strategy,
                              int maxAttempts)
 {
-  IBAPI_SOCKET_CONNECTOR_LOGGER << "Starting inbound reactor.";
-  impl_->start();
   return impl_->connect(host, port, clientId, strategy, maxAttempts);
 }
 
+bool SocketConnector::start()
+{
+  IBAPI_SOCKET_CONNECTOR_LOGGER << "Starting inbound reactor.";
+  impl_->start();
+  return true;
+}
 
 bool SocketConnector::stop()
 {
