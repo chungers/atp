@@ -27,15 +27,20 @@ class SocketConnector::implementation : AbstractSocketConnector
 #else
       reactorSocketType_(ZMQ_PULL),
 #endif
-      reactorAddress_(reactorAddress)
+      reactorAddress_(reactorAddress),
+      inboundContext_(inboundContext)
   {
-    reactor_ = new atp::zmq::Reactor(
-        reactorSocketType_, reactorAddress, *this, inboundContext);
   }
 
   ~implementation()
   {
     delete reactor_;
+  }
+
+  void start()
+  {
+    reactor_ = new atp::zmq::Reactor(
+        reactorSocketType_, reactorAddress_, *this, inboundContext_);
   }
 
   /// After the reactor message has been received, parsed and / or processed.
@@ -64,6 +69,7 @@ class SocketConnector::implementation : AbstractSocketConnector
   // For handling inbound requests.
   const int reactorSocketType_;
   const SocketConnector::ZmqAddress& reactorAddress_;
+  zmq::context_t* inboundContext_;
   atp::zmq::Reactor* reactor_;
 
   friend class IBAPI::SocketConnector;
@@ -97,8 +103,11 @@ int SocketConnector::connect(const string& host,
                              Strategy* strategy,
                              int maxAttempts)
 {
+  IBAPI_SOCKET_CONNECTOR_LOGGER << "Starting inbound reactor.";
+  impl_->start();
   return impl_->connect(host, port, clientId, strategy, maxAttempts);
 }
+
 
 bool SocketConnector::stop()
 {
