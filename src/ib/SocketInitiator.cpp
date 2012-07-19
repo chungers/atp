@@ -104,11 +104,11 @@ bool SocketInitiator::Configure(SocketInitiator& initiator,
 
     if (publish) {
       IBAPI_SOCKET_INITIATOR_LOGGER
-          << "Channel " << channel << ", PUBLISH to " << endpoint;
+          << "Channel " << channel << " PUBLISH to " << endpoint;
       initiator.publish(channel, endpoint);
     } else {
       IBAPI_SOCKET_INITIATOR_LOGGER
-          << "Channel " << channel << ", PUSH to " << endpoint;
+          << "Channel " << channel << " PUSH to " << endpoint;
       initiator.push(channel, endpoint);
     }
   }
