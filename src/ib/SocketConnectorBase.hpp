@@ -1,5 +1,5 @@
-#ifndef IB_ABSTRACT_SOCKET_CONNECTOR_H_
-#define IB_ABSTRACT_SOCKET_CONNECTOR_H_
+#ifndef IB_SOCKET_CONNECTOR_BASE_H_
+#define IB_SOCKET_CONNECTOR_BASE_H_
 
 #include <gflags/gflags.h>
 
@@ -26,7 +26,6 @@
 #include "zmq/ZmqUtils.hpp"
 
 
-#define CONNECTOR_IMPL_WARNING LOG(WARNING)
 
 using namespace IBAPI;
 
@@ -42,7 +41,7 @@ namespace ib {
 namespace internal {
 
 
-class AbstractSocketConnector :
+class SocketConnectorBase :
       IBAPI::OutboundChannels,
       public atp::zmq::Reactor::Strategy,
       public ib::internal::AsioEClientDriver::EventCallback
@@ -50,13 +49,17 @@ class AbstractSocketConnector :
 
  public:
 
-  AbstractSocketConnector(
+  explicit SocketConnectorBase(
       Application& app, int timeout,
+      const SocketConnector::ZmqAddress& reactorAddress, int reactorSocketType,
       const SocketConnector::ZmqAddressMap& outboundChannels,
+      zmq::context_t* inboundContext = NULL,
       zmq::context_t* outboundContext = NULL) :
-
       app_(app),
       timeoutSeconds_(timeout),
+      reactorAddress_(reactorAddress),
+      reactorSocketType_(reactorSocketType),
+      inboundContext_(inboundContext),
       outboundChannels_(outboundChannels),
       outboundContext_(outboundContext),
       dispatcher_(NULL),
@@ -64,15 +67,30 @@ class AbstractSocketConnector :
   {
   }
 
-  ~AbstractSocketConnector()
+  ~SocketConnectorBase()
   {
     if (dispatcher_ != NULL) {
       delete dispatcher_;
+    }
+    if (reactor_ != NULL) {
+      delete reactor_;
     }
   }
 
 
  public:
+
+  const int GetReactorSocketType() const
+  {
+    return reactorSocketType_;
+  }
+
+  void start()
+  {
+    reactor_ = new atp::zmq::Reactor(
+        reactorSocketType_, reactorAddress_, *this, inboundContext_);
+  }
+
   /// @see AsioEClientDriver::EventCallback
   void onEventThreadStart()
   {
@@ -205,7 +223,7 @@ class AbstractSocketConnector :
   {
     // Check on the state.
     if (driver_.get() != 0 && driver_->IsConnected()) {
-        CONNECTOR_IMPL_WARNING
+        IBAPI_SOCKET_CONNECTOR_WARNING
             << "Calling eConnect when already connected.";
 
         return driver_->getClientId();
@@ -311,6 +329,21 @@ class AbstractSocketConnector :
 
  protected:
 
+  /// After the reactor message has been received, parsed and / or processed.
+  virtual void afterMessage(unsigned int responseCode,
+                            zmq::socket_t& socket,
+                            ib::internal::ZmqMessagePtr& origMessageOptional)
+  {
+    if (GetReactorSocketType() == ZMQ_REP) {
+      atp::zmq::send_copy(socket, boost::lexical_cast<string>(responseCode));
+    }
+  }
+
+  virtual void BlockUntilCleanStop()
+  {
+    reactor_->block();
+  }
+
   bool IsDriverReady()
   {
     return (driver_.get() != 0 && !driver_->IsConnected());
@@ -324,10 +357,6 @@ class AbstractSocketConnector :
   Application& GetApplication()
   {
     return app_;
-  }
-
-  virtual void BlockUntilCleanStop()
-  {
   }
 
   /**
@@ -438,14 +467,6 @@ class AbstractSocketConnector :
     return true; // continue processing
   }
 
- protected:
-
-  virtual void afterMessage(unsigned int responseCode,
-                            zmq::socket_t& socket,
-                            ZmqMessagePtr& origMessageOptional)
-  {
-  }
-
  private:
 
   Application& app_;
@@ -456,6 +477,12 @@ class AbstractSocketConnector :
 
   boost::shared_ptr<boost::thread> thread_;
   boost::mutex mutex_;
+
+  // For inbound messages
+  const SocketConnector::ZmqAddress& reactorAddress_;
+  const int reactorSocketType_;
+  zmq::context_t* inboundContext_;
+  atp::zmq::Reactor* reactor_;
 
   // For outbound messages
   const SocketConnector::ZmqAddressMap& outboundChannels_;
@@ -474,4 +501,4 @@ class AbstractSocketConnector :
 } // namespace internal
 } // namespace ib
 
-#endif  //IB_ABSTRACT_SOCKET_CONNECTOR_H_
+#endif  //IB_SOCKET_CONNECTOR_BASE_H_

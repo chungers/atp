@@ -1,5 +1,5 @@
 
-#include "ib/AbstractSocketConnector.hpp"
+#include "ib/SocketConnectorBase.hpp"
 #include "ib/ZmqMessage.hpp"
 
 #include "varz/varz.hpp"
@@ -8,10 +8,9 @@
 
 namespace IBAPI {
 
-using ib::internal::AbstractSocketConnector;
+using ib::internal::SocketConnectorBase;
 
-class SocketConnector::implementation :
-       public AbstractSocketConnector
+class SocketConnector::implementation : public SocketConnectorBase
 {
  public:
   implementation(const ZmqAddress& reactorAddress,
@@ -19,59 +18,22 @@ class SocketConnector::implementation :
                  Application& app, int timeout,
                  zmq::context_t* inboundContext = NULL,
                  zmq::context_t* outboundContext = NULL) :
-      AbstractSocketConnector(app, timeout,
-                              outboundChannels,
-                              outboundContext),
-
+      SocketConnectorBase(app, timeout,
+                          reactorAddress,
 #ifdef SOCKET_CONNECTOR_USES_BLOCKING_REACTOR
-      reactorSocketType_(ZMQ_REP),
+                          ZMQ_REP,
 #else
-      reactorSocketType_(ZMQ_PULL),
+                          ZMQ_PULL,
 #endif
-      reactorAddress_(reactorAddress),
-      inboundContext_(inboundContext)
+                          outboundChannels,
+                          inboundContext,
+                          outboundContext)
   {
   }
 
   ~implementation()
   {
-    delete reactor_;
   }
-
-  void start()
-  {
-    reactor_ = new atp::zmq::Reactor(
-        reactorSocketType_, reactorAddress_, *this, inboundContext_);
-  }
-
-  /// After the reactor message has been received, parsed and / or processed.
-  virtual void afterMessage(unsigned int responseCode,
-                            zmq::socket_t& socket,
-                            ib::internal::ZmqMessagePtr& origMessageOptional)
-  {
-    if (GetReactorSocketType() == ZMQ_REP) {
-      atp::zmq::send_copy(socket, boost::lexical_cast<string>(responseCode));
-    }
-  }
-
- protected:
-
-  virtual const int GetReactorSocketType()
-  {
-    return reactorSocketType_;
-  }
-
-  virtual void BlockUntilCleanStop()
-  {
-    reactor_->block();
-  }
-
- private:
-  // For handling inbound requests.
-  const int reactorSocketType_;
-  const SocketConnector::ZmqAddress& reactorAddress_;
-  zmq::context_t* inboundContext_;
-  atp::zmq::Reactor* reactor_;
 
   friend class IBAPI::SocketConnector;
 };

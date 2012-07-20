@@ -18,7 +18,7 @@
 #include "ib/GenericTickRequest.hpp"
 #include "ib/SessionSetting.hpp"
 #include "ib/SocketConnector.hpp"
-#include "ib/AbstractSocketConnector.hpp"
+#include "ib/SocketConnectorBase.hpp"
 #include "ib/SocketInitiator.hpp"
 
 #include "ib/TestHarness.hpp"
@@ -79,7 +79,7 @@ class TestStrategy :
   }
 };
 
-class TestSocketConnector : public ib::internal::AbstractSocketConnector
+class TestSocketConnector : public ib::internal::SocketConnectorBase
 {
  public:
   TestSocketConnector(const SocketConnector::ZmqAddress& reactorAddress,
@@ -87,11 +87,9 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
                       Application& app, int timeout,
                       zmq::context_t* inboundContext = NULL,
                       zmq::context_t* outboundContext = NULL) :
-      AbstractSocketConnector(app, timeout,
-                              outboundChannels, outboundContext),
-      reactorSocketType_(ZMQ_REP),
-      reactorAddress_(reactorAddress),
-      inboundContext_(inboundContext)
+      SocketConnectorBase(app, timeout,
+                          reactorAddress, ZMQ_REP,
+                          outboundChannels, outboundContext)
   {
     LOG(INFO) << "TestConnector initialized.";
     LOG(INFO) << "Inbound @ " << reactorAddress
@@ -100,13 +98,6 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
 
   ~TestSocketConnector()
   {
-    delete reactor_;
-  }
-
-  void start()
-  {
-    reactor_ = new atp::zmq::Reactor(
-        reactorSocketType_, reactorAddress_, *this, inboundContext_);
   }
 
  protected:
@@ -143,24 +134,7 @@ class TestSocketConnector : public ib::internal::AbstractSocketConnector
     }
   }
 
-  virtual const int GetReactorSocketType()
-  {
-    return reactorSocketType_;
-  }
-
-  virtual void BlockUntilCleanStop()
-  {
-    reactor_->block();
-  }
-
  private:
-  // For handling inbound requests.
-  const int reactorSocketType_;
-  const SocketConnector::ZmqAddress& reactorAddress_;
-  zmq::context_t* inboundContext_;
-  atp::zmq::Reactor* reactor_;
-
-
   std::string msg;
 };
 
