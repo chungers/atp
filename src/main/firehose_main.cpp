@@ -18,22 +18,21 @@
 #include "varz/VarzServer.hpp"
 
 #include "constants.h"
-#include "ib/ApiEventDispatcher.hpp"
-#include "ib/ApplicationBase.hpp"
-#include "ib/SocketInitiator.hpp"
-#include "ib/MarketEventDispatcher.hpp"
+#include "fh.hpp"
 
-
+using std::map;
+using std::vector;
+using std::string;
+using std::stringstream;
+using std::istringstream;
+using IBAPI::ApiEventDispatcher;
+using IBAPI::SessionID;
+using IBAPI::SessionSetting;
+using IBAPI::SocketInitiator;
 
 static IBAPI::SocketInitiator* INITIATOR_INSTANCE;
 static atp::varz::VarzServer* VARZ_INSTANCE;
 
-
-/// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
-const std::string CONNECTOR_SPECS =
-    "100=127.0.0.1:4001@tcp://127.0.0.1:6666";
-
-const std::string OUTBOUND_ENDPOINTS = "0=tcp://127.0.0.1:7777";
 
 DEFINE_string(connectors, CONNECTOR_SPECS,
               "Comma-delimited list of gateway ip/port @ control endpoints.");
@@ -64,55 +63,6 @@ void OnTerminate(int param)
   LOG(INFO) << "Bye.";
   exit(1);
 }
-
-// Firehose only supports messages related to market data.
-const set<string> FIREHOSE_VALID_MESSAGES_ =
-               boost::assign::list_of
-               ("IBAPI.FEED.RequestMarketData")
-               ("IBAPI.FEED.CancelMarketData")
-               ("IBAPI.FEED.RequestMarketDepth")
-               ("IBAPI.FEED.CancelMarketDepth")
-               ;
-
-using std::map;
-using std::vector;
-using std::string;
-using std::stringstream;
-using std::istringstream;
-using IBAPI::ApiEventDispatcher;
-using IBAPI::SessionID;
-using IBAPI::SessionSetting;
-using IBAPI::SocketInitiator;
-
-
-class Firehose : public IBAPI::ApplicationBase
-{
- public:
-
-  Firehose() {}
-  ~Firehose() {}
-
-  virtual bool IsMessageSupported(const std::string& key)
-  {
-    return FIREHOSE_VALID_MESSAGES_.find(key) != FIREHOSE_VALID_MESSAGES_.end();
-  }
-
-  virtual ApiEventDispatcher* GetApiEventDispatcher(const SessionID& sessionId)
-  {
-    return new ib::internal::MarketEventDispatcher(*this, sessionId);
-  }
-
-  void onLogon(const SessionID& sessionId)
-  {
-    LOG(INFO) << "Session " << sessionId << " logged on.";
-  }
-
-  void onLogout(const SessionID& sessionId)
-  {
-    LOG(INFO) << "Session " << sessionId << " logged off.";
-  }
-
-};
 
 
 ////////////////////////////////////////////////////////
