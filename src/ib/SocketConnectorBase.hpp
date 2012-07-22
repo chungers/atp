@@ -70,13 +70,9 @@ class SocketConnectorBase :
 
   ~SocketConnectorBase()
   {
-    if (driver_.get() != NULL) {
-      driver_.reset();
-    }
-
-    if (dispatcher_ != NULL) {
-      delete dispatcher_;
-    }
+    // if (driver_.get() != NULL) {
+    //   driver_.reset();
+    // }
     if (reactor_ != NULL) {
       delete reactor_;
     }
@@ -93,6 +89,7 @@ class SocketConnectorBase :
   void start(unsigned int clientId)
   {
     dispatcher_ = app_.GetApiEventDispatcher(clientId);
+
     assert(dispatcher_ != NULL);
 
     dispatcher_->SetOutboundSockets(*this);
@@ -110,6 +107,10 @@ class SocketConnectorBase :
   /// @see AsioEClientDriver::EventCallback
   void onEventThreadStart()
   {
+    if (outboundSockets_.get() != NULL) {
+      LOG(ERROR) << "Outbound channels already started. Skipping.";
+      return;
+    }
     // on successful connection. here we connect to the outbound sockets
     // for publishing events in different channels.
     // this must be from the same thread as the thread in the socket event
@@ -327,9 +328,18 @@ class SocketConnectorBase :
   /// This method is run from the Reactor's thread.
   virtual bool respond(zmq::socket_t& socket)
   {
+    // If we skip connection, then start the outbound channels here.
+    // This is so that the outbound channels are run in the reactor's
+    // event handling thread instead of the driver's api event handling
+    // thread.  outboundSockets_ are thread local.
+    if (skipConnection_ && outboundSockets_.get() == NULL) {
+      onEventThreadStart();
+    }
+
     if (!skipConnection_ && !IsDriverRunning()) {
       return true; // No-op -- don't read the messages from socket yet.
     }
+
     // Now we are connected.  Process the received messages.
     return handleReactorInboundMessages(socket, GetEClient());
   }
@@ -502,7 +512,6 @@ class SocketConnectorBase :
 
   // For outbound messages
   const SocketConnector::ZmqAddressMap& outboundChannels_;
-
   typedef std::map< int, zmq::socket_t* > SocketMap;
   boost::thread_specific_ptr<SocketMap> outboundSockets_;
 

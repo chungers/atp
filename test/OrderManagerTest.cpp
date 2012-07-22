@@ -263,7 +263,7 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
 
   EXPECT_FALSE(future->is_ready());
 
-  sleep(2);
+  sleep(1);
   LOG(INFO) << "Cleanup";
   delete em;
 }

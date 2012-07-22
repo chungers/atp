@@ -21,6 +21,7 @@
 namespace ib {
 namespace internal {
 
+
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 
@@ -53,6 +54,7 @@ class OrderEventDispatcher : public IBAPI::ApiEventDispatcher
         size_t sent = atp::zmq::send_copy(*socket, proto.key(), true);
         sent += atp::zmq::send_copy(*socket, frame, false);
 
+        LOG(INFO) << "Sent order status (" << sent << "): " << proto.key();
         onPublish(now, sent);
 
     } else {

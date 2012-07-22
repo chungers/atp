@@ -55,6 +55,9 @@ class OrderManager::implementation : public Subscriber::Strategy
     try {
       string messageKeyFrame;
       bool more = atp::zmq::receive(socket, &messageKeyFrame);
+
+      LOG(ERROR) << "Received: " << messageKeyFrame;
+
       if (more) {
 
         if (messageKeyFrame == ORDER_STATUS_MESSAGE_.key()) {
