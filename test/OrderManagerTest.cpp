@@ -18,6 +18,9 @@ using atp::OrderManager;
 
 using IBAPI::SocketInitiator;
 
+const static int AAPL_CONID = 265598;
+const static int GOOG_CONID = 30351181;
+
 const static std::string EM_ENDPOINT("tcp://127.0.0.1:6667");
 const static std::string EM_EVENT_ENDPOINT("tcp://127.0.0.1:8888");
 
@@ -49,20 +52,21 @@ ApiProtocolHandler::ApiProtocolHandler(EWrapper& ewrapper) :
     impl_(new implementation(
         &ewrapper, new OrderSubmitEClientMock(ewrapper)))
 {
-  LOG(INFO) << "Using mock EClient with EWrapper " << &ewrapper;
+  LOG(ERROR) << "**** Using mock EClient with EWrapper " << &ewrapper;
 }
 
 } // internal
 } // ib
 
 
-TEST(OrderManagerTest, OrderManagerCreateTest)
+TEST(OrderManagerTest, OrderManagerCreateAndDestroyTest)
 {
   OrderManager om(EM_ENDPOINT, EM_EVENT_ENDPOINT);
   LOG(INFO) << "OrderManager ready.";
 }
 
-TEST(OrderManagerTest, OrderManagerSendOrderTest)
+// Create a EM stubb
+SocketInitiator* startExecutionManager(ExecutionManager& em)
 {
   // SessionSettings for the initiator
   SocketInitiator::SessionSettings settings;
@@ -76,20 +80,54 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
 
   LOG(INFO) << "Starting initiator.";
 
-  ExecutionManager em;
-  SocketInitiator initiator(em, settings);
+  SocketInitiator* initiator = new SocketInitiator(em, settings);
   bool publishToOutbound = false;
 
   EXPECT_TRUE(SocketInitiator::Configure(
-      initiator, outboundMap, publishToOutbound));
+      *initiator, outboundMap, publishToOutbound));
 
   LOG(INFO) << "Start connections";
-  initiator.start(false);
+  initiator->start(false);
+
+  return initiator;
+}
+
+
+TEST(OrderManagerTest, OrderManagerSendOrderTest)
+{
+  namespace p = proto::ib;
 
   LOG(INFO) << "Starting order manager";
 
+  ExecutionManager exm;
+  SocketInitiator* em = startExecutionManager(exm);
+
   OrderManager om(EM_ENDPOINT, EM_EVENT_ENDPOINT);
   LOG(INFO) << "OrderManager ready.";
+
+  // Create contract
+  p::Contract aapl;
+  aapl.set_id(AAPL_CONID);
+  aapl.set_type(p::Contract::STOCK);
+  aapl.set_symbol("AAPL");
+
+  // Create base order
+  p::Order baseOrder;
+  baseOrder.set_id(1);
+  baseOrder.set_action(p::Order::BUY);
+  baseOrder.set_quantity(100);
+  baseOrder.set_min_quantity(0);
+  baseOrder.mutable_contract()->CopyFrom(aapl);
+
+  // Set a market order
+  p::MarketOrder marketOrder;
+  marketOrder.mutable_base()->CopyFrom(baseOrder);
+
+  AsyncOrderStatus status = om.send(marketOrder);
+
+  sleep(2);
+  LOG(INFO) << "Cleanup";
+  delete em;
 }
 
 TEST(OrderManagerTest, OrderManagerCreateTest2)

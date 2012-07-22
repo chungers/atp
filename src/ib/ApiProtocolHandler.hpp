@@ -28,7 +28,7 @@ class ApiProtocolHandler : NoCopyAndAssign
   ApiProtocolHandler(EWrapper& ewrapper);
   ~ApiProtocolHandler();
 
-  EClient& GetEClient();
+  EClientPtr GetEClient();
 
   void SetApiSocket(ApiSocket& socket);
   void SetClientId(unsigned int clientId);

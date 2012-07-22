@@ -46,6 +46,8 @@ AsioEClientDriver::AsioEClientDriver(boost::asio::io_service& ioService,
     state_(STARTING),
     clientId_(-1)
 {
+  LOG(INFO) << "Starting Driver";
+
   // Schedule async read handler for incoming packets.
   assert(!thread_);
 
@@ -58,7 +60,7 @@ AsioEClientDriver::AsioEClientDriver(boost::asio::io_service& ioService,
 
 AsioEClientDriver::~AsioEClientDriver()
 {
-  ASIO_ECLIENT_SOCKET_DEBUG << "Done" << std::endl;
+  ASIO_ECLIENT_SOCKET_DEBUG << "Done";
 }
 
 int AsioEClientDriver::getClientId()
@@ -202,7 +204,7 @@ bool AsioEClientDriver::IsSocketOK() const
 
 EClientPtr AsioEClientDriver::GetEClient()
 {
-  return EClientPtr(&(protocolHandler_.GetEClient()));
+  return protocolHandler_.GetEClient();
 }
 
 /// @implements ApiSocket::Send

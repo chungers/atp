@@ -55,6 +55,7 @@ class SocketConnectorBase :
       const SocketConnector::ZmqAddressMap& outboundChannels,
       zmq::context_t* inboundContext = NULL,
       zmq::context_t* outboundContext = NULL) :
+      skipConnection_(false),
       app_(app),
       timeoutSeconds_(timeout),
       reactorAddress_(reactorAddress),
@@ -69,6 +70,10 @@ class SocketConnectorBase :
 
   ~SocketConnectorBase()
   {
+    if (driver_.get() != NULL) {
+      driver_.reset();
+    }
+
     if (dispatcher_ != NULL) {
       delete dispatcher_;
     }
@@ -85,8 +90,19 @@ class SocketConnectorBase :
     return reactorSocketType_;
   }
 
-  void start()
+  void start(unsigned int clientId)
   {
+    dispatcher_ = app_.GetApiEventDispatcher(clientId);
+    assert(dispatcher_ != NULL);
+
+    dispatcher_->SetOutboundSockets(*this);
+    EWrapper* ew = dispatcher_->GetEWrapper();
+
+    assert(ew != NULL);
+
+    protocolHandler_ = boost::shared_ptr<ApiProtocolHandler>(
+        new ApiProtocolHandler(*ew));
+
     reactor_ = new atp::zmq::Reactor(
         reactorSocketType_, reactorAddress_, *this, inboundContext_);
   }
@@ -221,32 +237,21 @@ class SocketConnectorBase :
               SocketConnector::Strategy* strategy,
               int maxAttempts = 60)
   {
-    // Check on the state.
-    if (driver_.get() != 0 && driver_->IsConnected()) {
-        IBAPI_SOCKET_CONNECTOR_WARNING
-            << "Calling eConnect when already connected.";
-
-        return driver_->getClientId();
-    }
-
     // Start a new socket.
     boost::lock_guard<boost::mutex> lock(mutex_);
 
-    dispatcher_ = app_.GetApiEventDispatcher(clientId);
+    if (driver_.get() != 0 && driver_->IsConnected()) {
+        IBAPI_SOCKET_CONNECTOR_WARNING
+            << "Calling eConnect when already connected.";
+        return driver_->getClientId();
+    }
 
-    assert(dispatcher_ != NULL);
-
-    dispatcher_->SetOutboundSockets(*this);
-    EWrapper* ew = dispatcher_->GetEWrapper();
-
-    assert(ew != NULL);
-
+    // Check on the state.
     // If shared pointer hasn't been set, alloc new socket.
     if (driver_.get() == 0) {
-      protocolHandler_ = boost::shared_ptr<ApiProtocolHandler>(
-          new ApiProtocolHandler(*ew));
-      driver_ = boost::shared_ptr<AsioEClientDriver>(
-          new AsioEClientDriver(ioService_, *protocolHandler_, this));
+      //driver_.reset( = boost::shared_ptr<AsioEClientDriver>(
+          //    new AsioEClientDriver(ioService_, *protocolHandler_, this));
+      driver_.reset(new AsioEClientDriver(ioService_, *protocolHandler_, this));
     }
 
     for (int attempts = 0;
@@ -294,8 +299,9 @@ class SocketConnectorBase :
 
   bool stop(bool blockForCleanStop = false)
   {
-    if (driver_.get() != 0) {
+    if (driver_ != NULL && driver_->IsConnected()) {
       IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER << "Disconnecting from gateway.";
+
       driver_->Disconnect();
       for (int i = 0; driver_->IsConnected(); ++i) {
         IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
@@ -307,6 +313,7 @@ class SocketConnectorBase :
           break;
         }
       }
+
       driver_.reset();
     }
     if (blockForCleanStop) {
@@ -320,11 +327,18 @@ class SocketConnectorBase :
   /// This method is run from the Reactor's thread.
   virtual bool respond(zmq::socket_t& socket)
   {
-    if (!IsDriverReady()) {
+    if (!skipConnection_ && !IsDriverRunning()) {
       return true; // No-op -- don't read the messages from socket yet.
     }
     // Now we are connected.  Process the received messages.
     return handleReactorInboundMessages(socket, GetEClient());
+  }
+
+  void SkipConnection()
+  {
+    LOG(INFO) << "Skipping connection.";
+    boost::lock_guard<boost::mutex> lock(mutex_);
+    skipConnection_ = true;
   }
 
  protected:
@@ -344,14 +358,15 @@ class SocketConnectorBase :
     reactor_->block();
   }
 
-  bool IsDriverReady()
+  bool IsDriverRunning()
   {
-    return (driver_.get() != 0 && !driver_->IsConnected());
+    return (driver_.get() != 0 && driver_->IsConnected());
   }
 
   EClientPtr GetEClient()
   {
-    return driver_->GetEClient();
+    // return driver_->GetEClient();
+    return protocolHandler_->GetEClient();
   }
 
   Application& GetApplication()
@@ -469,6 +484,7 @@ class SocketConnectorBase :
 
  private:
 
+  bool skipConnection_;
   Application& app_;
   int timeoutSeconds_;
   boost::asio::io_service ioService_; // Dedicated per connector

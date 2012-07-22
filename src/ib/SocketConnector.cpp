@@ -68,10 +68,10 @@ int SocketConnector::connect(const string& host,
   return impl_->connect(host, port, clientId, strategy, maxAttempts);
 }
 
-bool SocketConnector::start()
+bool SocketConnector::start(unsigned int clientId)
 {
   IBAPI_SOCKET_CONNECTOR_LOGGER << "Starting inbound reactor.";
-  impl_->start();
+  impl_->start(clientId);
   return true;
 }
 
@@ -85,6 +85,11 @@ bool SocketConnector::stop()
   // exit and eventually the zmq context will be destroyed and force the
   // reactor loop to exit on exception.
   return impl_->stop(false);
+}
+
+void SocketConnector::SkipConnection()
+{
+  impl_->SkipConnection();
 }
 
 } // namespace IBAPI

@@ -267,7 +267,7 @@ class SocketInitiatorImpl : public SocketInitiator {
 
 
       // Start the connector
-      if (!socketConnector->start()) {
+      if (!socketConnector->start(sessionId)) {
           strategy_.onError(*socketConnector);
           LOG(FATAL) << "Session " << sessionId << " cannot start reactor.";
       }
@@ -277,6 +277,8 @@ class SocketInitiatorImpl : public SocketInitiator {
       if (connect) {
         id = socketConnector->connect(itr->getIp(), itr->getPort(),
                                       sessionId, &strategy_);
+      } else {
+        socketConnector->SkipConnection();
       }
 
       if (id == sessionId) {

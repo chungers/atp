@@ -3,9 +3,11 @@
 
 #include <Shared/EClientSocketBaseImpl.h>
 
+#include "ib/internal.hpp"
 #include "ib/ApiProtocolHandler.hpp"
 
 #include "common.hpp"
+#include "log_levels.h"
 #include "ApiImpl.hpp"
 
 namespace ib {
@@ -25,9 +27,9 @@ class ApiProtocolHandler::implementation :
   {
   }
 
-  EClient& GetEClient()
+  EClientPtr GetEClient()
   {
-    return *this;
+    return EClientPtr(this);
   }
 
   void SetApiSocket(ApiSocket& socket)
@@ -104,13 +106,14 @@ class ApiProtocolHandler::implementation :
 ApiProtocolHandler::ApiProtocolHandler(EWrapper& ewrapper) :
     impl_(new implementation(ewrapper))
 {
+  LOG(INFO) << "Using v966 ApiProtocolHandler.";
 }
 
 ApiProtocolHandler::~ApiProtocolHandler()
 {
 }
 
-EClient& ApiProtocolHandler::GetEClient()
+EClientPtr ApiProtocolHandler::GetEClient()
 {
   return impl_->GetEClient();
 }

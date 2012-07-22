@@ -8,6 +8,8 @@
 #include "ib/api966/EClientMock.hpp"
 
 #include "common.hpp"
+#include "log_levels.h"
+
 
 namespace ib {
 namespace internal {
@@ -27,9 +29,10 @@ class ApiProtocolHandler::implementation : NoCopyAndAssign
   {
   }
 
-  EClient& GetEClient()
+  EClientPtr GetEClient()
   {
-    return *eclientMock_;
+    LOG(ERROR) << "Getting mock";
+    return EClientPtr(eclientMock_.get());
   }
 
   void SetApiSocket(ApiSocket& socket)
@@ -43,7 +46,7 @@ class ApiProtocolHandler::implementation : NoCopyAndAssign
 
   bool IsConnected()
   {
-    return true;
+    return false;
   }
 
   void OnConnect()
@@ -106,7 +109,7 @@ ApiProtocolHandler::~ApiProtocolHandler()
 {
 }
 
-EClient& ApiProtocolHandler::GetEClient()
+EClientPtr ApiProtocolHandler::GetEClient()
 {
   return impl_->GetEClient();
 }

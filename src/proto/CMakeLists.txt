@@ -23,6 +23,7 @@ set(proto_components_libs
   historian_proto
   ib_proto
   common_proto
+  protobuf
   protobuf-lite
 )
 cpp_library(proto_components)
