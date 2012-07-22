@@ -41,6 +41,9 @@ class OrderManager::implementation : public Subscriber::Strategy
 
     ORDER_MANAGER_LOGGER << "Connected to " << em_endpoint_;
 
+    // Add one subscription specifically for order status
+    filters_.push_back(ORDER_STATUS_MESSAGE_.key());
+
     // Start inbound subscriber for OrderStatus coming from EM
     order_status_subscriber_.reset(new Subscriber(em_messages_endpoint_,
                                                   filters_, *this, context_));
@@ -56,17 +59,20 @@ class OrderManager::implementation : public Subscriber::Strategy
       string messageKeyFrame;
       bool more = atp::zmq::receive(socket, &messageKeyFrame);
 
-      LOG(ERROR) << "Received: " << messageKeyFrame;
-
       if (more) {
 
         if (messageKeyFrame == ORDER_STATUS_MESSAGE_.key()) {
           p::OrderStatus status;
           bool received = atp::receive<p::OrderStatus>(socket, status);
+
+
+          LOG(ERROR) << "Received: " << messageKeyFrame << ","
+                     << status.order_id();
+
         }
       }
     } catch (error_t e) {
-
+      ORDER_MANAGER_ERROR << "Error: " << e.what();
     }
     return false;
   }
@@ -88,7 +94,8 @@ class OrderManager::implementation : public Subscriber::Strategy
  private:
   const string em_endpoint_;
   const string em_messages_endpoint_;
-  const vector<string> filters_;
+
+  vector<string> filters_;
 
   context_t* context_;
   socket_t* em_socket_;
