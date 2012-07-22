@@ -218,7 +218,7 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
   marketOrder.mutable_base()->set_id(1);
   marketOrder.mutable_base()->set_action(p::Order::BUY);
   marketOrder.mutable_base()->set_quantity(100);
-  marketOrder.mutable_base()->set_min_quantity(0);
+  marketOrder.mutable_base()->set_min_quantity(100);
   marketOrder.mutable_base()->mutable_contract()->CopyFrom(aapl);
 
   struct : public Assert {
@@ -232,6 +232,7 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
       EXPECT_EQ(AAPL_CONID, contract.conId);
       EXPECT_EQ("BUY", order.action);
       EXPECT_EQ(100, order.totalQuantity);
+      EXPECT_EQ(100, order.minQty);
       EXPECT_EQ("MKT", order.orderType);
       EXPECT_EQ("IOC", order.tif);
 
@@ -267,7 +268,9 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
 
   EXPECT_TRUE(future->is_ready());
 
-  sleep(1);
+  EXPECT_EQ("filled", status.status());
+  EXPECT_EQ(marketOrder.base().quantity(), status.filled());
+
   LOG(INFO) << "Cleanup";
   delete em;
 }
