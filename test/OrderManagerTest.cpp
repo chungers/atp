@@ -382,7 +382,7 @@ TEST(OrderManagerTest, OrderManagerSendLimitOrderTest)
 
   EXPECT_FALSE(future->is_ready());
 
-  // This will block until received.
+  // This will block until received or until timeout.
   const p::OrderStatus& status = future->get(2000);
 
   EXPECT_TRUE(future->is_ready());
