@@ -4,6 +4,7 @@
 #include <Shared/EClient.h>
 #include <Shared/EWrapper.h>
 
+#include "ib/internal.hpp"
 #include "ib/ApiProtocolHandler.hpp"
 #include "ib/api966/EClientMock.hpp"
 

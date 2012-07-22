@@ -5,6 +5,9 @@
 message(STATUS "TESTS: Core Services =========================================")
 message(STATUS "-- IBAPI_IMPL_DIR = ${SRC_DIR}/ib/${IBAPI_IMPL_DIR}")
 
+
+option(TEST_WITH_MOCK "Use mock when testing order manager." ON)
+
 option(IB_USE_STD_STRING "Use standard c++ string (see Shared/IBString.h)." ON)
 if (IB_USE_STD_STRING)
   add_definitions('-DIB_USE_STD_STRING')
@@ -41,12 +44,23 @@ set(OrderManagerTest_srcs
   ${TEST_DIR}/AllTests.cpp
   OrderManagerTest.cpp
 )
-set(OrderManagerTest_libs
-  order_manager
-  IBAPIConnector
-  ib_api_versioned_base
-#  api_protocol_handler
-)
+if(TEST_WITH_MOCK)
+  message(STATUS "Building with Mock")
+  add_definitions('-DTEST_WITH_MOCK')
+  set(OrderManagerTest_libs
+    order_manager
+    IBAPIConnector
+    ib_api_versioned_base
+    )
+else(TEST_WITH_MOCK)
+  message(STATUS "Building with live connection")
+  set(OrderManagerTest_libs
+    order_manager
+    IBAPIConnector
+    ib_api_versioned_base
+    ib_api_versioned_handler # standard live protocol handler
+    )
+endif(TEST_WITH_MOCK)
 cpp_gtest(OrderManagerTest)
 
 

@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
+#include "utils.hpp"
 #include "main/em.hpp"
 
 #include "ib/ApiProtocolHandler.hpp"
@@ -21,6 +22,13 @@ using IBAPI::SocketInitiator;
 const static int AAPL_CONID = 265598;
 const static int GOOG_CONID = 30351181;
 
+static int ORDER_ID = now_micros() % 100000000;
+static int GetOrderId()
+{
+  return ORDER_ID++;
+}
+
+
 std::string EM_ENDPOINT(int port = 6667)
 {
   return "tcp://127.0.0.1:" + boost::lexical_cast<std::string>(port);
@@ -29,8 +37,6 @@ std::string EM_EVENT_ENDPOINT(int port = 8888)
 {
   return "tcp://127.0.0.1:" + boost::lexical_cast<std::string>(port);
 }
-
-#include "ApiProtocolHandler.cpp"
 
 struct Assert
 {
@@ -51,6 +57,10 @@ void clearAssert()
 {
   ORDER_ASSERT = NULL;
 }
+
+#ifdef TEST_WITH_MOCK
+#include "ApiProtocolHandler.cpp"
+#endif
 
 namespace ib {
 namespace internal {
@@ -76,13 +86,17 @@ class OrderSubmitEClientMock : public EClientMock
   }
 };
 
-
+///////////////////////////////////////////////////////////////////////////
+#ifdef TEST_WITH_MOCK
 ApiProtocolHandler::ApiProtocolHandler(EWrapper& ewrapper) :
     impl_(new implementation(
         &ewrapper, new OrderSubmitEClientMock(ewrapper)))
 {
   LOG(ERROR) << "**** Using mock EClient with EWrapper " << &ewrapper;
 }
+#endif
+///////////////////////////////////////////////////////////////////////////
+
 
 } // internal
 } // ib
@@ -126,8 +140,12 @@ SocketInitiator* startExecutionManager(ExecutionManager& em,
       *initiator, outboundMap, publishToOutbound));
 
   LOG(INFO) << "Start connections";
-  initiator->start(false);
 
+#ifdef TEST_WITH_MOCK
+  initiator->start(false);
+#else
+  initiator->start();
+#endif
   return initiator;
 }
 
@@ -152,9 +170,11 @@ TEST(OrderManagerTest, OrderManagerSendOrderResponseTimeoutTest)
   aapl.set_type(p::Contract::STOCK);
   aapl.set_symbol("AAPL");
 
+  int ORDER_ID = GetOrderId();
+
   // Set a market order
   p::MarketOrder marketOrder;
-  marketOrder.mutable_order()->set_id(1);
+  marketOrder.mutable_order()->set_id(ORDER_ID);
   marketOrder.mutable_order()->set_action(p::Order::BUY);
   marketOrder.mutable_order()->set_quantity(100);
   marketOrder.mutable_order()->set_min_quantity(0);
@@ -166,7 +186,7 @@ TEST(OrderManagerTest, OrderManagerSendOrderResponseTimeoutTest)
                     const Order& order,
                     EWrapper& ewrapper)
     {
-      EXPECT_EQ(1, orderId);
+      EXPECT_EQ(check_order_id, orderId);
       EXPECT_EQ("AAPL", contract.symbol);
       EXPECT_EQ(AAPL_CONID, contract.conId);
       EXPECT_EQ("BUY", order.action);
@@ -176,8 +196,10 @@ TEST(OrderManagerTest, OrderManagerSendOrderResponseTimeoutTest)
 
       // Note that there's no response.  Testing for timeout
     }
-  } assert;
 
+    int check_order_id;
+  } assert;
+  assert.check_order_id = ORDER_ID;
   setAssert(assert);
   AsyncOrderStatus future = om.send(marketOrder);
 
@@ -193,7 +215,7 @@ TEST(OrderManagerTest, OrderManagerSendOrderResponseTimeoutTest)
   delete em;
 }
 
-TEST(OrderManagerTest, OrderManagerSendOrderTest)
+TEST(OrderManagerTest, OrderManagerSendMarketOrderTest)
 {
   clearAssert();
 
@@ -213,9 +235,11 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
   aapl.set_type(p::Contract::STOCK);
   aapl.set_symbol("AAPL");
 
+  int ORDER_ID = GetOrderId();
+
   // Set a market order
   p::MarketOrder marketOrder;
-  marketOrder.mutable_order()->set_id(1);
+  marketOrder.mutable_order()->set_id(ORDER_ID);
   marketOrder.mutable_order()->set_action(p::Order::BUY);
   marketOrder.mutable_order()->set_quantity(100);
   marketOrder.mutable_order()->set_min_quantity(100);
@@ -227,7 +251,7 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
                     const Order& order,
                     EWrapper& ewrapper)
     {
-      EXPECT_EQ(1, orderId);
+      EXPECT_EQ(check_order_id, orderId);
       EXPECT_EQ("AAPL", contract.symbol);
       EXPECT_EQ(AAPL_CONID, contract.conId);
       EXPECT_EQ("BUY", order.action);
@@ -237,7 +261,7 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
       EXPECT_EQ("IOC", order.tif);
 
       // Send back order status
-      OrderId respOrderId(1);
+      OrderId respOrderId(check_order_id);
       IBString status("filled");
       int filled = 100;
       int remaining = 0;
@@ -250,13 +274,17 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
 
       // Send a few crap messages but only one for the order
       // submitted.
-      for (int i = respOrderId; i < 5; ++i) {
-        ewrapper.orderStatus(i, status, filled, remaining,
+      for (int i = 0; i < 5; ++i) {
+        ewrapper.orderStatus(respOrderId + i, status, filled, remaining,
                              avgFillPrice, permId, parentId,
                              lastFillPrice, clientId, whyHeld);
       }
     }
+
+    int check_order_id;
   } assert;
+
+  assert.check_order_id = ORDER_ID;
 
   setAssert(assert);
   AsyncOrderStatus future = om.send(marketOrder);
@@ -264,14 +292,106 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
   EXPECT_FALSE(future->is_ready());
 
   // This will block until received.
-  const p::OrderStatus& status = future->get();
+  const p::OrderStatus& status = future->get(5000);
 
   EXPECT_TRUE(future->is_ready());
 
-  EXPECT_EQ("filled", status.status());
-  EXPECT_EQ(marketOrder.order().quantity(), status.filled());
+  if (future->is_ready()) {
+    EXPECT_EQ("filled", status.status());
+    EXPECT_EQ(marketOrder.order().quantity(), status.filled());
+  }
 
   LOG(INFO) << "Cleanup";
   delete em;
 }
 
+TEST(OrderManagerTest, OrderManagerSendLimitOrderTest)
+{
+  clearAssert();
+
+  namespace p = proto::ib;
+
+  LOG(INFO) << "Starting order manager";
+
+  ExecutionManager exm;
+  SocketInitiator* em = startExecutionManager(exm, 6669, 8899);
+
+  OrderManager om(EM_ENDPOINT(6669), EM_EVENT_ENDPOINT(8899));
+  LOG(INFO) << "OrderManager ready.";
+
+  // Create contract
+  p::Contract aapl;
+  aapl.set_id(AAPL_CONID);
+  aapl.set_type(p::Contract::STOCK);
+  aapl.set_symbol("AAPL");
+
+  int ORDER_ID = GetOrderId();
+
+  // Set a limit order
+  p::LimitOrder limitOrder;
+  limitOrder.mutable_order()->set_id(ORDER_ID);
+  limitOrder.mutable_order()->set_action(p::Order::BUY);
+  limitOrder.mutable_order()->set_quantity(100);
+  limitOrder.mutable_order()->set_min_quantity(100);
+  limitOrder.mutable_order()->mutable_contract()->CopyFrom(aapl);
+  limitOrder.mutable_limit_price()->set_amount(600.);
+
+  struct : public Assert {
+    void operator()(const OrderId& orderId,
+                    const Contract& contract,
+                    const Order& order,
+                    EWrapper& ewrapper)
+    {
+      EXPECT_EQ(check_order_id, orderId);
+      EXPECT_EQ("AAPL", contract.symbol);
+      EXPECT_EQ(AAPL_CONID, contract.conId);
+      EXPECT_EQ("BUY", order.action);
+      EXPECT_EQ(100, order.totalQuantity);
+      EXPECT_EQ(100, order.minQty);
+      EXPECT_EQ("LMT", order.orderType);
+      EXPECT_EQ("IOC", order.tif);
+      EXPECT_EQ(600., order.lmtPrice);
+
+      // Send back order status
+      OrderId respOrderId(check_order_id);
+      IBString status("filled");
+      int filled = 100;
+      int remaining = 0;
+      double avgFillPrice = 600.;
+      int permId = 0;
+      int parentId = 0;
+      double lastFillPrice = 600.;
+      int clientId = 1;
+      IBString whyHeld("");
+
+      // Send a few crap messages but only one for the order
+      // submitted.
+      for (int i = 0; i < 5; ++i) {
+        ewrapper.orderStatus(respOrderId + i, status, filled, remaining,
+                             avgFillPrice, permId, parentId,
+                             lastFillPrice, clientId, whyHeld);
+      }
+    }
+
+    int check_order_id;
+  } assert;
+
+  assert.check_order_id = ORDER_ID;
+  setAssert(assert);
+  AsyncOrderStatus future = om.send(limitOrder);
+
+  EXPECT_FALSE(future->is_ready());
+
+  // This will block until received.
+  const p::OrderStatus& status = future->get(2000);
+
+  EXPECT_TRUE(future->is_ready());
+
+  if (future->is_ready()) {
+    EXPECT_EQ("filled", status.status());
+    EXPECT_EQ(limitOrder.order().quantity(), status.filled());
+  }
+
+  LOG(INFO) << "Cleanup";
+  delete em;
+}
