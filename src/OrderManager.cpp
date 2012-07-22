@@ -1,3 +1,8 @@
+#include <map>
+#include <string>
+#include <vector>
+
+#include <boost/thread.hpp>
 
 #include "zmq/Subscriber.hpp"
 #include "zmq/ZmqUtils.hpp"
@@ -6,6 +11,7 @@
 #include "OrderManager.hpp"
 
 using std::string;
+using std::map;
 using std::vector;
 using ::zmq::context_t;
 using ::zmq::socket_t;
@@ -21,6 +27,8 @@ class OrderManager::implementation : public Subscriber::Strategy
 {
 
  public:
+
+  typedef boost::uint64_t SubmittedOrderId;
 
   explicit implementation(const string& em_endpoint,
                           const string& em_messages_endpoint,
@@ -62,23 +70,38 @@ class OrderManager::implementation : public Subscriber::Strategy
       if (more) {
 
         if (messageKeyFrame == ORDER_STATUS_MESSAGE_.key()) {
-          p::OrderStatus status;
-          bool received = atp::receive<p::OrderStatus>(socket, status);
+          p::OrderStatus* status = new p::OrderStatus();
+          bool received = atp::receive<p::OrderStatus>(socket, *status);
 
+          if (received) {
+            // Now check to see if there's a pending order status for this
+            boost::lock_guard<boost::mutex> lock(mutex_);
 
-          LOG(ERROR) << "Received: " << messageKeyFrame << ","
-                     << status.order_id();
+            SubmittedOrderId key(status->order_id());
+            if (pendingOrders_.find(key) != pendingOrders_.end()) {
 
+              AsyncOrderStatus s = pendingOrders_[key];
+
+              LOG(INFO) << "Received status for pending order: "
+                        << messageKeyFrame << ",orderId="
+                        << key
+                        << ",status=" << status->status()
+                        << ",filled=" << status->filled()
+                        << &s;
+
+              s->set_response(status);
+            }
+          }
         }
       }
     } catch (error_t e) {
       ORDER_MANAGER_ERROR << "Error: " << e.what();
     }
-    return false;
+    return true;
   }
 
-  template <typename P>
-  const AsyncOrderStatus send(P& proto)
+  template <typename P, typename K>
+  const AsyncOrderStatus send(P& proto, const K& key)
   {
     AsyncResponse<p::OrderStatus>* response = NULL;
     if (em_socket_ != NULL) {
@@ -88,10 +111,17 @@ class OrderManager::implementation : public Subscriber::Strategy
 
       response = new AsyncResponse<p::OrderStatus>();
     }
-    return AsyncOrderStatus(response);
+
+    AsyncOrderStatus status(response);
+
+    boost::lock_guard<boost::mutex> lock(mutex_);
+    pendingOrders_[key] = status;
+
+    return status;
   }
 
  private:
+
   const string em_endpoint_;
   const string em_messages_endpoint_;
 
@@ -103,6 +133,9 @@ class OrderManager::implementation : public Subscriber::Strategy
   boost::scoped_ptr<Subscriber> order_status_subscriber_;
 
   p::OrderStatus ORDER_STATUS_MESSAGE_;
+
+  boost::mutex mutex_;
+  map<SubmittedOrderId, AsyncOrderStatus> pendingOrders_;
 };
 
 
@@ -121,22 +154,22 @@ OrderManager::~OrderManager()
 
 const AsyncOrderStatus OrderManager::send(p::CancelOrder& order)
 {
-  return impl_->send<p::CancelOrder>(order);
+  return impl_->send<p::CancelOrder>(order, order.order_id());
 }
 
 const AsyncOrderStatus OrderManager::send(p::MarketOrder& order)
 {
-  return impl_->send<p::MarketOrder>(order);
+  return impl_->send<p::MarketOrder>(order, order.base().id());
 }
 
 const AsyncOrderStatus OrderManager::send(p::LimitOrder& order)
 {
-  return impl_->send<p::LimitOrder>(order);
+  return impl_->send<p::LimitOrder>(order, order.base().id());
 }
 
 const AsyncOrderStatus OrderManager::send(p::StopLimitOrder& order)
 {
-  return impl_->send<p::StopLimitOrder>(order);
+  return impl_->send<p::StopLimitOrder>(order, order.base().id());
 }
 
 

@@ -41,7 +41,6 @@ class AsyncResponse
     return result_ != NULL;
   }
 
- protected:
   void set_response(T* response)
   {
     boost::unique_lock<boost::mutex> lock(mutex_);

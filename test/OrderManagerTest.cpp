@@ -247,9 +247,13 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
       int clientId = 1;
       IBString whyHeld("");
 
-      ewrapper.orderStatus(respOrderId, status, filled, remaining,
-                           avgFillPrice, permId, parentId,
-                           lastFillPrice, clientId, whyHeld);
+      // Send a few crap messages but only one for the order
+      // submitted.
+      for (int i = respOrderId; i < 5; ++i) {
+        ewrapper.orderStatus(i, status, filled, remaining,
+                             avgFillPrice, permId, parentId,
+                             lastFillPrice, clientId, whyHeld);
+      }
     }
   } assert;
 
@@ -259,9 +263,9 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
   EXPECT_FALSE(future->is_ready());
 
   // This will block until received.
-  const p::OrderStatus& status = future->get(1000);
+  const p::OrderStatus& status = future->get();
 
-  EXPECT_FALSE(future->is_ready());
+  EXPECT_TRUE(future->is_ready());
 
   sleep(1);
   LOG(INFO) << "Cleanup";
