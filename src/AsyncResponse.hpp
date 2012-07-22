@@ -21,11 +21,17 @@ class AsyncResponse
   }
 
   // blocks until received async
-  const T& get() const
+  const T& get(long msec = 0)
   {
     boost::unique_lock<boost::mutex> lock(mutex_);
     if (!is_ready()) {
-      waiter_.wait(lock);
+      if (msec > 0) {
+        boost::system_time const abs_timeout =
+            boost::get_system_time()+ boost::posix_time::milliseconds(msec);
+        waiter_.timed_wait(lock, abs_timeout);
+      } else {
+        waiter_.wait(lock);
+      }
     }
     return *result_;
   }

@@ -48,6 +48,7 @@ class OrderEventDispatcher : public IBAPI::ApiEventDispatcher
     if (proto.SerializeToString(&frame)) {
 
         zmq::socket_t* socket = getOutboundSocket(0);
+        assert(socket != NULL);
 
         size_t sent = atp::zmq::send_copy(*socket, proto.key(), true);
         sent += atp::zmq::send_copy(*socket, frame, false);
