@@ -159,17 +159,17 @@ const AsyncOrderStatus OrderManager::send(p::CancelOrder& order)
 
 const AsyncOrderStatus OrderManager::send(p::MarketOrder& order)
 {
-  return impl_->send<p::MarketOrder>(order, order.base().id());
+  return impl_->send<p::MarketOrder>(order, order.order().id());
 }
 
 const AsyncOrderStatus OrderManager::send(p::LimitOrder& order)
 {
-  return impl_->send<p::LimitOrder>(order, order.base().id());
+  return impl_->send<p::LimitOrder>(order, order.order().id());
 }
 
 const AsyncOrderStatus OrderManager::send(p::StopLimitOrder& order)
 {
-  return impl_->send<p::StopLimitOrder>(order, order.base().id());
+  return impl_->send<p::StopLimitOrder>(order, order.order().id());
 }
 
 

@@ -180,7 +180,7 @@ message MarketOrder {
   required uint64 timestamp = 2;
   required uint64 message_id = 3;
 
-  required Order base = 4;
+  required Order order = 4;
 }
 
 message LimitOrder {
@@ -189,7 +189,7 @@ message LimitOrder {
   required uint64 timestamp = 2;
   required uint64 message_id = 3;
 
-  required Order base = 4;
+  required Order order = 4;
   required proto.common.Money limit_price = 11;
 }
 
@@ -199,7 +199,7 @@ message StopLimitOrder {
   required uint64 timestamp = 2;
   required uint64 message_id = 3;
 
-  required Order base = 4;
+  required Order order = 4;
   required proto.common.Money limit_price = 5;
   required proto.common.Money stop_price = 6;
 }

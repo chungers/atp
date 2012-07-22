@@ -89,18 +89,18 @@ bool operator<<(proto::ib::Order& p, const Order& o)
 
 bool operator<<(Order& o, const proto::ib::MarketOrder& p)
 {
-  return (o << p.base());
+  return (o << p.order());
 }
 
 bool operator<<(proto::ib::MarketOrder& p, const Order& o)
 {
   p.Clear();
-  return ((*p.mutable_base()) << o);
+  return ((*p.mutable_order()) << o);
 }
 
 bool operator<<(Order& o, const proto::ib::LimitOrder& p)
 {
-  if (o << p.base()) {
+  if (o << p.order()) {
     o.lmtPrice = p.limit_price().amount();
     return true;
   }
@@ -110,7 +110,7 @@ bool operator<<(Order& o, const proto::ib::LimitOrder& p)
 bool operator<<(proto::ib::LimitOrder& p, const Order& o)
 {
   p.Clear();
-  if ((*p.mutable_base()) << o) {
+  if ((*p.mutable_order()) << o) {
     p.mutable_limit_price()->set_amount(o.lmtPrice);
     return true;
   }
@@ -119,7 +119,7 @@ bool operator<<(proto::ib::LimitOrder& p, const Order& o)
 
 bool operator<<(Order& o, const proto::ib::StopLimitOrder& p)
 {
-  if (o << p.base()) {
+  if (o << p.order()) {
     o.lmtPrice = p.limit_price().amount();
     o.auxPrice = p.stop_price().amount();
     return true;
@@ -130,7 +130,7 @@ bool operator<<(Order& o, const proto::ib::StopLimitOrder& p)
 bool operator<<(proto::ib::StopLimitOrder& p, const Order& o)
 {
   p.Clear();
-  if ((*p.mutable_base()) << o) {
+  if ((*p.mutable_order()) << o) {
     p.mutable_limit_price()->set_amount(o.lmtPrice);
     p.mutable_stop_price()->set_amount(o.auxPrice);
     return true;

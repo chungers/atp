@@ -154,11 +154,11 @@ TEST(OrderManagerTest, OrderManagerSendOrderResponseTimeoutTest)
 
   // Set a market order
   p::MarketOrder marketOrder;
-  marketOrder.mutable_base()->set_id(1);
-  marketOrder.mutable_base()->set_action(p::Order::BUY);
-  marketOrder.mutable_base()->set_quantity(100);
-  marketOrder.mutable_base()->set_min_quantity(0);
-  marketOrder.mutable_base()->mutable_contract()->CopyFrom(aapl);
+  marketOrder.mutable_order()->set_id(1);
+  marketOrder.mutable_order()->set_action(p::Order::BUY);
+  marketOrder.mutable_order()->set_quantity(100);
+  marketOrder.mutable_order()->set_min_quantity(0);
+  marketOrder.mutable_order()->mutable_contract()->CopyFrom(aapl);
 
   struct : public Assert {
     void operator()(const OrderId& orderId,
@@ -215,11 +215,11 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
 
   // Set a market order
   p::MarketOrder marketOrder;
-  marketOrder.mutable_base()->set_id(1);
-  marketOrder.mutable_base()->set_action(p::Order::BUY);
-  marketOrder.mutable_base()->set_quantity(100);
-  marketOrder.mutable_base()->set_min_quantity(100);
-  marketOrder.mutable_base()->mutable_contract()->CopyFrom(aapl);
+  marketOrder.mutable_order()->set_id(1);
+  marketOrder.mutable_order()->set_action(p::Order::BUY);
+  marketOrder.mutable_order()->set_quantity(100);
+  marketOrder.mutable_order()->set_min_quantity(100);
+  marketOrder.mutable_order()->mutable_contract()->CopyFrom(aapl);
 
   struct : public Assert {
     void operator()(const OrderId& orderId,
@@ -269,7 +269,7 @@ TEST(OrderManagerTest, OrderManagerSendOrderTest)
   EXPECT_TRUE(future->is_ready());
 
   EXPECT_EQ("filled", status.status());
-  EXPECT_EQ(marketOrder.base().quantity(), status.filled());
+  EXPECT_EQ(marketOrder.order().quantity(), status.filled());
 
   LOG(INFO) << "Cleanup";
   delete em;
