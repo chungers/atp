@@ -15,7 +15,8 @@ namespace internal {
 
 /// This class bridges received protobuffer to actual api calls.
 
-template <typename P>
+/// CRTP pattern -- Curiously recurring template pattern for cloning.
+template < typename P, typename Derived >
 class ProtoBufferApiMessage : public ZmqMessage
 {
  public:
@@ -41,6 +42,11 @@ class ProtoBufferApiMessage : public ZmqMessage
   virtual bool validate()
   {
     return proto_.IsInitialized();
+  }
+
+  virtual ZmqMessage* clone() const
+  {
+    return new Derived(static_cast<const Derived&>(*this));
   }
 
   virtual bool callApi(EClientPtr eclient)

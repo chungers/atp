@@ -65,7 +65,9 @@ void ZmqMessage::createMessage(const std::string& msgKey, ZmqMessagePtr& ptr)
     ptr = empty;
     return;
   } else {
-    ptr = map.find(msgKey)->second;
+    ZmqMessage* clone = (*(map.find(msgKey)->second))->clone();
+    ZmqMessagePtr p(clone);
+    ptr = p;
   }
 };
 

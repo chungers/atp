@@ -1,6 +1,9 @@
 #ifndef ATP_ZMQ_PROTOBUFFER_H_
 #define ATP_ZMQ_PROTOBUFFER_H_
 
+#include <boost/optional.hpp>
+#include <boost/shared_ptr.hpp>
+
 #include "log_levels.h"
 #include "utils.hpp"
 
@@ -11,6 +14,14 @@ using ::zmq::error_t;
 using ::zmq::socket_t;
 
 namespace atp {
+
+template <typename M>
+struct Nullable
+{
+  typedef boost::optional< boost::shared_ptr< M > > ptr;
+};
+
+Nullable<int>::ptr p;
 
 template <typename P>
 size_t send(socket_t& socket,

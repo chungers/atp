@@ -57,7 +57,7 @@ class TimeTracking
 
   void formatTime(std::ostream* outstream)
   {
-    // dynamically allocate the locale since heap allocated locale will
+    // dynamically allocate the locale since stack allocated locale will
     // crash the program in the locale's ~Impl()
     std::locale* l = new std::locale(std::cout.getloc(), &facet_);
     outstream->imbue(*l);

@@ -60,6 +60,9 @@ class ZmqMessage : public IBAPI::Message
 
   virtual bool receive(zmq::socket_t& socket) = 0;
 
+  /// CRTP pattern -- Curiously recurring template pattern for cloning.
+  virtual ZmqMessage* clone() const = 0;
+
  protected:
   Timestamp timestamp_;
   MessageId messageId_;
