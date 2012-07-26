@@ -21,7 +21,6 @@ struct Nullable
   typedef boost::optional< boost::shared_ptr< M > > ptr;
 };
 
-Nullable<int>::ptr p;
 
 template <typename P>
 size_t send(socket_t& socket,
