@@ -186,6 +186,7 @@ add_custom_target(all_mains)
 add_dependencies(all_mains
   firehose
   logreader
+  marketdata
   hloader
   hdb
   hz

@@ -38,7 +38,7 @@ DEFINE_string(connectors, CONNECTOR_SPECS,
               "Comma-delimited list of gateway ip/port @ control endpoints.");
 DEFINE_string(outbound, OUTBOUND_ENDPOINTS,
               "Comma-delimited list of channel and outbound endpoints");
-DEFINE_bool(publish, false,
+DEFINE_bool(publish, true,
             "True to publish at outbound endpoints, false to push to them");
 DEFINE_int32(varz, 18000, "The port varz server runs on.");
 

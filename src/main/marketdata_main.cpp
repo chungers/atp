@@ -12,7 +12,7 @@
 #include "historian/time_utils.hpp"
 #include "proto/ostream.hpp"
 
-#include "marketdata_sink.hpp"
+#include "MarketDataSubscriber.hpp"
 
 
 DEFINE_string(adminEp, "tcp://127.0.0.1:4444", "Admin endpoint");
