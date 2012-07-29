@@ -1,5 +1,5 @@
-#ifndef ATP_MARKETDATA_SINK_H_
-#define ATP_MARKETDATA_SINK_H_
+#ifndef ATP_SERVICE_MARKETDATA_SUBSCRIBER_H_
+#define ATP_SERVICE_MARKETDATA_SUBSCRIBER_H_
 
 #include <map>
 
@@ -52,6 +52,8 @@ DEFINE_VARZ_int64(marketdepth_event_last_ts, 0, "");
 DEFINE_VARZ_int64(marketdepth_event_interval_micros, 0, "");
 
 namespace atp {
+namespace service {
+
 
 using namespace std;
 
@@ -366,7 +368,7 @@ class MarketDataSubscriber : public ManagedAgent
   boost::mutex mutex_;
 };
 
-
+} // namespace service
 } // namespace atp
 
-#endif //ATP_MARKETDATA_SINK_H_
+#endif //ATP_SERVICE_MARKETDATA_SUBSCRIBER_H_

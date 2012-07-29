@@ -22,7 +22,7 @@
 #include "historian/DbReactorStrategy.hpp"
 #include "historian/time_utils.hpp"
 
-#include "MarketDataSubscriber.hpp"
+#include "service/MarketDataSubscriber.hpp"
 
 
 // Flags for reactor / db query processor
@@ -58,7 +58,7 @@ using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 
 
-class DbWriterSubscriber : public atp::MarketDataSubscriber
+class DbWriterSubscriber : public atp::service::MarketDataSubscriber
 {
  public :
   DbWriterSubscriber(const boost::shared_ptr<historian::Db>& db,
@@ -69,9 +69,9 @@ class DbWriterSubscriber : public atp::MarketDataSubscriber
                      const vector<string>& subscriptions,
                      int varzPort,
                      ::zmq::context_t* context) :
-      atp::MarketDataSubscriber(id, adminEndpoint, eventEndpoint,
-                                endpoint, subscriptions,
-                                varzPort, context),
+      MarketDataSubscriber(id, adminEndpoint, eventEndpoint,
+                           endpoint, subscriptions,
+                           varzPort, context),
       db_(db)
   {
   }

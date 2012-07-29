@@ -12,7 +12,7 @@
 #include "historian/time_utils.hpp"
 #include "proto/ostream.hpp"
 
-#include "MarketDataSubscriber.hpp"
+#include "service/MarketDataSubscriber.hpp"
 
 
 DEFINE_string(adminEp, "tcp://127.0.0.1:4444", "Admin endpoint");
@@ -38,7 +38,7 @@ using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 
 
-class ConsoleMarketDataSubscriber : public atp::MarketDataSubscriber
+class ConsoleMarketDataSubscriber : public atp::service::MarketDataSubscriber
 {
  public :
   ConsoleMarketDataSubscriber(const string& id,
