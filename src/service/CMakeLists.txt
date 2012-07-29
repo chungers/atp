@@ -1,0 +1,34 @@
+# Services
+#
+
+message(STATUS "Services =====================================================")
+
+add_definitions('-fPIC')
+##########################################
+# order_manager api
+set(order_manager_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(order_manager_srcs
+  OrderManager.cpp
+)
+set(order_manager_libs
+ proto_components
+ zmq_components
+ boost_system
+ boost_thread
+ gflags
+ glog
+ zmq
+)
+# Client implementation:
+cpp_library(order_manager)
+
+
+add_custom_target(all_services)
+add_dependencies(all_services
+  order_manager
+)
+
+

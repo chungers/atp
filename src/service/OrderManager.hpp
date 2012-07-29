@@ -1,5 +1,5 @@
-#ifndef ATP_ORDER_MANAGER_H_
-#define ATP_ORDER_MANAGER_H_
+#ifndef ATP_SERVICE_ORDER_MANAGER_H_
+#define ATP_SERVICE_ORDER_MANAGER_H_
 
 #include <string>
 #include <vector>
@@ -23,8 +23,11 @@ using proto::ib::LimitOrder;
 using proto::ib::OrderStatus;
 using proto::ib::StopLimitOrder;
 
+using atp::AsyncResponse;
 
 namespace atp {
+namespace service {
+
 
 typedef boost::shared_ptr< AsyncResponse<OrderStatus> > AsyncOrderStatus;
 
@@ -55,8 +58,8 @@ class OrderManager : NoCopyAndAssign
 
 };
 
-
+} // service
 } // atp
 
 
-#endif //ATP_ORDER_MANAGER_H_
+#endif //ATP_SERVICE_ORDER_MANAGER_H_

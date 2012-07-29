@@ -22,6 +22,8 @@ namespace p = proto::ib;
 
 
 namespace atp {
+namespace service {
+
 
 class OrderManager::implementation : public Subscriber::Strategy
 {
@@ -174,7 +176,7 @@ const AsyncOrderStatus OrderManager::send(p::StopLimitOrder& order)
 
 
 
-
+} // service
 } // atp
 
 

@@ -12,10 +12,10 @@
 #include "ib/api966/EClientMock.hpp"
 #include "ib/api966/ostream.hpp"
 
-#include "OrderManager.hpp"
+#include "service/OrderManager.hpp"
 
-using atp::AsyncOrderStatus;
-using atp::OrderManager;
+using atp::service::AsyncOrderStatus;
+using atp::service::OrderManager;
 
 using IBAPI::SocketInitiator;
 
