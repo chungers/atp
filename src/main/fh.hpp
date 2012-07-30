@@ -1,18 +1,17 @@
 #ifndef MAIN_FH_H_
 #define MAIN_FH_H_
 
-#include <map>
-#include <set>
+
 #include <string>
 
 #include <boost/assign.hpp>
+#include <boost/unordered_set.hpp>
 
 #include "ib/ApplicationBase.hpp"
 #include "ib/SocketInitiator.hpp"
 #include "ib/MarketEventDispatcher.hpp"
 
-using std::map;
-using std::set;
+using boost::unordered_set;
 using std::string;
 using IBAPI::ApiEventDispatcher;
 using IBAPI::SessionID;
@@ -24,13 +23,13 @@ const std::string CONNECTOR_SPECS =
 const std::string OUTBOUND_ENDPOINTS = "0=tcp://127.0.0.1:7777";
 
 // Firehose only supports messages related to market data.
-const set<string> FIREHOSE_VALID_MESSAGES_ =
-               boost::assign::list_of
-               ("IBAPI.FEED.RequestMarketData")
-               ("IBAPI.FEED.CancelMarketData")
-               ("IBAPI.FEED.RequestMarketDepth")
-               ("IBAPI.FEED.CancelMarketDepth")
-               ;
+const unordered_set<string> FIREHOSE_VALID_MESSAGES_ =
+    boost::assign::list_of
+    ("IBAPI.FEED.RequestMarketData")
+    ("IBAPI.FEED.CancelMarketData")
+    ("IBAPI.FEED.RequestMarketDepth")
+    ("IBAPI.FEED.CancelMarketDepth")
+    ;
 
 
 

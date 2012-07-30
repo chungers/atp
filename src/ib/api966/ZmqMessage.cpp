@@ -1,8 +1,8 @@
 
 // api966
-#include <map>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
+#include <boost/unordered_map.hpp>
 
 #include "ib/ZmqMessage.hpp"
 #include "zmq/ZmqUtils.hpp"
@@ -13,7 +13,7 @@
 namespace ib {
 namespace internal {
 
-typedef std::map< std::string, ZmqMessagePtr > CallApiHandlerMap;
+typedef boost::unordered_map< std::string, ZmqMessagePtr > CallApiHandlerMap;
 
 const CallApiHandlerMap& _handlerMap()
 {
