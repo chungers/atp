@@ -1,5 +1,5 @@
-#ifndef ATP_MANAGED_AGENT_H_
-#define ATP_MANAGED_AGENT_H_
+#ifndef ATP_SERVICE_MANAGED_AGENT_H_
+#define ATP_SERVICE_MANAGED_AGENT_H_
 
 #include <string>
 #include <sstream>
@@ -16,6 +16,9 @@
 DEFINE_VARZ_string(managed_id, "", "");
 
 namespace atp {
+namespace service {
+
+
 
 using namespace std;
 
@@ -179,7 +182,8 @@ class ManagedAgent
 };
 
 
+} // namespace service
 } // namespace atp
 
 
-#endif //ATP_MANAGED_AGENT_H_
+#endif //ATP_SERVICE_MANAGED_AGENT_H_

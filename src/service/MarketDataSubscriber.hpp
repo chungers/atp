@@ -22,7 +22,7 @@
 #include "varz/varz.hpp"
 #include "zmq/ZmqUtils.hpp"
 
-#include "ManagedAgent.hpp"
+#include "service/ManagedAgent.hpp"
 
 
 DEFINE_VARZ_int64(marketdata_process_latency_micros, 0, "");
