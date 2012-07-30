@@ -1,2 +1,0 @@
-useDynLib(raptor)
-exportPattern("^[[:alpha:]]+")
