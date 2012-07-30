@@ -14,6 +14,9 @@ add_subdirectory(boost/iostreams)
 # Protobuffers
 add_subdirectory(proto)
 
+# Common stuff
+add_subdirectory(common)
+
 # Interactive Brokers adapter
 add_subdirectory(ib)
 

@@ -10,7 +10,7 @@
 #include "proto/ib.pb.h"
 
 #include "common.hpp"
-#include "AsyncResponse.hpp"
+#include "common/AsyncResponse.hpp"
 
 
 using std::string;
@@ -23,7 +23,7 @@ using proto::ib::LimitOrder;
 using proto::ib::OrderStatus;
 using proto::ib::StopLimitOrder;
 
-using atp::AsyncResponse;
+using atp::common::AsyncResponse;
 
 namespace atp {
 namespace service {

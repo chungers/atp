@@ -1,5 +1,5 @@
-#ifndef ATP_ASYNC_RESPONSE_H_
-#define ATP_ASYNC_RESPONSE_H_
+#ifndef ATP_COMMON_ASYNC_RESPONSE_H_
+#define ATP_COMMON_ASYNC_RESPONSE_H_
 
 
 #include <boost/shared_ptr.hpp>
@@ -7,6 +7,9 @@
 
 
 namespace atp {
+namespace common {
+
+
 
 template <typename T>
 class AsyncResponse
@@ -56,7 +59,7 @@ class AsyncResponse
 };
 
 
-
+} // common
 } // atp
 
-#endif //ATP_ASYNC_RESPONSE_H_
+#endif //ATP_COMMON_ASYNC_RESPONSE_H_
