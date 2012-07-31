@@ -26,7 +26,8 @@ class Factory
  public:
   bool Register(const IdentifierType& id, ProductCreator creator)
   {
-    return creators_.insert(CreatorMap::value_type(id, creator)).second;
+    return creators_.insert(
+        std::pair<IdentifierType, ProductCreator>(id, creator)).second;
   }
 
   bool Unregister(const IdentifierType& id)

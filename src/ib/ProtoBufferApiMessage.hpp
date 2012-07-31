@@ -39,6 +39,16 @@ class ProtoBufferApiMessage : public ZmqMessage
     return proto_;
   }
 
+  virtual bool ParseFromString(const string& s)
+  {
+    return proto_.ParseFromString(s);
+  }
+
+  virtual bool SerializeToString(string* buff)
+  {
+    return proto_.SerializeToString(buff);
+  }
+
   virtual bool validate()
   {
     return proto_.IsInitialized();

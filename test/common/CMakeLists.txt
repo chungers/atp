@@ -3,18 +3,31 @@
 
 message(STATUS "TESTS: Common ================================================")
 
+# Use standard string library instead of mvc foundation classes:
+option(IB_USE_STD_STRING "Use standard c++ string (see Shared/IBString.h)." ON)
+if (IB_USE_STD_STRING)
+  add_definitions('-DIB_USE_STD_STRING')
+endif (IB_USE_STD_STRING)
+
 # CommonTests
 set(CommonLibTest_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
+  ${IBAPI_ROOT}
+  ${IBAPI_ROOT}/Shared
 )
 set(CommonLibTest_srcs
   ${TEST_DIR}/AllTests.cpp
   FactoryTest.cpp
 )
 set(CommonLibTest_libs
-  zmq
+  api_base
+  ib_api_versioned_base
+  proto_components
+  zmq_components
+  gflags
+  glog
   )
 cpp_gtest(CommonLibTest)
 
