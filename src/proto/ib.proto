@@ -1,7 +1,7 @@
 // Events / data from the IB API.
 package proto.ib;
 
-option optimize_for = LITE_RUNTIME;
+//option optimize_for = LITE_RUNTIME;
 
 import "common.proto";
 

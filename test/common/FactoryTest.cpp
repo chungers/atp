@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
+#include "utils.hpp"
 #include "ib/ZmqMessage.hpp"
 #include "ib/api966/ApiMessages.hpp"
 
@@ -19,38 +20,93 @@ using IBAPI::V966::RequestMarketDepth;
 
 namespace p = proto::ib;
 
+
+// Function template for parsing string data and creating
+// zmq message objects.
 template <class M>
-M* create(const string& msg)
+M* create(const string& key, const string& msg)
 {
   M* ptr = new M();
-  if (ptr->ParseFromString(msg)) {
+  string protoKey = ptr->key();
+
+  LOG(INFO) << "proto key = " << protoKey << ", actual = " << key;
+  if (key == protoKey && ptr->ParseFromString(msg)) {
     return ptr;
   }
   return NULL;
 }
 
 
+p::RequestMarketData REQUEST_MARKET_DATA;
+p::CancelMarketData CANCEL_MARKET_DATA;
+p::RequestMarketDepth REQUEST_MARKET_DEPTH;
+p::CancelMarketData CANCEL_MARKET_DEPTH;
+
+
+Factory< ZmqMessage > *InitFactory()
+{
+  Factory< ZmqMessage > *factory = new Factory< ZmqMessage >();
+
+  factory->Register(REQUEST_MARKET_DATA.key(), &create<RequestMarketData>);
+
+  factory->Register(CANCEL_MARKET_DATA.key(), &create<CancelMarketData>);
+
+  factory->Register(REQUEST_MARKET_DEPTH.key(), &create<RequestMarketDepth>);
+
+  factory->Register(CANCEL_MARKET_DEPTH.key(), &create<CancelMarketDepth>);
+
+  return factory;
+}
+
+
 TEST(FactoryTest, FactoryBasicTest)
 {
+  Factory< ZmqMessage > *factory = InitFactory();
 
-  Factory< ZmqMessage, string > factory;
+  EXPECT_TRUE(factory->IsSupported(CANCEL_MARKET_DEPTH.key()));
+  EXPECT_TRUE(factory->IsSupported(REQUEST_MARKET_DEPTH.key()));
+  EXPECT_TRUE(factory->IsSupported(CANCEL_MARKET_DATA.key()));
+  EXPECT_TRUE(factory->IsSupported(REQUEST_MARKET_DATA.key()));
+  EXPECT_FALSE(factory->IsSupported("unknown"));
 
-  p::RequestMarketData REQUEST_MARKET_DATA;
-  factory.Register(REQUEST_MARKET_DATA.key(), &create<RequestMarketData>);
-
-  p::CancelMarketData CANCEL_MARKET_DATA;
-  factory.Register(CANCEL_MARKET_DATA.key(), &create<CancelMarketData>);
-
-  p::RequestMarketDepth REQUEST_MARKET_DEPTH;
-  factory.Register(REQUEST_MARKET_DEPTH.key(), &create<RequestMarketDepth>);
-
-  p::CancelMarketData CANCEL_MARKET_DEPTH;
-  factory.Register(CANCEL_MARKET_DEPTH.key(), &create<CancelMarketDepth>);
-
-  EXPECT_TRUE(factory.IsSupported(CANCEL_MARKET_DEPTH.key()));
-  EXPECT_TRUE(factory.IsSupported(REQUEST_MARKET_DEPTH.key()));
-  EXPECT_TRUE(factory.IsSupported(CANCEL_MARKET_DATA.key()));
-  EXPECT_TRUE(factory.IsSupported(REQUEST_MARKET_DATA.key()));
-  EXPECT_FALSE(factory.IsSupported("unknown"));
-
+  delete factory;
 }
+
+
+TEST(FactoryTest, FactoryCreateObjectTest)
+{
+  Factory< ZmqMessage > *factory = InitFactory();
+
+  ZmqMessage *req;
+
+  req = factory->CreateObject(REQUEST_MARKET_DATA.key(),
+                              "bad data");
+  EXPECT_TRUE(req == NULL);
+
+  p::RequestMarketData r;
+  boost::uint64_t t = now_micros();
+  r.set_timestamp(t);
+  r.set_message_id(t);
+  r.mutable_contract()->set_id(1000);
+  r.mutable_contract()->set_symbol("AAPL");
+
+
+  LOG(INFO) << "RequestMarketData: " << r.GetTypeName()
+            << ", size = " << r.ByteSize();
+
+
+  EXPECT_TRUE(r.IsInitialized());
+
+  std::string message;
+  r.SerializeToString(&message);
+
+  EXPECT_TRUE(r.ParseFromString(message));
+
+  req = factory->CreateObject(REQUEST_MARKET_DATA.key(),
+                              message);
+  EXPECT_TRUE(req != NULL);  //  should create ok
+  EXPECT_EQ(r.key(), req->key());
+
+  delete factory;
+}
+

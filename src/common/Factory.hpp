@@ -18,8 +18,11 @@ using std::string;
 
 template <
   class AbstractProduct,
-  typename IdentifierType,
-  class ProductCreator = function< AbstractProduct*(const string& msg) >
+  typename IdentifierType = string,
+  typename SerializedDataType = string,
+  class ProductCreator =
+  function< AbstractProduct*(const IdentifierType& key,
+                             const SerializedDataType& msg) >
   >
 class Factory
 {
@@ -41,11 +44,12 @@ class Factory
     return (itr != creators_.end()) ;
   }
 
-  AbstractProduct* CreateObject(const IdentifierType& id, const string& data)
+  AbstractProduct* CreateObject(const IdentifierType& id,
+                                const SerializedDataType& data)
   {
     typename CreatorMap::const_iterator itr = creators_.find(id);
     if (itr != creators_.end()) {
-      return (itr->second)(data);
+      return (itr->second)(id, data);
     }
     return NULL;
   }
