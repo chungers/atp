@@ -29,9 +29,9 @@ class ProtoBufferApiMessage : public ZmqMessage
 
   ~ProtoBufferApiMessage() {}
 
-  virtual const std::string& key() const
+  virtual const std::string key() const
   {
-    return proto_.key();
+    return proto_.GetTypeName();
   }
 
   virtual P& proto()

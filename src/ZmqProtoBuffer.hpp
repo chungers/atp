@@ -42,7 +42,7 @@ size_t send(socket_t& socket,
   size_t sent = 0;
   try {
 
-    sent += atp::zmq::send_copy(socket, proto.key(), true);
+    sent += atp::zmq::send_copy(socket, proto.GetTypeName(), true);
     sent += atp::zmq::send_copy(socket, buff, false);
 
     proto.CopyFrom(copy);
@@ -63,7 +63,7 @@ bool receive(socket_t& socket, P& proto)
     // Something wrong -- we are supposed to read only one
     // frame and all of protobuffer's data is in it.
     ZMQ_PROTO_MESSAGE_LOGGER << "More data than expected: "
-                             << proto.key() << ":" << frame1;
+                             << proto.GetTypeName() << ":" << frame1;
     return false;
   } else {
       P p;

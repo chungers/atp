@@ -83,67 +83,59 @@ message Contract {
 }
 
 message RequestMarketData {
-  optional string key = 1 [ default = "IBAPI.FEED.RequestMarketData" ];
-  required uint64 timestamp = 2;
-  required uint64 message_id = 3;
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
 
-  required Contract contract = 4;
-  optional string tick_types = 5;
-  optional bool snapshot = 6 [ default = false ];
+  required Contract contract = 3;
+  optional string tick_types = 4;
+  optional bool snapshot = 5 [ default = false ];
 }
 
 message CancelMarketData {
-  optional string key = 1 [ default = "IBAPI.FEED.CancelMarketData" ];
-  required uint64 timestamp = 2;
-  required uint64 message_id = 3;
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
 
-  required Contract contract = 4;
+  required Contract contract = 3;
 }
 
 message RequestMarketDepth {
-  optional string key = 1 [ default = "IBAPI.FEED.RequestMarketDepth" ];
-  required uint64 timestamp = 2;
-  required uint64 message_id = 3;
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
 
-  required Contract contract = 4;
-  optional uint32 rows = 5 [ default = 20 ];
+  required Contract contract = 3;
+  optional uint32 rows = 4 [ default = 20 ];
 }
 
 message CancelMarketDepth {
-  optional string key = 1 [ default = "IBAPI.FEED.CancelMarketDepth" ];
-  required uint64 timestamp = 2;
-  required uint64 message_id = 3;
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
 
-  required Contract contract = 4;
+  required Contract contract = 3;
 }
 
 
 message OrderStatus {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
 
-  optional string key = 1 [ default = "IBAPI.EXEC.OrderStatus" ];
-  required uint64 timestamp = 2;
-  required uint64 message_id = 3;
+  required uint64 order_id = 3;
+  required string status = 4;
+  required uint32 filled = 5;
+  required uint32 remaining = 6;
+  required proto.common.Money avg_fill_price = 7;
+  required proto.common.Money last_fill_price = 8;
 
-  required uint64 order_id = 4;
-  required string status = 5;
-  required uint32 filled = 6;
-  required uint32 remaining = 7;
-  required proto.common.Money avg_fill_price = 8;
-  required proto.common.Money last_fill_price = 9;
-
-  required uint32 client_id = 10;
-  required uint32 perm_id = 11;
-  required uint32 parent_id = 12;
-  required string why_held = 13 [ default = "locate" ];
+  required uint32 client_id = 9;
+  required uint32 perm_id = 10;
+  required uint32 parent_id = 11;
+  required string why_held = 12 [ default = "locate" ];
 }
 
 message CancelOrder {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
 
-  optional string key = 1 [ default = "IBAPI.EXEC.CancelOrder" ];
-  required uint64 timestamp = 2;
-  required uint64 message_id = 3;
-
-  required uint64 order_id = 4;
+  required uint64 order_id = 3;
 }
 
 message Order {
@@ -175,32 +167,26 @@ message Order {
 }
 
 message MarketOrder {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
 
-  optional string key = 1 [ default = "IBAPI.EXEC.MarketOrder" ];
-  required uint64 timestamp = 2;
-  required uint64 message_id = 3;
-
-  required Order order = 4;
+  required Order order = 3;
 }
 
 message LimitOrder {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
 
-  optional string key = 1 [ default = "IBAPI.EXEC.LimitOrder" ];
-  required uint64 timestamp = 2;
-  required uint64 message_id = 3;
-
-  required Order order = 4;
-  required proto.common.Money limit_price = 11;
+  required Order order = 3;
+  required proto.common.Money limit_price = 4;
 }
 
 message StopLimitOrder {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
 
-  optional string key = 1 [ default = "IBAPI.EXEC.StopLimitOrder" ];
-  required uint64 timestamp = 2;
-  required uint64 message_id = 3;
-
-  required Order order = 4;
-  required proto.common.Money limit_price = 5;
-  required proto.common.Money stop_price = 6;
+  required Order order = 3;
+  required proto.common.Money limit_price = 4;
+  required proto.common.Money stop_price = 5;
 }
 

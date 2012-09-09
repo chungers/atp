@@ -51,14 +51,15 @@ class OrderEventDispatcher : public IBAPI::ApiEventDispatcher
         zmq::socket_t* socket = getOutboundSocket(0);
         assert(socket != NULL);
 
-        size_t sent = atp::zmq::send_copy(*socket, proto.key(), true);
+        size_t sent = atp::zmq::send_copy(*socket, proto.GetTypeName(), true);
         sent += atp::zmq::send_copy(*socket, frame, false);
 
-        LOG(INFO) << "Sent order status (" << sent << "): " << proto.key();
+        LOG(INFO) << "Sent order status (" << sent << "): "
+                  << proto.GetTypeName();
         onPublish(now, sent);
 
     } else {
-      LOG(ERROR) << "Unable to serialize: " << proto.key()
+      LOG(ERROR) << "Unable to serialize: " << proto.GetTypeName()
                  << ", message_id=" << proto.message_id()
                  << ", ts=" << proto.timestamp();
 

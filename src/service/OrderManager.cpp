@@ -52,7 +52,7 @@ class OrderManager::implementation : public Subscriber::Strategy
     ORDER_MANAGER_LOGGER << "Connected to " << em_endpoint_;
 
     // Add one subscription specifically for order status
-    filters_.push_back(ORDER_STATUS_MESSAGE_.key());
+    filters_.push_back(ORDER_STATUS_MESSAGE_.GetTypeName());
 
     // Start inbound subscriber for OrderStatus coming from EM
     order_status_subscriber_.reset(new Subscriber(em_messages_endpoint_,
@@ -71,7 +71,7 @@ class OrderManager::implementation : public Subscriber::Strategy
 
       if (more) {
 
-        if (messageKeyFrame == ORDER_STATUS_MESSAGE_.key()) {
+        if (messageKeyFrame == ORDER_STATUS_MESSAGE_.GetTypeName()) {
           p::OrderStatus* status = new p::OrderStatus();
           bool received = atp::receive<p::OrderStatus>(socket, *status);
 
@@ -109,7 +109,8 @@ class OrderManager::implementation : public Subscriber::Strategy
     if (em_socket_ != NULL) {
       size_t sent = atp::send(*em_socket_, now_micros(), now_micros(), proto);
 
-      ORDER_MANAGER_LOGGER << "Sent " << proto.key() << " (" << sent << ")";
+      ORDER_MANAGER_LOGGER << "Sent " << proto.GetTypeName()
+                           << " (" << sent << ")";
 
       response = new AsyncResponse<p::OrderStatus>();
     }

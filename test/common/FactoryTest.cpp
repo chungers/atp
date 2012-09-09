@@ -47,13 +47,13 @@ Factory< ZmqMessage > *InitFactory()
 {
   Factory< ZmqMessage > *factory = new Factory< ZmqMessage >();
 
-  factory->Register(REQUEST_MARKET_DATA.key(), &create<RequestMarketData>);
+  factory->Register(REQUEST_MARKET_DATA.GetTypeName(), &create<RequestMarketData>);
 
-  factory->Register(CANCEL_MARKET_DATA.key(), &create<CancelMarketData>);
+  factory->Register(CANCEL_MARKET_DATA.GetTypeName(), &create<CancelMarketData>);
 
-  factory->Register(REQUEST_MARKET_DEPTH.key(), &create<RequestMarketDepth>);
+  factory->Register(REQUEST_MARKET_DEPTH.GetTypeName(), &create<RequestMarketDepth>);
 
-  factory->Register(CANCEL_MARKET_DEPTH.key(), &create<CancelMarketDepth>);
+  factory->Register(CANCEL_MARKET_DEPTH.GetTypeName(), &create<CancelMarketDepth>);
 
   return factory;
 }
@@ -63,10 +63,10 @@ TEST(FactoryTest, FactoryBasicTest)
 {
   Factory< ZmqMessage > *factory = InitFactory();
 
-  EXPECT_TRUE(factory->IsSupported(CANCEL_MARKET_DEPTH.key()));
-  EXPECT_TRUE(factory->IsSupported(REQUEST_MARKET_DEPTH.key()));
-  EXPECT_TRUE(factory->IsSupported(CANCEL_MARKET_DATA.key()));
-  EXPECT_TRUE(factory->IsSupported(REQUEST_MARKET_DATA.key()));
+  EXPECT_TRUE(factory->IsSupported(CANCEL_MARKET_DEPTH.GetTypeName()));
+  EXPECT_TRUE(factory->IsSupported(REQUEST_MARKET_DEPTH.GetTypeName()));
+  EXPECT_TRUE(factory->IsSupported(CANCEL_MARKET_DATA.GetTypeName()));
+  EXPECT_TRUE(factory->IsSupported(REQUEST_MARKET_DATA.GetTypeName()));
   EXPECT_FALSE(factory->IsSupported("unknown"));
 
   delete factory;
@@ -79,7 +79,7 @@ TEST(FactoryTest, FactoryCreateObjectTest)
 
   ZmqMessage *req;
 
-  req = factory->CreateObject(REQUEST_MARKET_DATA.key(),
+  req = factory->CreateObject(REQUEST_MARKET_DATA.GetTypeName(),
                               "bad data");
   EXPECT_TRUE(req == NULL);
 
@@ -102,10 +102,10 @@ TEST(FactoryTest, FactoryCreateObjectTest)
 
   EXPECT_TRUE(r.ParseFromString(message));
 
-  req = factory->CreateObject(REQUEST_MARKET_DATA.key(),
+  req = factory->CreateObject(REQUEST_MARKET_DATA.GetTypeName(),
                               message);
   EXPECT_TRUE(req != NULL);  //  should create ok
-  EXPECT_EQ(r.key(), req->key());
+  EXPECT_EQ(r.GetTypeName(), req->key());
 
   delete factory;
 }
