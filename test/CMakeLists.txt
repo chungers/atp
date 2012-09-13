@@ -8,6 +8,7 @@ add_subdirectory(varz)
 add_subdirectory(zmq)
 add_subdirectory(service)
 add_subdirectory(historian)
+add_subdirectory(prototype)
 
 add_custom_target(all_tests)
 add_dependencies(all_tests
@@ -17,4 +18,5 @@ add_dependencies(all_tests
   all_ib_tests
   all_service_tests
   all_historian_tests
+  all_prototypes
 )
