@@ -4,6 +4,7 @@
 
 #include <boost/circular_buffer.hpp>
 #include <boost/pool/object_pool.hpp>
+#include <boost/pool/pool_alloc.hpp>
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
@@ -102,4 +103,163 @@ TEST(IndicatorPrototype, CircularBufferTiming)
   boost::uint64_t elapsed = now_micros() - now;
   LOG(INFO) << "Avg = " << avg << " over "
             << length << " objects in " << elapsed << " usecs";
+}
+
+TEST(IndicatorPrototype, ObjectPool1)
+{
+  using proto::test::Candle;
+  typedef boost::object_pool<Candle> pool;
+  typedef boost::uint64_t ts;
+
+  size_t num_objects = 10000000;
+  ts start, elapsed;
+
+  //////////////////////////////
+  {
+    start = now_micros();
+
+    pool p;
+    for (int i = 0; i < num_objects; ++i) {
+      Candle *c = p.construct();
+      p.free(c); // deallocates memory but does not call destructor
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "pool.construct " << num_objects << " objects in "
+              << elapsed << " usecs (with free)";
+  }
+
+  //////////////////////////////
+  {
+    start = now_micros();
+
+    pool p;
+    for (int i = 0; i < num_objects; ++i) {
+      Candle *c = p.construct();
+      p.destroy(c); // deallocates memory and calls destructor
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "pool.construct " << num_objects << " objects in "
+              << elapsed << " usecs (with destroy)";
+  }
+
+  //////////////////////////////
+  {
+    start = now_micros();
+
+    pool p;
+    for (int i = 0; i < num_objects; ++i) {
+      Candle *c = p.construct();
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "pool.construct " << num_objects << " objects in "
+              << elapsed << " usecs (no free)";
+  }
+
+  //////////////////////////////
+  {
+    start = now_micros();
+    for (int i = 0; i < num_objects; ++i) {
+      Candle *c = new Candle();
+      delete c;
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "    new/delete " << num_objects << " objects in "
+              << elapsed << " usecs";
+  }
+
+  //////////////////////////////
+  {
+    start = now_micros();
+    for (int i = 0; i < num_objects; ++i) {
+      Candle c;
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "   stack alloc " << num_objects << " objects in "
+              << elapsed << " usecs";
+  }
+}
+
+TEST(IndicatorPrototype, CircularBufferWithPoolAllocator)
+{
+  using proto::test::Candle;
+  typedef boost::object_pool<Candle> pool;
+  typedef boost::circular_buffer<
+    Candle, boost::pool_allocator<Candle> > pooled_ring;
+  typedef boost::circular_buffer<Candle> unpooled_ring;
+  typedef boost::circular_buffer<Candle>::const_iterator ring_itr;
+  typedef boost::uint64_t ts;
+
+  ts start, elapsed;
+  size_t num_objects = 10000000;
+  size_t length = 100;
+
+  ////////////////////////////////
+  {
+    start = now_micros();
+    pooled_ring cb(length);
+    for (int i = 0 ; i < num_objects ; ++i) {
+      Candle c;
+      c.set_timestamp(i);
+      cb.push_back(c);
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "         pooled_ring: " << num_objects << " objects in "
+              << elapsed << " usecs";
+  }
+
+  ////////////////////////////////
+  {
+    start = now_micros();
+    unpooled_ring cb(length);
+    for (int i = 0 ; i < num_objects ; ++i) {
+      Candle c;
+      c.set_timestamp(i);
+      cb.push_back(c);
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "       unpooled_ring: " << num_objects << " objects in "
+              << elapsed << " usecs";
+  }
+
+  ////////////////////////////////
+  {
+    start = now_micros();
+    pool p;
+    pooled_ring cb(length);
+    for (int i = 0 ; i < num_objects ; ++i) {
+      Candle* c = p.construct();
+      c->set_timestamp(i);
+      cb.push_back(*c);
+      p.free(c);
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "  pool + pooled_ring: " << num_objects << " objects in "
+              << elapsed << " usecs";
+  }
+
+  ////////////////////////////////
+  {
+    start = now_micros();
+    pool p;
+    unpooled_ring cb(length);
+    for (int i = 0 ; i < num_objects ; ++i) {
+      Candle* c = p.construct();
+      c->set_timestamp(i);
+      cb.push_back(*c);
+      p.free(c);
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "pool + unpooled_ring: " << num_objects << " objects in "
+              << elapsed << " usecs";
+  }
+
 }
