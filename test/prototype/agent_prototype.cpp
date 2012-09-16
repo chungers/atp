@@ -2,6 +2,9 @@
 
 #include <string>
 
+#include <boost/function.hpp>
+#include <boost/unordered_map.hpp>
+
 #include <boost/circular_buffer.hpp>
 #include <boost/pool/object_pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
@@ -13,9 +16,92 @@
 
 #include "test.pb.h"
 
+#include "common/Factory.hpp"
+#include "zmq/ZmqUtils.hpp"
+
+using std::string;
+using ::zmq::context_t;
+using ::zmq::error_t;
+using ::zmq::socket_t;
+using atp::common::Factory;
+
+template <typename Context>
+struct Handler
+{
+  typedef unsigned int status_t;
+
+  static const status_t CANNOT_PARSE    = 100;
+  static const status_t NOT_INITIALIZED = 101;
+
+  virtual status_t Execute(Context& context, const string& message) = 0;
+};
+
+template <typename ProtoBufferMessage,
+          typename Context,
+          class Processor =
+          boost::function< unsigned int(const ProtoBufferMessage& message,
+                                        Context& context) > >
+class MessageHandler : Handler<Context>
+{
+ public:
+
+  typedef unsigned int status_t;
+
+  MessageHandler(Processor processor) : processor_(processor) {}
+  virtual ~MessageHandler() {}
+
+  virtual status_t Execute(Context& context,
+                           const string& message)
+  {
+    message_.Clear();
+
+    if (message_.ParseFromString(message)) {
+      if (message_.IsInitialized()) {
+        return processor_(message_, context);
+      } else {
+        return Handler<Context>::NOT_INITIALIZED;
+      }
+    } else {
+      return Handler<Context>::CANNOT_PARSE;
+    }
+  }
+
+ private:
+  ProtoBufferMessage message_;
+  Processor processor_;
+};
+
+/// Basic message listener that handles the message based on
+/// a topic followed by a protobuffer string
+template <typename Context>
+class MessageListener
+{
+ public:
+
+  MessageListener(const string& endpoint, context_t* context,
+                  Factory<Handler<Context> >& factory) :
+      endpoint_(endpoint),
+      context_(context),
+      factory_(factory)
+  {
+  }
+
+ private:
+
+  string endpoint_;
+  context_t* context_;
+  Factory< Handler<Context> >& factory_;
+};
+
+class Agent
+{
+
+};
 
 
-TEST(IndicatorPrototype, CircularBuffer1)
+
+
+TEST(AgentPrototype, CircularBuffer1)
 {
   boost::circular_buffer<int> cb(3);
   cb.push_back(1);
@@ -40,7 +126,7 @@ TEST(IndicatorPrototype, CircularBuffer1)
 }
 
 
-TEST(IndicatorPrototype, CircularBuffer2)
+TEST(AgentPrototype, CircularBuffer2)
 {
   using proto::test::Candle;
 
@@ -72,7 +158,7 @@ TEST(IndicatorPrototype, CircularBuffer2)
   LOG(INFO) << length << " objects in " << elapsed << " usecs";
 }
 
-TEST(IndicatorPrototype, CircularBufferTiming)
+TEST(AgentPrototype, CircularBufferTiming)
 {
   using proto::test::Candle;
   typedef boost::circular_buffer<Candle> ring;
@@ -107,7 +193,7 @@ TEST(IndicatorPrototype, CircularBufferTiming)
 }
 
 struct CandleTag {};
-TEST(IndicatorPrototype, ObjectPool1)
+TEST(AgentPrototype, ObjectPool1)
 {
   using proto::test::Candle;
   typedef boost::singleton_pool<CandleTag, sizeof(Candle)> singleton_pool;
@@ -201,7 +287,7 @@ TEST(IndicatorPrototype, ObjectPool1)
   }
 }
 
-TEST(IndicatorPrototype, CircularBufferWithPoolAllocator)
+TEST(AgentPrototype, CircularBufferWithPoolAllocator)
 {
   using proto::test::Candle;
   typedef boost::object_pool<Candle> pool;

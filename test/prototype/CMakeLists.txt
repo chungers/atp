@@ -26,6 +26,7 @@ set(Prototypes_incs
 set(Prototypes_srcs
   ${TEST_DIR}/AllTests.cpp
   indicators_prototype.cpp
+  agent_prototype.cpp
 )
 set(Prototypes_libs
   api_base

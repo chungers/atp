@@ -13,8 +13,6 @@
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/thread.hpp>
 
-#include <zmq.h>
-
 #include "log_levels.h"
 #include "utils.hpp"
 #include "historian/constants.hpp"
