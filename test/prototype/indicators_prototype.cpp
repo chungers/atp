@@ -5,6 +5,7 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/pool/object_pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
+#include <boost/pool/singleton_pool.hpp>
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
@@ -105,14 +106,31 @@ TEST(IndicatorPrototype, CircularBufferTiming)
             << length << " objects in " << elapsed << " usecs";
 }
 
+struct CandleTag {};
 TEST(IndicatorPrototype, ObjectPool1)
 {
   using proto::test::Candle;
+  typedef boost::singleton_pool<CandleTag, sizeof(Candle)> singleton_pool;
+
   typedef boost::object_pool<Candle> pool;
   typedef boost::uint64_t ts;
 
   size_t num_objects = 10000000;
   ts start, elapsed;
+
+  //////////////////////////////
+  {
+    start = now_micros();
+
+    for (int i = 0; i < num_objects; ++i) {
+      void *c = singleton_pool::malloc();
+      singleton_pool::free(c); // no destructor call
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "singleton_pool " << num_objects << " objects in "
+              << elapsed << " usecs (with free)";
+  }
 
   //////////////////////////////
   {
@@ -128,7 +146,6 @@ TEST(IndicatorPrototype, ObjectPool1)
     LOG(INFO) << "pool.construct " << num_objects << " objects in "
               << elapsed << " usecs (with free)";
   }
-
   //////////////////////////////
   {
     start = now_micros();
@@ -190,6 +207,8 @@ TEST(IndicatorPrototype, CircularBufferWithPoolAllocator)
   typedef boost::object_pool<Candle> pool;
   typedef boost::circular_buffer<
     Candle, boost::pool_allocator<Candle> > pooled_ring;
+  typedef boost::circular_buffer<
+    Candle, boost::fast_pool_allocator<Candle> > fast_pooled_ring;
   typedef boost::circular_buffer<Candle> unpooled_ring;
   typedef boost::circular_buffer<Candle>::const_iterator ring_itr;
   typedef boost::uint64_t ts;
@@ -209,7 +228,22 @@ TEST(IndicatorPrototype, CircularBufferWithPoolAllocator)
     }
 
     elapsed = now_micros() - start;
-    LOG(INFO) << "         pooled_ring: " << num_objects << " objects in "
+    LOG(INFO) << "            pooled_ring: " << num_objects << " objects in "
+              << elapsed << " usecs";
+  }
+
+  ////////////////////////////////
+  {
+    start = now_micros();
+    fast_pooled_ring cb(length);
+    for (int i = 0 ; i < num_objects ; ++i) {
+      Candle c;
+      c.set_timestamp(i);
+      cb.push_back(c);
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "       fast_pooled_ring: " << num_objects << " objects in "
               << elapsed << " usecs";
   }
 
@@ -224,7 +258,7 @@ TEST(IndicatorPrototype, CircularBufferWithPoolAllocator)
     }
 
     elapsed = now_micros() - start;
-    LOG(INFO) << "       unpooled_ring: " << num_objects << " objects in "
+    LOG(INFO) << "          unpooled_ring: " << num_objects << " objects in "
               << elapsed << " usecs";
   }
 
@@ -241,7 +275,24 @@ TEST(IndicatorPrototype, CircularBufferWithPoolAllocator)
     }
 
     elapsed = now_micros() - start;
-    LOG(INFO) << "  pool + pooled_ring: " << num_objects << " objects in "
+    LOG(INFO) << "     pool + pooled_ring: " << num_objects << " objects in "
+              << elapsed << " usecs";
+  }
+
+  ////////////////////////////////
+  {
+    start = now_micros();
+    pool p;
+    fast_pooled_ring cb(length);
+    for (int i = 0 ; i < num_objects ; ++i) {
+      Candle* c = p.construct();
+      c->set_timestamp(i);
+      cb.push_back(*c);
+      p.free(c);
+    }
+
+    elapsed = now_micros() - start;
+    LOG(INFO) << "pool + fast_pooled_ring: " << num_objects << " objects in "
               << elapsed << " usecs";
   }
 
@@ -258,7 +309,7 @@ TEST(IndicatorPrototype, CircularBufferWithPoolAllocator)
     }
 
     elapsed = now_micros() - start;
-    LOG(INFO) << "pool + unpooled_ring: " << num_objects << " objects in "
+    LOG(INFO) << "   pool + unpooled_ring: " << num_objects << " objects in "
               << elapsed << " usecs";
   }
 
