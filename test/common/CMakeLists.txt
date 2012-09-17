@@ -19,6 +19,7 @@ set(CommonLibTest_incs
 )
 set(CommonLibTest_srcs
   ${TEST_DIR}/AllTests.cpp
+  ExecutorTest.cpp
   FactoryTest.cpp
 )
 set(CommonLibTest_libs
