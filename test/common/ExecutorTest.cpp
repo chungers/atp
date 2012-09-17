@@ -21,7 +21,7 @@ void work()
 {
   ts now = now_micros();
   COUNT++;
-  LOG(INFO) << "work " << (now - LAST);
+  LOG(INFO) << "work " << COUNT << "," << (now - LAST);
   LAST = now;
 }
 
@@ -29,7 +29,8 @@ void work(const string& message)
 {
   ts now = now_micros();
   COUNT++;
-  LOG(INFO) << "work: " << message << ","  << (now - LAST);
+  LOG(INFO) << "work: " << message << ","
+            << COUNT << "," << (now - LAST);
   LAST = now;
 }
 
@@ -39,7 +40,7 @@ struct work_functor
   {
     ts now = now_micros();
     COUNT++;
-    LOG(INFO) << "functor " << (now - LAST);
+    LOG(INFO) << "functor " << COUNT << "," << (now - LAST);
     LAST = now;
   }
 };
@@ -75,7 +76,7 @@ TEST(ExecutorTest, UsageSyntax)
 {
   work_functor w;
 
-  Executor executor(1);
+  Executor executor(2);
   executor.Submit(work_functor());
 
   for (int i = 0; i < 20; ++i) {
