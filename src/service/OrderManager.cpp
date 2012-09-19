@@ -15,6 +15,7 @@ using std::map;
 using std::vector;
 using ::zmq::context_t;
 using ::zmq::socket_t;
+using ::zmq::error_t;
 
 using atp::zmq::Subscriber;
 
