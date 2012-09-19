@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 
+#include <zmq.hpp>
 #include <boost/thread.hpp>
 
 #include "zmq/Subscriber.hpp"
