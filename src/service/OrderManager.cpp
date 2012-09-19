@@ -98,7 +98,7 @@ class OrderManager::implementation : public Subscriber::Strategy
           }
         }
       }
-    } catch (error_t e) {
+    } catch (::zmq::error_t e) {
       ORDER_MANAGER_ERROR << "Error: " << e.what();
     }
     return true;
