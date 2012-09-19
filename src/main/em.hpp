@@ -23,13 +23,18 @@ const string CONNECTOR_SPECS =
 const string OUTBOUND_ENDPOINTS =
     "0=tcp://127.0.0.1:8888";
 
+const proto::ib::CancelOrder CANCEL_ORDER;
+const proto::ib::MarketOrder MARKET_ORDER;
+const proto::ib::LimitOrder LIMIT_ORDER;
+const proto::ib::StopLimitOrder STOP_LIMIT_ORDER;
+
 // ExecutionManager only supports messages related to orders
 const unordered_set<string> EM_VALID_MESSAGES_ =
     boost::assign::list_of
-    ("IBAPI.EXEC.CancelOrder")
-    ("IBAPI.EXEC.MarketOrder")
-    ("IBAPI.EXEC.LimitOrder")
-    ("IBAPI.EXEC.StopLimitOrder")
+    (CANCEL_ORDER.GetTypeName())
+    (MARKET_ORDER.GetTypeName())
+    (LIMIT_ORDER.GetTypeName())
+    (STOP_LIMIT_ORDER.GetTypeName())
     ;
 
 class ExecutionManager : public IBAPI::ApplicationBase

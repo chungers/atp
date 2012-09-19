@@ -79,7 +79,7 @@ class OrderManager::implementation : public Subscriber::Strategy
 
           if (received) {
             // Now check to see if there's a pending order status for this
-            boost::lock_guard<boost::mutex> lock(mutex_);
+            boost::shared_lock<boost::shared_mutex> lock(mutex_);
 
             SubmittedOrderId key(status->order_id());
             if (pendingOrders_.find(key) != pendingOrders_.end()) {
@@ -119,7 +119,7 @@ class OrderManager::implementation : public Subscriber::Strategy
 
     AsyncOrderStatus status(response);
 
-    boost::lock_guard<boost::mutex> lock(mutex_);
+    boost::unique_lock<boost::shared_mutex> lock(mutex_);
     pendingOrders_[key] = status;
 
     return status;
@@ -139,7 +139,7 @@ class OrderManager::implementation : public Subscriber::Strategy
 
   p::OrderStatus ORDER_STATUS_MESSAGE_;
 
-  boost::mutex mutex_;
+  boost::shared_mutex mutex_;
   map<SubmittedOrderId, AsyncOrderStatus> pendingOrders_;
 };
 

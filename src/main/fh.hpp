@@ -22,13 +22,18 @@ const std::string CONNECTOR_SPECS =
 
 const std::string OUTBOUND_ENDPOINTS = "0=tcp://127.0.0.1:7777";
 
+const proto::ib::RequestMarketData REQUEST_MARKET_DATA;
+const proto::ib::RequestMarketDepth REQUEST_MARKET_DEPTH;
+const proto::ib::CancelMarketData CANCEL_MARKET_DATA;
+const proto::ib::CancelMarketDepth CANCEL_MARKET_DEPTH;
+
 // Firehose only supports messages related to market data.
 const unordered_set<string> FIREHOSE_VALID_MESSAGES_ =
     boost::assign::list_of
-    ("IBAPI.FEED.RequestMarketData")
-    ("IBAPI.FEED.CancelMarketData")
-    ("IBAPI.FEED.RequestMarketDepth")
-    ("IBAPI.FEED.CancelMarketDepth")
+    (REQUEST_MARKET_DATA.GetTypeName())
+    (REQUEST_MARKET_DEPTH.GetTypeName())
+    (CANCEL_MARKET_DATA.GetTypeName())
+    (CANCEL_MARKET_DEPTH.GetTypeName())
     ;
 
 
