@@ -8,10 +8,10 @@
 #include "ib/ZmqMessage.hpp"
 #include "ib/api966/ApiMessages.hpp"
 
-#include "common/Factory.hpp"
+#include "common/factory.hpp"
 
 using std::string;
-using atp::common::Factory;
+using atp::common::factory;
 using ib::internal::ZmqMessage;
 using IBAPI::V966::CancelMarketData;
 using IBAPI::V966::RequestMarketData;
@@ -43,31 +43,35 @@ p::RequestMarketDepth REQUEST_MARKET_DEPTH;
 p::CancelMarketData CANCEL_MARKET_DEPTH;
 
 
-Factory< ZmqMessage > *InitFactory()
+factory< ZmqMessage > *InitFactory()
 {
-  Factory< ZmqMessage > *factory = new Factory< ZmqMessage >();
+  factory< ZmqMessage > *f = new factory< ZmqMessage >();
 
-  factory->Register(REQUEST_MARKET_DATA.GetTypeName(), &create<RequestMarketData>);
+  f->register_creator(REQUEST_MARKET_DATA.GetTypeName(),
+                      &create<RequestMarketData>);
 
-  factory->Register(CANCEL_MARKET_DATA.GetTypeName(), &create<CancelMarketData>);
+  f->register_creator(CANCEL_MARKET_DATA.GetTypeName(),
+                      &create<CancelMarketData>);
 
-  factory->Register(REQUEST_MARKET_DEPTH.GetTypeName(), &create<RequestMarketDepth>);
+  f->register_creator(REQUEST_MARKET_DEPTH.GetTypeName(),
+                      &create<RequestMarketDepth>);
 
-  factory->Register(CANCEL_MARKET_DEPTH.GetTypeName(), &create<CancelMarketDepth>);
+  f->register_creator(CANCEL_MARKET_DEPTH.GetTypeName(),
+                      &create<CancelMarketDepth>);
 
-  return factory;
+  return f;
 }
 
 
 TEST(FactoryTest, FactoryBasicTest)
 {
-  Factory< ZmqMessage > *factory = InitFactory();
+  factory< ZmqMessage > *factory = InitFactory();
 
-  EXPECT_TRUE(factory->IsSupported(CANCEL_MARKET_DEPTH.GetTypeName()));
-  EXPECT_TRUE(factory->IsSupported(REQUEST_MARKET_DEPTH.GetTypeName()));
-  EXPECT_TRUE(factory->IsSupported(CANCEL_MARKET_DATA.GetTypeName()));
-  EXPECT_TRUE(factory->IsSupported(REQUEST_MARKET_DATA.GetTypeName()));
-  EXPECT_FALSE(factory->IsSupported("unknown"));
+  EXPECT_TRUE(factory->is_supported(CANCEL_MARKET_DEPTH.GetTypeName()));
+  EXPECT_TRUE(factory->is_supported(REQUEST_MARKET_DEPTH.GetTypeName()));
+  EXPECT_TRUE(factory->is_supported(CANCEL_MARKET_DATA.GetTypeName()));
+  EXPECT_TRUE(factory->is_supported(REQUEST_MARKET_DATA.GetTypeName()));
+  EXPECT_FALSE(factory->is_supported("unknown"));
 
   delete factory;
 }
@@ -75,11 +79,11 @@ TEST(FactoryTest, FactoryBasicTest)
 
 TEST(FactoryTest, FactoryCreateObjectTest)
 {
-  Factory< ZmqMessage > *factory = InitFactory();
+  factory< ZmqMessage > *factory = InitFactory();
 
   ZmqMessage *req;
 
-  req = factory->CreateObject(REQUEST_MARKET_DATA.GetTypeName(),
+  req = factory->create_object(REQUEST_MARKET_DATA.GetTypeName(),
                               "bad data");
   EXPECT_TRUE(req == NULL);
 
@@ -102,8 +106,8 @@ TEST(FactoryTest, FactoryCreateObjectTest)
 
   EXPECT_TRUE(r.ParseFromString(message));
 
-  req = factory->CreateObject(REQUEST_MARKET_DATA.GetTypeName(),
-                              message);
+  req = factory->create_object(REQUEST_MARKET_DATA.GetTypeName(),
+                               message);
   EXPECT_TRUE(req != NULL);  //  should create ok
   EXPECT_EQ(r.GetTypeName(), req->key());
 

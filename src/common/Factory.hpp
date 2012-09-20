@@ -17,37 +17,37 @@ using std::string;
 
 
 template <
-  class AbstractProduct,
-  typename IdentifierType = string,
-  typename SerializedDataType = string,
-  class ProductCreator =
-  function< AbstractProduct*(const IdentifierType& key,
-                             const SerializedDataType& msg) >
+  class abstract_product,
+  typename identifier_t = string,
+  typename serialized_data_t = string,
+  class product_creator =
+  function< abstract_product*(const identifier_t& key,
+                              const serialized_data_t& msg) >
   >
-class Factory
+class factory
 {
  public:
-  bool Register(const IdentifierType& id, ProductCreator creator)
+  bool register_creator(const identifier_t& id, product_creator creator)
   {
     return creators_.insert(
-        std::pair<IdentifierType, ProductCreator>(id, creator)).second;
+        std::pair<identifier_t, product_creator>(id, creator)).second;
   }
 
-  bool Unregister(const IdentifierType& id)
+  bool unregister_creator(const identifier_t& id)
   {
     return creators_.erase(id) == 1;
   }
 
-  bool IsSupported(const IdentifierType& id)
+  bool is_supported(const identifier_t& id)
   {
-    typename CreatorMap::const_iterator itr = creators_.find(id);
+    typename creator_map::const_iterator itr = creators_.find(id);
     return (itr != creators_.end()) ;
   }
 
-  AbstractProduct* CreateObject(const IdentifierType& id,
-                                const SerializedDataType& data)
+  abstract_product* create_object(const identifier_t& id,
+                                 const serialized_data_t& data)
   {
-    typename CreatorMap::const_iterator itr = creators_.find(id);
+    typename creator_map::const_iterator itr = creators_.find(id);
     if (itr != creators_.end()) {
       return (itr->second)(id, data);
     }
@@ -56,8 +56,8 @@ class Factory
 
  private:
 
-  typedef unordered_map<IdentifierType, ProductCreator> CreatorMap;
-  CreatorMap creators_;
+  typedef unordered_map<identifier_t, product_creator> creator_map;
+  creator_map creators_;
 };
 
 } // common

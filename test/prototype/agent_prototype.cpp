@@ -17,14 +17,14 @@
 #include "test.pb.h"
 
 #include "common/Executor.hpp"
-#include "common/Factory.hpp"
+#include "common/factory.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 using std::string;
 using ::zmq::context_t;
 using ::zmq::error_t;
 using ::zmq::socket_t;
-using atp::common::Factory;
+using atp::common::factory;
 
 template <typename Context>
 struct Handler
@@ -80,7 +80,7 @@ class MessageListener
  public:
 
   MessageListener(const string& endpoint, context_t* context,
-                  Factory<Handler<Context> >& factory) :
+                  factory<Handler<Context> >& factory) :
       endpoint_(endpoint),
       context_(context),
       factory_(factory)
@@ -91,7 +91,7 @@ class MessageListener
 
   string endpoint_;
   context_t* context_;
-  Factory< Handler<Context> >& factory_;
+  factory< Handler<Context> >& factory_;
 };
 
 class Agent
