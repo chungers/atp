@@ -5,11 +5,11 @@
 #include <glog/logging.h>
 
 #include "utils.hpp"
-#include "common/Executor.hpp"
+#include "common/executor.hpp"
 
 
 using std::string;
-using atp::common::Executor;
+using atp::common::executor;
 
 typedef boost::uint64_t ts;
 
@@ -76,7 +76,7 @@ TEST(ExecutorTest, UsageSyntax)
 {
   work_functor w;
 
-  Executor executor(2);
+  executor executor(2);
   executor.Submit(work_functor());
 
   for (int i = 0; i < 20; ++i) {

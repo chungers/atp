@@ -16,7 +16,7 @@
 
 #include "test.pb.h"
 
-#include "common/Executor.hpp"
+#include "common/executor.hpp"
 #include "common/factory.hpp"
 #include "zmq/ZmqUtils.hpp"
 

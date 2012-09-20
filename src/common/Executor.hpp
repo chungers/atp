@@ -15,11 +15,11 @@ using boost::asio::io_service;
 
 /// Executor that manages a thread pool and
 /// processes work and as they are submitted.
-class Executor
+class executor
 {
  public:
 
-  Executor(size_t threads) :
+  executor(size_t threads) :
       service_(threads),
       work_(service_),
       jobs_(0)
@@ -29,7 +29,7 @@ class Executor
     }
   }
 
-  ~Executor()
+  ~executor()
   {
     service_.stop();
     pool_.join_all();
