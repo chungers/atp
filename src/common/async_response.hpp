@@ -12,12 +12,12 @@ namespace common {
 
 
 template <typename T>
-class AsyncResponse
+class async_response
 {
  public:
 
-  AsyncResponse() : result_(NULL) {}
-  ~AsyncResponse()
+  async_response() : result_(NULL) {}
+  ~async_response()
   {
     // Has ownership of the response object
     if (result_ != NULL) delete result_;

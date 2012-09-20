@@ -107,14 +107,14 @@ class OrderManager::implementation : public Subscriber::Strategy
   template <typename P, typename K>
   const AsyncOrderStatus send(P& proto, const K& key)
   {
-    AsyncResponse<p::OrderStatus>* response = NULL;
+    async_response<p::OrderStatus>* response = NULL;
     if (em_socket_ != NULL) {
       size_t sent = atp::send(*em_socket_, now_micros(), now_micros(), proto);
 
       ORDER_MANAGER_LOGGER << "Sent " << proto.GetTypeName()
                            << " (" << sent << ")";
 
-      response = new AsyncResponse<p::OrderStatus>();
+      response = new async_response<p::OrderStatus>();
     }
 
     AsyncOrderStatus status(response);

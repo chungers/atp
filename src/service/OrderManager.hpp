@@ -10,7 +10,7 @@
 #include "proto/ib.pb.h"
 
 #include "common.hpp"
-#include "common/AsyncResponse.hpp"
+#include "common/async_response.hpp"
 
 
 using std::string;
@@ -23,13 +23,13 @@ using proto::ib::LimitOrder;
 using proto::ib::OrderStatus;
 using proto::ib::StopLimitOrder;
 
-using atp::common::AsyncResponse;
+using atp::common::async_response;
 
 namespace atp {
 namespace service {
 
 
-typedef boost::shared_ptr< AsyncResponse<OrderStatus> > AsyncOrderStatus;
+typedef boost::shared_ptr< async_response<OrderStatus> > AsyncOrderStatus;
 
 static const vector<string> ALL_ORDER_EVENTS;
 
