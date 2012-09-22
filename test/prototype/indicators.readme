@@ -1,0 +1,14 @@
+# Indicators
+
+## Design
+Indicators are
+
++ Some derived value that is a function of the time series, of `x(t)` and
+`x(t-1)`, `x(t-2)`, ...
++ The time series `x` can be any of
+  + bid
+  + ask
+  + last_trade
+  + bid_size
+  + ask_size
+  + last_trade_size
