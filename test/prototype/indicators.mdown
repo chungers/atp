@@ -34,4 +34,24 @@ computations are to be parallelized.
   + potentially determine the trade sizing (probably not common initially).
 
 # Implementation Steps
+Start from the bottom and work its way up:
++ To be memory efficient, use `boost::circular_buffer` for maintaining a history
+of the time series `x`.
+
++ The time series `x` includes
+  + a `circular_buffer` of regularly timed samples (based on whatever technique)
+  + a `current` value that can be changed within the current time window based
+on received market data events.
+
++ When the `current` value reaches the end of the time window, it is
+`push_back` onto the `circular_buffer`.
+
++ Indicators will then do read-only access of
+   + the `circular_buffer`, plus
+   + the `current` value
+
++ Use TA-lib c library for indicator computation
+  + Use private array buffers for passing information in and out of
+ta-lib functions.  This is because ta-lib functions use arrays as function
+arguments and will not work properly with bounded circular buffers.
 
