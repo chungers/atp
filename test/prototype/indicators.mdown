@@ -1,10 +1,10 @@
-# Indicators
+# Indicators and Signals
 
 ## Design
 Indicators are
 
-+ Some derived value that is a function of the time series, of `x(t)` and
-`x(t-1)`, `x(t-2)`, ...
++ Some derived value that is a function of the time series, of `x[t]` and
+`x[t-1]`, `x[t-2]`, ...
 + The time series `x` can be any of
   + bid
   + ask
@@ -12,3 +12,26 @@ Indicators are
   + bid_size
   + ask_size
   + last_trade_size
++ Since data arrives at uneven intervals, the data must be regularized with
+respect to time.  We can use standard aggregation techniques of hloc (candle -
+hi/lo/open/close) for some configurable time interval (e.g. 1 sec or 10 msec).
++ If we normalize `x` using the hloc technique above, then we'd usually use the
+closing value of all intervals.
++ Indicators only read the time series `x` to derive a computed value.  It can
+keep a history of previous computed values.
++ Since indicators do not mutate the time series, they can be parallelized via
+executor pool.
++ Indicators are to maintain a history so that signals can be computed off
+some historical values of them.
+
+Signals are, on the other hand:
++ A computed value, a function of, the indicators at time `t` or `t-1`, ...
++ Cannot be computed until all of the indicators it depends upon have been
+computed.  This implies some implementation using futures, if the indicator
+computations are to be parallelized.
++ Signals are then used to derive
+  + yes/no decision to enter a trade
+  + potentially determine the trade sizing (probably not common initially).
+
+# Implementation Steps
+
