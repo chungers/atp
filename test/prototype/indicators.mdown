@@ -35,10 +35,12 @@ computations are to be parallelized.
 
 # Implementation Steps
 Start from the bottom and work its way up:
+
 + To be memory efficient, use `boost::circular_buffer` for maintaining a history
 of the time series `x`.
 
 + The time series `x` includes
+
   + a `circular_buffer` of regularly timed samples (based on whatever technique)
   + a `current` value that can be changed within the current time window based
 on received market data events.
@@ -47,11 +49,26 @@ on received market data events.
 `push_back` onto the `circular_buffer`.
 
 + Indicators will then do read-only access of
+
    + the `circular_buffer`, plus
    + the `current` value
 
 + Use TA-lib c library for indicator computation
+
   + Use private array buffers for passing information in and out of
 ta-lib functions.  This is because ta-lib functions use arrays as function
 arguments and will not work properly with bounded circular buffers.
+
+  + The input buffers to the ta-lib functions will copy from the
+history `circular_buffer` and the `current` value from the input time
+series.
+
+  + Indicators will be computed in parallel, using a simple `executor` queue.
+
+  + The copy of the `current` value and the history into input buffers
+should be done only once and for all indicators at the current step.
+This is to ensure that all indicators are using the same history. TA-lib
+functions *should not* mutate the input array buffer, so it *may be* safe
+to share across all threads.
+
 
