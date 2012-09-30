@@ -33,7 +33,8 @@ computations are to be parallelized.
   + yes/no decision to enter a trade
   + potentially determine the trade sizing (probably not common initially).
 
-# Implementation Steps
+# Implementation
+
 Start from the bottom and work its way up:
 
 + To be memory efficient, use `boost::circular_buffer` for maintaining a history

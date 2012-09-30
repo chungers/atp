@@ -6,14 +6,18 @@
 #include <boost/pool/object_pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/pool/singleton_pool.hpp>
+
+#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
+#include <ta-lib/ta_func.h>
 #include "utils.hpp"
 
 #include "test.pb.h"
 
 
+DEFINE_int32(num_objects_to_create, 1000, "Number of objects to create.");
 
 TEST(IndicatorPrototype, CircularBuffer1)
 {
@@ -37,6 +41,11 @@ TEST(IndicatorPrototype, CircularBuffer1)
   EXPECT_EQ(4, cb[0]);
   EXPECT_EQ(5, cb[1]);
   EXPECT_EQ(6, cb[2]);
+
+  EXPECT_EQ(3, cb.size());
+  EXPECT_EQ(3, cb.capacity());
+
+  EXPECT_EQ(6, *cb.rbegin());
 }
 
 
@@ -115,7 +124,7 @@ TEST(IndicatorPrototype, ObjectPool1)
   typedef boost::object_pool<Candle> pool;
   typedef boost::uint64_t ts;
 
-  size_t num_objects = 10000000;
+  size_t num_objects = FLAGS_num_objects_to_create;
   ts start, elapsed;
 
   //////////////////////////////
@@ -215,7 +224,7 @@ TEST(IndicatorPrototype, CircularBufferWithPoolAllocator)
   typedef boost::uint64_t ts;
 
   ts start, elapsed;
-  size_t num_objects = 10000000;
+  size_t num_objects = FLAGS_num_objects_to_create;
   size_t length = 100;
 
   ////////////////////////////////
@@ -328,5 +337,418 @@ TEST(IndicatorPrototype, CircularBufferWithPoolAllocator)
     LOG(INFO) << "   pool + unpooled_ring: " << num_objects << " objects in "
               << elapsed << " usecs";
   }
+}
+
+
+void print_array(const int array[], int len)
+{
+  for (size_t i = 0; i < len; ++i) {
+    LOG(INFO) << "array[" << i << "] = " << array[i];
+  }
+}
+
+void print_array(const boost::circular_buffer<int>& array, int len)
+{
+  for (size_t i = 0; i < len; ++i) {
+    LOG(INFO) << "cb[" << i << "] = " << array[i];
+  }
+}
+
+TEST(IndicatorPrototype, CircularBufferAsArray)
+{
+  size_t len = 5;
+  int array[len];
+  for (int i = 0; i < len; ++i) {
+    array[i] = i * 10;
+  }
+  print_array(&array[0], len);
+
+  boost::circular_buffer<int> cb(len);
+  for (int i = 0; i < len; ++i) {
+    cb.push_back(i* 10);
+  }
+  LOG(INFO) << "Circular Buffer";
+  print_array(&cb[0], len);
+
+  LOG(INFO) << "Push back";
+  cb.push_back(len * 10);
+  print_array(&cb[0], len);
+  print_array(cb, len);
+
+  LOG(INFO) << "Conclusion: don't pass circular buffer to an array ";
+  LOG(INFO) << "function parameter.  This is a loophole in c++ and ";
+  LOG(INFO) << "cannot be used with cicular buffers.";
+
+}
+
+/// It appears that there are some initialization cost associated with
+/// the TA lib.  So a trivial case to get the code initialized.
+TEST(IndicatorPrototype, TALibWarmUp)
+{
+  typedef boost::uint64_t ts;
+
+  size_t len = 1;
+  double close[len];
+  double sma[len];
+  int start = 0;
+  int count = 0;
+
+  // initialize
+  for (int i = 0; i < len; ++i) {
+    close[i] = i * 10.;
+    sma[i] = 0.;
+  }
+
+  ts s = now_micros();
+  int ret = TA_MA(0, len-1, &close[0], 5, TA_MAType_SMA,
+                  &start, &count, &sma[0]);
+  ts el = now_micros() - s;
+
+  LOG(INFO) << "return = " << ret << ", start=" << start << ", count=" << count
+            << " in " << el << " usec.";
+  for (int i = 0; i < len-1; ++i) {
+    LOG(INFO) << "close[" << i << "] = " << close[i]
+              << ", sma[" << i << "] = " << sma[i];
+  }
+}
+
+
+TEST(IndicatorPrototype, TALibCircularBuffer1)
+{
+
+  typedef boost::uint64_t ts;
+
+  size_t len = 10;
+
+  boost::circular_buffer<double> close(len);
+  double sma[len];
+  int start = 0;
+  int count = 0;
+
+  // comparison
+  double _close[len];
+  double _sma[len];
+  int _start = 0;
+  int _count = 0;
+
+  // initialize
+  for (int i = 0; i < len; ++i) {
+    close.push_back(i * 10.);
+    sma[i] = 0.;
+    _close[i] = i* 10.;
+    _sma[i] = 0.;
+  }
+
+  ts s = now_micros();
+  int ret = TA_MA(0, len-1, &close[0], 5, TA_MAType_SMA,
+                  &start, &count, &sma[0]);
+  ts el = now_micros() - s;
+  LOG(INFO) << "return = " << ret << ", start=" << start << ", count=" << count
+            << " in " << el << " usec.";
+
+  ts _s = now_micros();
+  int _ret = TA_MA(0, len-1, &_close[0], 5, TA_MAType_SMA,
+                  &_start, &_count, &_sma[0]);
+  ts _el = now_micros() - _s;
+  LOG(INFO) << "return = " << _ret
+            << ", start=" << _start << ", count=" << _count
+            << " in " << _el << " usec.";
+
+  for (int i = 0; i < len; ++i) {
+    LOG(INFO) << "close[" << i << "] = " << close[i]
+              << ", _close[" << i << "] = " << _close[i]
+              << ", sma[" << i << "] = " << sma[i]
+              << ", _sma[" << i << "] = " << _sma[i];
+  }
+  for (int i = 0; i < len; ++i) {
+    EXPECT_EQ(_sma[i], sma[i]);
+  }
+
+  int k = 5;
+  int ta_start = len - k;
+  int ta_stop = ta_start;
+  // now push one data point
+  close.push_back(len * 10.);
+  s = now_micros();
+  ret = TA_MA(ta_start, ta_stop, &close[0], k, TA_MAType_SMA,
+              &start, &count, &sma[0]);
+  el = now_micros() - s;
+  LOG(INFO) << "ta_start = " << ta_start << ", ta_stop = " << ta_stop
+            << ", return = " << ret
+            << ", start=" << start << ", count=" << count
+            << " in " << el << " usec.";
+
+
+  for (int i = 0; i < len; ++i) {
+    _close[i] += 10; // shift 10 in this special case
+  }
+  _s = now_micros();
+  _ret = TA_MA(ta_start, ta_stop, &_close[0], k, TA_MAType_SMA,
+              &_start, &_count, &_sma[0]);
+  el = now_micros() - s;
+  LOG(INFO) << "ta_start = " << ta_start << ", ta_stop = " << ta_stop
+            << ", return = " << _ret
+            << ", start=" << _start << ", count=" << _count
+            << " in " << _el << " usec.";
+
+  for (int i = 0; i < len; ++i) {
+    LOG(INFO) << "close[" << i << "] = " << close[i]
+              << ", _close[" << i << "] = " << _close[i]
+              << ", sma[" << i << "] = " << sma[i]
+              << ", _sma[" << i << "] = " << _sma[i];
+  }
+
+  LOG(INFO) << "Note: can't pass a circular buffer into TA-lib functions!";
+  LOG(INFO) << "Looks like we'd have to pay the cost of copying.";
+
+}
+
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/function.hpp>
+
+namespace time_window_policy {
+typedef boost::uint64_t microsecond_t;
+
+struct align_at_zero
+{
+
+  align_at_zero(const microsecond_t& window_size)
+      : window_size_(window_size)
+  {
+  }
+
+  bool is_new_window(const microsecond_t& last_ts,
+                     const microsecond_t& timestamp)
+  {
+    // track the remainder of the current timestamp.  if the current ts is
+    // in the same time period, then the remainder will increase, until
+    // it is outside the time period, where the remainder will be smaller
+    // than the previous value.
+    microsecond_t r = timestamp % window_size_;
+    mod_ts_ = r;
+    return timestamp > last_ts && r < mod_ts_;
+  }
+
+  microsecond_t window_size_;
+  microsecond_t mod_ts_;
+};
+
+struct by_elapsed_time
+{
+  by_elapsed_time(const microsecond_t& window_size)
+      : window_size_(window_size)
+  {
+  }
+
+  bool is_new_window(const microsecond_t& last_ts,
+                     const microsecond_t& timestamp)
+  {
+    return (timestamp - last_ts) > window_size_;
+  }
+
+  microsecond_t window_size_;
+};
+};
+
+template <
+  typename element_t,
+  typename sampler_t = boost::function<
+    element_t(const element_t& last, const element_t& current,
+              bool new_sample_period) >,
+  typename Alloc = boost::pool_allocator<element_t>,
+  typename time_window_policy = time_window_policy::align_at_zero >
+class time_series
+{
+ public:
+  typedef boost::uint64_t microsecond_t;
+  typedef boost::posix_time::time_duration window_size_t;
+  typedef boost::circular_buffer<element_t, Alloc> history_t;
+  typedef typename history_t::const_reverse_iterator history_reverse_itr;
+
+
+  time_series(boost::posix_time::time_duration h, window_size_t i,
+              element_t init) :
+      samples_(h.total_microseconds() / i.total_microseconds()),
+      interval_(i),
+      buffer_(samples_ - 1),
+      current_ts_(0),
+      time_window_policy_(i.total_microseconds())
+  {
+    // fill the buffer with the default valule.
+    for (size_t i = 0; i < buffer_.capacity(); ++i) {
+      buffer_.push_back(init);
+    }
+  }
+
+  const element_t& operator[](size_t index) const
+  {
+    return buffer_[index];
+  }
+
+  const long sample_microseconds() const
+  {
+    return interval_.total_microseconds();
+  }
+
+  const size_t samples() const
+  {
+    return buffer_.capacity() + 1;
+  }
+
+  const size_t samples_buffered() const
+  {
+    return buffer_.size();
+  }
+
+  template <typename buffer_t>
+  const size_t copy_last(buffer_t array[], const size_t length) const
+  {
+    size_t copied = 0;
+    size_t len = length - 1; // account for a current sample
+    if (len > buffer_.capacity()) {
+      return 0; // No copy is done.
+    }
+    array[length - 1] = current_value_;
+    size_t i = len - 1;
+    history_reverse_itr r = buffer_.rbegin();
+    for (; r != buffer_.rend() && i > 0; ++r, --i) {
+      array[i] = *r;
+    }
+    copied = (len - 1) - i;
+    for (; i > 0; --i) {
+      array[i] = 0;
+    }
+    return copied;
+  }
+
+  /// for testing only
+  element_t sample(const element_t& last, const element_t& current)
+  {
+    return sampler_(last, current, false);
+  }
+
+  void on(microsecond_t timestamp, element_t value)
+  {
+    // check to see if the current timestamp falls within the current
+    // interval.  If outside, push the current value onto the history buffer
+    bool new_sample_period = time_window_policy_.is_new_window(
+        current_ts_, timestamp);
+
+    element_t sampled = sampler_(current_value_, value, new_sample_period);
+    if (new_sample_period) {
+      buffer_.push_back(current_value_);
+    }
+    current_value_ = sampled;
+    current_ts_ = timestamp;
+  }
+
+ private:
+
+  size_t samples_;
+  window_size_t interval_;
+  history_t buffer_;
+
+  element_t current_value_;
+  microsecond_t current_ts_;
+
+  sampler_t sampler_;
+  time_window_policy time_window_policy_;
+};
+
+template <typename element_t>
+class count_t
+{
+ public:
+  count_t() : count_(0) {}
+
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    if (new_period) { count_ = 1; }
+    else ++count_;
+    return count_;
+  }
+
+  int count_;
+};
+
+template <typename element_t>
+class open_t
+{
+ public:
+
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    if (new_period) { open_ = now; }
+    return open_;
+  }
+
+  element_t open_;
+};
+
+template <typename element_t>
+class close_t
+{
+ public:
+
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    return last;
+  }
+};
+
+template <typename element_t>
+class max_t
+{
+ public:
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    if (new_period) return now;
+    else return std::max(last, now);
+  }
+};
+
+template <typename element_t>
+class min_t
+{
+ public:
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    if (new_period) return now;
+    else return std::min(last, now);
+  }
+};
+
+TEST(IndicatorPrototype, TimeSeries1)
+{
+  using boost::posix_time::time_duration;
+  using boost::posix_time::minutes;
+  using boost::posix_time::seconds;
+  using boost::fast_pool_allocator;
+
+  using proto::test::Candle;
+
+  time_duration one_min = minutes(1);
+  time_duration one_sec = seconds(1);
+
+  time_series< double, max_t<double> > h1(minutes(10), minutes(1), 0.);
+  time_series< int, min_t<int> > h2(seconds(10), seconds(1), 0);
+
+  Candle init;
+  time_series< Candle,
+               fast_pool_allocator<Candle> > h3(minutes(10), seconds(2), init);
+
+
+  EXPECT_EQ(one_min.total_microseconds(), h1.sample_microseconds());
+  EXPECT_EQ(one_sec.total_microseconds(), h2.sample_microseconds());
+  EXPECT_EQ(one_sec.total_microseconds() * 2, h3.sample_microseconds());
+
+  EXPECT_EQ(10, h1.samples());
+  EXPECT_EQ(10, h2.samples());
+  EXPECT_EQ(60 * 10 / 2, h3.samples());
+
+  h2.on(now_micros(), 1);
+
+  EXPECT_EQ(100., h1.sample(100., 1.));
+  EXPECT_EQ(1, h2.sample(100, 1));
 
 }

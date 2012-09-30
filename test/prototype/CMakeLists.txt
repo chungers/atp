@@ -38,6 +38,7 @@ set(Prototypes_libs
   test_protos
   protobuf
   protobuf-lite
+  ta_lib
   )
 cpp_gtest(Prototypes)
 
