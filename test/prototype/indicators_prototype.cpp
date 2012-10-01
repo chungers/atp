@@ -503,8 +503,16 @@ TEST(IndicatorPrototype, TALibCircularBuffer1)
 
 }
 
+#include <vector>
+
+#include <boost/assign/std/vector.hpp>
+#include <boost/assign.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/bind.hpp>
 #include <boost/function.hpp>
+
+using namespace boost::assign;
+
 
 namespace time_window_policy {
 typedef boost::uint64_t microsecond_t;
@@ -513,8 +521,14 @@ struct align_at_zero
 {
 
   align_at_zero(const microsecond_t& window_size)
-      : window_size_(window_size)
+      : window_size_(window_size), mod_ts_(0)
   {
+  }
+
+  int count_windows(const microsecond_t& last_ts,
+                    const microsecond_t& timestamp)
+  {
+    return (timestamp - last_ts) / window_size_;
   }
 
   bool is_new_window(const microsecond_t& last_ts,
@@ -525,8 +539,11 @@ struct align_at_zero
     // it is outside the time period, where the remainder will be smaller
     // than the previous value.
     microsecond_t r = timestamp % window_size_;
+    bool result = timestamp > last_ts && r <= mod_ts_;
+    LOG(INFO) << "mod_ts = " << mod_ts_
+              << ", r=" << r << ", result = " << result;
     mod_ts_ = r;
-    return timestamp > last_ts && r < mod_ts_;
+    return result;
   }
 
   microsecond_t window_size_;
@@ -540,15 +557,58 @@ struct by_elapsed_time
   {
   }
 
+  int count_windows(const microsecond_t& last_ts,
+                    const microsecond_t& timestamp)
+  {
+    return (timestamp - last_ts) / window_size_;
+  }
+
   bool is_new_window(const microsecond_t& last_ts,
                      const microsecond_t& timestamp)
   {
-    return (timestamp - last_ts) > window_size_;
+    return (timestamp - last_ts) >= window_size_;
   }
 
   microsecond_t window_size_;
 };
 };
+
+
+TEST(IndicatorPrototype, TimeWindowPolicyTest)
+{
+  time_window_policy::align_at_zero p1(100);
+
+  EXPECT_TRUE(p1.is_new_window(0, 1000));
+  EXPECT_FALSE(p1.is_new_window(1000, 1000)); // should not advance forward
+  EXPECT_FALSE(p1.is_new_window(1000, 1001));
+  EXPECT_TRUE(p1.is_new_window(1002, 1101));
+  EXPECT_FALSE(p1.is_new_window(1101, 1103));
+  EXPECT_FALSE(p1.is_new_window(1100, 1199));
+  EXPECT_TRUE(p1.is_new_window(1199, 1200));
+
+  time_window_policy::by_elapsed_time p2(100);
+  EXPECT_FALSE(p2.is_new_window(1001, 1001)); // should not advance forward
+  EXPECT_FALSE(p2.is_new_window(1001, 1100));
+  EXPECT_TRUE(p2.is_new_window(1001, 1101));
+  EXPECT_TRUE(p2.is_new_window(1100, 1200));
+
+
+  EXPECT_EQ(10, p1.count_windows(0, 1000));
+  EXPECT_EQ(0, p1.count_windows(1000, 1000)); // should not advance forward
+  EXPECT_EQ(0, p1.count_windows(1000, 1001));
+  EXPECT_EQ(0, p1.count_windows(1002, 1101));
+  EXPECT_EQ(0, p1.count_windows(1101, 1103));
+  EXPECT_EQ(0, p1.count_windows(1100, 1199));
+  EXPECT_EQ(0, p1.count_windows(1199, 1200));
+  EXPECT_EQ(2, p1.count_windows(1200, 1400));
+
+  EXPECT_EQ(0, p2.count_windows(1001, 1001)); // should not advance forward
+  EXPECT_EQ(0,p2.count_windows(1001, 1100));
+  EXPECT_EQ(1, p2.count_windows(1001, 1101));
+  EXPECT_EQ(1, p2.count_windows(1100, 1200));
+  EXPECT_EQ(3, p2.count_windows(1100, 1401));
+
+}
 
 template <
   typename element_t,
@@ -563,7 +623,8 @@ class time_series
   typedef boost::uint64_t microsecond_t;
   typedef boost::posix_time::time_duration window_size_t;
   typedef boost::circular_buffer<element_t, Alloc> history_t;
-  typedef typename history_t::const_reverse_iterator history_reverse_itr;
+  typedef typename
+  boost::circular_buffer<element_t, Alloc>::const_reverse_iterator reverse_itr;
 
 
   time_series(boost::posix_time::time_duration h, window_size_t i,
@@ -571,6 +632,7 @@ class time_series
       samples_(h.total_microseconds() / i.total_microseconds()),
       interval_(i),
       buffer_(samples_ - 1),
+      current_value_(init),
       current_ts_(0),
       time_window_policy_(i.total_microseconds())
   {
@@ -590,7 +652,7 @@ class time_series
     return interval_.total_microseconds();
   }
 
-  const size_t samples() const
+  const size_t capacity() const
   {
     return buffer_.capacity() + 1;
   }
@@ -603,20 +665,18 @@ class time_series
   template <typename buffer_t>
   const size_t copy_last(buffer_t array[], const size_t length) const
   {
-    size_t copied = 0;
-    size_t len = length - 1; // account for a current sample
-    if (len > buffer_.capacity()) {
+    if (length > buffer_.capacity() + 1) {
       return 0; // No copy is done.
     }
     array[length - 1] = current_value_;
-    size_t i = len - 1;
-    history_reverse_itr r = buffer_.rbegin();
-    for (; r != buffer_.rend() && i > 0; ++r, --i) {
-      array[i] = *r;
-    }
-    copied = (len - 1) - i;
-    for (; i > 0; --i) {
-      array[i] = 0;
+
+    size_t to_copy = length - 1;
+    size_t copied = 1;
+    reverse_itr r = buffer_.rbegin();
+
+    // fill the array in reverse order
+    for (; r != buffer_.rend() && to_copy > 0; --to_copy, ++copied, ++r) {
+      array[length - 1 - copied] = *r;
     }
     return copied;
   }
@@ -625,6 +685,16 @@ class time_series
   element_t sample(const element_t& last, const element_t& current)
   {
     return sampler_(last, current, false);
+  }
+
+  /// for testing only
+  void visit(boost::function< void(const size_t& index,
+                                   const element_t& el)> visitor)
+  {
+    for (size_t i = 0; i < buffer_.capacity(); ++i) {
+      visitor(i, buffer_[i]);
+    }
+    visitor(buffer_.capacity(), current_value_);
   }
 
   void on(microsecond_t timestamp, element_t value)
@@ -636,6 +706,14 @@ class time_series
 
     element_t sampled = sampler_(current_value_, value, new_sample_period);
     if (new_sample_period) {
+      int more = std::max(0, time_window_policy_.count_windows(
+          current_ts_, timestamp) - 1);
+
+      // TODO- allow filling in missing values like count
+      element_t missing = current_value_;
+      for (int i = 0; i < more; ++i) {
+        buffer_.push_back(missing);
+      }
       buffer_.push_back(current_value_);
     }
     current_value_ = sampled;
@@ -668,7 +746,19 @@ class count_t
     return count_;
   }
 
+ private:
   int count_;
+};
+
+template <typename element_t>
+class current_t
+{
+ public:
+
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    return now;
+  }
 };
 
 template <typename element_t>
@@ -676,13 +766,18 @@ class open_t
 {
  public:
 
+  open_t() : init_(false) {}
+
   element_t operator()(element_t last, element_t now, bool new_period)
   {
-    if (new_period) { open_ = now; }
+    if (new_period) { open_ = now; init_ = true; }
+    if (!init_) { open_ = now; init_ = true; }
     return open_;
   }
 
+ private:
   element_t open_;
+  bool init_;
 };
 
 template <typename element_t>
@@ -718,6 +813,8 @@ class min_t
   }
 };
 
+
+
 TEST(IndicatorPrototype, TimeSeries1)
 {
   using boost::posix_time::time_duration;
@@ -742,13 +839,125 @@ TEST(IndicatorPrototype, TimeSeries1)
   EXPECT_EQ(one_sec.total_microseconds(), h2.sample_microseconds());
   EXPECT_EQ(one_sec.total_microseconds() * 2, h3.sample_microseconds());
 
-  EXPECT_EQ(10, h1.samples());
-  EXPECT_EQ(10, h2.samples());
-  EXPECT_EQ(60 * 10 / 2, h3.samples());
+  EXPECT_EQ(10, h1.capacity());
+  EXPECT_EQ(10, h2.capacity());
+  EXPECT_EQ(60 * 10 / 2, h3.capacity());
 
   h2.on(now_micros(), 1);
 
   EXPECT_EQ(100., h1.sample(100., 1.));
   EXPECT_EQ(1, h2.sample(100, 1));
+
+}
+
+template <typename T>
+struct Verifier
+{
+  Verifier(const std::vector<T>& expectations) : expectations(expectations)
+  {
+  }
+
+  void operator()(const size_t& index, const T& value) {
+    LOG(INFO) << "index = " << index << ", value = " << value;
+    EXPECT_EQ(expectations[index], value);
+  }
+
+  const std::vector<T>& expectations;
+};
+
+TEST(IndicatorPrototype, TimeSeries2)
+{
+  using boost::posix_time::time_duration;
+  using boost::posix_time::microseconds;
+  using namespace boost::assign;  // brings in the += operator for vector
+
+  time_series< int, current_t<int> > h(microseconds(100), microseconds(10), 0);
+  time_series< int, count_t<int> > h2(microseconds(100), microseconds(10), 0);
+  time_series< int, open_t<int> > h3(microseconds(100), microseconds(10), 0);
+
+  LOG(INFO) << "Checking h";
+  h.on(999, 10);
+  h.on(1000, 1);
+  h.on(1001, 2);
+  h.on(1005, 3);
+  h.on(1009, 4);
+  h.on(1010, 5);
+  h.on(1011, 6);
+  h.on(1012, 7);
+  h.on(1052, 100);
+
+  std::vector<int> expect;
+  expect += 0, 0, 0, 10, 4, 7, 7, 7, 7, 100;
+  assert(expect.size() == 10);
+  Verifier<int> f(expect);
+  h.visit(f);
+
+  LOG(INFO) << "Checking h2";
+  h2.on(998, 10);
+  h2.on(999, 10);
+  h2.on(1000, 1);
+  h2.on(1001, 2);
+  h2.on(1005, 3);
+  h2.on(1009, 4);
+  h2.on(1010, 5);
+  h2.on(1011, 6);
+  h2.on(1012, 7);
+
+  std::vector<int> expect2;
+  expect2 += 0, 0, 0, 0, 0, 0, 0, 2, 4, 3;
+  Verifier<int> f2(expect2);
+  h2.visit(f2);
+
+  LOG(INFO) << "Checking h3";
+  h3.on(999, 10);
+  h3.on(1000, 1);
+  h3.on(1001, 2);
+  h3.on(1005, 3);
+  h3.on(1009, 4);
+  h3.on(1010, 5);
+  h3.on(1011, 6);
+  h3.on(1012, 7);
+  h3.on(1042, 10); // after multiple time windows.
+
+  std::vector<int> expect3;
+  expect3 += 0, 0, 0, 0, 10, 1, 5, 5, 5, 10;
+  assert(expect3.size() == 10); // 10 samples in history!
+  Verifier<int> f3(expect3);
+  h3.visit(f3);
+
+  //expect += 0, 0, 0, 10, 4, 7, 7, 7, 7, 100;
+
+  {
+    LOG(INFO) << "buffer test";
+    int buff[10];
+    size_t copied = h.copy_last(buff, 10);
+    EXPECT_EQ(10, copied);
+
+    for (int i = 0; i < 10; ++i) {
+      EXPECT_EQ(expect[i], buff[i]);
+    }
+  }
+
+  {
+    LOG(INFO) << "buffer test";
+    int buff[3];
+    size_t copied = h.copy_last(buff, 3);
+    EXPECT_EQ(3, copied);
+
+    for (int i = 0; i < 3; ++i) {
+      EXPECT_EQ(expect[7 + i], buff[i]);
+    }
+  }
+
+  {
+    LOG(INFO) << "buffer test";
+    float buff[6];
+    size_t copied = h.copy_last(buff, 6);
+    EXPECT_EQ(6, copied);
+
+    for (int i = 0; i < 6; ++i) {
+      EXPECT_EQ(expect[4 + i], buff[i]);
+    }
+  }
 
 }
