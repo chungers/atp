@@ -21,6 +21,7 @@ set(CommonLibTest_srcs
   ${TEST_DIR}/AllTests.cpp
   ExecutorTest.cpp
   FactoryTest.cpp
+  TimeSeriesTest.cpp
 )
 set(CommonLibTest_libs
   api_base

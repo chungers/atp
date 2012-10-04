@@ -514,7 +514,7 @@ TEST(IndicatorPrototype, TALibCircularBuffer1)
 using namespace boost::assign;
 
 
-namespace time_window_policy {
+struct time_window_policy {
 typedef boost::uint64_t microsecond_t;
 
 struct align_at_zero
@@ -539,8 +539,12 @@ struct align_at_zero
     // it is outside the time period, where the remainder will be smaller
     // than the previous value.
     microsecond_t r = timestamp % window_size_;
-    bool result = timestamp > last_ts && r <= mod_ts_;
-    LOG(INFO) << "mod_ts = " << mod_ts_
+    bool result =
+        timestamp - last_ts > window_size_ ||
+        timestamp > last_ts && r <= mod_ts_;
+    LOG(INFO) << "last_ts = " << last_ts
+              << ", timestamp = " << timestamp
+              << ", mod_ts = " << mod_ts_
               << ", r=" << r << ", result = " << result;
     mod_ts_ = r;
     return result;
@@ -706,14 +710,19 @@ class time_series
 
     element_t sampled = sampler_(current_value_, value, new_sample_period);
     if (new_sample_period) {
-      int more = std::max(0, time_window_policy_.count_windows(
-          current_ts_, timestamp) - 1);
 
-      // TODO- allow filling in missing values like count
-      element_t missing = current_value_;
-      for (int i = 0; i < more; ++i) {
-        buffer_.push_back(missing);
+      if (current_ts_ > 0) {
+        // Don't fill in missing values if starting up.
+        int more = std::max(0, time_window_policy_.count_windows(
+            current_ts_, timestamp) - 1);
+        LOG(INFO) << "missing = " << more << " windows";
+        // TODO- allow filling in missing values like count
+        element_t missing = current_value_;
+        for (int i = 0; i < more; ++i) {
+          buffer_.push_back(missing);
+        }
       }
+
       buffer_.push_back(current_value_);
     }
     current_value_ = sampled;
@@ -830,10 +839,13 @@ TEST(IndicatorPrototype, TimeSeries1)
   time_series< double, max_t<double> > h1(minutes(10), minutes(1), 0.);
   time_series< int, min_t<int> > h2(seconds(10), seconds(1), 0);
 
+  boost::uint64_t now = now_micros();
   Candle init;
   time_series< Candle,
                fast_pool_allocator<Candle> > h3(minutes(10), seconds(2), init);
 
+  boost::uint64_t el = now_micros() - now;
+  LOG(INFO) << "elapsed " << el << ", h3 = " << h3.capacity();
 
   EXPECT_EQ(one_min.total_microseconds(), h1.sample_microseconds());
   EXPECT_EQ(one_sec.total_microseconds(), h2.sample_microseconds());
@@ -843,6 +855,7 @@ TEST(IndicatorPrototype, TimeSeries1)
   EXPECT_EQ(10, h2.capacity());
   EXPECT_EQ(60 * 10 / 2, h3.capacity());
 
+  LOG(INFO) << "here";
   h2.on(now_micros(), 1);
 
   EXPECT_EQ(100., h1.sample(100., 1.));
@@ -960,4 +973,35 @@ TEST(IndicatorPrototype, TimeSeries2)
     }
   }
 
+}
+
+
+TEST(IndicatorPrototype, TimeSeries3)
+{
+  time_series< double, current_t<double> > last_trade(
+      microseconds(1000), microseconds(10), 0.);
+
+  last_trade.on(10001, 10.); // 10.
+  last_trade.on(10011, 11.);
+  last_trade.on(10012, 12.); // 12.
+  last_trade.on(10022, 13.);
+  last_trade.on(10029, 15.);
+  last_trade.on(10029, 17.); // 17.
+  last_trade.on(10030, 20.);
+  last_trade.on(10031, 21.); // 21., 21., 21., 21.,
+  last_trade.on(10072, 22.);
+  last_trade.on(10074, 25.); // 25., 25.
+  last_trade.on(10095, 20.); // 20.
+
+  std::vector<double> p;
+  p += 10., 12., 17., 21., 21., 21., 21., 25., 25., 20.;
+
+  double buff[p.size()];
+  int copied = last_trade.copy_last(buff, p.size());
+
+  EXPECT_EQ(p.size(), copied);
+
+  for (int i = 0; i < p.size(); ++i) {
+    EXPECT_EQ(p[i], buff[i]);
+  }
 }
