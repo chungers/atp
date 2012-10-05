@@ -375,10 +375,10 @@ TEST(OrderManagerTest, OrderManagerSendLimitOrderTest)
     }
 
     int check_order_id;
-  } assert;
+  } _assert;
 
-  assert.check_order_id = ORDER_ID;
-  setAssert(assert);
+  _assert.check_order_id = ORDER_ID;
+  setAssert(_assert);
   AsyncOrderStatus future = om.send(limitOrder);
 
   EXPECT_FALSE(future->is_ready());
