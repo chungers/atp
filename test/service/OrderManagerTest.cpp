@@ -42,7 +42,7 @@ std::string EM_EVENT_ENDPOINT(int port = 8888)
 struct Assert
 {
   virtual ~Assert() {}
-  virtual void operator()(const OrderId& o,
+  virtual void operator()(const OrderId& oid,
                           const Contract& c,
                           const Order& o,
                           EWrapper& e) = 0;
