@@ -189,14 +189,14 @@ void LoggingEWrapper::contractDetails(int reqId,
   LOG_EVENT
       << __f__(reqId)
       << __f__(&contractDetails)
-      << contractDetails.summary;
+      << ',' << contractDetails.summary;
 }
 void LoggingEWrapper::bondContractDetails(
     int reqId, const ContractDetails& contractDetails) {
   LOG_EVENT
       << __f__(reqId)
       << __f__(&contractDetails)
-      << contractDetails.summary;
+      << ',' << contractDetails.summary;
 }
 void LoggingEWrapper::contractDetailsEnd(int reqId) {
   LOG_EVENT
@@ -433,7 +433,7 @@ void LoggingEClientSocket::reqMktData(TickerId id, const Contract &contract,
       << __f__(&contract)
       << __f__(genericTicks)
       << __f__(snapshot)
-      << contract;
+      << ',' << contract;
   LOCK
       EClientSocketBase::reqMktData(id, contract, genericTicks, snapshot);
   LOG_END;
@@ -498,7 +498,7 @@ void LoggingEClientSocket::reqContractDetails(int reqId,
   LOG_START
       << __f__(reqId)
       << __f__(&contract)
-      << contract;
+      << ',' << contract;
   LOCK
       EClientSocketBase::reqContractDetails(reqId, contract);
   LOG_END;
@@ -509,7 +509,7 @@ void LoggingEClientSocket::reqMktDepth(TickerId id,
       << __f__(id)
       << __f__(&contract)
       << __f__(numRows)
-      << contract;
+      << ',' << contract;
 
   LOCK
       EClientSocketBase::reqMktDepth(id, contract, numRows);
@@ -591,7 +591,7 @@ void LoggingEClientSocket::reqHistoricalData(
       << __f__(whatToShow)
       << __f__(useRTH)
       << __f__(formatDate)
-      << contract;
+      << ',' << contract;
   LOCK
       EClientSocketBase::reqHistoricalData(
           id, contract, endDateTime,
@@ -635,7 +635,7 @@ void LoggingEClientSocket::reqRealTimeBars(TickerId id,
       << __f__(barSize)
       << __f__(whatToShow)
       << __f__(useRTH)
-      << contract;
+      << ',' << contract;
   LOCK
       EClientSocketBase::reqRealTimeBars(id, contract, barSize,
                                          whatToShow, useRTH);
