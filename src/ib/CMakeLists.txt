@@ -23,6 +23,7 @@ set(api_base_incs
 set(api_base_srcs
   TickerMap.cpp
   ticker_id.cpp
+  contract_symbol.cpp
 )
 set(api_base_libs
  zmq_components

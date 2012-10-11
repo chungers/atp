@@ -5,13 +5,12 @@
 #include <string>
 #include <Shared/Contract.h>
 
+#include "ib/contract_symbol.hpp"
+
 namespace ib {
 namespace internal {
 
 bool symbol_from_contract(const Contract& contract, std::string* output);
-
-bool symbol_from_contract(const std::map<std::string, std::string>& contract,
-                          std::string* output);
 
 bool convert_to_contract(const std::map<std::string, std::string> input,
                          Contract* output);
