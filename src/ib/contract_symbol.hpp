@@ -3,13 +3,40 @@
 
 #include <map>
 #include <string>
+#include <sstream>
 
 
 namespace ib {
 namespace internal {
 
-bool symbol_from_contract(const std::map<std::string, std::string>& contract,
-                          std::string* output);
+using namespace std;
+
+
+/// Map is a map of string to string
+template <typename Map>
+bool symbol_from_contract(const Map& contract,
+                          string* output)
+{
+  // Build the symbol string here.
+  try {
+    ostringstream s;
+    s << contract.at("symbol") << '.' << contract.at("secType");
+
+    if (contract.at("secType") != "STK" && contract.at("secType") != "IND") {
+      s << '.'
+        << contract.at("expiry")
+        << '.'
+        << contract.at("strike")
+        << '.'
+        << contract.at("right");
+    }
+    *output = s.str();
+    return true;
+
+  } catch (...) {
+    return false;
+  }
+}
 
 } // namespace internal
 } // namespace ib
