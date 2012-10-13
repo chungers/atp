@@ -61,7 +61,35 @@ endif(TEST_WITH_MOCK)
 cpp_gtest(OrderManagerTest)
 
 
+# LogReader
+set(LogReaderTest_incs
+  ${IBAPI_ROOT}
+  ${IBAPI_ROOT}/Shared
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${TEST_DIR}
+)
+set(LogReaderTest_srcs
+  ${TEST_DIR}/AllTests.cpp
+  LogReaderTest.cpp
+)
+set(LogReaderTest_libs
+  historian_components
+  log_reader
+  boost_system
+  boost_iostreams
+  gflags
+  glog
+  protobuf-lite
+  leveldb
+  bz2
+  z
+  )
+cpp_gtest(LogReaderTest)
+
+
 add_custom_target(all_service_tests)
 add_dependencies(all_service_tests
+  LogReaderTest
   OrderManagerTest
 )
