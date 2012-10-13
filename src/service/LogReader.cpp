@@ -13,6 +13,28 @@ ticker_id_symbol_map_t& symbol_map()
   return m;
 }
 
+const action_field_map_t& action_map()
+{
+  static action_field_map_t map = boost::assign::map_list_of
+      ("reqMktData", "contract")
+      ("reqMktDepth", "contract")
+      ("reqRealTimeBars", "contract")
+      ("reqHistoricalData", "contract")
+      ;
+  return map;
+}
+
+const event_value_type_map_t& event_value_map()
+{
+  static event_value_type_map_t map =
+      boost::assign::map_list_of
+      ("tickPrice", event_type("price", proto::common::Value_Type_DOUBLE))
+      ("tickSize", event_type("size", proto::common::Value_Type_INT))
+      ("tickGeneric", event_type("value", proto::common::Value_Type_STRING))
+      ;
+  return map;
+}
+
 static string stringify(const log_record_t& r)
 {
   ostringstream stream;
