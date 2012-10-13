@@ -33,13 +33,9 @@ typedef boost::uint64_t timer_t;
 
 namespace atp {
 namespace log_reader {
+namespace internal {
 
-
-/////////////////////////////////////////////////////////////
-/// Marshallers - copying data from map to proto
-///
-namespace marshall {
-
+using namespace historian;
 namespace p = proto::ib;
 
 bool operator<<(p::MarketData& p, const log_record_t& nv);
@@ -49,16 +45,6 @@ template <typename T>
 inline bool operator>>(const log_record_t& nv, T& p)
 { return p << nv; }
 
-} // marshall
-
-
-
-
-
-
-namespace internal {
-
-using namespace historian;
 
 ostream& operator<<(ostream& stream, const log_record_t& r);
 
