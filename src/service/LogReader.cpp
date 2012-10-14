@@ -269,7 +269,8 @@ bool operator<<(p::MarketDepth& result, const log_record_t& nv)
 } // internal
 
 
-size_t LogReader::Process()
+size_t LogReader::Process(marketdata_visitor_t& marketdata_visitor,
+                          marketdepth_visitor_t& marketdepth_visitor)
 {
   using namespace internal;
 
@@ -349,21 +350,7 @@ size_t LogReader::Process()
         }
 
         // Do something with the parsed marketdata
-        cout << ((est_) ? historian::to_est(t) : t) << ","
-             << marketdata.symbol() << ","
-             << marketdata.event() << ",";
-        switch (marketdata.value().type()) {
-          case (proto::common::Value_Type_INT) :
-            cout << marketdata.value().int_value();
-            break;
-          case (proto::common::Value_Type_DOUBLE) :
-            cout << marketdata.value().double_value();
-            break;
-          case (proto::common::Value_Type_STRING) :
-            cout << marketdata.value().string_value();
-            break;
-        }
-        cout << endl;
+        marketdata_visitor(marketdata);
 
         lines++;
         continue;
@@ -394,14 +381,7 @@ size_t LogReader::Process()
         }
 
         // Do something with the marketdepth
-        cout << ((est_) ? historian::to_est(t) : t) << ","
-             << marketdepth.symbol() << ","
-             << marketdepth.side() << ","
-             << marketdepth.level() << ","
-             << marketdepth.operation() << ","
-             << marketdepth.price() << ","
-             << marketdepth.size() << ","
-             << marketdepth.mm() << endl;
+        marketdepth_visitor(marketdepth);
 
         lines++;
         continue;
