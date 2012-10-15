@@ -296,7 +296,7 @@ size_t LogReader::Process(marketdata_visitor_t& marketdata_visitor,
 
   timer_t last_ts = 0;
   timer_t last_log = 0;
-  int last_written = 0;
+
   ptime last_log_t;
 
   // The lines are space separated, so we need to skip whitespaces.
