@@ -1,5 +1,6 @@
 
 #include "log_levels.h"
+#include "service/LogReaderInternal.hpp"
 #include "service/LogReader.hpp"
 
 namespace atp {
@@ -294,10 +295,9 @@ size_t LogReader::Process(marketdata_visitor_t& marketdata_visitor,
   size_t lines = 0;
   size_t matchedRecords = 0;
 
-  timer_t last_ts = 0;
-  timer_t last_log = 0;
-
   ptime last_log_t;
+  ptime current_log_t;
+  time_duration elapsed_log_t;
 
   // The lines are space separated, so we need to skip whitespaces.
   while (infile >> std::skipws >> line) {
@@ -326,63 +326,26 @@ size_t LogReader::Process(marketdata_visitor_t& marketdata_visitor,
         continue;
       }
 
+      last_log_t = current_log_t;
+      if (internal::get_timestamp(nv, &current_log_t)) {
+        if (last_log_t == boost::posix_time::not_a_date_time) {
+          last_log_t = current_log_t;
+        }
+        elapsed_log_t = current_log_t - last_log_t;
+      }
+
       p::MarketData marketdata;
       if (nv >> marketdata) {
-
-        matchedRecords++;
-
-        ptime t = historian::as_ptime(marketdata.timestamp());
-        if (last_log_t == boost::posix_time::not_a_date_time) {
-          last_log_t = t;
-          last_log = now_micros();
-        } else {
-          time_duration dt = t - last_log_t;
-          timer_t now = now_micros();
-          timer_t elapsed = now - last_log;
-          double elapsedSec = static_cast<double>(elapsed) / 1000000.;
-          if (dt.minutes() >= 15) {
-            LOG(INFO) << "Currently at " << historian::to_est(t)
-                      << ": in " << elapsedSec << " sec. "
-                      << ": matchedRecords=" << matchedRecords;
-            last_log_t = t;
-            last_log = now;
-          }
-        }
-
-        // Do something with the parsed marketdata
         marketdata_visitor(marketdata);
-
+        matchedRecords++;
         lines++;
         continue;
       }
 
       p::MarketDepth marketdepth;
       if (nv >> marketdepth) {
-
-        matchedRecords++;
-
-        ptime t = historian::as_ptime(marketdepth.timestamp());
-
-        if (last_log_t == boost::posix_time::not_a_date_time) {
-          last_log_t = t;
-          last_log = now_micros();
-        } else {
-          time_duration dt = t - last_log_t;
-          timer_t now = now_micros();
-          timer_t elapsed = now - last_log;
-          double elapsedSec = static_cast<double>(elapsed) / 1000000.;
-          if (dt.minutes() >= 15) {
-            LOG(INFO) << "Currently at " << historian::to_est(t)
-                      << ": in " << elapsedSec << " sec. "
-                      << ": matchedRecords=" << matchedRecords;
-            last_log_t = t;
-            last_log = now;
-          }
-        }
-
-        // Do something with the marketdepth
         marketdepth_visitor(marketdepth);
-
+        matchedRecords++;
         lines++;
         continue;
       }

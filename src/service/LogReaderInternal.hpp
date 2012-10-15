@@ -21,6 +21,11 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/unordered_map.hpp>
 
+#include "ib/contract_symbol.hpp"
+#include "proto/ib.pb.h"
+#include "historian/time_utils.hpp"
+
+
 using namespace std;
 using namespace boost::gregorian;
 using namespace boost::algorithm;
@@ -206,15 +211,24 @@ static bool map_id_to_symbols(const log_record_t& nv)
   return false;
 }
 
-
-static bool check_time(const log_record_t& event, bool regular_trading_hours)
+static bool get_timestamp(const log_record_t& event, ptime* timestamp)
 {
   log_record_t::const_iterator found = event.find("ts_utc");
   if (found == event.end()) {
     return false;
   }
-  timer_t timestamp = boost::lexical_cast<timer_t>(found->second);
-  ptime t = historian::as_ptime(timestamp);
+  timer_t ts = boost::lexical_cast<timer_t>(found->second);
+  *timestamp = historian::as_ptime(ts);
+  return true;
+}
+
+static bool check_time(const log_record_t& event, bool regular_trading_hours)
+{
+  ptime t;
+  if (!get_timestamp(event, &t)) {
+    return false;
+  }
+
   bool ext = historian::checkEXT(t);
   if (!ext) {
     return false; // outside trading hours
