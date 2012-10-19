@@ -271,7 +271,8 @@ bool operator<<(p::MarketDepth& result, const log_record_t& nv)
 
 
 size_t LogReader::Process(marketdata_visitor_t& marketdata_visitor,
-                          marketdepth_visitor_t& marketdepth_visitor)
+                          marketdepth_visitor_t& marketdepth_visitor,
+                          const time_duration_t& duration)
 {
   using namespace internal;
 
@@ -296,8 +297,10 @@ size_t LogReader::Process(marketdata_visitor_t& marketdata_visitor,
   size_t matchedRecords = 0;
 
   ptime last_log_t;
+  ptime first_log_t;
   ptime current_log_t;
   time_duration elapsed_log_t;
+  time_duration scan_duration;
 
   // The lines are space separated, so we need to skip whitespaces.
   while (infile >> std::skipws >> line) {
@@ -332,6 +335,17 @@ size_t LogReader::Process(marketdata_visitor_t& marketdata_visitor,
           last_log_t = current_log_t;
         }
         elapsed_log_t = current_log_t - last_log_t;
+      }
+
+      if (first_log_t == boost::posix_time::not_a_date_time &&
+          matchedRecords == 1) {
+        first_log_t = current_log_t;
+      }
+
+      scan_duration = current_log_t - first_log_t;
+      if (scan_duration > duration) {
+        LOG(INFO) << "Scanned " << duration << ". Stopping.";
+        break;
       }
 
       p::MarketData marketdata;

@@ -8,6 +8,8 @@
 
 #include <zmq.hpp>
 
+#include <glog/logging.h>
+
 #include "proto/ib.pb.h"
 #include "historian/time_utils.hpp"
 #include "zmq/ZmqUtils.hpp"
@@ -34,11 +36,11 @@ class LinePrinter
  public:
   LinePrinter() : facet_(new time_facet("%Y-%m-%d %H:%M:%S%F%Q"))
   {
-    std::cout.imbue(std::locale(std::cout.getloc(), facet_.get()));
+    std::cout.imbue(std::locale(std::cout.getloc(), facet_));
   }
 
  private:
-  boost::shared_ptr<time_facet> facet_;
+  time_facet* facet_;
 };
 
 struct MarketDataPrinter : LinePrinter
@@ -85,6 +87,8 @@ struct MarketDepthPrinter : LinePrinter
 using ::zmq::context_t;
 using ::zmq::socket_t;
 
+////////////////////////////////////////////////////////////////////
+/// Zmq event source
 class ZmqEventSource
 {
  public:
@@ -93,10 +97,18 @@ class ZmqEventSource
       context_(context == NULL ? new context_t(1) : context),
       endpoint_(endpoint),
       publish_(publish),
-      own_context_(context == NULL)
+      own_context_(context == NULL),
+      own_socket_(true)
   {
     socket_ = new socket_t(*context_, publish_ ? ZMQ_PUB : ZMQ_PUSH);
     socket_->connect(endpoint_.c_str());
+  }
+
+  ZmqEventSource(socket_t* shared) :
+      own_context_(false),
+      own_socket_(false),
+      socket_(shared)
+  {
   }
 
   const string& endpoint() const
@@ -104,13 +116,40 @@ class ZmqEventSource
     return endpoint_;
   }
 
-
-  ~ZmqEventSource()
+  socket_t* socket() const
   {
-    if (socket_ != NULL) delete socket_;
+    return socket_;
+  }
+
+  void clean_up()
+  {
+    if (own_socket_ && socket_ != NULL) delete socket_;
     if (own_context_) delete context_;
   }
 
+ protected:
+
+  template <typename M>
+  bool dispatch(const M& message)
+  {
+    const string& topic = message.symbol();
+    string buff;
+    size_t sent = 0;
+    try {
+
+      LOG(INFO) << "Dispatching " << topic;
+
+      if (message.SerializeToString(&buff)) {
+        sent = atp::zmq::send_copy(*socket_, topic, true);
+        sent += atp::zmq::send_copy(*socket_, buff, false);
+      }
+      return sent > 0;
+
+    } catch (::zmq::error_t e) {
+      LOG(ERROR) << "Exception while sending " << e.what();
+      return false;
+    }
+  }
 
 
  private:
@@ -118,9 +157,47 @@ class ZmqEventSource
   string endpoint_;
   bool publish_;
   bool own_context_;
+  bool own_socket_;
   socket_t* socket_;
 };
 
+struct MarketDataDispatcher : ZmqEventSource
+{
+  MarketDataDispatcher(context_t* context,
+                       const string& endpoint, bool publish = true) :
+      ZmqEventSource(context, endpoint, publish)
+  {
+  }
+
+  MarketDataDispatcher(socket_t* shared) :
+      ZmqEventSource(shared)
+  {
+  }
+
+  bool operator()(const proto::ib::MarketData& marketdata)
+  {
+    return dispatch(marketdata);
+  }
+};
+
+struct MarketDepthDispatcher : ZmqEventSource
+{
+  MarketDepthDispatcher(context_t* context,
+                       const string& endpoint, bool publish = true) :
+      ZmqEventSource(context, endpoint, publish)
+  {
+  }
+
+  MarketDepthDispatcher(socket_t* shared) :
+      ZmqEventSource(shared)
+  {
+  }
+
+  bool operator()(const proto::ib::MarketDepth& marketdepth)
+  {
+    return dispatch(marketdepth);
+  }
+};
 
 } // visitors
 } // log_reader

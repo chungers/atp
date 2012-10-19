@@ -21,6 +21,9 @@ using namespace boost::posix_time;
 namespace atp {
 namespace log_reader {
 
+typedef boost::posix_time::time_duration time_duration_t;
+typedef boost::posix_time::time_period time_period_t;
+
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
 
@@ -47,7 +50,8 @@ class LogReader
 
   /// Process the logfile with the given visitors for marketdata and marketdepth
   size_t Process(marketdata_visitor_t& marketdata_visitor,
-                 marketdepth_visitor_t& marketdepth_visitor);
+                 marketdepth_visitor_t& marketdepth_visitor,
+                 const time_duration_t& duration = pos_infin);
 
 
  private:
