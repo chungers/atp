@@ -18,6 +18,7 @@ set(historian_components_libs
   proto_components
   leveldb
   zmq_components
+  boost_date_time
 )
 cpp_library(historian_components)
 

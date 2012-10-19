@@ -15,10 +15,10 @@ namespace atp {
 namespace time_series {
 
 typedef boost::uint64_t microsecond_t;
-typedef boost::posix_time::time_duration time_sample_size_t;
+typedef boost::posix_time::time_duration sample_interval_t;
 
 
-struct time_resolution_policy {
+struct sample_interval_policy {
 
 
   struct align_at_zero
@@ -71,7 +71,7 @@ template <
     element_t(const element_t& last, const element_t& current,
               bool new_sample_period) >,
   typename Alloc = boost::pool_allocator<element_t>,
-  typename time_resolution_policy = time_resolution_policy::align_at_zero >
+  typename sample_interval_policy = sample_interval_policy::align_at_zero >
 class moving_window
 {
  public:
@@ -81,14 +81,14 @@ class moving_window
   boost::circular_buffer<element_t, Alloc>::const_reverse_iterator reverse_itr;
 
   /// total duration, time resolution, and initial value
-  moving_window(boost::posix_time::time_duration h, time_sample_size_t i,
+  moving_window(boost::posix_time::time_duration h, sample_interval_t i,
                 element_t init) :
       samples_(h.total_microseconds() / i.total_microseconds()),
       interval_(i),
       buffer_(samples_ - 1),
       current_value_(init),
       current_ts_(0),
-      time_resolution_policy_(i.total_microseconds())
+      sample_interval_policy_(i.total_microseconds())
   {
     // fill the buffer with the default valule.
     for (size_t i = 0; i < buffer_.capacity(); ++i) {
@@ -125,7 +125,7 @@ class moving_window
       return 0; // No copy is done.
     }
     array[length - 1] = current_value_;
-    timestamp[length - 1] = time_resolution_policy_.get_time(current_ts_, 0);
+    timestamp[length - 1] = sample_interval_policy_.get_time(current_ts_, 0);
     size_t to_copy = length - 1;
     size_t copied = 1;
     reverse_itr r = buffer_.rbegin();
@@ -134,7 +134,7 @@ class moving_window
     for (; r != buffer_.rend() && to_copy > 0; --to_copy, ++copied, ++r) {
       array[length - 1 - copied] = *r;
       timestamp[length - 1 - copied] =
-          time_resolution_policy_.get_time(current_ts_, copied);
+          sample_interval_policy_.get_time(current_ts_, copied);
     }
     return copied;
   }
@@ -143,7 +143,7 @@ class moving_window
   {
     // check to see if the current timestamp falls within the current
     // interval.  If outside, push the current value onto the history buffer
-    bool new_sample_period = time_resolution_policy_.is_new_window(
+    bool new_sample_period = sample_interval_policy_.is_new_window(
         current_ts_, timestamp);
 
     element_t sampled = sampler_(current_value_, value, new_sample_period);
@@ -152,7 +152,7 @@ class moving_window
       // check for missing values in previous windows
       if (current_ts_ > 0) {
         // Don't fill in missing values if starting up.
-        int more = std::max(0, time_resolution_policy_.count_windows(
+        int more = std::max(0, sample_interval_policy_.count_windows(
             current_ts_, timestamp) - 1);
         // TODO- allow filling in missing values like count
         element_t missing = current_value_;
@@ -171,14 +171,14 @@ class moving_window
  private:
 
   size_t samples_;
-  time_sample_size_t interval_;
+  sample_interval_t interval_;
   history_t buffer_;
 
   element_t current_value_;
   microsecond_t current_ts_;
 
   sampler_t sampler_;
-  time_resolution_policy time_resolution_policy_;
+  sample_interval_policy sample_interval_policy_;
 };
 
 

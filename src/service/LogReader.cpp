@@ -272,7 +272,8 @@ bool operator<<(p::MarketDepth& result, const log_record_t& nv)
 
 size_t LogReader::Process(marketdata_visitor_t& marketdata_visitor,
                           marketdepth_visitor_t& marketdepth_visitor,
-                          const time_duration_t& duration)
+                          const time_duration_t& duration,
+                          const time_t& start)
 {
   using namespace internal;
 
@@ -330,11 +331,15 @@ size_t LogReader::Process(marketdata_visitor_t& marketdata_visitor,
       }
 
       last_log_t = current_log_t;
+
       if (internal::get_timestamp(nv, &current_log_t)) {
         if (last_log_t == boost::posix_time::not_a_date_time) {
           last_log_t = current_log_t;
         }
         elapsed_log_t = current_log_t - last_log_t;
+        if (current_log_t < start) {
+          continue; // do not start yet.
+        }
       }
 
       if (first_log_t == boost::posix_time::not_a_date_time &&

@@ -38,6 +38,7 @@ set(log_reader_srcs
 )
 set(log_reader_libs
  api_base
+ historian_components
  proto_components
  zmq_components
  boost_system

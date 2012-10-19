@@ -21,6 +21,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/unordered_map.hpp>
 
+#include "log_levels.h"
 #include "ib/contract_symbol.hpp"
 #include "proto/ib.pb.h"
 #include "historian/time_utils.hpp"
@@ -190,7 +191,7 @@ static bool map_id_to_symbols(const log_record_t& nv)
           ticker_id_symbol_map.end()) {
 
         ticker_id_symbol_map[tickerId] = symbol;
-        LOG(INFO) << "Ticker id " << tickerId << " ==> " << symbol;
+        LOG_READER_LOGGER << "Ticker id " << tickerId << " ==> " << symbol;
         return true;
 
       } else {

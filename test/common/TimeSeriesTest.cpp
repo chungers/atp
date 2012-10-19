@@ -28,7 +28,7 @@ struct last_trade
 
 TEST(TimeSeriesTest, MovingWindowPolicyTest)
 {
-  time_resolution_policy::align_at_zero p(10);
+  sample_interval_policy::align_at_zero p(10);
   EXPECT_EQ(10000, p.get_time(10001, 0));
   EXPECT_EQ(10000, p.get_time(10009, 0));
   EXPECT_EQ(10010, p.get_time(10010, 0));
