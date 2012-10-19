@@ -6,8 +6,12 @@
 #include <string>
 #include <sstream>
 
+#include <zmq.hpp>
+
 #include "proto/ib.pb.h"
 #include "historian/time_utils.hpp"
+#include "zmq/ZmqUtils.hpp"
+
 
 using namespace std;
 using namespace boost::posix_time;
@@ -24,11 +28,7 @@ namespace log_reader {
 /// Visitors
 namespace visitor {
 
-
-
-
-
-
+/// Simple visitor that prints to stdout.
 class LinePrinter
 {
  public:
@@ -81,6 +81,46 @@ struct MarketDepthPrinter : LinePrinter
     return true;
   }
 };
+
+using ::zmq::context_t;
+using ::zmq::socket_t;
+
+class ZmqEventSource
+{
+ public:
+  ZmqEventSource(context_t* context,
+                 const string& endpoint, bool publish = true) :
+      context_(context == NULL ? new context_t(1) : context),
+      endpoint_(endpoint),
+      publish_(publish),
+      own_context_(context == NULL)
+  {
+    socket_ = new socket_t(*context_, publish_ ? ZMQ_PUB : ZMQ_PUSH);
+    socket_->connect(endpoint_.c_str());
+  }
+
+  const string& endpoint() const
+  {
+    return endpoint_;
+  }
+
+
+  ~ZmqEventSource()
+  {
+    if (socket_ != NULL) delete socket_;
+    if (own_context_) delete context_;
+  }
+
+
+
+ private:
+  context_t* context_;
+  string endpoint_;
+  bool publish_;
+  bool own_context_;
+  socket_t* socket_;
+};
+
 
 } // visitors
 } // log_reader

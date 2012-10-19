@@ -75,6 +75,7 @@ set(LogReaderTest_srcs
 )
 set(LogReaderTest_libs
   historian_components
+  zmq_components
   log_reader
   boost_system
   boost_iostreams
