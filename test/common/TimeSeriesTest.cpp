@@ -8,7 +8,7 @@
 #include <glog/logging.h>
 
 #include "utils.hpp"
-#include "common/time_series.hpp"
+#include "common/moving_window.hpp"
 
 using namespace boost::assign;
 using namespace boost::posix_time;
@@ -26,9 +26,19 @@ struct last_trade
   }
 };
 
-TEST(TimeSeriesTest, CreateTest1)
+TEST(TimeSeriesTest, MovingWindowPolicyTest)
 {
-  time_series< double, last_trade<double> > last_trade(
+  time_resolution_policy::align_at_zero p(10);
+  EXPECT_EQ(10000, p.get_time(10001, 0));
+  EXPECT_EQ(10000, p.get_time(10009, 0));
+  EXPECT_EQ(10010, p.get_time(10010, 0));
+  EXPECT_EQ(10000, p.get_time(10010, 1));
+  EXPECT_EQ( 9990, p.get_time(10010, 2));
+}
+
+TEST(TimeSeriesTest, MovingWindowTest1)
+{
+  moving_window< double, last_trade<double> > last_trade(
       microseconds(1000), microseconds(10), 0.);
 
   boost::uint64_t t = 10000000000;
@@ -53,13 +63,17 @@ TEST(TimeSeriesTest, CreateTest1)
   p += 10., 12., 17., 21., 21., 21., 21., 25., 25., 20.,
       26., 26., 26., 26., 20.;
 
+  microsecond_t tbuff[p.size()];
   double buff[p.size()];
-  int copied = last_trade.copy_last(buff, p.size());
+
+  int copied = last_trade.copy_last(tbuff, buff, p.size());
 
   EXPECT_EQ(p.size(), copied);
 
-  for (int i = 0; i < p.size(); ++i) {
+  for (unsigned int i = 0; i < p.size(); ++i) {
+    LOG(INFO) << "(" << tbuff[i] << ", " << buff[i] << ")";
     EXPECT_EQ(p[i], buff[i]);
+    EXPECT_EQ(t + 10000 + i * 10, tbuff[i]);
   }
 }
 
