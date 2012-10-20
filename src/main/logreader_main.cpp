@@ -741,7 +741,7 @@ int main(int argc, char** argv)
                 if (event.SerializeToString(&proto)) {
 
                   std::ostringstream zmq_topic;
-                  zmq_topic << historian::ENTITY_IB_MARKET_DATA << ':'
+                  zmq_topic << historian::ENTITY_IB_MARKET_DEPTH << ':'
                             << event.symbol();
 
                   size_t sent = atp::zmq::send_copy(*socket, zmq_topic.str(),
