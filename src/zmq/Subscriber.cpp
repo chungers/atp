@@ -51,6 +51,11 @@ const string& Subscriber::publisher_addr() const
   return publisher_endpoint_;
 }
 
+void Subscriber::block()
+{
+  thread_->join();
+}
+
 void Subscriber::process()
 {
   bool localContext = false;

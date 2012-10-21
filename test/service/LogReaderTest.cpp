@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/assign.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
@@ -14,6 +15,7 @@
 #include "historian/time_utils.hpp"
 #include "service/LogReader.hpp"
 #include "service/LogReaderVisitor.hpp"
+#include "zmq/Subscriber.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 
@@ -67,34 +69,29 @@ void dispatch_events(::zmq::context_t* ctx, const time_duration& duration)
   sock.close();
 }
 
-TEST(LogReaderTest, ZmqVisitorTest)
+
+
+class Subscriber : public atp::zmq::Subscriber::Strategy
 {
-  ::zmq::context_t* ctx = new ::zmq::context_t(1);
+ public:
+  Subscriber(int count) : count_(count)
+  {
+  }
 
-  ::zmq::socket_t sub(*ctx, ZMQ_SUB);
-  sub.connect(PUB_ENDPOINT.c_str());
-
-  string topic("AAPL.STK");
-  sub.setsockopt(ZMQ_SUBSCRIBE, topic.c_str(), topic.length());
-
-
-  boost::thread th(boost::bind(&dispatch_events, ctx, seconds(10)));
-
-
-  size_t count = 0;
-  while (1) {
-
+  /// check messages
+  virtual bool check_message(::zmq::socket_t& socket)
+  {
     string frame1, frame2;
     try {
-      int more = atp::zmq::receive(sub, &frame1);
+      int more = atp::zmq::receive(socket, &frame1);
 
       LOG(INFO) << "****************** Got frame1 " << frame1 << "," << more;
 
       if (more) {
-        atp::zmq::receive(sub, &frame2);
+        atp::zmq::receive(socket, &frame2);
       } else {
         LOG(ERROR) << "Only one frame!" << frame1;
-        break;
+        return false;
       }
     } catch (::zmq::error_t e) {
       LOG(ERROR) << "Got exception: " << e.what();
@@ -104,12 +101,33 @@ TEST(LogReaderTest, ZmqVisitorTest)
     proto::ib::MarketData proto;
     if (proto.ParseFromString(frame2)) {
       LOG(INFO) << "Market data " << proto.symbol();
-
-      count++;
-      if (count > 5) break;
     }
+    return count_-- > 0;
   }
 
+ private:
+  int count_;
+};
+
+
+TEST(LogReaderTest, ZmqVisitorTest)
+{
+  ::zmq::context_t* ctx = new ::zmq::context_t(1);
+
+  LOG(INFO) << "Starting subscriber";
+  vector<string> topics = boost::assign::list_of
+      ("AAPL.STK")("GOOG.STK");
+
+  Subscriber strategy(10);
+  atp::zmq::Subscriber sub(PUB_ENDPOINT, topics, strategy, ctx);
+
+  LOG(INFO) << "Starting thread";
+  boost::thread th(boost::bind(&dispatch_events, ctx, seconds(10)));
+
+  LOG(INFO) << "Blocking";
+  sub.block();
+
+  LOG(INFO) << "Joining";
   th.join();
 
   LOG(INFO) << "Deleting context";
