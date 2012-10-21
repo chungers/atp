@@ -11,6 +11,7 @@
 #include <glog/logging.h>
 
 #include "proto/ib.pb.h"
+#include "historian/constants.hpp"
 #include "historian/time_utils.hpp"
 #include "zmq/ZmqUtils.hpp"
 
@@ -130,9 +131,8 @@ class ZmqEventSource
  protected:
 
   template <typename M>
-  bool dispatch(const M& message)
+  bool dispatch(const string& topic, const M& message)
   {
-    const string& topic = message.symbol();
     string buff;
     size_t sent = 0;
     try {
@@ -176,7 +176,8 @@ struct MarketDataDispatcher : ZmqEventSource
 
   bool operator()(const proto::ib::MarketData& marketdata)
   {
-    return dispatch(marketdata);
+    const string topic = marketdata.symbol();
+    return dispatch(topic, marketdata);
   }
 };
 
@@ -195,7 +196,9 @@ struct MarketDepthDispatcher : ZmqEventSource
 
   bool operator()(const proto::ib::MarketDepth& marketdepth)
   {
-    return dispatch(marketdepth);
+    ostringstream ss;
+    ss << historian::ENTITY_IB_MARKET_DEPTH << ':' << marketdepth.symbol();
+    return dispatch(ss.str(), marketdepth);
   }
 };
 

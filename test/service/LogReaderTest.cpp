@@ -71,14 +71,44 @@ TEST(LogReaderTest, ZmqVisitorTest)
 {
   ::zmq::context_t* ctx = new ::zmq::context_t(1);
 
-  boost::thread th(boost::bind(&dispatch_events, ctx, seconds(5)));
-
   ::zmq::socket_t sub(*ctx, ZMQ_SUB);
   sub.connect(PUB_ENDPOINT.c_str());
 
   string topic("AAPL.STK");
   sub.setsockopt(ZMQ_SUBSCRIBE, topic.c_str(), topic.length());
 
+
+  boost::thread th(boost::bind(&dispatch_events, ctx, seconds(10)));
+
+
+  size_t count = 0;
+  while (1) {
+
+    string frame1, frame2;
+    try {
+      int more = atp::zmq::receive(sub, &frame1);
+
+      LOG(INFO) << "****************** Got frame1 " << frame1 << "," << more;
+
+      if (more) {
+        atp::zmq::receive(sub, &frame2);
+      } else {
+        LOG(ERROR) << "Only one frame!" << frame1;
+        break;
+      }
+    } catch (::zmq::error_t e) {
+      LOG(ERROR) << "Got exception: " << e.what();
+    }
+
+    LOG(INFO) << "Got " << frame1;
+    proto::ib::MarketData proto;
+    if (proto.ParseFromString(frame2)) {
+      LOG(INFO) << "Market data " << proto.symbol();
+
+      count++;
+      if (count > 5) break;
+    }
+  }
 
   th.join();
 
