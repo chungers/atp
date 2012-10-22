@@ -113,26 +113,23 @@ class Subscriber : public atp::zmq::Subscriber::Strategy
 
 TEST(LogReaderTest, ZmqVisitorTest)
 {
-  ::zmq::context_t* ctx = new ::zmq::context_t(1);
+  ::zmq::context_t ctx(1);
 
   LOG(INFO) << "Starting subscriber";
   vector<string> topics = boost::assign::list_of
       ("GOOG.OPT.20121005.765.C")("AAPL.STK")("BAC.STK");
 
   Subscriber strategy(100);
-  atp::zmq::Subscriber sub(PUB_ENDPOINT, topics, strategy, ctx);
+  atp::zmq::Subscriber sub(PUB_ENDPOINT, topics, strategy, &ctx);
 
   LOG(INFO) << "Starting thread";
-  boost::thread th(boost::bind(&dispatch_events, ctx, seconds(10)));
+  boost::thread th(boost::bind(&dispatch_events, &ctx, seconds(10)));
 
   LOG(INFO) << "Joining";
   th.join();
 
   LOG(INFO) << "Blocking";
   sub.block();
-
-  LOG(INFO) << "Deleting context";
-  delete ctx;
 }
 
 
