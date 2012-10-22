@@ -102,7 +102,11 @@ class ZmqEventSource
       own_socket_(true)
   {
     socket_ = new socket_t(*context_, publish_ ? ZMQ_PUB : ZMQ_PUSH);
-    socket_->connect(endpoint_.c_str());
+    if (publish_) {
+      socket_->bind(endpoint_.c_str());
+    } else {
+      socket_->connect(endpoint_.c_str());
+    }
   }
 
   ZmqEventSource(socket_t* shared) :
@@ -136,8 +140,6 @@ class ZmqEventSource
     string buff;
     size_t sent = 0;
     try {
-
-      LOG(INFO) << "Dispatching " << topic;
 
       if (message.SerializeToString(&buff)) {
         sent = atp::zmq::send_copy(*socket_, topic, true);

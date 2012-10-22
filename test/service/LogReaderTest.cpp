@@ -55,7 +55,7 @@ void dispatch_events(::zmq::context_t* ctx, const time_duration& duration)
 
   ::zmq::socket_t sock(*ctx, ZMQ_PUB);
   string endpoint(PUB_ENDPOINT.c_str());
-  sock.connect(endpoint.c_str());
+  sock.bind(endpoint.c_str());
 
   visitor::MarketDataDispatcher p1(&sock);
   visitor::MarketDepthDispatcher p2(&sock);
@@ -100,9 +100,10 @@ class Subscriber : public atp::zmq::Subscriber::Strategy
     LOG(INFO) << "Got " << frame1;
     proto::ib::MarketData proto;
     if (proto.ParseFromString(frame2)) {
-      LOG(INFO) << "Market data " << proto.symbol();
+      LOG(INFO) << "Market data " << proto.symbol() << ", " << count_;
+      count_--;
     }
-    return count_-- > 0;
+    return count_ > 0;
   }
 
  private:
@@ -116,19 +117,19 @@ TEST(LogReaderTest, ZmqVisitorTest)
 
   LOG(INFO) << "Starting subscriber";
   vector<string> topics = boost::assign::list_of
-      ("AAPL.STK")("GOOG.STK");
+      ("GOOG.OPT.20121005.765.C")("AAPL.STK")("BAC.STK");
 
-  Subscriber strategy(10);
+  Subscriber strategy(100);
   atp::zmq::Subscriber sub(PUB_ENDPOINT, topics, strategy, ctx);
 
   LOG(INFO) << "Starting thread";
   boost::thread th(boost::bind(&dispatch_events, ctx, seconds(10)));
 
-  LOG(INFO) << "Blocking";
-  sub.block();
-
   LOG(INFO) << "Joining";
   th.join();
+
+  LOG(INFO) << "Blocking";
+  sub.block();
 
   LOG(INFO) << "Deleting context";
   delete ctx;
