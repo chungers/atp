@@ -34,7 +34,7 @@ using namespace boost::iostreams;
 using namespace boost::posix_time;
 
 typedef boost::unordered_map<string, string> log_record_t;
-typedef boost::uint64_t timer_t;
+typedef boost::uint64_t log_timer_t;
 
 
 namespace atp {
@@ -218,7 +218,7 @@ static bool get_timestamp(const log_record_t& event, ptime* timestamp)
   if (found == event.end()) {
     return false;
   }
-  timer_t ts = boost::lexical_cast<timer_t>(found->second);
+  log_timer_t ts = boost::lexical_cast<log_timer_t>(found->second);
   *timestamp = historian::as_ptime(ts);
   return true;
 }
