@@ -13,7 +13,7 @@ set(message_processor_incs
   ${SRC_DIR}
 )
 set(message_processor_srcs
-  LogReader.cpp
+  message_processor.cpp
 )
 set(message_processor_libs
  api_base

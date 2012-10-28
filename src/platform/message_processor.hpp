@@ -4,62 +4,103 @@
 #include <string>
 
 #include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/unordered_map.hpp>
+
+#include <zmq.hpp>
+
+#include "common.hpp"
+
+using std::string;
+using boost::function;
+using boost::scoped_ptr;
+using boost::unordered_map;
+
 
 namespace atp {
 namespace platform {
 
-template <
-  typename identifier_t = string,
-  typename serialized_data_t = string,
-  class handler_t =
-  function< bool(const identifier_t& key,
-                 const serialized_data_t& msg) >
-  >
-class handlers
+
+class message_processor : NoCopyAndAssign
 {
  public:
 
-  bool register_handler(const identifier_t& id, handler_t handler)
+  template <
+   typename message_key_t = string,
+   typename serialized_data_t = string,
+   class handler_t =
+   function< void(const message_key_t& key,
+                  const serialized_data_t& msg) >
+   >
+  class handlers_map : NoCopyAndAssign
   {
-    return handlers_.insert(
-        std::pair<identifier_t, handler_t>(id, handler)).second;
-  }
 
-  bool is_supported(const identifier_t& id)
-  {
-    typename creator_map::const_iterator itr = handlers_.find(id);
-    return (itr != handlers_.end()) ;
-  }
+   public:
 
-  bool process_raw_message(const identifier_t& id,
-                           const serialized_data_t& data)
-  {
-    typename handler_map_t::const_iterator itr = handlers_.find(id);
-    if (itr != handlers_.end()) {
-      return (itr->second)(id, data);
+    typedef typename unordered_map<message_key_t, handler_t>::const_iterator
+    message_keys_itr;
+
+    bool register_handler(const message_key_t& id, handler_t handler)
+    {
+      return handlers_.insert(
+          std::pair<message_key_t, handler_t>(id, handler)).second;
     }
-    return false;
-  }
+
+    const message_keys_itr begin() const
+    {
+      return handlers_.begin();
+    }
+
+    const message_keys_itr end() const
+    {
+      return handlers_.end();
+    }
+
+    bool is_supported(const message_key_t& id) const
+    {
+      typename handler_map_t::const_iterator itr = handlers_.find(id);
+      return (itr != handlers_.end()) ;
+    }
+
+    bool process_raw_message(const message_key_t& id,
+                             const serialized_data_t& data) const
+    {
+      typename handler_map_t::const_iterator itr = handlers_.find(id);
+
+      if (itr != handlers_.end()) {
+        try {
+          (itr->second)(id, data);
+          return true;
+        } catch (...) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+
+   private:
+
+    typedef unordered_map<message_key_t, handler_t> handler_map_t;
+    handler_map_t handlers_;
+
+  };
+
+
+
+  typedef handlers_map<string, string> protobuf_handlers_map;
+
+  message_processor(const string& endpoint,
+                    const protobuf_handlers_map& handlers,
+                    size_t threads,
+                    ::zmq::context_t* context = NULL);
+
+  ~message_processor();
 
  private:
 
-  typedef unordered_map<identifier_t, handler_t> handler_map_t;
-  handler_map_t handlers_;
-
-};
-
-
-class message_processor
-{
- public:
-
-  message_processor(const string& endpoint,
-                    const handlers& handlers)
-  {
-
-  }
-
+  class implementation;
+  scoped_ptr<implementation> impl_;
 };
 
 
