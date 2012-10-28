@@ -7,11 +7,10 @@
 
 #include <glog/logging.h>
 
-
 #include "log_levels.h"
 #include "proto/ib.pb.h"
 #include "historian/time_utils.hpp"
-//#include "service/LogReaderVisitor.hpp"
+
 
 using namespace std;
 using namespace boost::algorithm;

@@ -26,7 +26,12 @@ add_subdirectory(varz)
 # ZMQ
 add_subdirectory(zmq)
 
+# Platform
+# - composition of lower-level layers like zmq, ib, proto, etc.
+add_subdirectory(platform)
+
 # Services
+# - Domain-specific layer built on Platform components.
 add_subdirectory(service)
 
 # Historian
