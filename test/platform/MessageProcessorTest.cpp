@@ -50,12 +50,12 @@ TEST(MessageProcessorTest, UsageSyntax)
   w1.id = "AAPL.STK", w1.count = 0;
   w2.id = "GOOG.STK", w2.count = 0;
 
-  message_processor::handlers_map<string, string> handlers;
+  message_processor::protobuf_handlers_map handlers;
   handlers.register_handler("AAPL.STK", w1);
   handlers.register_handler("GOOG.STK", w2);
 
   // create the message processor -- runs a new thread
-  message_processor subscriber(PUB_ENDPOINT, handlers, 10);
+  message_processor subscriber(PUB_ENDPOINT, handlers, 5);
 
 
   // create the message publisher
@@ -71,7 +71,7 @@ TEST(MessageProcessorTest, UsageSyntax)
     FAIL();
   }
 
-  size_t count = 10000;
+  size_t count = 5000;
   while (count--) {
     string topic(count % 2 ? "AAPL.STK" : "GOOG.STK");
     string message = boost::lexical_cast<string>(now_micros());

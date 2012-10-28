@@ -29,6 +29,9 @@ using atp::platform::message_processor;
 class message_processor::implementation : NoCopyAndAssign
 {
  public:
+
+  typedef boost::uint64_t timestamp_t;
+
   implementation(const string& endpoint,
                  const message_processor::protobuf_handlers_map& handlers,
                  ::zmq::context_t* context,
@@ -61,17 +64,25 @@ class message_processor::implementation : NoCopyAndAssign
   struct work
   {
     work(const message_processor::protobuf_handlers_map& handlers) :
-        handlers(handlers)
+        handlers(handlers),
+        submit(0), process_start(0), process_complete(0)
     {
     }
 
     void operator()()
     {
+      process_start = now_micros();
       handlers.process_raw_message(topic, message);
+      process_complete = now_micros();
+      timestamp_t schedule_delay = process_start - submit;
+      LOG(INFO) << "..... " << schedule_delay;
     }
 
     const message_processor::protobuf_handlers_map& handlers;
     string topic, message;
+    timestamp_t submit;
+    timestamp_t process_start;
+    timestamp_t process_complete;
   };
 
 
@@ -113,6 +124,7 @@ class message_processor::implementation : NoCopyAndAssign
           !atp::zmq::receive(socket, &(work.message))) {
 
         if (handlers_.is_supported(work.topic)) {
+          work.submit = now_micros();
           executor_.Submit(work);
         }
       } else {
