@@ -30,8 +30,6 @@ class message_processor::implementation : NoCopyAndAssign
 {
  public:
 
-  typedef boost::uint64_t timestamp_t;
-
   implementation(const string& endpoint,
                  const message_processor::protobuf_handlers_map& handlers,
                  ::zmq::context_t* context,
@@ -58,6 +56,10 @@ class message_processor::implementation : NoCopyAndAssign
     listener_thread_->join();
   }
 
+  timestamp_t average_execution_delay()
+  {
+    return work::EXEC_DELAY / work::EXEC_COUNT;
+  }
 
  private:
 
@@ -67,6 +69,8 @@ class message_processor::implementation : NoCopyAndAssign
         handlers(handlers),
         submit(0), process_start(0), process_complete(0)
     {
+      topic.reserve(20);
+      message.reserve(200);
     }
 
     void operator()()
@@ -75,7 +79,8 @@ class message_processor::implementation : NoCopyAndAssign
       handlers.process_raw_message(topic, message);
       process_complete = now_micros();
       timestamp_t schedule_delay = process_start - submit;
-      LOG(INFO) << "..... " << schedule_delay;
+      EXEC_DELAY += schedule_delay;
+      EXEC_COUNT++;
     }
 
     const message_processor::protobuf_handlers_map& handlers;
@@ -83,6 +88,9 @@ class message_processor::implementation : NoCopyAndAssign
     timestamp_t submit;
     timestamp_t process_start;
     timestamp_t process_complete;
+
+    static size_t EXEC_COUNT;
+    static timestamp_t EXEC_DELAY;
   };
 
 
@@ -116,15 +124,17 @@ class message_processor::implementation : NoCopyAndAssign
 
     LOG(INFO) << "Ready to handle messages.";
 
-    while (true) {
+    work work(handlers_);
 
-      work work(handlers_);
+    while (true) {
 
       if (atp::zmq::receive(socket, &(work.topic)) &&
           !atp::zmq::receive(socket, &(work.message))) {
 
         if (handlers_.is_supported(work.topic)) {
           work.submit = now_micros();
+
+          // There's a copy of the work object here...
           executor_.Submit(work);
         }
       } else {
@@ -144,6 +154,8 @@ class message_processor::implementation : NoCopyAndAssign
   condition_variable until_ready_;
 };
 
+timestamp_t message_processor::implementation::work::EXEC_DELAY = 0;
+size_t message_processor::implementation::work::EXEC_COUNT = 0;
 
 message_processor::message_processor(const string& endpoint,
                                      const protobuf_handlers_map& handlers,
@@ -155,6 +167,11 @@ message_processor::message_processor(const string& endpoint,
 
 message_processor::~message_processor()
 {
+}
+
+timestamp_t message_processor::average_execution_delay()
+{
+  return impl_->average_execution_delay();
 }
 
 } // platform

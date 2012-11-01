@@ -20,6 +20,7 @@ using boost::unordered_map;
 namespace atp {
 namespace platform {
 
+typedef boost::uint64_t timestamp_t;
 
 class message_processor : NoCopyAndAssign
 {
@@ -79,6 +80,7 @@ class message_processor : NoCopyAndAssign
       }
     }
 
+
    private:
 
     typedef unordered_map<message_key_t, handler_t> handler_map_t;
@@ -96,6 +98,9 @@ class message_processor : NoCopyAndAssign
                     ::zmq::context_t* context = NULL);
 
   ~message_processor();
+
+  timestamp_t average_execution_delay();
+
 
  private:
 
