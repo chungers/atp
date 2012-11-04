@@ -22,6 +22,7 @@ namespace platform {
 
 typedef boost::uint64_t timestamp_t;
 
+
 class message_processor : NoCopyAndAssign
 {
  public:
@@ -30,7 +31,7 @@ class message_processor : NoCopyAndAssign
    typename message_key_t = string,
    typename serialized_data_t = string,
    class handler_t =
-   function< void(const message_key_t& key,
+   function< bool(const message_key_t& key,
                   const serialized_data_t& msg) >
    >
   class handlers_map : NoCopyAndAssign
@@ -70,8 +71,7 @@ class message_processor : NoCopyAndAssign
 
       if (itr != handlers_.end()) {
         try {
-          (itr->second)(id, data);
-          return true;
+          return (itr->second)(id, data);
         } catch (...) {
           return false;
         }
@@ -94,18 +94,17 @@ class message_processor : NoCopyAndAssign
 
   message_processor(const string& endpoint,
                     const protobuf_handlers_map& handlers,
-                    size_t threads,
                     ::zmq::context_t* context = NULL);
 
   ~message_processor();
 
-  timestamp_t average_execution_delay();
-
+  void block();
 
  private:
 
   class implementation;
   scoped_ptr<implementation> impl_;
+
 };
 
 

@@ -7,7 +7,6 @@
 
 
 #include "common.hpp"
-#include "common/executor.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 #include "platform/message_processor.hpp"
@@ -18,7 +17,6 @@ using boost::mutex;
 using boost::scoped_ptr;
 using boost::thread;
 
-using atp::common::executor;
 
 namespace atp {
 namespace platform {
@@ -32,12 +30,10 @@ class message_processor::implementation : NoCopyAndAssign
 
   implementation(const string& endpoint,
                  const message_processor::protobuf_handlers_map& handlers,
-                 ::zmq::context_t* context,
-                 size_t threads) :
+                 ::zmq::context_t* context) :
     endpoint_(endpoint),
     handlers_(handlers),
     context_(context == NULL ? new ::zmq::context_t(1) : context),
-    executor_(threads),
     own_context_(context == NULL),
     ready_(false),
     listener_thread_(new thread(boost::bind(&implementation::run, this)))
@@ -56,43 +52,7 @@ class message_processor::implementation : NoCopyAndAssign
     listener_thread_->join();
   }
 
-  timestamp_t average_execution_delay()
-  {
-    return work::EXEC_DELAY / work::EXEC_COUNT;
-  }
-
  private:
-
-  struct work
-  {
-    work(const message_processor::protobuf_handlers_map& handlers) :
-        handlers(handlers),
-        submit(0), process_start(0), process_complete(0)
-    {
-      topic.reserve(20);
-      message.reserve(200);
-    }
-
-    void operator()()
-    {
-      process_start = now_micros();
-      handlers.process_raw_message(topic, message);
-      process_complete = now_micros();
-      timestamp_t schedule_delay = process_start - submit;
-      EXEC_DELAY += schedule_delay;
-      EXEC_COUNT++;
-    }
-
-    const message_processor::protobuf_handlers_map& handlers;
-    string topic, message;
-    timestamp_t submit;
-    timestamp_t process_start;
-    timestamp_t process_complete;
-
-    static size_t EXEC_COUNT;
-    static timestamp_t EXEC_DELAY;
-  };
-
 
   void run()
   {
@@ -124,29 +84,27 @@ class message_processor::implementation : NoCopyAndAssign
 
     LOG(INFO) << "Ready to handle messages.";
 
-    work work(handlers_);
+    string topic, message;
+    topic.reserve(20);
+    message.reserve(200);
 
-    while (true) {
+    bool run = true;
+    while (run) {
 
-      if (atp::zmq::receive(socket, &(work.topic)) &&
-          !atp::zmq::receive(socket, &(work.message))) {
-
-        if (handlers_.is_supported(work.topic)) {
-          work.submit = now_micros();
-
-          // There's a copy of the work object here...
-          executor_.Submit(work);
-        }
+      if (atp::zmq::receive(socket, &topic) &&
+          !atp::zmq::receive(socket, &message)) {
+        run = handlers_.process_raw_message(topic, message);
       } else {
-        LOG(INFO) << "Got instead " << work.topic << "@" << work.message;
+        LOG(INFO) << "Got instead " << topic << "@" << message;
       }
     }
+
+    LOG(INFO) << "Listening thread stopped.";
   }
 
   string endpoint_;
   const message_processor::protobuf_handlers_map& handlers_;
   ::zmq::context_t* context_;
-  executor executor_;
   bool own_context_;
   bool ready_;
   scoped_ptr<thread> listener_thread_;
@@ -154,14 +112,11 @@ class message_processor::implementation : NoCopyAndAssign
   condition_variable until_ready_;
 };
 
-timestamp_t message_processor::implementation::work::EXEC_DELAY = 0;
-size_t message_processor::implementation::work::EXEC_COUNT = 0;
 
 message_processor::message_processor(const string& endpoint,
                                      const protobuf_handlers_map& handlers,
-                                     size_t threads,
                                      ::zmq::context_t* context) :
-    impl_(new implementation(endpoint, handlers, context, threads))
+    impl_(new implementation(endpoint, handlers, context))
 {
 }
 
@@ -169,9 +124,9 @@ message_processor::~message_processor()
 {
 }
 
-timestamp_t message_processor::average_execution_delay()
+void message_processor::block()
 {
-  return impl_->average_execution_delay();
+  impl_->block();
 }
 
 } // platform

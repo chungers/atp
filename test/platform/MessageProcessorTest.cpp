@@ -24,7 +24,7 @@ const string PUB_ENDPOINT = "tcp://127.0.0.1:4444";
 /// Simple handler
 struct work_functor
 {
-  void operator()(const string& topic, const string& message)
+  bool operator()(const string& topic, const string& message)
   {
     timer now = now_micros();
     timer sent = boost::lexical_cast<timer>(message);
@@ -33,10 +33,22 @@ struct work_functor
     LOG(INFO) << "functor=" << id
               << ", count="<< count
               << ", topic=" << topic
+              << ", sent=" << sent
+              << ", now=" << now
               << ", dt=" << (now - sent);
+    return true;
   }
   string id;
   size_t count;
+};
+
+struct stop_functor
+{
+  bool operator()(const string& topic, const string& message)
+  {
+    LOG(INFO) << "STOP";
+    return false;
+  }
 };
 
 TEST(MessageProcessorTest, UsageSyntax)
@@ -44,6 +56,7 @@ TEST(MessageProcessorTest, UsageSyntax)
   // create and register handlers
 
   work_functor w1, w2;
+  stop_functor s;
 
   w1.id = "AAPL.STK", w1.count = 0;
   w2.id = "GOOG.STK", w2.count = 0;
@@ -51,9 +64,10 @@ TEST(MessageProcessorTest, UsageSyntax)
   message_processor::protobuf_handlers_map handlers;
   handlers.register_handler("AAPL.STK", w1);
   handlers.register_handler("GOOG.STK", w2);
+  handlers.register_handler("STOP", s);
 
   // create the message processor -- runs a new thread
-  message_processor subscriber(PUB_ENDPOINT, handlers, 30);
+  message_processor subscriber(PUB_ENDPOINT, handlers);
 
 
   // create the message publisher
@@ -69,20 +83,38 @@ TEST(MessageProcessorTest, UsageSyntax)
     FAIL();
   }
 
-  size_t count = 10000;
+  size_t count = 10;
+  int messages = 0;
+
+  timer start = now_micros();
+
+
   while (count--) {
-    string topic(count % 2 ? "AAPL.STK" : "GOOG.STK");
+    string topic(count % 2 ? "AAPL.STK" : "NFLX.STK");
     string message = boost::lexical_cast<string>(now_micros());
+
+    LOG(INFO) << count << " sending " << topic << "@" << message;
 
     atp::zmq::send_copy(socket, topic, true);
     atp::zmq::send_copy(socket, message, false);
 
-    LOG(INFO) << count << " sent " << topic << "@" << message;
+    sleep(1);
+    messages++;
   }
 
-  sleep(2); // need to let the executor run a bit so work actually gets done
+  // Stop
+  atp::zmq::send_copy(socket, "STOP", true);
+  atp::zmq::send_copy(socket, "STOP", false);
+  LOG(INFO) << "Sent stop";
 
-  LOG(INFO) << "avg = " << subscriber.average_execution_delay();
+  timer stop = now_micros();
+
+  LOG(INFO) << "count = " << messages << " in " << (stop - start)
+            << " usec, qps = " << (messages * 1000000 / (stop-start));
+
+  subscriber.block();
+
+  // sleep(5); // need to let the executor run a bit so work actually gets done
 
   // EXPECT_EQ(count/2, w1.count);
   // EXPECT_EQ(count/2, w2.count);
