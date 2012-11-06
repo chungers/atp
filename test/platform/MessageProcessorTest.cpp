@@ -143,7 +143,7 @@ TEST(MessageProcessorTest, UsageSyntax)
     atp::zmq::send_copy(socket, topic, true);
     atp::zmq::send_copy(socket, message, false);
 
-    usleep(20000);
+    usleep(10000);
     messages++;
   }
 
