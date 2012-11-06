@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <boost/bind.hpp>
+
 #include <zmq.hpp>
 
 #include <gtest/gtest.h>
@@ -42,6 +44,13 @@ struct work_functor
   size_t count;
 };
 
+bool nflx(const string& topic, const string& message, size_t* count)
+{
+  (*count)++;
+  LOG(INFO) << "nflx: " << topic << "," << message << ", count = " << *count;
+  return true;
+}
+
 struct stop_functor
 {
   bool operator()(const string& topic, const string& message)
@@ -50,6 +59,13 @@ struct stop_functor
     return false;
   }
 };
+
+bool stop_function(const string& topic, const string& message,
+                   const string& label)
+{
+  LOG(INFO) << "Stopping with " << label;
+  return false;
+}
 
 TEST(MessageProcessorTest, UsageSyntax)
 {
@@ -64,7 +80,14 @@ TEST(MessageProcessorTest, UsageSyntax)
   message_processor::protobuf_handlers_map handlers;
   handlers.register_handler("AAPL.STK", w1);
   handlers.register_handler("GOOG.STK", w2);
-  handlers.register_handler("STOP", s);
+
+  handlers.register_handler("STOP",
+                            boost::bind(&stop_function, _1, _2, "hello"));
+
+  // trivial state to be bound into the handler
+  size_t nflx_count = 0;
+  handlers.register_handler("NFLX.STK",
+                            boost::bind(&nflx, _1, _2, &nflx_count));
 
   // create the message processor -- runs a new thread
   message_processor subscriber(PUB_ENDPOINT, handlers);
@@ -83,7 +106,7 @@ TEST(MessageProcessorTest, UsageSyntax)
     FAIL();
   }
 
-  size_t count = 10;
+  size_t count = 250;
   int messages = 0;
 
   timer start = now_micros();
@@ -98,7 +121,7 @@ TEST(MessageProcessorTest, UsageSyntax)
     atp::zmq::send_copy(socket, topic, true);
     atp::zmq::send_copy(socket, message, false);
 
-    sleep(1);
+    usleep(20000);
     messages++;
   }
 
@@ -107,15 +130,8 @@ TEST(MessageProcessorTest, UsageSyntax)
   atp::zmq::send_copy(socket, "STOP", false);
   LOG(INFO) << "Sent stop";
 
-  timer stop = now_micros();
-
-  LOG(INFO) << "count = " << messages << " in " << (stop - start)
-            << " usec, qps = " << (messages * 1000000 / (stop-start));
+  LOG(INFO) << "nflx " << nflx_count;
+  EXPECT_GT(nflx_count, 0);
 
   subscriber.block();
-
-  // sleep(5); // need to let the executor run a bit so work actually gets done
-
-  // EXPECT_EQ(count/2, w1.count);
-  // EXPECT_EQ(count/2, w2.count);
 }
