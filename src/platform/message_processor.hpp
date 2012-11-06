@@ -50,6 +50,11 @@ class message_processor : NoCopyAndAssign
           std::pair<message_key_t, handler_t>(id, handler)).second;
     }
 
+    bool unregister_handler(const message_key_t& id)
+    {
+      return handlers_.erase(id) == 1;
+    }
+
     const message_keys_itr begin() const
     {
       return handlers_.begin();
@@ -81,7 +86,6 @@ class message_processor : NoCopyAndAssign
         return false;
       }
     }
-
 
    private:
 
