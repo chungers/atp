@@ -67,19 +67,35 @@ bool stop_function(const string& topic, const string& message,
   return false;
 }
 
+
+struct goog
+{
+  goog() : count(0) {}
+
+  bool process(const string& topic, const string& message)
+  {
+    count++;
+    LOG(INFO) << "goog:" << topic << "," << message << "," << count;
+    return true;
+  }
+
+  size_t count;
+};
+
 TEST(MessageProcessorTest, UsageSyntax)
 {
   // create and register handlers
 
-  work_functor w1, w2;
-  stop_functor s;
+  work_functor aapl;
+  aapl.id = "AAPL.STK", aapl.count = 0;
 
-  w1.id = "AAPL.STK", w1.count = 0;
-  w2.id = "GOOG.STK", w2.count = 0;
 
   message_processor::protobuf_handlers_map handlers;
-  handlers.register_handler("AAPL.STK", w1);
-  handlers.register_handler("GOOG.STK", w2);
+  handlers.register_handler("AAPL.STK", aapl);
+
+  goog g;
+  handlers.register_handler("GOOG.STK",
+                            boost::bind(&goog::process, &g, _1, _2));
 
   handlers.register_handler("STOP",
                             boost::bind(&stop_function, _1, _2, "hello"));
@@ -113,7 +129,13 @@ TEST(MessageProcessorTest, UsageSyntax)
 
 
   while (count--) {
-    string topic(count % 2 ? "AAPL.STK" : "NFLX.STK");
+
+    string topic;
+    switch (count % 3) {
+      case 0 : topic = "AAPL.STK"; break;
+      case 1 : topic = "NFLX.STK"; break;
+      case 2 : topic = "GOOG.STK"; break;
+    }
     string message = boost::lexical_cast<string>(now_micros());
 
     LOG(INFO) << count << " sending " << topic << "@" << message;
@@ -132,6 +154,7 @@ TEST(MessageProcessorTest, UsageSyntax)
 
   LOG(INFO) << "nflx " << nflx_count;
   EXPECT_GT(nflx_count, 0);
+  EXPECT_GT(g.count, 0);
 
   subscriber.block();
 }
