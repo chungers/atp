@@ -14,7 +14,7 @@ set(message_processor_incs
 )
 set(message_processor_srcs
   message_processor.cpp
-)
+ )
 set(message_processor_libs
  api_base
  historian_components

@@ -14,88 +14,24 @@
 
 #include "proto/common.pb.h"
 #include "proto/ib.pb.h"
-#include "platform/marketdata_handler.hpp"
+#include "platform/marketdata_handler_proto_impl.hpp"
 
 
 using std::string;
 
-using namespace atp::platform;
-using proto::common::Value;
+using namespace atp::platform::callback;
+using namespace atp::platform::marketdata;
+using atp::platform::types::timestamp_t;
 using proto::ib::MarketData;
+using proto::common::Value;
 
 
-namespace atp {
-namespace platform {
 
-namespace message {
-
-template <>
-inline bool parse(const string& raw, MarketData& m)
-{
-  return m.ParseFromString(raw);
-}
-
-template <>
-inline const timestamp_t get_timestamp<MarketData>(const MarketData& m)
-{
-  return m.timestamp();
-}
-
-template <>
-inline const string& get_event_code<MarketData, string>(const MarketData& m)
-{
-  return m.event();
-}
-
-template <>
-bool value_updater<MarketData, string>::operator()(const timestamp_t& ts,
-                                                   const string& event_code,
-                                                   const MarketData& event)
-{
-  bool processed = false;
-
-  switch (event.value().type()) {
-    case proto::common::Value::DOUBLE: {
-      double_updaters::iterator itr = double_updaters_.find(event_code);
-      if (itr != double_updaters_.end()) {
-        itr->second(ts, event.value().double_value());
-        processed = true;
-      }
-      break;
-    }
-
-    case proto::common::Value::INT: {
-      int_updaters::iterator itr = int_updaters_.find(event_code);
-      if (itr != int_updaters_.end()) {
-        itr->second(ts, event.value().int_value());
-        processed = true;
-      }
-      break;
-    }
-
-    case proto::common::Value::STRING: {
-      string_updaters::iterator itr = string_updaters_.find(event_code);
-      if (itr != string_updaters_.end()) {
-        itr->second(ts, event.value().string_value());
-        processed = true;
-      }
-      break;
-    }
-  }
-  return processed;
-}
-
-} // message
-} // platform
-} // atp
-
-
-bool aapl(const atp::platform::timestamp_t& ts, const double& v,
+void aapl(const timestamp_t& ts, const double& v,
           const string& event, int* count)
 {
   LOG(INFO) << "Got appl " << event << " " << " = [" << ts << ", " << v << "]";
   (*count)++;
-  return true;
 }
 
 TEST(MarketDataHandlerTest, UsageSyntax)

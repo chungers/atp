@@ -10,17 +10,19 @@
 #include <zmq.hpp>
 
 #include "common.hpp"
+#include "platform/types.hpp"
+
 
 using std::string;
 using boost::function;
 using boost::scoped_ptr;
 using boost::unordered_map;
 
+using atp::platform::types::timestamp_t;
+
 
 namespace atp {
 namespace platform {
-
-typedef boost::uint64_t timestamp_t;
 
 
 class message_processor : NoCopyAndAssign
