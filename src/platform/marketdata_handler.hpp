@@ -72,10 +72,10 @@ class value_updater
           return true; // dispatched.
 
         } catch (...) {
-          return false;
+          return false; // exception
         }
       }
-      return false;
+      return true;
     }
 
    private:
@@ -130,6 +130,12 @@ class marketdata_handler
 
  public:
 
+  bool operator()(const message_key_t& key,
+                  const serialized_data_t& msg)
+  {
+    return process_event(key, msg);
+  }
+
   /// processes the raw event in the form of the message key
   /// which is oftentimes the topic in a subscription, and
   /// some serialized form of data.
@@ -143,9 +149,14 @@ class marketdata_handler
       event_code_t event_code =
           get_event_code<EventClass, event_code_t>(event);
 
-      return updaters_(ts, event_code, event);
-
+      bool no_exception = updaters_(ts, event_code, event);
+      if (!no_exception) {
+        LOG(WARNING) << "Got exception while processing "
+                     << ts << "," << event_code;
+      }
+      return true; // continue
     } else {
+      LOG(WARNING) << "Cannot deserialize: " << key << ", msg = " << msg;
       return false;
     }
   }

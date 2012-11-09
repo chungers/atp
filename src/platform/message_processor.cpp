@@ -94,6 +94,7 @@ class message_processor::implementation : NoCopyAndAssign
       if (atp::zmq::receive(socket, &topic) &&
           !atp::zmq::receive(socket, &message)) {
         run = handlers_.process_raw_message(topic, message);
+
       } else {
         LOG(INFO) << "Got instead " << topic << "@" << message;
       }

@@ -83,6 +83,8 @@ class message_processor : NoCopyAndAssign
           return false;
         }
       } else {
+        LOG(INFO) << "Cannot resolve handler " << id;
+
         return false;
       }
     }

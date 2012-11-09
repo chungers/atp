@@ -1,107 +1,127 @@
 
-
 #include <string>
 
-#include <boost/function.hpp>
-#include <boost/unordered_map.hpp>
+#include <boost/bind.hpp>
+#include <boost/thread.hpp>
 
-#include <boost/circular_buffer.hpp>
-#include <boost/pool/object_pool.hpp>
-#include <boost/pool/pool_alloc.hpp>
-#include <boost/pool/singleton_pool.hpp>
+
+#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
 #include "utils.hpp"
-
-#include "test.pb.h"
-
-#include "common/executor.hpp"
-#include "common/factory.hpp"
 #include "zmq/ZmqUtils.hpp"
 
+#include "historian/time_utils.hpp"
+
+#include "platform/marketdata_handler_proto_impl.hpp"
+#include "platform/message_processor.hpp"
+
+#include "service/LogReader.hpp"
+#include "service/LogReaderVisitor.hpp"
+
+
+DEFINE_int32(scan_seconds, 60, "seconds to scan after market opens");
+
+
 using std::string;
-using ::zmq::context_t;
-using ::zmq::error_t;
-using ::zmq::socket_t;
-using atp::common::factory;
 
-template <typename Context>
-struct Handler
+using namespace boost::posix_time;
+using namespace atp::log_reader;
+using namespace atp::platform::callback;
+using namespace atp::platform::marketdata;
+using atp::platform::message_processor;
+using atp::platform::types::timestamp_t;
+using proto::ib::MarketData;
+
+
+static const string DATA_DIR = "test/sample_data/";
+static const string LOG_FILE = "firehose.li126-61.jenkins.log.INFO.20121004.gz";
+static const string PUB_ENDPOINT = "ipc://_logreader.ipc";
+
+
+void dispatch_events(::zmq::context_t* ctx, const time_duration& duration)
 {
-  typedef unsigned int status_t;
+  LogReader reader(DATA_DIR + LOG_FILE);
 
-  static const status_t CANNOT_PARSE    = 100;
-  static const status_t NOT_INITIALIZED = 101;
+  ::zmq::socket_t sock(*ctx, ZMQ_PUB);
+  string endpoint(PUB_ENDPOINT.c_str());
+  sock.bind(endpoint.c_str());
+  LOG(INFO) << "Logreader bound to " << PUB_ENDPOINT;
 
-  virtual status_t Execute(Context& context, const string& message) = 0;
-};
+  visitor::MarketDataDispatcher p1(&sock);
+  visitor::MarketDepthDispatcher p2(&sock);
 
-template <typename ProtoBufferMessage,
-          typename Context,
-          class Processor =
-          boost::function< unsigned int(const ProtoBufferMessage& message,
-                                        Context& context) > >
-class MessageHandler : Handler<Context>
+  LogReader::marketdata_visitor_t m1 = p1;
+  LogReader::marketdepth_visitor_t m2 = p2;
+
+  size_t processed = reader.Process(m1, m2, duration);
+  LOG(INFO) << "processed " << processed;
+
+  // Finally send stop
+  // Stop
+  atp::zmq::send_copy(sock, "STOP", true);
+  atp::zmq::send_copy(sock, "STOP", false);
+  LOG(INFO) << "Sent stop";
+
+  sock.close();
+}
+
+
+void aapl(const timestamp_t& ts, const double& v,
+          const string& event, int* count)
 {
- public:
+  ptime t = historian::as_ptime(ts);
+  LOG(INFO) << "Got appl " << event << " " << " = ["
+            << historian::to_est(t) << ", " << v << "]";
+  (*count)++;
+}
 
-  typedef unsigned int status_t;
 
-  MessageHandler(Processor processor) : processor_(processor) {}
-  virtual ~MessageHandler() {}
-
-  virtual status_t Execute(Context& context,
-                           const string& message)
-  {
-    message_.Clear();
-
-    if (message_.ParseFromString(message)) {
-      if (message_.IsInitialized()) {
-        return processor_(message_, context);
-      } else {
-        return Handler<Context>::NOT_INITIALIZED;
-      }
-    } else {
-      return Handler<Context>::CANNOT_PARSE;
-    }
-  }
-
- private:
-  ProtoBufferMessage message_;
-  Processor processor_;
-};
-
-/// Basic message listener that handles the message based on
-/// a topic followed by a protobuffer string
-template <typename Context>
-class MessageListener
+bool stop_function(const string& topic, const string& message,
+                   const string& label)
 {
- public:
+  LOG(INFO) << "Stopping with " << label;
+  return false;
+}
 
-  MessageListener(const string& endpoint, context_t* context,
-                  factory<Handler<Context> >& factory) :
-      endpoint_(endpoint),
-      context_(context),
-      factory_(factory)
-  {
-  }
 
- private:
-
-  string endpoint_;
-  context_t* context_;
-  factory< Handler<Context> >& factory_;
-};
-
-class Agent
+TEST(AgentPrototype, LoadDataFromLogfile)
 {
+  ::zmq::context_t ctx(1);
 
-};
+  // create the message_processor and the marketdata_handlers
+  marketdata_handler<MarketData> aapl_handler;
 
+  // states
+  int bid_count = 0, ask_count = 0;
+  atp::platform::callback::double_updater d1 =
+      boost::bind(&aapl, _1, _2, "BID", &bid_count);
 
+  atp::platform::callback::double_updater d2 =
+      boost::bind(&aapl, _1, _2, "ASK", &ask_count);
 
-TEST(AgentPrototype, Test1)
-{
+  aapl_handler.bind("BID", d1);
+  aapl_handler.bind("ASK", d2);
+
+  // now message_processor
+  message_processor::protobuf_handlers_map symbol_handlers;
+  symbol_handlers.register_handler(
+      "AAPL.STK", aapl_handler);
+  symbol_handlers.register_handler(
+      "STOP", boost::bind(&stop_function, _1, _2, "End of Log"));
+
+  message_processor agent(PUB_ENDPOINT, symbol_handlers);
+
+  LOG(INFO) << "Starting thread";
+  boost::thread th(boost::bind(&dispatch_events, &ctx,
+                               seconds(FLAGS_scan_seconds)));
+
+  sleep(5);
+  th.join();
+  agent.block();
+
+  EXPECT_GT(bid_count, 10); // at least... don't have exact count
+  EXPECT_GT(ask_count, 10); // at least... don't have exact count
 }
 

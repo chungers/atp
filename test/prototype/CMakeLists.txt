@@ -26,7 +26,6 @@ set(Prototypes_incs
 set(Prototypes_srcs
   ${TEST_DIR}/AllTests.cpp
   indicators_prototype.cpp
-  agent_prototype.cpp
 )
 set(Prototypes_libs
   api_base
@@ -43,7 +42,36 @@ set(Prototypes_libs
 cpp_gtest(Prototypes)
 
 
+# StrategyPrototype
+set(StrategyPrototype_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${TEST_DIR}
+)
+set(StrategyPrototype_srcs
+  ${TEST_DIR}/AllTests.cpp
+  agent_prototype.cpp
+)
+set(StrategyPrototype_libs
+  message_processor
+  log_reader
+  proto_components
+  zmq_components
+  boost_system
+  boost_iostreams
+  gflags
+  glog
+  test_protos
+  protobuf
+  ta_lib
+  bz2
+  z
+  )
+cpp_gtest(StrategyPrototype)
+
+
 add_custom_target(all_prototypes)
 add_dependencies(all_prototypes
   Prototypes
+  StrategyPrototype
 )
