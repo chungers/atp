@@ -21,6 +21,7 @@
 #include "service/LogReaderVisitor.hpp"
 
 
+DEFINE_int32(scan_minutes, 4, "minutes to scan after market opens");
 DEFINE_int32(scan_seconds, 60, "seconds to scan after market opens");
 
 
@@ -67,8 +68,8 @@ void dispatch_events(::zmq::context_t* ctx, const time_duration& duration)
   sock.close();
 }
 
-
-void aapl(const timestamp_t& ts, const double& v,
+template <typename V>
+void aapl(const timestamp_t& ts, const V& v,
           const string& event, int* count)
 {
   ptime t = historian::as_ptime(ts);
@@ -94,15 +95,36 @@ TEST(AgentPrototype, LoadDataFromLogfile)
   marketdata_handler<MarketData> aapl_handler;
 
   // states
-  int bid_count = 0, ask_count = 0;
-  atp::platform::callback::double_updater d1 =
-      boost::bind(&aapl, _1, _2, "BID", &bid_count);
+  int bid_count = 0, ask_count = 0, last_trade_count, last_size_count = 0;
+  // atp::platform::callback::double_updater d1 =
+  //     boost::bind(&aapl<double>, _1, _2, "BID", &bid_count);
 
-  atp::platform::callback::double_updater d2 =
-      boost::bind(&aapl, _1, _2, "ASK", &ask_count);
+  // atp::platform::callback::double_updater d2 =
+  //     boost::bind(&aapl<double>, _1, _2, "ASK", &ask_count);
+
+  // atp::platform::callback::double_updater d3 =
+  //     boost::bind(&aapl<double>, _1, _2, "LAST", &last_trade_count);
+
+  // atp::platform::callback::int_updater d4 =
+  //     boost::bind(&aapl<int>, _1, _2, "LAST_SIZE", &last_size_count);
+
+  atp::platform::callback::update_event<double>::func d1 =
+       boost::bind(&aapl<double>, _1, _2, "BID", &bid_count);
+
+  atp::platform::callback::update_event<double>::func d2 =
+      boost::bind(&aapl<double>, _1, _2, "ASK", &ask_count);
+
+  atp::platform::callback::update_event<double>::func d3 =
+      boost::bind(&aapl<double>, _1, _2, "LAST", &last_trade_count);
+
+  atp::platform::callback::update_event<int>::func d4 =
+      boost::bind(&aapl<int>, _1, _2, "LAST_SIZE", &last_size_count);
+
 
   aapl_handler.bind("BID", d1);
   aapl_handler.bind("ASK", d2);
+  aapl_handler.bind("LAST", d3);
+  aapl_handler.bind("LAST_SIZE", d4);
 
   // now message_processor
   message_processor::protobuf_handlers_map symbol_handlers;
@@ -114,8 +136,9 @@ TEST(AgentPrototype, LoadDataFromLogfile)
   message_processor agent(PUB_ENDPOINT, symbol_handlers);
 
   LOG(INFO) << "Starting thread";
-  boost::thread th(boost::bind(&dispatch_events, &ctx,
-                               seconds(FLAGS_scan_seconds)));
+  boost::thread th(boost::bind(
+      &dispatch_events, &ctx,
+      minutes(FLAGS_scan_minutes) + seconds(FLAGS_scan_seconds)));
 
   sleep(5);
   th.join();

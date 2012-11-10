@@ -84,20 +84,24 @@ class value_updater
     dispatch_map dispatch_map_;
   };
 
-  void bind(const event_code_t& event, callback::double_updater updater)
+  inline void bind(const event_code_t& event,
+                    callback::update_event<double>::func updater)
   {
     double_dispatcher_.bind(event, updater);
   }
 
-  void bind(const event_code_t& event, callback::int_updater updater)
+  inline void bind(const event_code_t& event,
+                    callback::update_event<int>::func updater)
   {
     int_dispatcher_.bind(event, updater);
   }
 
-  void bind(const event_code_t& event, callback::string_updater updater)
+  inline void bind(const event_code_t& event,
+                    callback::update_event<string>::func updater)
   {
     string_dispatcher_.bind(event, updater);
   }
+
 
   /// actual operator called that performs the dispatch.
   /// There are template specializations for support for protobuffer
@@ -161,17 +165,21 @@ class marketdata_handler
     }
   }
 
-  inline void bind(const event_code_t& event, callback::int_updater updater)
+
+  inline void bind(const event_code_t& event,
+                    callback::update_event<double>::func updater)
   {
     updaters_.bind(event, updater);
   }
 
-  inline void bind(const event_code_t& event, callback::double_updater updater)
+  inline void bind(const event_code_t& event,
+                    callback::update_event<int>::func updater)
   {
     updaters_.bind(event, updater);
   }
 
-  inline void bind(const event_code_t& event, callback::string_updater updater)
+  inline void bind(const event_code_t& event,
+                    callback::update_event<string>::func updater)
   {
     updaters_.bind(event, updater);
   }

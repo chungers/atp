@@ -12,9 +12,11 @@ namespace atp {
 namespace platform {
 namespace callback {
 
-typedef function<void(const timestamp_t&, const double&) > double_updater;
-typedef function<void(const timestamp_t&, const int&) > int_updater;
-typedef function<void(const timestamp_t&, const string&) > string_updater;
+template <typename V>
+struct update_event
+{
+  typedef function<void(const timestamp_t&, const V&) > func;
+};
 
 } // callback
 } // platform
