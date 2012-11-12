@@ -35,6 +35,7 @@ set(log_reader_incs
 )
 set(log_reader_srcs
   LogReader.cpp
+  LogReaderZmq.cpp
 )
 set(log_reader_libs
  api_base

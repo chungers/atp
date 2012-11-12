@@ -20,6 +20,7 @@
 
 #include "service/LogReader.hpp"
 #include "service/LogReaderVisitor.hpp"
+#include "service/LogReaderZmq.hpp"
 
 
 DEFINE_int32(scan_minutes, 4, "minutes to scan after market opens");
@@ -42,33 +43,6 @@ static const string LOG_FILE = "firehose.li126-61.jenkins.log.INFO.20121004.gz";
 static const string PUB_ENDPOINT = "ipc://_logreader.ipc";
 
 
-void dispatch_events(::zmq::context_t* ctx, const time_duration& duration)
-{
-  LogReader reader(DATA_DIR + LOG_FILE);
-
-  ::zmq::socket_t sock(*ctx, ZMQ_PUB);
-  string endpoint(PUB_ENDPOINT.c_str());
-  sock.bind(endpoint.c_str());
-  LOG(INFO) << "Logreader bound to " << PUB_ENDPOINT;
-
-  visitor::MarketDataDispatcher p1(&sock);
-  visitor::MarketDepthDispatcher p2(&sock);
-
-  LogReader::marketdata_visitor_t m1 = p1;
-  LogReader::marketdepth_visitor_t m2 = p2;
-
-  size_t processed = reader.Process(m1, m2, duration);
-  LOG(INFO) << "processed " << processed;
-
-  // Finally send stop
-  // Stop
-  atp::zmq::send_copy(sock, "STOP", true);
-  atp::zmq::send_copy(sock, "STOP", false);
-  LOG(INFO) << "Sent stop";
-
-  sock.close();
-}
-
 template <typename V>
 void aapl(const timestamp_t& ts, const V& v,
           const string& event, int* count)
@@ -90,8 +64,6 @@ bool stop_function(const string& topic, const string& message,
 
 TEST(AgentPrototype, LoadDataFromLogfile)
 {
-  ::zmq::context_t ctx(1);
-
   // create the message_processor and the marketdata_handlers
   marketdata_handler<MarketData> aapl_handler;
 
@@ -121,15 +93,21 @@ TEST(AgentPrototype, LoadDataFromLogfile)
   symbol_handlers.register_handler(
       "AAPL.STK", aapl_handler);
   symbol_handlers.register_handler(
-      "STOP", boost::bind(&stop_function, _1, _2, "End of Log"));
+      atp::log_reader::DATA_END,
+      boost::bind(&stop_function, _1, _2, "End of Log"));
 
   message_processor agent(PUB_ENDPOINT, symbol_handlers);
 
   LOG(INFO) << "Starting thread";
-  boost::thread th(boost::bind(&dispatch_events, &ctx, seconds(5)));
+  LogReader reader(DATA_DIR + LOG_FILE);
+  boost::thread* th = atp::log_reader::DispatchEventsInThread(
+      reader,
+      PUB_ENDPOINT,
+      seconds(5));
 
-  th.join();
+  th->join();
   agent.block();
+  delete th;
 
   EXPECT_GT(bid_count, 1); // at least... don't have exact count
   EXPECT_GT(ask_count, 1); // at least... don't have exact count
@@ -267,8 +245,6 @@ class order_flow_tracker
 
 TEST(AgentPrototype, OrderFlowTracking)
 {
-  ::zmq::context_t ctx(1);
-
   // algo
   order_flow_tracker tracker("AAPL.STK");
 
@@ -277,15 +253,20 @@ TEST(AgentPrototype, OrderFlowTracking)
   symbol_handlers.register_handler(tracker.get_symbol(),
                                    tracker.get_handler());
   symbol_handlers.register_handler(
-      "STOP", boost::bind(&stop_function, _1, _2, "End of Log"));
+      atp::log_reader::DATA_END,
+      boost::bind(&stop_function, _1, _2, "End of Log"));
 
   message_processor agent(PUB_ENDPOINT, symbol_handlers);
 
   LOG(INFO) << "Starting thread";
-  boost::thread th(boost::bind(
-      &dispatch_events, &ctx,
-      minutes(FLAGS_scan_minutes) + seconds(FLAGS_scan_seconds)));
+  LogReader reader(DATA_DIR + LOG_FILE);
+  boost::thread* th = atp::log_reader::DispatchEventsInThread(
+      reader,
+      PUB_ENDPOINT,
+      minutes(FLAGS_scan_minutes) + seconds(5));
 
-  th.join();
+  th->join();
   agent.block();
+
+  delete th;
 }
