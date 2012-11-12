@@ -131,33 +131,58 @@ TEST(AgentPrototype, LoadDataFromLogfile)
   th.join();
   agent.block();
 
-  EXPECT_GT(bid_count, 10); // at least... don't have exact count
-  EXPECT_GT(ask_count, 10); // at least... don't have exact count
+  EXPECT_GT(bid_count, 1); // at least... don't have exact count
+  EXPECT_GT(ask_count, 1); // at least... don't have exact count
 }
 
-class last_trade_scoring
+/// http://epchan.blogspot.com/2012/10/order-flow-as-predictor-of-return.html
+class order_flow_tracker
 {
  public:
-  last_trade_scoring(const string& symbol) :
-      symbol(symbol), bid(0.), ask(0.), last(0.), last_size(0), score(0)
+  order_flow_tracker(const string& symbol) :
+      symbol(symbol), bid(0.), ask(0.), last(0.),
+      bid_size(0), ask_size(0), last_size(0),
+      score(0),
+      incremental_order_flow(0)
   {
     using namespace atp::platform::callback;
 
-    update_event<double>::func d1 =
-      boost::bind(&last_trade_scoring::update_bid, this, _1, _2);
-    handler.bind("BID", d1);
+    {
+      update_event<double>::func f =
+          boost::bind(&order_flow_tracker::update_bid, this, _1, _2);
+      handler.bind("BID", f);
+    }
 
-    update_event<double>::func d2 =
-      boost::bind(&last_trade_scoring::update_ask, this, _1, _2);
-    handler.bind("ASK", d2);
+    {
+      update_event<double>::func f =
+          boost::bind(&order_flow_tracker::update_ask, this, _1, _2);
+      handler.bind("ASK", f);
+    }
 
-    update_event<double>::func d3 =
-      boost::bind(&last_trade_scoring::update_last, this, _1, _2);
-    handler.bind("LAST", d3);
+    {
+      update_event<double>::func f =
+          boost::bind(&order_flow_tracker::update_last, this, _1, _2);
+      handler.bind("LAST", f);
+    }
 
-    update_event<int>::func d4 =
-      boost::bind(&last_trade_scoring::update_last_size, this, _1, _2);
-    handler.bind("LAST_SIZE", d4);
+    {
+      update_event<int>::func f =
+          boost::bind(&order_flow_tracker::update_last_size, this, _1, _2);
+      handler.bind("LAST_SIZE", f);
+    }
+
+    {
+      update_event<int>::func f =
+          boost::bind(&order_flow_tracker::update_bid_size, this, _1, _2);
+      handler.bind("BID_SIZE", f);
+    }
+
+    {
+      update_event<int>::func f =
+          boost::bind(&order_flow_tracker::update_ask_size, this, _1, _2);
+      handler.bind("ASK_SIZE", f);
+    }
+
   }
 
   const string& get_symbol() const
@@ -180,6 +205,16 @@ class last_trade_scoring
     ask = v;
   }
 
+  void update_bid_size(const timestamp_t& t, const int& v)
+  {
+    bid_size = v;
+  }
+
+  void update_ask_size(const timestamp_t& t, const int& v)
+  {
+    ask_size = v;
+  }
+
   void update_last(const timestamp_t& t, const double& v)
   {
     last = v;
@@ -187,18 +222,14 @@ class last_trade_scoring
 
   void update_last_size(const timestamp_t& t, const int& v)
   {
-
     ptime ts = historian::as_ptime(t);
 
-    LOG(INFO) << "last size " << historian::to_est(ts) << "," << v;
-
     if (ts - last_size_pt < seconds(1)) {
-      LOG(WARNING)
-          << "duplicate last size = "
-          << historian::to_est(last_size_pt) << ","
-          << historian::to_est(ts) << ","
-          << v;
-
+      // LOG(WARNING)
+      //     << "duplicate last size = "
+      //     << historian::to_est(last_size_pt) << ","
+      //     << historian::to_est(ts) << ","
+      //     << v;
       return; // ignore -- duplicate data
     }
 
@@ -208,17 +239,27 @@ class last_trade_scoring
     double from_ask = abs(ask - last);
     double from_bid = abs(last - bid);
     if (last == ask) {
-      score += last_size;
+      incremental_order_flow = last_size;
+      score += incremental_order_flow;
     } else if (last == bid) {
-      score -= last_size;
+      incremental_order_flow = -last_size;
+      score += incremental_order_flow;
+    } else {
+      incremental_order_flow = 0;
     }
+    LOG(INFO) << "score = " << score
+              << ",inc_flow = " << incremental_order_flow
+              << ",bid = " << bid << "@" << bid_size
+              << ",ask = " << ask << "@" << ask_size
+              << ",last = " << last;
   }
 
  private:
   string symbol;
   double bid, ask, last;
-  int last_size;
+  int bid_size, ask_size, last_size;
   int score;
+  int incremental_order_flow;
   ptime last_size_pt;
 
   marketdata_handler<MarketData> handler;
@@ -229,12 +270,14 @@ TEST(AgentPrototype, LastTradeScoring)
   ::zmq::context_t ctx(1);
 
   // algo
-  last_trade_scoring scorer("AAPL.STK");
+  order_flow_tracker tracker("AAPL.STK");
 
   // now message_processor
   message_processor::protobuf_handlers_map symbol_handlers;
-  symbol_handlers.register_handler(scorer.get_symbol(),
-                                   scorer.get_handler());
+  symbol_handlers.register_handler(tracker.get_symbol(),
+                                   tracker.get_handler());
+  symbol_handlers.register_handler(
+      "STOP", boost::bind(&stop_function, _1, _2, "End of Log"));
 
   message_processor agent(PUB_ENDPOINT, symbol_handlers);
 
