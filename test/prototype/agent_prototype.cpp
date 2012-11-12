@@ -1,5 +1,6 @@
 
 #include <string>
+#include <math.h>
 
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
@@ -96,17 +97,6 @@ TEST(AgentPrototype, LoadDataFromLogfile)
 
   // states
   int bid_count = 0, ask_count = 0, last_trade_count, last_size_count = 0;
-  // atp::platform::callback::double_updater d1 =
-  //     boost::bind(&aapl<double>, _1, _2, "BID", &bid_count);
-
-  // atp::platform::callback::double_updater d2 =
-  //     boost::bind(&aapl<double>, _1, _2, "ASK", &ask_count);
-
-  // atp::platform::callback::double_updater d3 =
-  //     boost::bind(&aapl<double>, _1, _2, "LAST", &last_trade_count);
-
-  // atp::platform::callback::int_updater d4 =
-  //     boost::bind(&aapl<int>, _1, _2, "LAST_SIZE", &last_size_count);
 
   atp::platform::callback::update_event<double>::func d1 =
        boost::bind(&aapl<double>, _1, _2, "BID", &bid_count);
@@ -136,11 +126,8 @@ TEST(AgentPrototype, LoadDataFromLogfile)
   message_processor agent(PUB_ENDPOINT, symbol_handlers);
 
   LOG(INFO) << "Starting thread";
-  boost::thread th(boost::bind(
-      &dispatch_events, &ctx,
-      minutes(FLAGS_scan_minutes) + seconds(FLAGS_scan_seconds)));
+  boost::thread th(boost::bind(&dispatch_events, &ctx, seconds(5)));
 
-  sleep(5);
   th.join();
   agent.block();
 
@@ -148,3 +135,114 @@ TEST(AgentPrototype, LoadDataFromLogfile)
   EXPECT_GT(ask_count, 10); // at least... don't have exact count
 }
 
+class last_trade_scoring
+{
+ public:
+  last_trade_scoring(const string& symbol) :
+      symbol(symbol), bid(0.), ask(0.), last(0.), last_size(0), score(0)
+  {
+    using namespace atp::platform::callback;
+
+    update_event<double>::func d1 =
+      boost::bind(&last_trade_scoring::update_bid, this, _1, _2);
+    handler.bind("BID", d1);
+
+    update_event<double>::func d2 =
+      boost::bind(&last_trade_scoring::update_ask, this, _1, _2);
+    handler.bind("ASK", d2);
+
+    update_event<double>::func d3 =
+      boost::bind(&last_trade_scoring::update_last, this, _1, _2);
+    handler.bind("LAST", d3);
+
+    update_event<int>::func d4 =
+      boost::bind(&last_trade_scoring::update_last_size, this, _1, _2);
+    handler.bind("LAST_SIZE", d4);
+  }
+
+  const string& get_symbol() const
+  {
+    return symbol;
+  }
+
+  marketdata_handler<MarketData>& get_handler()
+  {
+    return handler;
+  }
+
+  void update_bid(const timestamp_t& t, const double& v)
+  {
+    bid = v;
+  }
+
+  void update_ask(const timestamp_t& t, const double& v)
+  {
+    ask = v;
+  }
+
+  void update_last(const timestamp_t& t, const double& v)
+  {
+    last = v;
+  }
+
+  void update_last_size(const timestamp_t& t, const int& v)
+  {
+
+    ptime ts = historian::as_ptime(t);
+
+    LOG(INFO) << "last size " << historian::to_est(ts) << "," << v;
+
+    if (ts - last_size_pt < seconds(1)) {
+      LOG(WARNING)
+          << "duplicate last size = "
+          << historian::to_est(last_size_pt) << ","
+          << historian::to_est(ts) << ","
+          << v;
+
+      return; // ignore -- duplicate data
+    }
+
+    last_size_pt = ts;
+    last_size = v;
+
+    double from_ask = abs(ask - last);
+    double from_bid = abs(last - bid);
+    if (last == ask) {
+      score += last_size;
+    } else if (last == bid) {
+      score -= last_size;
+    }
+  }
+
+ private:
+  string symbol;
+  double bid, ask, last;
+  int last_size;
+  int score;
+  ptime last_size_pt;
+
+  marketdata_handler<MarketData> handler;
+};
+
+TEST(AgentPrototype, LastTradeScoring)
+{
+  ::zmq::context_t ctx(1);
+
+  // algo
+  last_trade_scoring scorer("AAPL.STK");
+
+  // now message_processor
+  message_processor::protobuf_handlers_map symbol_handlers;
+  symbol_handlers.register_handler(scorer.get_symbol(),
+                                   scorer.get_handler());
+
+  message_processor agent(PUB_ENDPOINT, symbol_handlers);
+
+  LOG(INFO) << "Starting thread";
+  boost::thread th(boost::bind(
+      &dispatch_events, &ctx,
+      minutes(FLAGS_scan_minutes) + seconds(FLAGS_scan_seconds)));
+
+  th.join();
+  agent.block();
+}
