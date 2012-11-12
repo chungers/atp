@@ -96,9 +96,21 @@ class moving_window
     }
   }
 
-  const element_t& operator[](size_t index) const
+  /// Support for negative indexing as python
+  /// -1 means the current value, -2 last element in buffer, ...
+  const element_t operator[](int index) const
   {
-    return buffer_[index];
+    if (index >= 0) {
+      return buffer_[index];
+    } else {
+      element_t val = current_value_;
+      int start = index + 1;
+      for (reverse_itr itr = buffer_.rbegin();
+           start < 0; ++itr, ++start) {
+        val = *itr;
+      }
+      return val;
+    }
   }
 
   const long sample_microseconds() const
@@ -114,6 +126,11 @@ class moving_window
   const size_t samples_buffered() const
   {
     return buffer_.size();
+  }
+
+  const size_t size() const
+  {
+    return buffer_.size() + 1; // plus current unpushed value.
   }
 
   template <typename buffer_t>
@@ -171,6 +188,7 @@ class moving_window
  private:
 
   size_t samples_;
+
   sample_interval_t interval_;
   history_t buffer_;
 

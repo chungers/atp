@@ -36,7 +36,7 @@ TEST(TimeSeriesTest, MovingWindowPolicyTest)
   EXPECT_EQ( 9990, p.get_time(10010, 2));
 }
 
-TEST(TimeSeriesTest, MovingWindowTest1)
+TEST(TimeSeriesTest, MovingWindowUsage)
 {
   moving_window< double, last_trade<double> > last_trade(
       microseconds(1000), microseconds(10), 0.);
@@ -70,10 +70,31 @@ TEST(TimeSeriesTest, MovingWindowTest1)
 
   EXPECT_EQ(p.size(), copied);
 
-  for (unsigned int i = 0; i < p.size(); ++i) {
+  for (int i = 0; i < p.size(); ++i) {
     LOG(INFO) << "(" << tbuff[i] << ", " << buff[i] << ")";
     EXPECT_EQ(p[i], buff[i]);
     EXPECT_EQ(t + 10000 + i * 10, tbuff[i]);
   }
+
+  EXPECT_EQ(20., last_trade[-1]);
+  EXPECT_EQ(26., last_trade[-2]);
+  EXPECT_EQ(26., last_trade[-3]);
+
+  last_trade.on(t + 10155, 27.); // 26, 26, 26, 26, 20, 27
+  EXPECT_EQ(27., last_trade[-1]);
+  EXPECT_EQ(20., last_trade[-2]);
+  EXPECT_EQ(26., last_trade[-3]);
+
+  last_trade.on(t + 10158, 29.); // 26, 26, 26, 26, 20, 29
+  EXPECT_EQ(29., last_trade[-1]);
+  EXPECT_EQ(20., last_trade[-2]);
+  EXPECT_EQ(26., last_trade[-3]);
+
+  last_trade.on(t + 10161, 31.); // 26, 26, 26, 26, 20, 29, 31
+  EXPECT_EQ(31., last_trade[-1]);
+  EXPECT_EQ(29., last_trade[-2]);
+  EXPECT_EQ(20., last_trade[-3]);
+  EXPECT_EQ(26., last_trade[-4]);
+
 }
 

@@ -265,7 +265,7 @@ class order_flow_tracker
   marketdata_handler<MarketData> handler;
 };
 
-TEST(AgentPrototype, LastTradeScoring)
+TEST(AgentPrototype, OrderFlowTracking)
 {
   ::zmq::context_t ctx(1);
 
