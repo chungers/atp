@@ -45,17 +45,6 @@ static const string LOG_FILE = "firehose.li126-61.jenkins.log.INFO.20121004.gz";
 static const string PUB_ENDPOINT = "ipc://_logreader.ipc";
 
 
-template <typename V>
-void aapl(const timestamp_t& ts, const V& v,
-          const string& event, int* count)
-{
-  ptime t = historian::as_ptime(ts);
-  LOG(INFO) << "Got appl " << event << " " << " = ["
-            << historian::to_est(t) << ", " << v << "]";
-  (*count)++;
-}
-
-
 bool stop_function(const string& topic, const string& message,
                    const string& label)
 {
@@ -63,57 +52,6 @@ bool stop_function(const string& topic, const string& message,
   return false;
 }
 
-
-TEST(AgentPrototype, LoadDataFromLogfile)
-{
-  // create the message_processor and the marketdata_handlers
-  marketdata_handler<MarketData> aapl_handler;
-
-  // states
-  int bid_count = 0, ask_count = 0, last_trade_count, last_size_count = 0;
-
-  atp::platform::callback::update_event<double>::func d1 =
-       boost::bind(&aapl<double>, _1, _2, "BID", &bid_count);
-
-  atp::platform::callback::update_event<double>::func d2 =
-      boost::bind(&aapl<double>, _1, _2, "ASK", &ask_count);
-
-  atp::platform::callback::update_event<double>::func d3 =
-      boost::bind(&aapl<double>, _1, _2, "LAST", &last_trade_count);
-
-  atp::platform::callback::update_event<int>::func d4 =
-      boost::bind(&aapl<int>, _1, _2, "LAST_SIZE", &last_size_count);
-
-
-  aapl_handler.bind("BID", d1);
-  aapl_handler.bind("ASK", d2);
-  aapl_handler.bind("LAST", d3);
-  aapl_handler.bind("LAST_SIZE", d4);
-
-  // now message_processor
-  message_processor::protobuf_handlers_map symbol_handlers;
-  symbol_handlers.register_handler(
-      "AAPL.STK", aapl_handler);
-  symbol_handlers.register_handler(
-      atp::log_reader::DATA_END,
-      boost::bind(&stop_function, _1, _2, "End of Log"));
-
-  message_processor agent(PUB_ENDPOINT, symbol_handlers);
-
-  LOG(INFO) << "Starting thread";
-  LogReader reader(DATA_DIR + LOG_FILE);
-  boost::thread* th = atp::log_reader::DispatchEventsInThread(
-      reader,
-      PUB_ENDPOINT,
-      seconds(5));
-
-  th->join();
-  agent.block();
-  delete th;
-
-  EXPECT_GT(bid_count, 1); // at least... don't have exact count
-  EXPECT_GT(ask_count, 1); // at least... don't have exact count
-}
 
 /// http://epchan.blogspot.com/2012/10/order-flow-as-predictor-of-return.html
 class order_flow_tracker
@@ -273,5 +211,139 @@ TEST(AgentPrototype, OrderFlowTracking)
   delete th;
 }
 
+
+
+template <typename V>
+void aapl(const timestamp_t& ts, const V& v,
+          const string& event, int* count)
+{
+  ptime t = historian::as_ptime(ts);
+  LOG(INFO) << "Got appl " << event << " " << " = ["
+            << historian::to_est(t) << ", " << v
+            << ", ts=" << ts
+            << "]";
+  (*count)++;
+}
+
+TEST(AgentPrototype, LoadDataFromLogfile)
+{
+  // create the message_processor and the marketdata_handlers
+  marketdata_handler<MarketData> aapl_handler;
+
+  // states
+  int bid_count = 0, ask_count = 0, last_trade_count, last_size_count = 0;
+
+  atp::platform::callback::update_event<double>::func d1 =
+       boost::bind(&aapl<double>, _1, _2, "BID", &bid_count);
+
+  atp::platform::callback::update_event<double>::func d2 =
+      boost::bind(&aapl<double>, _1, _2, "ASK", &ask_count);
+
+  atp::platform::callback::update_event<double>::func d3 =
+      boost::bind(&aapl<double>, _1, _2, "LAST", &last_trade_count);
+
+  atp::platform::callback::update_event<int>::func d4 =
+      boost::bind(&aapl<int>, _1, _2, "LAST_SIZE", &last_size_count);
+
+
+  aapl_handler.bind("BID", d1);
+  aapl_handler.bind("ASK", d2);
+  aapl_handler.bind("LAST", d3);
+  aapl_handler.bind("LAST_SIZE", d4);
+
+  // now message_processor
+  message_processor::protobuf_handlers_map symbol_handlers;
+  symbol_handlers.register_handler(
+      "AAPL.STK", aapl_handler);
+  symbol_handlers.register_handler(
+      atp::log_reader::DATA_END,
+      boost::bind(&stop_function, _1, _2, "End of Log"));
+
+  message_processor agent(PUB_ENDPOINT, symbol_handlers);
+
+  LOG(INFO) << "Starting thread";
+  LogReader reader(DATA_DIR + LOG_FILE);
+  boost::thread* th = atp::log_reader::DispatchEventsInThread(
+      reader,
+      PUB_ENDPOINT,
+      seconds(30));
+
+  th->join();
+  agent.block();
+  delete th;
+
+  EXPECT_GT(bid_count, 1); // at least... don't have exact count
+  EXPECT_GT(ask_count, 1); // at least... don't have exact count
+}
+
+TEST(AgentPrototype, MovingWindowUsage)
+{
+  using namespace atp::time_series;
+  using namespace atp::platform::marketdata;
+
+  int scan_seconds = 10;
+  typedef moving_window< double, sampler<double>::latest > mw_latest_double;
+
+  marketdata_handler<MarketData> feed_handler;
+
+  mw_latest_double last_trade(seconds(scan_seconds), seconds(1), 0.);
+
+  atp::platform::callback::update_event<double>::func d1 =
+      boost::bind(&mw_latest_double::on, &last_trade, _1, _2);
+
+  feed_handler.bind("LAST", d1);
+
+  message_processor::protobuf_handlers_map symbol_handlers;
+  symbol_handlers.register_handler("AAPL.STK", feed_handler);
+
+  symbol_handlers.register_handler(
+      atp::log_reader::DATA_END,
+      boost::bind(&stop_function, _1, _2, "End of Log"));
+  message_processor agent(PUB_ENDPOINT, symbol_handlers);
+
+
+  // second one....
+  marketdata_handler<MarketData> aapl_handler;
+  int last_trade_count = 0;
+  atp::platform::callback::update_event<double>::func dd =
+      boost::bind(&aapl<double>, _1, _2, "LAST", &last_trade_count);
+  aapl_handler.bind("LAST", dd);
+  message_processor::protobuf_handlers_map symbol_handlers2;
+  symbol_handlers2.register_handler(
+      "AAPL.STK", aapl_handler);
+  symbol_handlers2.register_handler(
+      atp::log_reader::DATA_END,
+      boost::bind(&stop_function, _1, _2, "End of Log"));
+  message_processor agent2(PUB_ENDPOINT, symbol_handlers2);
+
+
+
+  LOG(INFO) << "Starting thread";
+  LogReader reader(DATA_DIR + LOG_FILE);
+  boost::thread* th = atp::log_reader::DispatchEventsInThread(
+      reader,
+      PUB_ENDPOINT,
+      seconds(scan_seconds + 10));
+
+  th->join();
+  agent.block();
+  delete th;
+
+  LOG(INFO) << "total samples = " << last_trade.size();
+
+  EXPECT_GT(last_trade.size(), 1);
+
+  // dump the data out...
+  microsecond_t ts[last_trade.size()];
+  double last[last_trade.size()];
+
+  EXPECT_EQ(last_trade.size(),
+            last_trade.copy_last(ts, last, last_trade.size()));
+
+  for (int i = 0; i < last_trade.size(); ++i) {
+    ptime tt = historian::as_ptime(ts[i]);
+    LOG(INFO) << historian::to_est(tt) << "," << last[i];
+  }
+}
 
 

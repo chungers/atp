@@ -9,6 +9,7 @@
 
 #include "utils.hpp"
 #include "common/moving_window.hpp"
+#include "historian/time_utils.hpp"
 
 using namespace boost::assign;
 using namespace boost::posix_time;
@@ -79,6 +80,26 @@ TEST(TimeSeriesTest, MovingWindowPolicyTest)
   EXPECT_EQ(10010, p.get_time(10010, 0));
   EXPECT_EQ(10000, p.get_time(10010, 1));
   EXPECT_EQ( 9990, p.get_time(10010, 2));
+
+  sample_interval_policy::align_at_zero p2(1000000);
+  {
+    microsecond_t t1 = 1349357412826693;
+    microsecond_t t2 = 1349357414055175;
+    int w = p2.count_windows(t1, t2);
+    LOG(INFO) << "windows = " << w << ", diff = " << (t2 - t1) << ", "
+              << historian::to_est(historian::as_ptime(t1)) << ", "
+              << historian::to_est(historian::as_ptime(t2));
+    EXPECT_EQ(w, 2);
+  }
+  {
+    microsecond_t t1 = 1349357414361850;
+    microsecond_t t2 = 1349357415095778;
+    int w = p2.count_windows(t1, t2);
+    LOG(INFO) << "windows = " << w << ", diff = " << (t2 - t1) << ", "
+              << historian::to_est(historian::as_ptime(t1)) << ", "
+              << historian::to_est(historian::as_ptime(t2));
+    EXPECT_EQ(w, 1);
+  }
 }
 
 TEST(TimeSeriesTest, SampleOpenTest)
