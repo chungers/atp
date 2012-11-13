@@ -18,6 +18,63 @@ typedef boost::uint64_t microsecond_t;
 typedef boost::posix_time::time_duration sample_interval_t;
 
 
+template <typename element_t>
+struct sampler {
+
+struct latest
+{
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    return now;
+  }
+};
+
+struct max
+{
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    return (new_period) ? now : std::max(last, now);
+  }
+};
+
+struct min
+{
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    return (new_period) ? now : std::min(last, now);
+  }
+};
+
+class open
+{
+ public:
+
+  open() : init_(false) {}
+
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    if (new_period) { open_ = now; init_ = true; }
+    if (!init_) { open_ = now; init_ = true; }
+    return open_;
+  }
+
+ private:
+  element_t open_;
+  bool init_;
+};
+
+struct close
+{
+  element_t operator()(element_t last, element_t now, bool new_period)
+  {
+    if (new_period) return last;
+    else return now;
+  }
+};
+
+}; // sampler
+
+
 struct sample_interval_policy {
 
 
@@ -65,6 +122,8 @@ struct sample_interval_policy {
 
 
 
+/// A moving window of time-based values
+/// Different strategies for sampling can be set up.
 template <
   typename element_t,
   typename sampler_t = boost::function<

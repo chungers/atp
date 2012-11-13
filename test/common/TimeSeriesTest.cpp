@@ -26,6 +26,48 @@ struct last_trade
   }
 };
 
+TEST(TimeSeriesTest, SamplerTest)
+{
+  atp::time_series::sampler<int>::open open;
+  EXPECT_EQ(1, open(0, 1, true));
+  EXPECT_EQ(1, open(1, 2, false));
+  EXPECT_EQ(1, open(2, 3, false));
+  EXPECT_EQ(1, open(3, 4, false));
+  EXPECT_EQ(1, open(4, 5, false));
+  EXPECT_EQ(6, open(5, 6, true));
+
+  atp::time_series::sampler<int>::close close;
+  EXPECT_EQ(0, close(-1, 0, false));
+  EXPECT_EQ(0, close(0, 1, true));
+  EXPECT_EQ(2, close(1, 2, false));
+  EXPECT_EQ(3, close(2, 3, false));
+  EXPECT_EQ(4, close(3, 4, false));
+  EXPECT_EQ(5, close(4, 5, false));
+  EXPECT_EQ(5, close(5, 6, true));
+
+  atp::time_series::sampler<int>::max max;
+  EXPECT_EQ(2, max(1, 2, false));
+  EXPECT_EQ(3, max(2, 3, true));
+  EXPECT_EQ(3, max(3, 2, false));
+  EXPECT_EQ(5, max(2, 5, false));
+  EXPECT_EQ(1, max(5, 1, true));
+
+  atp::time_series::sampler<int>::min min;
+  EXPECT_EQ(1, min(1, 2, false));
+  EXPECT_EQ(3, min(2, 3, true));
+  EXPECT_EQ(2, min(3, 2, false));
+  EXPECT_EQ(2, min(2, 5, false));
+  EXPECT_EQ(1, min(5, 1, true));
+
+  atp::time_series::sampler<int>::latest latest;
+  EXPECT_EQ(1, latest(0, 1, true));
+  EXPECT_EQ(2, latest(1, 2, false));
+  EXPECT_EQ(3, latest(2, 3, false));
+  EXPECT_EQ(4, latest(3, 4, false));
+  EXPECT_EQ(5, latest(4, 5, false));
+  EXPECT_EQ(6, latest(5, 6, true));
+}
+
 TEST(TimeSeriesTest, MovingWindowPolicyTest)
 {
   sample_interval_policy::align_at_zero p(10);
