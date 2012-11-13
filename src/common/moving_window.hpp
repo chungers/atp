@@ -21,56 +21,87 @@ typedef boost::posix_time::time_duration sample_interval_t;
 template <typename element_t>
 struct sampler {
 
-struct latest
-{
-  element_t operator()(element_t last, element_t now, bool new_period)
+  struct latest
   {
-    return now;
-  }
-};
+    const element_t operator()(const element_t& last,
+                                const element_t& now,
+                                bool new_period)
+    {
+      return now;
+    }
+  };
 
-struct max
-{
-  element_t operator()(element_t last, element_t now, bool new_period)
+  class avg
   {
-    return (new_period) ? now : std::max(last, now);
-  }
-};
+   public:
+    avg() : count(0) {}
 
-struct min
-{
-  element_t operator()(element_t last, element_t now, bool new_period)
+    const element_t operator()(const element_t& last,
+                                const element_t& now,
+                                bool new_period)
+    {
+      if (new_period) {
+        count = 0;
+        sum = now;
+      }
+      sum = (count == 0) ? sum = now : sum + now;
+      return sum / static_cast<element_t>(++count);
+    }
+
+   private:
+    size_t count;
+    element_t sum;
+  };
+
+  struct max
   {
-    return (new_period) ? now : std::min(last, now);
-  }
-};
+    const element_t operator()(const element_t& last,
+                                const element_t& now,
+                                bool new_period)
+    {
+      return (new_period) ? now : std::max(last, now);
+    }
+  };
 
-class open
-{
- public:
-
-  open() : init_(false) {}
-
-  element_t operator()(element_t last, element_t now, bool new_period)
+  struct min
   {
-    if (new_period) { open_ = now; init_ = true; }
-    if (!init_) { open_ = now; init_ = true; }
-    return open_;
-  }
+    const element_t operator()(const element_t& last,
+                                const element_t& now,
+                                bool new_period)
+    {
+      return (new_period) ? now : std::min(last, now);
+    }
+  };
 
- private:
-  element_t open_;
-  bool init_;
-};
-
-struct close
-{
-  element_t operator()(element_t last, element_t now, bool new_period)
+  class open
   {
-    if (new_period) return last;
-    else return now;
-  }
-};
+   public:
+
+    open() : init_(false) {}
+
+    const element_t operator()(const element_t& last,
+                                const element_t& now,
+                                bool new_period)
+    {
+      if (new_period) { open_ = now; init_ = true; }
+      if (!init_) { open_ = now; init_ = true; }
+      return open_;
+    }
+
+   private:
+    element_t open_;
+    bool init_;
+  };
+
+  struct close
+  {
+    const element_t operator()(const element_t& last,
+                                const element_t& now,
+                                bool new_period)
+    {
+      return now;
+    }
+  };
 
 }; // sampler
 
