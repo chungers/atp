@@ -117,15 +117,15 @@ struct sample_interval_policy {
     {
     }
 
-    microsecond_t get_time(const microsecond_t& curr_ts,
+    inline microsecond_t get_time(const microsecond_t& curr_ts,
                            const size_t& offset) const
     {
       microsecond_t r = curr_ts - (curr_ts % window_size_);
       return r - offset * window_size_;
     }
 
-    int count_windows(const microsecond_t& last_ts,
-                      const microsecond_t& timestamp)
+    inline int count_windows(const microsecond_t& last_ts,
+                             const microsecond_t& timestamp)
     {
       if (timestamp < last_ts) return 0;
 
@@ -134,7 +134,7 @@ struct sample_interval_policy {
       return (m2 - m1) / window_size_;
     }
 
-    bool is_new_window(const microsecond_t& last_ts,
+    inline bool is_new_window(const microsecond_t& last_ts,
                        const microsecond_t& timestamp)
     {
       return count_windows(last_ts, timestamp) > 0;
