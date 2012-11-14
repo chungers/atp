@@ -113,7 +113,7 @@ struct sample_interval_policy {
   {
 
     align_at_zero(const microsecond_t& window_size)
-        : window_size_(window_size), mod_ts_(0)
+        : window_size_(window_size)
     {
     }
 
@@ -127,26 +127,20 @@ struct sample_interval_policy {
     int count_windows(const microsecond_t& last_ts,
                       const microsecond_t& timestamp)
     {
-      return (timestamp - last_ts) / window_size_;
+      if (timestamp < last_ts) return 0;
+
+      microsecond_t m1 = last_ts - (last_ts % window_size_);
+      microsecond_t m2 = timestamp - (timestamp % window_size_);
+      return (m2 - m1) / window_size_;
     }
 
     bool is_new_window(const microsecond_t& last_ts,
                        const microsecond_t& timestamp)
     {
-      // track the remainder of the current timestamp.  if the current ts is
-      // in the same time period, then the remainder will increase, until
-      // it is outside the time period, where the remainder will be smaller
-      // than the previous value.
-      microsecond_t r = timestamp % window_size_;
-      bool result =
-          timestamp - last_ts > window_size_ ||
-          timestamp > last_ts && r <= mod_ts_;
-      mod_ts_ = r;
-      return result;
+      return count_windows(last_ts, timestamp) > 0;
     }
 
     microsecond_t window_size_;
-    microsecond_t mod_ts_;
   };
 
 };
@@ -248,30 +242,14 @@ class moving_window
 
   void on(microsecond_t timestamp, element_t value)
   {
-    // check to see if the current timestamp falls within the current
-    // interval.  If outside, push the current value onto the history buffer
-    bool new_sample_period = sample_interval_policy_.is_new_window(
-        current_ts_, timestamp);
-
-    element_t sampled = sampler_(current_value_, value, new_sample_period);
-    if (new_sample_period) {
-
-      // check for missing values in previous windows
-      if (current_ts_ > 0) {
-        // Don't fill in missing values if starting up.
-        int more = std::max(0, sample_interval_policy_.count_windows(
-            current_ts_, timestamp) - 1);
-        // TODO- allow filling in missing values like count
-        element_t missing = current_value_;
-        for (int i = 0; i < more; ++i) {
-          buffer_.push_back(missing);
-        }
+    int windows = sample_interval_policy_.count_windows(current_ts_, timestamp);
+    // Don't fill in missing values if starting up.
+    if (current_ts_ > 0) {
+      for (int i = 0; i < windows; ++i) {
+        buffer_.push_back(current_value_);
       }
-
-      // push the current value
-      buffer_.push_back(current_value_);
     }
-    current_value_ = sampled;
+    current_value_ = sampler_(current_value_, value, windows > 0);
     current_ts_ = timestamp;
   }
 

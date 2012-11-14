@@ -100,6 +100,15 @@ TEST(TimeSeriesTest, MovingWindowPolicyTest)
               << historian::to_est(historian::as_ptime(t2));
     EXPECT_EQ(w, 1);
   }
+  {
+    microsecond_t t1 = 1349357414361850;
+    microsecond_t t2 = 1349357414361851;
+    int w = p2.count_windows(t1, t2);
+    LOG(INFO) << "windows = " << w << ", diff = " << (t2 - t1) << ", "
+              << historian::to_est(historian::as_ptime(t1)) << ", "
+              << historian::to_est(historian::as_ptime(t2));
+    EXPECT_EQ(w, 0);
+  }
 }
 
 TEST(TimeSeriesTest, SampleOpenTest)
