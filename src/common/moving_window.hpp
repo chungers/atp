@@ -240,7 +240,9 @@ class moving_window
     return copied;
   }
 
-  void on(microsecond_t timestamp, element_t value)
+  /// Returns the number of pushes into the time slots
+  /// This allows the caller to track the number aggregated samples.
+  size_t on(microsecond_t timestamp, element_t value)
   {
     int windows = sample_interval_policy_.count_windows(current_ts_, timestamp);
     // Don't fill in missing values if starting up.
@@ -248,9 +250,13 @@ class moving_window
       for (int i = 0; i < windows; ++i) {
         buffer_.push_back(current_value_);
       }
+    } else {
+      windows = 0;
     }
     current_value_ = sampler_(current_value_, value, windows > 0);
     current_ts_ = timestamp;
+
+    return static_cast<size_t>(windows);
   }
 
  private:

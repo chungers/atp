@@ -276,26 +276,48 @@ TEST(AgentPrototype, LoadDataFromLogfile)
   EXPECT_GT(ask_count, 1); // at least... don't have exact count
 }
 
+
+using namespace atp::time_series;
+using namespace atp::platform::marketdata;
+
+typedef moving_window< double, sampler<double>::latest > mw_latest_double;
+
+template <typename V>
+void callOnMethod(const timestamp_t& ts, const V& v,
+                  mw_latest_double* mw,
+                  size_t* count_state, const size_t& limit)
+{
+  size_t pushed = mw->on(ts, v);
+  *count_state += pushed;
+  size_t count = *count_state;
+  if (count > limit) {
+    // dump the data out.
+    microsecond_t ts[count];
+    double last[count];
+
+    EXPECT_EQ(count, mw->copy_last(ts, last, count));
+
+    for (int i = 0; i < count; ++i) {
+      ptime tt = historian::as_ptime(ts[i]);
+      LOG(INFO) << "==================================== "
+                << historian::to_est(tt) << "," << last[i];
+    }
+    *count_state = 0; // reset
+  }
+}
+
 TEST(AgentPrototype, MovingWindowUsage)
 {
-  using namespace atp::time_series;
-  using namespace atp::platform::marketdata;
+  int scan_seconds = 30;
 
-  int scan_seconds = 10;
-  typedef moving_window< double, sampler<double>::latest > mw_latest_double;
-
+  // first handler
   marketdata_handler<MarketData> feed_handler;
-
   mw_latest_double last_trade(seconds(scan_seconds), seconds(1), 0.);
-
   atp::platform::callback::update_event<double>::func d1 =
       boost::bind(&mw_latest_double::on, &last_trade, _1, _2);
-
   feed_handler.bind("LAST", d1);
-
   message_processor::protobuf_handlers_map symbol_handlers;
   symbol_handlers.register_handler("AAPL.STK", feed_handler);
-
   symbol_handlers.register_handler(
       atp::log_reader::DATA_END,
       boost::bind(&stop_function, _1, _2, "End of Log"));
@@ -317,6 +339,20 @@ TEST(AgentPrototype, MovingWindowUsage)
   message_processor agent2(PUB_ENDPOINT, symbol_handlers2);
 
 
+  // third handler
+  size_t samples = 0;
+  marketdata_handler<MarketData> feed_handler3;
+  mw_latest_double last_trade3(seconds(scan_seconds), seconds(1), 0.);
+  atp::platform::callback::update_event<double>::func f3 =
+      boost::bind(&callOnMethod<double>, _1, _2, &last_trade3, &samples, 5);
+  feed_handler3.bind("LAST", f3);
+  message_processor::protobuf_handlers_map symbol_handlers3;
+  symbol_handlers3.register_handler("AAPL.STK", feed_handler3);
+  symbol_handlers3.register_handler(
+      atp::log_reader::DATA_END,
+      boost::bind(&stop_function, _1, _2, "End of Log"));
+  message_processor agent3(PUB_ENDPOINT, symbol_handlers3);
+
 
   LOG(INFO) << "Starting thread";
   LogReader reader(DATA_DIR + LOG_FILE);
@@ -332,6 +368,7 @@ TEST(AgentPrototype, MovingWindowUsage)
   LOG(INFO) << "total samples = " << last_trade.size();
 
   EXPECT_GT(last_trade.size(), 1);
+  EXPECT_GT(samples, 1);
 
   // dump the data out...
   microsecond_t ts[last_trade.size()];
