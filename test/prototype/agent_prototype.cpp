@@ -292,11 +292,13 @@ void callOnMethod(const timestamp_t& ts, const V& v,
   size_t count = *count_state;
   if (count > limit) {
     // dump the data out.
-    microsecond_t ts[count];
-    double last[count];
+    microsecond_t ts[count + 1];
+    double last[count + 1];
 
-    EXPECT_EQ(count, mw->copy_last(ts, last, count));
-
+    // Note we get the last N+1 points but discard the latest
+    // sample because it's the current value and may not be the
+    // final pushed/aggregated value.
+    EXPECT_EQ(count + 1, mw->copy_last(ts, last, count + 1));
     for (int i = 0; i < count; ++i) {
       ptime tt = historian::as_ptime(ts[i]);
       LOG(INFO) << "==================================== "
