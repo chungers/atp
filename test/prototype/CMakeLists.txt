@@ -25,7 +25,8 @@ set(Prototypes_incs
 )
 set(Prototypes_srcs
   ${TEST_DIR}/AllTests.cpp
-  indicators_prototype.cpp
+  indicator_prototype.cpp
+  misc_prototype.cpp
 )
 set(Prototypes_libs
   api_base

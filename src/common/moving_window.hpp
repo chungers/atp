@@ -253,7 +253,8 @@ class moving_window
     } else {
       windows = 0;
     }
-    current_value_ = sampler_(current_value_, value, windows > 0);
+    current_value_ = sampler_(current_value_, value,
+                              windows > 0 || current_ts_ == 0);
     current_ts_ = timestamp;
 
     return static_cast<size_t>(windows);
