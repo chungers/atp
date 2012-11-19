@@ -26,19 +26,24 @@ set(Prototypes_incs
 set(Prototypes_srcs
   ${TEST_DIR}/AllTests.cpp
   indicator_prototype.cpp
-  misc_prototype.cpp
+  #misc_prototype.cpp
 )
 set(Prototypes_libs
   api_base
   ib_api_versioned_base
+  log_reader
+  message_processor
   proto_components
   zmq_components
+  boost_system
+  boost_iostreams
+  test_protos
   gflags
   glog
-  test_protos
   protobuf
-  protobuf-lite
   ta_lib
+  bz2
+  z
   )
 cpp_gtest(Prototypes)
 

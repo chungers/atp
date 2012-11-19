@@ -217,6 +217,12 @@ class moving_window
     return buffer_.size() + 1; // plus current unpushed value.
   }
 
+  /// Must have negative index
+  const microsecond_t get_time(int offset = -1) const
+  {
+    return sample_interval_policy_.get_time(current_ts_, -(offset + 1));
+  }
+
   template <typename buffer_t>
   const size_t copy_last(microsecond_t timestamp[],
                          buffer_t array[],
