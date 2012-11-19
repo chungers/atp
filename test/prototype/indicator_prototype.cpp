@@ -83,6 +83,8 @@ namespace callback {
 
 
 // partial specialization of the template
+// this is required to be here because the linker can't find
+// the specialization in a lib.
 template <typename V>
 struct post_process<V, 1>
 {

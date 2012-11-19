@@ -29,6 +29,7 @@ struct post_process
                   const moving_window<V, ohlc_close>& close);
 };
 
+
 } // callback
 
 

@@ -3,27 +3,27 @@
 
 #include <string>
 
+#include <cctype>
+#include <sys/time.h>
+#include <boost/cstdint.hpp>
+#include <boost/date_time.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/gregorian/greg_month.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
-#include <boost/scoped_ptr.hpp>
-
-// #include "utils.hpp"
-// #include "proto/ib.pb.h"
-// #include "proto/historian.pb.h"
-
-namespace atp {
-namespace time {
+#include <boost/date_time/local_time_adjustor.hpp>
 
 
+using namespace boost::posix_time;
 using boost::posix_time::ptime;
 using boost::posix_time::time_duration;
 using boost::uint64_t;
 
-// using proto::ib::MarketData;
-// using proto::ib::MarketDepth;
-// using proto::historian::SessionLog;
+namespace atp {
+namespace time {
+
+//eastern timezone is utc-5
+typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
 
 
 static const ptime EPOCH(boost::gregorian::date(1970,boost::gregorian::Jan,1));
