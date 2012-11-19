@@ -17,6 +17,7 @@
 
 #include "common/moving_window.hpp"
 #include "common/ohlc.hpp"
+#include "common/ohlc_callbacks.hpp"
 #include "common/time_utils.hpp"
 
 #include "platform/marketdata_handler_proto_impl.hpp"
@@ -86,20 +87,18 @@ namespace callback {
 // this is required to be here because the linker can't find
 // the specialization in a lib.
 template <typename V>
-struct post_process<V, 1>
+struct logger_post_process : public post_process<V>
 {
   typedef typename sampler<V>::open ohlc_open;
   typedef typename sampler<V>::close ohlc_close;
   typedef typename sampler<V>::min ohlc_low;
   typedef typename sampler<V>::max ohlc_high;
 
-  typedef moving_window< V, ohlc_open > mw_open;
-  size_t get_count() { return 1; }
-  void operator()(const size_t count,
-                  const moving_window<V, ohlc_open>& open,
-                  const moving_window<V, ohlc_high>& high,
-                  const moving_window<V, ohlc_low>& low,
-                  const moving_window<V, ohlc_close>& close)
+  inline void operator()(const size_t count,
+                         const moving_window<V, ohlc_open>& open,
+                         const moving_window<V, ohlc_high>& high,
+                         const moving_window<V, ohlc_low>& low,
+                         const moving_window<V, ohlc_close>& close)
   {
     for (int i = -count; i < 0; ++i) {
       ptime t = atp::time::as_ptime(open.get_time(-2 + i));
@@ -178,12 +177,13 @@ TEST(IndicatorPrototype, OhlcUsage)
   int scan_seconds = 10;
   marketdata_handler<MarketData> feed_handler1;
 
-  ohlc<double, post_process<double, 1> >
+  ohlc<double, post_process_cout<double> >
       last_trade_candle(seconds(scan_seconds), seconds(1), 0.);
 
   // Tedious
   atp::platform::callback::update_event<double>::func d1 =
-      boost::bind(&ohlc<double, post_process<double, 1> >::on, &last_trade_candle, _1, _2);
+      boost::bind(&ohlc<double, post_process_cout<double> >::on,
+                  &last_trade_candle, _1, _2);
   feed_handler1.bind("LAST", d1);
 
   message_processor::protobuf_handlers_map symbol_handlers1;

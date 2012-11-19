@@ -13,7 +13,7 @@ set(common_components_incs
   ${SRC_DIR}
 )
 set(common_components_srcs
-  ohlc.cpp
+  time_utils.cpp
  )
 set(common_components_libs
  boost_system

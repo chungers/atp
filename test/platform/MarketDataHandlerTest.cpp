@@ -63,10 +63,10 @@ TEST(MarketDataHandlerTest, UsageSyntax)
 
   int bid_count = 0, ask_count = 0;
 
-  atp::platform::callback::double_updater d1 = boost::bind(&aapl, _1, _2,
-                                                          "BID", &bid_count);
-  atp::platform::callback::double_updater d2 = boost::bind(&aapl, _1, _2,
-                                                          "ASK", &ask_count);
+  atp::platform::callback::update_event<double>::func d1 =
+      boost::bind(&aapl, _1, _2, "BID", &bid_count);
+  atp::platform::callback::update_event<double>::func d2 =
+      boost::bind(&aapl, _1, _2, "ASK", &ask_count);
   h.bind("BID", d1);
   h.bind("ASK", d2);
 

@@ -13,7 +13,7 @@ namespace time_series {
 
 namespace callback {
 
-template <typename V, size_t K = 0>
+template <typename V>
 struct post_process
 {
   typedef typename sampler<V>::open ohlc_open;
@@ -21,12 +21,14 @@ struct post_process
   typedef typename sampler<V>::min ohlc_low;
   typedef typename sampler<V>::max ohlc_high;
 
-  size_t get_count() { return K; }
-  void operator()(const size_t count,
-                  const moving_window<V, ohlc_open>& open,
-                  const moving_window<V, ohlc_high>& high,
-                  const moving_window<V, ohlc_low>& low,
-                  const moving_window<V, ohlc_close>& close);
+  inline void operator()(const size_t count,
+                         const moving_window<V, ohlc_open>& open,
+                         const moving_window<V, ohlc_high>& high,
+                         const moving_window<V, ohlc_low>& low,
+                         const moving_window<V, ohlc_close>& close)
+  {
+    // no-op
+  }
 };
 
 
