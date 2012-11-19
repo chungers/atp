@@ -23,10 +23,23 @@ namespace atp {
 namespace time {
 
 //eastern timezone is utc-5
+/// http://www.boost.org/doc/libs/1_37_0/doc/html/boost/date_time/local_adjustor.html
 typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
+typedef boost::date_time::local_adjustor<ptime, -6, us_dst> us_central;
+typedef boost::date_time::local_adjustor<ptime, -7, us_dst> us_mountain;
+typedef boost::date_time::local_adjustor<ptime, -8, us_dst> us_pacific;
 
 
 static const ptime EPOCH(boost::gregorian::date(1970,boost::gregorian::Jan,1));
+static const std::locale TIME_FORMAT = std::locale(
+    std::cout.getloc(),
+    new boost::posix_time::time_input_facet("%Y-%m-%d %H:%M:%S%F%Q"));
+
+static const time_duration RTH_START_EST(9, 30, 0, 0);
+static const time_duration RTH_END_EST(16, 0, 0, 0);
+static const time_duration EXT_START(4, 0, 0, 0);
+static const time_duration EXT_END(20, 0, 0, 0);
+
 
 /// from micros to posix time (ptime)
 inline ptime as_ptime(const boost::uint64_t ts)
@@ -47,11 +60,6 @@ inline boost::uint64_t as_micros(const ptime& pt)
   return m;
 }
 
-static const time_duration RTH_START_EST(9, 30, 0, 0);
-static const time_duration RTH_END_EST(16, 0, 0, 0);
-static const time_duration EXT_START(4, 0, 0, 0);
-static const time_duration EXT_END(20, 0, 0, 0);
-
 inline ptime to_est(const ptime& t)
 {
   return us_eastern::utc_to_local(t);
@@ -70,10 +78,6 @@ inline bool checkEXT(ptime t)
   time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
   return eastern >= EXT_START && eastern < EXT_END;
 }
-
-static const std::locale TIME_FORMAT = std::locale(
-    std::cout.getloc(),
-    new boost::posix_time::time_input_facet("%Y-%m-%d %H:%M:%S%F%Q"));
 
 /// Parse input string and set the ptime according to TIME_FORMAT
 const inline bool parse(const std::string& input, ptime* output,
