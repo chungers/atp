@@ -174,15 +174,19 @@ TEST(IndicatorPrototype, OhlcUsage)
   using namespace atp::time_series;
   using namespace atp::time_series::callback;
 
+
+  typedef ohlc<double, post_process_cout<double> > ohlc_last;
+  typedef ohlc<double, logger_post_process<double> > ohlc_last_logging;
+
+
   int scan_seconds = 10;
   marketdata_handler<MarketData> feed_handler1;
 
-  ohlc<double, post_process_cout<double> >
-      last_trade_candle(seconds(scan_seconds), seconds(1), 0.);
+  ohlc_last last_trade_candle(seconds(scan_seconds), seconds(1), 0.);
 
   // Tedious
   atp::platform::callback::update_event<double>::func d1 =
-      boost::bind(&ohlc<double, post_process_cout<double> >::on,
+      boost::bind(&ohlc_last::on,
                   &last_trade_candle, _1, _2);
   feed_handler1.bind("LAST", d1);
 

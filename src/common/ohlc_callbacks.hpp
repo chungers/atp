@@ -1,7 +1,5 @@
-#ifndef ATP_TIME_SERIES_OHLC_IMPL_H_
-#define ATP_TIME_SERIES_OHLC_IMPL_H_
-
-#include <glog/logging.h>
+#ifndef ATP_TIME_SERIES_OHLC_CALLBACKS_H_
+#define ATP_TIME_SERIES_OHLC_CALLBACKS_H_
 
 
 #include "common/ohlc.hpp"
@@ -55,4 +53,4 @@ class post_process_cout : public post_process<V>
 } // time_series
 } // atp
 
-#endif ATP_TIME_SERIES_OHLC_IMPL_H_
+#endif ATP_TIME_SERIES_OHLC_CALLBACKS_H_
