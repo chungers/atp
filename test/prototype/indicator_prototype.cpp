@@ -108,13 +108,13 @@ struct post_process<V, 1>
                   const moving_window<V, ohlc_low>& low,
                   const moving_window<V, ohlc_close>& close)
   {
-    if (count > 0) {
-      ptime t = historian::as_ptime(open.get_time(-2));
+    for (int i = -count; i < 0; ++i) {
+      ptime t = historian::as_ptime(open.get_time(-2 + i));
       LOG(INFO) << historian::to_est(t) << ","
-                << "open=" << open[-2]
-                << ",high=" << high[-2]
-                << ",low=" << low[-2]
-                << ",close=" << close[-2];
+                << "open=" << open[-2 + i]
+                << ",high=" << high[-2 + i]
+                << ",low=" << low[-2 + i]
+                << ",close=" << close[-2 + i];
     }
   }
 };
