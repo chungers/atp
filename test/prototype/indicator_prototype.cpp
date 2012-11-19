@@ -16,8 +16,8 @@
 #include "zmq/ZmqUtils.hpp"
 
 #include "common/moving_window.hpp"
-
-#include "historian/time_utils.hpp"
+#include "common/ohlc.hpp"
+#include "common/time_utils.hpp"
 
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
@@ -38,6 +38,8 @@ using namespace atp::log_reader;
 using namespace atp::platform::callback;
 using namespace atp::platform::marketdata;
 using namespace atp::time_series;
+using namespace atp::time_series::callback;
+
 
 using atp::platform::message_processor;
 using atp::platform::types::timestamp_t;
@@ -75,21 +77,10 @@ void print(const timestamp_t& ts, const V& v,
 }
 
 
-template <typename V, size_t K = 0>
-struct post_process
-{
-  typedef typename sampler<V>::open ohlc_open;
-  typedef typename sampler<V>::close ohlc_close;
-  typedef typename sampler<V>::min ohlc_low;
-  typedef typename sampler<V>::max ohlc_high;
+namespace atp {
+namespace time_series {
+namespace callback {
 
-  size_t get_count() { return K; }
-  void operator()(const size_t count,
-                  const moving_window<V, ohlc_open>& open,
-                  const moving_window<V, ohlc_high>& high,
-                  const moving_window<V, ohlc_low>& low,
-                  const moving_window<V, ohlc_close>& close);
-};
 
 // partial specialization of the template
 template <typename V>
@@ -109,8 +100,8 @@ struct post_process<V, 1>
                   const moving_window<V, ohlc_close>& close)
   {
     for (int i = -count; i < 0; ++i) {
-      ptime t = historian::as_ptime(open.get_time(-2 + i));
-      LOG(INFO) << historian::to_est(t) << ","
+      ptime t = atp::time::as_ptime(open.get_time(-2 + i));
+      LOG(INFO) << atp::time::to_est(t) << ","
                 << "open=" << open[-2 + i]
                 << ",high=" << high[-2 + i]
                 << ",low=" << low[-2 + i]
@@ -119,74 +110,11 @@ struct post_process<V, 1>
   }
 };
 
-template <typename V, typename PostProcess = post_process<V> >
-class ohlc
-{
- public:
+} // callback
+} // time_series
+} // atp
 
-  typedef typename sampler<V>::open ohlc_open;
-  typedef moving_window<V, ohlc_open > mw_open;
 
-  typedef typename sampler<V>::close ohlc_close;
-  typedef moving_window<V, ohlc_close > mw_close;
-
-  typedef typename sampler<V>::max ohlc_high;
-  typedef moving_window<V, ohlc_high > mw_high;
-
-  typedef typename sampler<V>::min ohlc_low;
-  typedef moving_window<V, ohlc_low > mw_low;
-
-  ohlc(time_duration h, time_duration s, V initial) :
-      open_(h, s, initial)
-      , close_(h, s, initial)
-      , high_(h, s, initial)
-      , low_(h, s, initial)
-  {
-  }
-
-  size_t on(microsecond_t timestamp, V value)
-  {
-    size_t open = open_.on(timestamp, value);
-    size_t close = close_.on(timestamp, value);
-    size_t high = high_.on(timestamp, value);
-    size_t low = low_.on(timestamp, value);
-
-    // assume the sizes are all the same.
-    EXPECT_EQ(open, close);
-    EXPECT_EQ(close, high);
-    EXPECT_EQ(high, low);
-    post_(open, open_, high_, low_, close_);
-    return open;
-  }
-
-  const mw_open& open() const
-  {
-    return open_;
-  }
-
-  const mw_close& close() const
-  {
-    return close_;
-  }
-
-  const mw_high& high() const
-  {
-    return high_;
-  }
-
-  const mw_low& low() const
-  {
-    return low_;
-  }
-
- private:
-
-  mw_open open_;
-  mw_close close_;
-  mw_high high_;
-  mw_low low_;
-  PostProcess post_;
-};
 
 template <typename V>
 class indicator
@@ -242,6 +170,9 @@ class sequential_pipeline
 
 TEST(IndicatorPrototype, OhlcUsage)
 {
+  using namespace atp::time_series;
+  using namespace atp::time_series::callback;
+
   int scan_seconds = 10;
   marketdata_handler<MarketData> feed_handler1;
 

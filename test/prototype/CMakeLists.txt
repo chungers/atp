@@ -16,19 +16,18 @@ proto_library(test_protos test.proto ${SRC_DIR})
 
 
 # Prototype
-set(Prototypes_incs
+set(Prototype_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
 )
-set(Prototypes_srcs
+set(Prototype_srcs
   ${TEST_DIR}/AllTests.cpp
   indicator_prototype.cpp
-  #misc_prototype.cpp
 )
-set(Prototypes_libs
+set(Prototype_libs
   api_base
   ib_api_versioned_base
   log_reader
@@ -45,7 +44,7 @@ set(Prototypes_libs
   bz2
   z
   )
-cpp_gtest(Prototypes)
+cpp_gtest(Prototype)
 
 
 # StrategyPrototype
@@ -75,9 +74,36 @@ set(StrategyPrototype_libs
   )
 cpp_gtest(StrategyPrototype)
 
+# MiscPrototype
+set(MiscPrototype_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${TEST_DIR}
+)
+set(MiscPrototype_srcs
+  ${TEST_DIR}/AllTests.cpp
+  misc_prototype.cpp
+)
+set(MiscPrototype_libs
+  message_processor
+  log_reader
+  proto_components
+  zmq_components
+  boost_system
+  boost_iostreams
+  gflags
+  glog
+  test_protos
+  protobuf
+  ta_lib
+  bz2
+  z
+  )
+cpp_gtest(MiscPrototype)
 
 add_custom_target(all_prototypes)
 add_dependencies(all_prototypes
-  Prototypes
+  Prototype
+  IndicatorPrototype
   StrategyPrototype
 )

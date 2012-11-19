@@ -16,8 +16,7 @@
 #include "zmq/ZmqUtils.hpp"
 
 #include "common/moving_window.hpp"
-
-#include "historian/time_utils.hpp"
+#include "common/time_utils.hpp"
 
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"

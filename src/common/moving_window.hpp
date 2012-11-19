@@ -1,21 +1,10 @@
-#ifndef ATP_COMMON_MOVING_WINDOW_H_
-#define ATP_COMMON_MOVING_WINDOW_H_
+#ifndef ATP_TIME_SERIES_MOVING_WINDOW_H_
+#define ATP_TIME_SERIES_MOVING_WINDOW_H_
 
-
-#include <boost/assign.hpp>
-#include <boost/bind.hpp>
-#include <boost/circular_buffer.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/function.hpp>
-#include <boost/pool/object_pool.hpp>
-#include <boost/pool/pool_alloc.hpp>
-
+#include "common/time_series.hpp"
 
 namespace atp {
 namespace time_series {
-
-typedef boost::uint64_t microsecond_t;
-typedef boost::posix_time::time_duration sample_interval_t;
 
 
 template <typename element_t>
@@ -286,4 +275,4 @@ class moving_window
 } // atp
 
 
-#endif //ATP_COMMON_MOVING_WINDOW_H_
+#endif //ATP_TIME_SERIES_MOVING_WINDOW_H_
