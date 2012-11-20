@@ -10,21 +10,21 @@ add_dependencies(historian_proto ib_proto)
 
 
 ##########################################
-# proto_components
-set(proto_components_incs
+# atp_proto
+set(atp_proto_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(proto_components_srcs
+set(atp_proto_srcs
   ostream.cpp
   template_instantiations.cpp
 )
-set(proto_components_libs
-  common_components
+set(atp_proto_libs
+  atp_common
   historian_proto
   ib_proto
   common_proto
   protobuf
   protobuf-lite
 )
-cpp_library(proto_components)
+cpp_library(atp_proto)

@@ -15,7 +15,7 @@ set(historian_internal_tests_srcs
   UtilsTest.cpp
 )
 set(historian_internal_tests_libs
-  historian_components
+  atp_historian
 )
 cpp_gtest(historian_internal_tests)
 
@@ -31,7 +31,7 @@ set(historian_tests_srcs
   DbReactorTest.cpp
 )
 set(historian_tests_libs
-  historian_components
+  atp_historian
 )
 cpp_gtest(historian_tests)
 

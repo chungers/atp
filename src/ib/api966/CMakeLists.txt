@@ -42,8 +42,8 @@ set(ib_api_versioned_base_libs
   ib_dist
   gflags
   glog
-  proto_components
-  varz_components
+  atp_proto
+  atp_varz
 )
 cpp_library(ib_api_versioned_base)
 

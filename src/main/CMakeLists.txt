@@ -75,7 +75,7 @@ set(logreader_libs
   boost_iostreams
   gflags
   glog
-  historian_components
+  atp_historian
   protobuf-lite
   leveldb
   bz2
@@ -100,7 +100,7 @@ set(hloader_libs
   boost_iostreams
   gflags
   glog
-  historian_components
+  atp_historian
   protobuf-lite
   leveldb
   bz2
@@ -121,9 +121,9 @@ set(hdb_srcs
 set(hdb_libs
   gflags
   glog
-  historian_components
-  varz_components
-  zmq_components
+  atp_historian
+  atp_varz
+  atp_zmq
 )
 cpp_executable(hdb)
 
@@ -140,9 +140,9 @@ set(hz_srcs
 set(hz_libs
   gflags
   glog
-  historian_components
-  varz_components
-  zmq_components
+  atp_historian
+  atp_varz
+  atp_zmq
 )
 cpp_executable(hz)
 
@@ -158,9 +158,9 @@ set(hzc_srcs
 set(hzc_libs
   gflags
   glog
-  historian_components
-  varz_components
-  zmq_components
+  atp_historian
+  atp_varz
+  atp_zmq
 )
 cpp_executable(hzc)
 
@@ -177,7 +177,7 @@ set(zmq_reactor_libs
   boost_system
   gflags
   glog
-  zmq_components
+  atp_zmq
 )
 cpp_executable(zmq_reactor)
 

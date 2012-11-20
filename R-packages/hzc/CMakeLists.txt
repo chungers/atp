@@ -47,9 +47,9 @@ COMMENT "Compile / install R package ${R_PKG}",
 )
 
 add_dependencies(r_bundle_hzc
-  zmq_components
-  historian_components
-  proto_components
+  atp_zmq
+  atp_historian
+  atp_proto
 )
 
 add_custom_target(r_package_hzc

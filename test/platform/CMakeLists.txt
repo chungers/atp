@@ -14,8 +14,8 @@ set(MessageProcessorTest_srcs
   MessageProcessorTest.cpp
 )
 set(MessageProcessorTest_libs
-  proto_components
-  message_processor
+  atp_proto
+  atp_message_processor
   gflags
   glog
   zmq
@@ -34,8 +34,8 @@ set(MarketDataHandlerTest_srcs
   MarketDataHandlerTest.cpp
 )
 set(MarketDataHandlerTest_libs
-  proto_components
-  message_processor
+  atp_proto
+  atp_message_processor
   gflags
   glog
   zmq

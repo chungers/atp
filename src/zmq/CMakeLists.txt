@@ -7,22 +7,22 @@ add_definitions('-fPIC')
 
 ##########################################
 # Zmq library
-set(zmq_components_incs
+set(atp_zmq_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(zmq_components_srcs
+set(atp_zmq_srcs
   Reactor.cpp
   Publisher.cpp
   Subscriber.cpp
 )
-set(zmq_components_libs
+set(atp_zmq_libs
   boost_system
   boost_thread
   gflags
   glog
-  varz_components
+  atp_varz
   zmq
 )
-cpp_library(zmq_components)
+cpp_library(atp_zmq)
 

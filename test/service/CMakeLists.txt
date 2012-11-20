@@ -45,14 +45,14 @@ if(TEST_WITH_MOCK)
   message(STATUS "Building with Mock")
   add_definitions('-DTEST_WITH_MOCK')
   set(OrderManagerTest_libs
-    order_manager
+    atp_order_manager
     IBAPIConnector
     ib_api_versioned_base
     )
 else(TEST_WITH_MOCK)
   message(STATUS "Building with live connection")
   set(OrderManagerTest_libs
-    order_manager
+    atp_order_manager
     IBAPIConnector
     ib_api_versioned_base
     ib_api_versioned_handler # standard live protocol handler
@@ -74,10 +74,10 @@ set(LogReaderTest_srcs
   LogReaderTest.cpp
 )
 set(LogReaderTest_libs
-  common_components
-  historian_components
-  zmq_components
-  log_reader
+  atp_common
+  atp_historian
+  atp_zmq
+  atp_log_reader
   boost_system
   boost_iostreams
   gflags

@@ -7,19 +7,19 @@ add_definitions('-fPIC')
 
 
 ##########################################
-# message_processor api
-set(message_processor_incs
+# atp_message_processor api
+set(atp_message_processor_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(message_processor_srcs
+set(atp_message_processor_srcs
   message_processor.cpp
  )
-set(message_processor_libs
+set(atp_message_processor_libs
  api_base
- historian_components
- proto_components
- zmq_components
+ atp_historian
+ atp_proto
+ atp_zmq
  boost_system
  boost_thread
  gflags
@@ -27,11 +27,11 @@ set(message_processor_libs
  zmq
 )
 # Client implementation:
-cpp_library(message_processor)
+cpp_library(atp_message_processor)
 
 add_custom_target(all_platform)
 add_dependencies(all_platform
-  message_processor
+  atp_message_processor
 )
 
 

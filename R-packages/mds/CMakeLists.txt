@@ -53,10 +53,10 @@ COMMENT "Creating precompiled binary package ${R_PKG}",
 )
 
 add_dependencies(r_bundle_mds
-  zmq_components
-  varz_components
-  historian_components
-  proto_components
+  atp_zmq
+  atp_varz
+  atp_historian
+  atp_proto
 )
 
 add_custom_target(r_deploy_mds

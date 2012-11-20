@@ -7,21 +7,21 @@ add_definitions('-fPIC')
 
 ##########################################
 # Varz library
-set(varz_components_incs
+set(atp_varz_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${THIRD_PARTY_DIR}
 )
-set(varz_components_srcs
+set(atp_varz_srcs
   varz.cpp
   VarzServer.cpp
   ${THIRD_PARTY_DIR}/mongoose/mongoose.c
 )
-set(varz_components_libs
+set(atp_varz_libs
   dl
   boost_system
   gflags
   glog
 )
-cpp_library(varz_components)
+cpp_library(atp_varz)
 

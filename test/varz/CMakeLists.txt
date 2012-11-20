@@ -18,7 +18,7 @@ set(varz_test_srcs
 )
 set(varz_test_libs
   json_spirit
-  varz_components
+  atp_varz
 )
 cpp_gtest(varz_test)
 

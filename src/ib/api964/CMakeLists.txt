@@ -36,8 +36,8 @@ set(ib_api_libs
   glog
   quickfix
   QuantLib
-  proto_components
-  varz_components
+  atp_proto
+  atp_varz
 )
 cpp_library(ib_api)
 

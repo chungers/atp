@@ -30,10 +30,10 @@ set(Prototype_srcs
 set(Prototype_libs
   api_base
   ib_api_versioned_base
-  log_reader
-  message_processor
-  proto_components
-  zmq_components
+  atp_log_reader
+  atp_message_processor
+  atp_proto
+  atp_zmq
   boost_system
   boost_iostreams
   test_protos
@@ -58,10 +58,10 @@ set(StrategyPrototype_srcs
   agent_prototype.cpp
 )
 set(StrategyPrototype_libs
-  message_processor
-  log_reader
-  proto_components
-  zmq_components
+  atp_message_processor
+  atp_log_reader
+  atp_proto
+  atp_zmq
   boost_system
   boost_iostreams
   gflags
@@ -85,10 +85,10 @@ set(MiscPrototype_srcs
   misc_prototype.cpp
 )
 set(MiscPrototype_libs
-  message_processor
-  log_reader
-  proto_components
-  zmq_components
+  atp_message_processor
+  atp_log_reader
+  atp_proto
+  atp_zmq
   boost_system
   boost_iostreams
   gflags

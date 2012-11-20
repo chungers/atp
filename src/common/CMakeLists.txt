@@ -7,25 +7,25 @@ add_definitions('-fPIC')
 
 
 ##########################################
-# common_components api
-set(common_components_incs
+# atp_common api
+set(atp_common_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(common_components_srcs
+set(atp_common_srcs
   time_utils.cpp
  )
-set(common_components_libs
+set(atp_common_libs
  boost_system
  boost_thread
  glog
 )
 # Client implementation:
-cpp_library(common_components)
+cpp_library(atp_common)
 
 add_custom_target(all_common)
 add_dependencies(all_common
-  common_components
+  atp_common
 )
 
 

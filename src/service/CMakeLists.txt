@@ -6,17 +6,17 @@ message(STATUS "Services =====================================================")
 add_definitions('-fPIC')
 
 ##########################################
-# order_manager api
-set(order_manager_incs
+# atp_order_manager api
+set(atp_order_manager_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(order_manager_srcs
+set(atp_order_manager_srcs
   OrderManager.cpp
 )
-set(order_manager_libs
- proto_components
- zmq_components
+set(atp_order_manager_libs
+ atp_proto
+ atp_zmq
  boost_system
  boost_thread
  gflags
@@ -24,25 +24,25 @@ set(order_manager_libs
  zmq
 )
 # Client implementation:
-cpp_library(order_manager)
+cpp_library(atp_order_manager)
 
 
 ##########################################
-# log_reader api
-set(log_reader_incs
+# atp_log_reader api
+set(atp_log_reader_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(log_reader_srcs
+set(atp_log_reader_srcs
   LogReader.cpp
   LogReaderZmq.cpp
 )
-set(log_reader_libs
+set(atp_log_reader_libs
  api_base
- common_components
- historian_components
- proto_components
- zmq_components
+ atp_common
+ atp_historian
+ atp_proto
+ atp_zmq
  boost_system
  boost_thread
  gflags
@@ -50,12 +50,12 @@ set(log_reader_libs
  zmq
 )
 # Client implementation:
-cpp_library(log_reader)
+cpp_library(atp_log_reader)
 
 add_custom_target(all_services)
 add_dependencies(all_services
-  order_manager
-  log_reader
+  atp_order_manager
+  atp_log_reader
 )
 
 

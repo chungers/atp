@@ -26,7 +26,7 @@ set(api_base_srcs
   contract_symbol.cpp
 )
 set(api_base_libs
- zmq_components
+ atp_zmq
  boost_system
  boost_thread
  gflags
@@ -57,9 +57,9 @@ set(IBAPIConnector_srcs
 )
 set(IBAPIConnector_libs
  api_base
- proto_components
- varz_components
- zmq_components
+ atp_proto
+ atp_varz
+ atp_zmq
  boost_system
  boost_thread
  gflags

@@ -5,21 +5,21 @@ add_definitions('-fPIC')
 
 ##########################################
 # Historian
-set(historian_components_incs
+set(atp_historian_incs
   ${GEN_DIR}
   ${SRC_DIR}
 )
-set(historian_components_srcs
+set(atp_historian_srcs
   Db.cpp
   DbReactorStrategy.cpp
   DbReactorClient.cpp
 )
-set(historian_components_libs
-  common_components
-  proto_components
+set(atp_historian_libs
+  atp_common
+  atp_proto
   leveldb
-  zmq_components
+  atp_zmq
   boost_date_time
 )
-cpp_library(historian_components)
+cpp_library(atp_historian)
 
