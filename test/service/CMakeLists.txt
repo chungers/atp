@@ -74,6 +74,7 @@ set(LogReaderTest_srcs
   LogReaderTest.cpp
 )
 set(LogReaderTest_libs
+  common_components
   historian_components
   zmq_components
   log_reader

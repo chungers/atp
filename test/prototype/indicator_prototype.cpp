@@ -69,9 +69,9 @@ template <typename V>
 void print(const timestamp_t& ts, const V& v,
            const string& event, int* count)
 {
-  ptime t = historian::as_ptime(ts);
+  ptime t = atp::time::as_ptime(ts);
   LOG(INFO) << "Got " << event << " " << " = ["
-            << historian::to_est(t) << ", " << v
+            << atp::time::to_est(t) << ", " << v
             << ", ts=" << ts
             << "]";
   (*count)++;

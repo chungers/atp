@@ -1,7 +1,7 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include "historian/time_utils.hpp"
+#include "common/time_utils.hpp"
 
 #include "proto/ostream.hpp"
 
@@ -11,7 +11,7 @@ using boost::posix_time::ptime;
 using namespace proto::common;
 using namespace proto::historian;
 using namespace proto::ib;
-using namespace historian;
+using namespace atp::time;
 
 namespace proto {
 namespace common {
@@ -106,7 +106,7 @@ std::ostream& operator<<(std::ostream& out, const IndexedValue& iv)
 
 std::ostream& operator<<(std::ostream& out, const SessionLog& log)
 {
-  using namespace historian;
+  using namespace atp::time;
   using namespace proto::common;
   ptime t1 = to_est(as_ptime(log.start_timestamp()));
   ptime t2 = to_est(as_ptime(log.start_timestamp()));
@@ -120,7 +120,7 @@ std::ostream& operator<<(std::ostream& out, const SessionLog& log)
 
 std::ostream& operator<<(std::ostream& out, const QueryByRange& q)
 {
-  using namespace historian;
+  using namespace atp::time;
   using namespace proto::common;
   out << "Query[" << q.first() << "," << q.last() << ")"
       << ", index=" << q.index();
@@ -129,7 +129,7 @@ std::ostream& operator<<(std::ostream& out, const QueryByRange& q)
 
 std::ostream& operator<<(std::ostream& out, const QueryBySymbol& q)
 {
-  using namespace historian;
+  using namespace atp::time;
   using namespace proto::common;
   ptime t1 = to_est(as_ptime(q.utc_first_micros()));
   ptime t2 = to_est(as_ptime(q.utc_last_micros()));

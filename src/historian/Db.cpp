@@ -20,6 +20,8 @@
 #include "varz/varz.hpp"
 
 
+using namespace atp::time;
+
 using proto::common::Value;
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;

@@ -9,7 +9,7 @@
 
 #include "utils.hpp"
 #include "common/moving_window.hpp"
-#include "historian/time_utils.hpp"
+#include "common/time_utils.hpp"
 
 using namespace boost::assign;
 using namespace boost::posix_time;
@@ -87,8 +87,8 @@ TEST(TimeSeriesTest, MovingWindowPolicyTest)
     microsecond_t t2 = 1349357414055175;
     int w = p2.count_windows(t1, t2);
     LOG(INFO) << "windows = " << w << ", diff = " << (t2 - t1) << ", "
-              << historian::to_est(historian::as_ptime(t1)) << ", "
-              << historian::to_est(historian::as_ptime(t2));
+              << atp::time::to_est(atp::time::as_ptime(t1)) << ", "
+              << atp::time::to_est(atp::time::as_ptime(t2));
     EXPECT_EQ(w, 2);
   }
   {
@@ -96,8 +96,8 @@ TEST(TimeSeriesTest, MovingWindowPolicyTest)
     microsecond_t t2 = 1349357415095778;
     int w = p2.count_windows(t1, t2);
     LOG(INFO) << "windows = " << w << ", diff = " << (t2 - t1) << ", "
-              << historian::to_est(historian::as_ptime(t1)) << ", "
-              << historian::to_est(historian::as_ptime(t2));
+              << atp::time::to_est(atp::time::as_ptime(t1)) << ", "
+              << atp::time::to_est(atp::time::as_ptime(t2));
     EXPECT_EQ(w, 1);
   }
   {
@@ -105,8 +105,8 @@ TEST(TimeSeriesTest, MovingWindowPolicyTest)
     microsecond_t t2 = 1349357414361851;
     int w = p2.count_windows(t1, t2);
     LOG(INFO) << "windows = " << w << ", diff = " << (t2 - t1) << ", "
-              << historian::to_est(historian::as_ptime(t1)) << ", "
-              << historian::to_est(historian::as_ptime(t2));
+              << atp::time::to_est(atp::time::as_ptime(t1)) << ", "
+              << atp::time::to_est(atp::time::as_ptime(t2));
     EXPECT_EQ(w, 0);
   }
 }

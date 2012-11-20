@@ -9,7 +9,7 @@
 
 #include "log_levels.h"
 #include "proto/ib.pb.h"
-#include "historian/time_utils.hpp"
+#include "common/time_utils.hpp"
 
 
 using namespace std;

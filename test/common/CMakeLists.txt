@@ -26,6 +26,7 @@ set(CommonLibTest_srcs
 set(CommonLibTest_libs
   api_base
   ib_api_versioned_base
+  common_components
   proto_components
   zmq_components
   gflags

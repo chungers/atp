@@ -138,11 +138,11 @@ int main(int argc, char** argv)
     // compute the actual search keys based on start and end flags
     ptime start;
     ptime end;
-    historian::parse(FLAGS_first, &start);
-    historian::parse(FLAGS_last, &end);
+    atp::time::parse(FLAGS_first, &start);
+    atp::time::parse(FLAGS_last, &end);
 
-    query.set_utc_first_micros(historian::as_micros(start));
-    query.set_utc_last_micros(historian::as_micros(end));
+    query.set_utc_first_micros(atp::time::as_micros(start));
+    query.set_utc_last_micros(atp::time::as_micros(end));
 
     LOG(INFO) << "Query by symbol: " << query;
 

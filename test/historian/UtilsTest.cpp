@@ -114,8 +114,8 @@ TEST(UtilsTest, DateTest)
 {
   ptime t1, t2;
 
-  historian::parse("2012-02-14 04:30:34.567899", &t1, false);
-  historian::parse("2012-02-14 04:36:34.567899", &t2, false);
+  atp::time::parse("2012-02-14 04:30:34.567899", &t1, false);
+  atp::time::parse("2012-02-14 04:36:34.567899", &t2, false);
 
   time_duration diff = t2 - t1;
   EXPECT_EQ(6, diff.minutes());
@@ -126,7 +126,7 @@ TEST(UtilsTest, ParseTest)
   ptime parsed;
   const string utc("2012-02-14 04:30:34.567899");
 
-  EXPECT_TRUE(historian::parse(utc, &parsed, false));
+  EXPECT_TRUE(atp::time::parse(utc, &parsed, false));
   date d = parsed.date();
   EXPECT_EQ(2012, d.year());
   EXPECT_EQ(2, d.month());
@@ -141,7 +141,7 @@ TEST(UtilsTest, ParseTest)
   // parsed is always in utc
   const string est("2012-02-14 04:30:34.567899");
 
-  EXPECT_TRUE(historian::parse(est, &parsed));
+  EXPECT_TRUE(atp::time::parse(est, &parsed));
   d = parsed.date();
   EXPECT_EQ(2012, d.year());
   EXPECT_EQ(2, d.month());
@@ -161,15 +161,15 @@ TEST(UtilsTest, MicrosTimeTest)
   const string est("2012-02-14 04:30:34.567899");
   const string est2("2012-02-14 04:30:34");
 
-  historian::parse(est, &utc);
-  historian::parse(est2, &utc2);
+  atp::time::parse(est, &utc);
+  atp::time::parse(est2, &utc2);
 
   EXPECT_GT(utc.time_of_day().total_microseconds(),
             utc2.time_of_day().total_microseconds());
 
-  ptime fromMicros = historian::as_ptime(historian::as_micros(utc));
+  ptime fromMicros = atp::time::as_ptime(atp::time::as_micros(utc));
   EXPECT_EQ(utc, fromMicros);
 
-  ptime fromMicros2 = historian::as_ptime(historian::as_micros(utc2));
+  ptime fromMicros2 = atp::time::as_ptime(atp::time::as_micros(utc2));
   EXPECT_EQ(utc2, fromMicros2);
 }

@@ -37,11 +37,11 @@ TEST(DbTest, DbReadWriteMarketDataTest)
 
   const string est("2012-02-14 04:30:34.567899");
   ptime t;
-  historian::parse(est, &t);
+  atp::time::parse(est, &t);
 
   MarketData d;
 
-  d.set_timestamp(historian::as_micros(t));
+  d.set_timestamp(atp::time::as_micros(t));
   d.set_symbol("AAPL.STK");
   d.set_event("ASK");
   common::set_as(500., d.mutable_value());
@@ -78,10 +78,10 @@ TEST(DbTest, DbReadWriteMarketDataTest)
   EXPECT_FALSE(visitor.fail);
 
   std::ostringstream key;
-  key << "AAPL.STK" << ":" << historian::as_micros(t);
+  key << "AAPL.STK" << ":" << atp::time::as_micros(t);
 
   std::ostringstream key2;
-  key2 << "AAPL.STK" << ":" << historian::as_micros(t) + 1;
+  key2 << "AAPL.STK" << ":" << atp::time::as_micros(t) + 1;
 
   // read it back out
   visitor.count = 0;
@@ -137,10 +137,10 @@ TEST(DbTest, DbReadWriteMarketDataTest)
 
     QueryBySymbol qbs;
     qbs.set_symbol("AAPL.STK");
-    qbs.set_utc_first_micros(historian::as_micros(t));
+    qbs.set_utc_first_micros(atp::time::as_micros(t));
 
     boost::posix_time::time_duration td(0, 0, 0, 1);
-    qbs.set_utc_last_micros(historian::as_micros(t + td));
+    qbs.set_utc_last_micros(atp::time::as_micros(t + td));
     qbs.set_index("ASK");
     db.Query(qbs, &visitor);
     EXPECT_EQ(1, visitor.count);
@@ -155,10 +155,10 @@ TEST(DbTest, DbReadWriteMarketDataTest)
 
     QueryBySymbol qbs;
     qbs.set_symbol("AAPL.STK");
-    qbs.set_utc_first_micros(historian::as_micros(t));
+    qbs.set_utc_first_micros(atp::time::as_micros(t));
 
     boost::posix_time::time_duration td(0, 0, 0, 1);
-    qbs.set_utc_last_micros(historian::as_micros(t + td));
+    qbs.set_utc_last_micros(atp::time::as_micros(t + td));
     qbs.set_index("ASK");
 
 

@@ -112,5 +112,6 @@ add_custom_target(world)
 add_dependencies(world
   all_mains
   all_tests
-  all_R_packages
+  all_prototypes
+#  all_R_packages
 )

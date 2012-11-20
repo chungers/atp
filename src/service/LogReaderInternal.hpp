@@ -22,9 +22,10 @@
 #include <boost/unordered_map.hpp>
 
 #include "log_levels.h"
+#include "common/time_utils.hpp"
 #include "ib/contract_symbol.hpp"
 #include "proto/ib.pb.h"
-#include "historian/time_utils.hpp"
+
 
 
 using namespace std;
@@ -41,7 +42,6 @@ namespace atp {
 namespace log_reader {
 namespace internal {
 
-using namespace historian;
 namespace p = proto::ib;
 
 bool operator<<(p::MarketData& p, const log_record_t& nv);
@@ -219,7 +219,7 @@ static bool get_timestamp(const log_record_t& event, ptime* timestamp)
     return false;
   }
   log_timer_t ts = boost::lexical_cast<log_timer_t>(found->second);
-  *timestamp = historian::as_ptime(ts);
+  *timestamp = atp::time::as_ptime(ts);
   return true;
 }
 
@@ -230,11 +230,11 @@ static bool check_time(const log_record_t& event, bool regular_trading_hours)
     return false;
   }
 
-  bool ext = historian::checkEXT(t);
+  bool ext = atp::time::checkEXT(t);
   if (!ext) {
     return false; // outside trading hours
   }
-  bool rth = historian::checkRTH(t);
+  bool rth = atp::time::checkRTH(t);
   if (!rth && regular_trading_hours) {
     // Skip if not RTH and we want only data during trading hours.
     return false;

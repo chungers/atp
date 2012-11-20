@@ -10,22 +10,22 @@ namespace atp {
 namespace time {
 
 /// Returns true if time given is within the regurlar trading hour (RTH)
-inline bool checkRTH(const ptime& t)
+bool checkRTH(const ptime& t)
 {
   time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
   return eastern >= RTH_START_EST && eastern < RTH_END_EST;
 }
 
 /// Returns true if time given is within the extended trading hours (EXT)
-inline bool checkEXT(ptime t)
+bool checkEXT(ptime t)
 {
   time_duration eastern = us_eastern::utc_to_local(t).time_of_day();
   return eastern >= EXT_START && eastern < EXT_END;
 }
 
 /// Parse input string and set the ptime according to TIME_FORMAT
-const inline bool parse(const std::string& input, ptime* output,
-                        bool est)
+const bool parse(const std::string& input, ptime* output,
+                 bool est)
 {
   ptime pt;
   std::istringstream is(input);

@@ -16,7 +16,8 @@
 #include "proto/historian.hpp"
 #include "proto/ostream.hpp"
 
-#include "historian/time_utils.hpp"
+#include "utils.hpp"
+#include "common/time_utils.hpp"
 #include "historian/Visitor.hpp"
 #include "historian/DbReactorClient.hpp"
 
@@ -86,13 +87,13 @@ int main(int argc, char** argv)
   ptime end;
 
   // EST to UTC
-  historian::parse(FLAGS_first, &start);
-  historian::parse(FLAGS_last, &end);
+  atp::time::parse(FLAGS_first, &start);
+  atp::time::parse(FLAGS_last, &end);
 
   QueryBySymbol q;
   q.set_symbol(FLAGS_symbol);
-  q.set_utc_first_micros(historian::as_micros(start));
-  q.set_utc_last_micros(historian::as_micros(end));
+  q.set_utc_first_micros(atp::time::as_micros(start));
+  q.set_utc_last_micros(atp::time::as_micros(end));
 
   // TODO abstract this detail into a cleaner api
   if (FLAGS_event.size() > 0) {

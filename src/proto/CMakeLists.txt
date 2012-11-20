@@ -20,6 +20,7 @@ set(proto_components_srcs
   template_instantiations.cpp
 )
 set(proto_components_libs
+  common_components
   historian_proto
   ib_proto
   common_proto

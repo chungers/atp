@@ -9,11 +9,12 @@
 
 #include <leveldb/db.h>
 
+#include "common/time_utils.hpp"
 #include "proto/common.hpp"
 #include "proto/historian.hpp"
 #include "historian/constants.hpp"
 #include "historian/internal.hpp"
-#include "historian/time_utils.hpp"
+
 
 using std::string;
 using boost::optional;
@@ -88,11 +89,11 @@ TEST(InternalTest, MarketDataWriterTest)
 
   const string est("2012-02-14 04:30:34.567899");
   ptime t;
-  historian::parse(est, &t);
+  atp::time::parse(est, &t);
 
   MarketData d;
 
-  d.set_timestamp(historian::as_micros(t));
+  d.set_timestamp(atp::time::as_micros(t));
   d.set_symbol("AAPL.STK");
   d.set_event("ASK");
   c::set_as(500., d.mutable_value());
@@ -151,11 +152,11 @@ TEST(InternalTest, MarketDepthWriterTest)
 
   const string est("2012-02-14 04:30:34.567899");
   ptime t;
-  historian::parse(est, &t);
+  atp::time::parse(est, &t);
 
   MarketDepth d;
 
-  d.set_timestamp(historian::as_micros(t));
+  d.set_timestamp(atp::time::as_micros(t));
   d.set_symbol("AAPL.STK");
   d.set_side(i::MarketDepth_Side_ASK);
   d.set_price(500.);
@@ -202,13 +203,13 @@ TEST(InternalTest, SessionLogWriterTest)
   const string est1("2012-02-14 04:30:34.567899");
   const string est2("2012-02-14 04:30:34.567899");
   ptime t1, t2;
-  historian::parse(est1, &t1);
-  historian::parse(est2, &t2);
+  atp::time::parse(est1, &t1);
+  atp::time::parse(est2, &t2);
 
   SessionLog d;
   d.set_symbol("AAPL.STK");
-  d.set_start_timestamp(historian::as_micros(t1));
-  d.set_stop_timestamp(historian::as_micros(t2));
+  d.set_start_timestamp(atp::time::as_micros(t1));
+  d.set_stop_timestamp(atp::time::as_micros(t2));
   d.set_source("test");
   EXPECT_TRUE(d.IsInitialized());
 

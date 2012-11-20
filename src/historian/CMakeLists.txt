@@ -15,6 +15,7 @@ set(historian_components_srcs
   DbReactorClient.cpp
 )
 set(historian_components_libs
+  common_components
   proto_components
   leveldb
   zmq_components

@@ -20,7 +20,7 @@
 
 #include "historian/Db.hpp"
 #include "historian/DbReactorStrategy.hpp"
-#include "historian/time_utils.hpp"
+#include "common/time_utils.hpp"
 
 #include "service/MarketDataSubscriber.hpp"
 

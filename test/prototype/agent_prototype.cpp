@@ -145,13 +145,13 @@ class order_flow_tracker
 
   void update_last_size(const timestamp_t& t, const int& v)
   {
-    ptime ts = historian::as_ptime(t);
+    ptime ts = atp::time::as_ptime(t);
 
     if (ts - last_size_pt < seconds(1)) {
       // LOG(WARNING)
       //     << "duplicate last size = "
-      //     << historian::to_est(last_size_pt) << ","
-      //     << historian::to_est(ts) << ","
+      //     << atp::time::to_est(last_size_pt) << ","
+      //     << atp::time::to_est(ts) << ","
       //     << v;
       return; // ignore -- duplicate data
     }
@@ -222,9 +222,9 @@ template <typename V>
 void aapl(const timestamp_t& ts, const V& v,
           const string& event, int* count)
 {
-  ptime t = historian::as_ptime(ts);
+  ptime t = atp::time::as_ptime(ts);
   LOG(INFO) << "Got appl " << event << " " << " = ["
-            << historian::to_est(t) << ", " << v
+            << atp::time::to_est(t) << ", " << v
             << ", ts=" << ts
             << "]";
   (*count)++;
@@ -304,9 +304,9 @@ void callOnMethod(const timestamp_t& ts, const V& v,
     // final pushed/aggregated value.
     EXPECT_EQ(count + 1, mw->copy_last(ts, last, count + 1));
     for (int i = 0; i < count; ++i) {
-      ptime tt = historian::as_ptime(ts[i]);
+      ptime tt = atp::time::as_ptime(ts[i]);
       LOG(INFO) << "==================================== "
-                << historian::to_est(tt) << "," << last[i];
+                << atp::time::to_est(tt) << "," << last[i];
     }
     *count_state = 0; // reset
   }
@@ -384,8 +384,8 @@ TEST(AgentPrototype, MovingWindowUsage)
             last_trade.copy_last(ts, last, last_trade.size()));
 
   for (int i = 0; i < last_trade.size(); ++i) {
-    ptime tt = historian::as_ptime(ts[i]);
-    LOG(INFO) << historian::to_est(tt) << "," << last[i];
+    ptime tt = atp::time::as_ptime(ts[i]);
+    LOG(INFO) << atp::time::to_est(tt) << "," << last[i];
   }
 }
 

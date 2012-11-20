@@ -4,9 +4,10 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+//#include "common/time_utils.hpp"
 #include "proto/common.hpp"
 #include "proto/historian.hpp"
-#include "historian/time_utils.hpp"
+
 
 
 // This file contains the instantiations of templates.

@@ -12,7 +12,7 @@
 #include <glog/logging.h>
 
 #include "utils.hpp"
-#include "historian/time_utils.hpp"
+#include "common/time_utils.hpp"
 #include "service/LogReader.hpp"
 #include "service/LogReaderVisitor.hpp"
 #include "zmq/Subscriber.hpp"
@@ -41,7 +41,7 @@ TEST(LogReaderTest, LoadLogFileTest)
   LogReader::marketdepth_visitor_t m2 = p2;
 
   ptime start;
-  EXPECT_TRUE(historian::parse("2012-10-04 09:35:00", &start));
+  EXPECT_TRUE(atp::time::parse("2012-10-04 09:35:00", &start));
 
   LOG(INFO) << "Starting at " << start;
   size_t processed = reader.Process(m1, m2, seconds(5), start);

@@ -10,8 +10,9 @@
 #include "utils.hpp"
 #include "zmq/ZmqUtils.hpp"
 
+#include "common/time_utils.hpp"
 #include "historian/DbReactorStrategy.hpp"
-#include "historian/time_utils.hpp"
+
 
 using boost::posix_time::ptime;
 using historian::Db;
@@ -30,11 +31,11 @@ TEST(DbReactorTest, ZmqProtoTest)
 {
   const string est("2012-02-14 04:30:34.567899");
   ptime t;
-  historian::parse(est, &t);
+  atp::time::parse(est, &t);
 
   MarketData d;
 
-  d.set_timestamp(historian::as_micros(t));
+  d.set_timestamp(atp::time::as_micros(t));
   d.set_symbol("AAPL.STK");
   d.set_event("ASK");
   d.mutable_value()->set_type(proto::common::Value_Type_DOUBLE);

@@ -13,9 +13,11 @@
 #include "proto/ib.pb.h"
 #include "proto/historian.pb.h"
 
+#include "common/time_utils.hpp"
 #include "proto/common.hpp"
 #include "proto/historian.hpp"
-#include "historian/time_utils.hpp"
+
+using namespace atp::time;
 
 using proto::common::Value;
 using proto::ib::MarketData;

@@ -24,6 +24,7 @@
 #include <leveldb/db.h>
 
 #include "log_levels.h"
+#include "common/time_utils.hpp"
 #include "ib/ticker_id.hpp"
 #include "ib/tick_types.hpp"
 #include "ib/TickerMap.hpp"
@@ -439,8 +440,8 @@ static void updateSessionLog(const string& source, const T& data,
     // write one session log and start a new one.
     if (log->stop_timestamp() > 0) {
 
-      ptime last = historian::as_ptime(log->stop_timestamp());
-      ptime now = historian::as_ptime(data.timestamp());
+      ptime last = atp::time::as_ptime(log->stop_timestamp());
+      ptime now = atp::time::as_ptime(data.timestamp());
 
       time_duration diff = now - last;
       if (diff.minutes() > FLAGS_gapInMinutes) {
@@ -596,13 +597,13 @@ int main(int argc, char** argv)
           historian::MarketData event;
           if (atp::utils::checkEvent(nv) && atp::utils::Convert(nv, &event)) {
 
-            ptime t = historian::as_ptime(event.timestamp());
-            bool ext = historian::checkEXT(t);
+            ptime t = atp::time::as_ptime(event.timestamp());
+            bool ext = atp::time::checkEXT(t);
             if (!ext) {
               continue; // outside trading hours
             }
 
-            bool rth = historian::checkRTH(t);
+            bool rth = atp::time::checkRTH(t);
             if (!rth && FLAGS_rth) {
               // Skip if not RTH and we want only data during trading hours.
               continue;
@@ -620,7 +621,7 @@ int main(int argc, char** argv)
               double writeQps =
                   static_cast<double>(written_so_far) / elapsedSec;
               if (dt.minutes() >= 15) {
-                LOG(INFO) << "Currently at " << historian::to_est(t)
+                LOG(INFO) << "Currently at " << atp::time::to_est(t)
                           << ": in " << elapsedSec << " sec. "
                           << ": matchedRecords=" << matchedRecords
                           << ", dbWrittenRecords=" << dbWrittenRecords
@@ -655,7 +656,7 @@ int main(int argc, char** argv)
 
               if (FLAGS_csv) {
 
-                std::cout << ((FLAGS_est) ? historian::to_est(t) : t) << ","
+                std::cout << ((FLAGS_est) ? atp::time::to_est(t) : t) << ","
                           << event.symbol() << ","
                           << event.event() << ",";
                 switch (event.value().type()) {
@@ -690,14 +691,14 @@ int main(int argc, char** argv)
             historian::MarketDepth event;
             if (atp::utils::Convert(nv, &event)) {
 
-              ptime t = historian::as_ptime(event.timestamp());
+              ptime t = atp::time::as_ptime(event.timestamp());
 
-              bool ext = historian::checkEXT(t);
+              bool ext = atp::time::checkEXT(t);
               if (!ext) {
                 continue; // outside trading hours
               }
 
-              bool rth = historian::checkRTH(t);
+              bool rth = atp::time::checkRTH(t);
 
               if (!rth && FLAGS_rth) {
                 // Skip if not RTH and we want only data during trading hours.
@@ -717,7 +718,7 @@ int main(int argc, char** argv)
                     static_cast<double>(written_so_far) / elapsedSec;
                 if (dt.minutes() >= 15) {
                   LOG(INFO) << "MarketDepth: Currently at "
-                            << historian::to_est(t)
+                            << atp::time::to_est(t)
                             << ": in " << elapsedSec << " sec. "
                             << ": matchedRecords=" << matchedRecords
                             << ", dbWrittenRecords=" << dbWrittenRecords
@@ -754,7 +755,7 @@ int main(int argc, char** argv)
               } else {
 
                 if (FLAGS_csv) {
-                  std::cout << ((FLAGS_est) ? historian::to_est(t) : t) << ","
+                  std::cout << ((FLAGS_est) ? atp::time::to_est(t) : t) << ","
                             << event.symbol() << ","
                             << event.side() << ","
                             << event.level() << ","
