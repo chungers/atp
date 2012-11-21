@@ -72,4 +72,15 @@ This is to ensure that all indicators are using the same history. TA-lib
 functions *should not* mutate the input array buffer, so it *may be* safe
 to share across all threads.
 
+# Some Math
+
+Computing the first derivative of a discrete-time signal, we look at finite
+difference methods.  In this case, we use the backward difference form.
+
+   dx/dt = [ x(t) - x(t-1) ] / T
+   d2x/dt2 = [ x(t) - 2x(t-1) + x(t-2) ] / T^2
+
+See [http://www.edaboard.com/thread169215.html](http://www.edaboard.com/thread169215.html)
+and [http://en.wikipedia.org/wiki/Finite_difference](http://en.wikipedia.org/wiki/Finite_difference)
+
 
