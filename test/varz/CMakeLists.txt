@@ -7,24 +7,24 @@ message(STATUS "TESTS: Varz ================================================")
 add_definitions('-DJSON_SPIRIT_MVALUE_ENABLED')
 
 # Complete Test Suite
-set(varz_test_incs
+set(test_varz_all_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
 )
-set(varz_test_srcs
+set(test_varz_all_srcs
   ${TEST_DIR}/AllTests.cpp
   VarzTest.cpp
 )
-set(varz_test_libs
+set(test_varz_all_libs
   json_spirit
   atp_varz
 )
-cpp_gtest(varz_test)
+cpp_gtest(test_varz_all)
 
 add_custom_target(all_varz_tests)
 add_dependencies(all_varz_tests
-  varz_test
+  test_varz_all
 )
 
 

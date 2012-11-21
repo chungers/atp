@@ -16,18 +16,18 @@ proto_library(test_protos test.proto ${SRC_DIR})
 
 
 # Prototype
-set(Prototype_incs
+set(prototype_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
 )
-set(Prototype_srcs
+set(prototype_srcs
   ${TEST_DIR}/AllTests.cpp
   indicator_prototype.cpp
 )
-set(Prototype_libs
+set(prototype_libs
   api_base
   ib_api_versioned_base
   atp_log_reader
@@ -44,20 +44,19 @@ set(Prototype_libs
   bz2
   z
   )
-cpp_gtest(Prototype)
+cpp_gtest(prototype)
 
-
-# StrategyPrototype
-set(StrategyPrototype_incs
+# prototype_strategy
+set(prototype_strategy_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
 )
-set(StrategyPrototype_srcs
+set(prototype_strategy_srcs
   ${TEST_DIR}/AllTests.cpp
   agent_prototype.cpp
 )
-set(StrategyPrototype_libs
+set(prototype_strategy_libs
   atp_message_processor
   atp_log_reader
   atp_proto
@@ -72,19 +71,19 @@ set(StrategyPrototype_libs
   bz2
   z
   )
-cpp_gtest(StrategyPrototype)
+cpp_gtest(prototype_strategy)
 
-# MiscPrototype
-set(MiscPrototype_incs
+# prototype_data_structures
+set(prototype_data_structures_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
 )
-set(MiscPrototype_srcs
+set(prototype_data_structures_srcs
   ${TEST_DIR}/AllTests.cpp
   misc_prototype.cpp
 )
-set(MiscPrototype_libs
+set(prototype_data_structures_libs
   atp_message_processor
   atp_log_reader
   atp_proto
@@ -99,11 +98,11 @@ set(MiscPrototype_libs
   bz2
   z
   )
-cpp_gtest(MiscPrototype)
+cpp_gtest(prototype_data_structures)
 
 add_custom_target(all_prototypes)
 add_dependencies(all_prototypes
-  Prototype
-  IndicatorPrototype
-  StrategyPrototype
+  prototype
+  prototype_data_structures
+  prototype_strategy
 )

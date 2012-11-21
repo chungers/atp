@@ -11,7 +11,7 @@ if (IB_USE_STD_STRING)
 endif (IB_USE_STD_STRING)
 
 # AsioEClientDriver test
-set(AsioEClientDriver_test_incs
+set(test_ib_asio_eclient_driver_incs
   ${IBAPI_ROOT}
   ${GEN_DIR}
   ${SRC_DIR}
@@ -19,37 +19,37 @@ set(AsioEClientDriver_test_incs
   ${IBAPI_IMPL_DIR}
   ${TEST_DIR}
 )
-set(AsioEClientDriver_test_srcs
+set(test_ib_asio_eclient_driver_srcs
   ${TEST_DIR}/AllTests.cpp
   AsioEClientDriverTest.cpp
 )
-set(AsioEClientDriver_test_libs
+set(test_ib_asio_eclient_driver_libs
   IBAPIConnector
   ib_api_versioned
   QuantLib
 )
-cpp_gtest(AsioEClientDriver_test)
+cpp_gtest(test_ib_asio_eclient_driver)
 
 # SocketInitiator test
-set(SocketInitiator_test_incs
+set(test_ib_socket_initiator_incs
   ${IBAPI_ROOT}
   ${GEN_DIR}
   ${SRC_DIR}
   ${IBAPI_IMPL_DIR}
   ${TEST_DIR}
 )
-set(SocketInitiator_test_srcs
+set(test_ib_socket_initiator_srcs
   ${TEST_DIR}/AllTests.cpp
   SocketInitiatorTest.cpp
 )
-set(SocketInitiator_test_libs
+set(test_ib_socket_initiator_libs
   IBAPIConnector
   ib_api_versioned
 )
-cpp_gtest(SocketInitiator_test)
+cpp_gtest(test_ib_socket_initiator)
 
 # SocketConnector test
-set(SocketConnector_test_incs
+set(test_ib_socket_connector_incs
   ${IBAPI_ROOT}
   ${GEN_DIR}
   ${SRC_DIR}
@@ -57,32 +57,32 @@ set(SocketConnector_test_incs
   ${IBAPI_IMPL_DIR}
   ${TEST_DIR}
 )
-set(SocketConnector_test_srcs
+set(test_ib_socket_connector_srcs
   ${TEST_DIR}/AllTests.cpp
   SocketConnectorTest.cpp
 )
-set(SocketConnector_test_libs
+set(test_ib_socket_connector_libs
   IBAPIConnector
   ib_api_versioned
 )
-cpp_gtest(SocketConnector_test)
+cpp_gtest(test_ib_socket_connector)
 
 # Utils test
-set(utils_test_incs
+set(test_ib_utils_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
 )
-set(utils_test_srcs
+set(test_ib_utils_srcs
   ${TEST_DIR}/AllTests.cpp
   TickerMapTest.cpp
   UtilsTest.cpp
 )
-set(utils_test_libs
+set(test_ib_utils_libs
   IBAPIConnector
   ib_api_versioned
 )
-cpp_gtest(utils_test)
+cpp_gtest(test_ib_utils)
 
 
 # Version specific unit tests.
@@ -90,9 +90,9 @@ add_subdirectory(${IBAPI_IMPL_DIR})
 
 add_custom_target(all_ib_tests)
 add_dependencies(all_ib_tests
-  AsioEClientDriver_test
-  SocketInitiator_test
-  SocketConnector_test
-  utils_test
-  all_versioned_tests
+  test_ib_asio_eclient_driver
+  test_ib_socket_initiator
+  test_ib_socket_connector
+  test_ib_utils
+  all_versioned_tests # target in subdirectory
 )

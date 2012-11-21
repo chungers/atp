@@ -15,7 +15,7 @@ include_directories(${IBAPI_ROOT}/Shared ${IBAPI_ROOT}/PosixSocketClient)
 FILE(GLOB IMPL_FILES "${SRC_DIR}/ib/${IBAPI_IMPL_DIR}/*.cpp")
 
 # MarketData test
-set(V966_Marshall_test_incs
+set(test_ib_v966_marshall_incs
   ${IBAPI_ROOT}
   ${GEN_DIR}
   ${SRC_DIR}
@@ -23,17 +23,17 @@ set(V966_Marshall_test_incs
   ${IBAPI_IMPL_DIR}
   ${TEST_DIR}
 )
-set(V966_Marshall_test_srcs
+set(test_ib_v966_marshall_srcs
   ${TEST_DIR}/AllTests.cpp
   MarshallTest.cpp
 )
-set(V966_Marshall_test_libs
+set(test_ib_v966_marshall_libs
   ib_api_versioned
 )
-cpp_gtest(V966_Marshall_test)
+cpp_gtest(test_ib_v966_marshall)
 
 
 add_custom_target(all_versioned_tests)
 add_dependencies(all_versioned_tests
-  V966_Marshall_test
+  test_ib_v966_marshall
 )

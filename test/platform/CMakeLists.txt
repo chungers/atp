@@ -3,47 +3,47 @@
 
 message(STATUS "TESTS: Platform ==============================================")
 
-# MessageProcessorTests
-set(MessageProcessorTest_incs
+# test_platform_message_processor
+set(test_platform_message_processor_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
 )
-set(MessageProcessorTest_srcs
+set(test_platform_message_processor_srcs
   ${TEST_DIR}/AllTests.cpp
   MessageProcessorTest.cpp
 )
-set(MessageProcessorTest_libs
+set(test_platform_message_processor_libs
   atp_proto
   atp_message_processor
   gflags
   glog
   zmq
   )
-cpp_gtest(MessageProcessorTest)
+cpp_gtest(test_platform_message_processor)
 
 
-# MarketDataHandlerTests
-set(MarketDataHandlerTest_incs
+# test_platform_marketdata_handler
+set(test_platform_marketdata_handler_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
 )
-set(MarketDataHandlerTest_srcs
+set(test_platform_marketdata_handler_srcs
   ${TEST_DIR}/AllTests.cpp
   MarketDataHandlerTest.cpp
 )
-set(MarketDataHandlerTest_libs
+set(test_platform_marketdata_handler_libs
   atp_proto
   atp_message_processor
   gflags
   glog
   zmq
   )
-cpp_gtest(MarketDataHandlerTest)
+cpp_gtest(test_platform_marketdata_handler)
 
 add_custom_target(all_platform_tests)
 add_dependencies(all_platform_tests
-  MessageProcessorTest
-  MarketDataHandlerTest
+  test_platform_message_processor
+  test_platform_marketdata_handler
 )

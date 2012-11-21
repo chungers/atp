@@ -10,20 +10,20 @@ if (IB_USE_STD_STRING)
 endif (IB_USE_STD_STRING)
 
 # CommonTests
-set(CommonLibTest_incs
+set(test_common_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
 )
-set(CommonLibTest_srcs
+set(test_common_srcs
   ${TEST_DIR}/AllTests.cpp
   ExecutorTest.cpp
   FactoryTest.cpp
   TimeSeriesTest.cpp
 )
-set(CommonLibTest_libs
+set(test_common_libs
   api_base
   ib_api_versioned_base
   atp_common
@@ -32,10 +32,10 @@ set(CommonLibTest_libs
   gflags
   glog
   )
-cpp_gtest(CommonLibTest)
+cpp_gtest(test_common)
 
 
 add_custom_target(all_common_tests)
 add_dependencies(all_common_tests
-  CommonLibTest
+  test_common
 )

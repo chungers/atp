@@ -4,39 +4,39 @@
 message(STATUS "TESTS: historian  ============================================")
 
 # Internal Stuff
-set(historian_internal_tests_incs
+set(test_historian_internal_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
 )
-set(historian_internal_tests_srcs
+set(test_historian_internal_srcs
   ${TEST_DIR}/AllTests.cpp
   InternalTest.cpp
   UtilsTest.cpp
 )
-set(historian_internal_tests_libs
+set(test_historian_internal_libs
   atp_historian
 )
-cpp_gtest(historian_internal_tests)
+cpp_gtest(test_historian_internal)
 
 # Complete Test Suite
-set(historian_tests_incs
+set(test_historian_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${TEST_DIR}
 )
-set(historian_tests_srcs
+set(test_historian_srcs
   ${TEST_DIR}/AllTests.cpp
   DbTest.cpp
   DbReactorTest.cpp
 )
-set(historian_tests_libs
+set(test_historian_libs
   atp_historian
 )
-cpp_gtest(historian_tests)
+cpp_gtest(test_historian)
 
 add_custom_target(all_historian_tests)
 add_dependencies(all_historian_tests
-  historian_internal_tests
-  historian_tests
+  test_historian_internal
+  test_historian
 )
