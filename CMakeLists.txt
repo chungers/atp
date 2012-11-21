@@ -104,6 +104,7 @@ third_party_plain_make(leveldb)
 
 # Include the subdirectories required for this project:
 add_subdirectory(src)
+add_subdirectory(prototype)
 add_subdirectory(test)
 add_subdirectory(R-packages)
 
