@@ -1,3 +1,5 @@
+#ifndef ATP_PLATFORM_MARKETDATA_HANDLER_PROTO_IMPL_H_
+#define ATP_PLATFORM_MARKETDATA_HANDLER_PROTO_IMPL_H_
 
 #include "platform/marketdata_handler.hpp"
 
@@ -64,3 +66,4 @@ bool value_updater<MarketData, string>::operator()(const timestamp_t& ts,
 } // atp
 
 
+#endif //ATP_PLATFORM_MARKETDATA_HANDLER_PROTO_IMPL_H_

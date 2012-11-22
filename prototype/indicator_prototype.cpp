@@ -54,8 +54,9 @@ static const string LOG_FILE = "firehose.li126-61.jenkins.log.INFO.20121004.gz";
 static const string PUB_ENDPOINT = "ipc://_logreader.ipc";
 
 
+using namespace atp::time_series::sampler;
 
-typedef moving_window< double, sampler<double>::latest > mw_latest_double;
+typedef moving_window< double, latest<double> > mw_latest_double;
 
 
 bool stop_function(const string& topic, const string& message,
@@ -82,17 +83,16 @@ namespace atp {
 namespace time_series {
 namespace callback {
 
-
 // partial specialization of the template
 // this is required to be here because the linker can't find
 // the specialization in a lib.
 template <typename V>
-struct logger_post_process : public post_process<V>
+struct logger_post_process : public ohlc_post_process<V>
 {
-  typedef typename sampler<V>::open ohlc_open;
-  typedef typename sampler<V>::close ohlc_close;
-  typedef typename sampler<V>::min ohlc_low;
-  typedef typename sampler<V>::max ohlc_high;
+  typedef atp::time_series::sampler::open<V> ohlc_open;
+  typedef atp::time_series::sampler::close<V> ohlc_close;
+  typedef atp::time_series::sampler::min<V> ohlc_low;
+  typedef atp::time_series::sampler::max<V> ohlc_high;
 
   inline void operator()(const size_t count,
                          const moving_window<V, ohlc_open>& open,
@@ -173,7 +173,6 @@ TEST(IndicatorPrototype, OhlcUsage)
 {
   using namespace atp::time_series;
   using namespace atp::time_series::callback;
-
 
   typedef ohlc<double, post_process_cout<double> > ohlc_last;
   typedef ohlc<double, logger_post_process<double> > ohlc_last_logging;
@@ -270,3 +269,4 @@ TEST(IndicatorPrototype, OhlcUsage)
       >> spx_sma20;
   */
 }
+

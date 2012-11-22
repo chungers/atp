@@ -26,6 +26,7 @@ set(prototype_incs
 set(prototype_srcs
   ${TEST_DIR}/AllTests.cpp
   indicator_prototype.cpp
+  numeric_prototype.cpp
 )
 set(prototype_libs
   api_base

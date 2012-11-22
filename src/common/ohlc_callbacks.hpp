@@ -5,6 +5,8 @@
 #include "common/ohlc.hpp"
 #include "common/time_utils.hpp"
 
+
+
 using namespace std;
 using namespace boost::posix_time;
 
@@ -15,14 +17,14 @@ namespace callback {
 
 // partial specialization of the template
 template <typename V>
-class post_process_cout : public post_process<V>
+class post_process_cout : public ohlc_post_process<V>
 {
  public:
 
-  typedef typename sampler<V>::open ohlc_open;
-  typedef typename sampler<V>::close ohlc_close;
-  typedef typename sampler<V>::min ohlc_low;
-  typedef typename sampler<V>::max ohlc_high;
+  typedef atp::time_series::sampler::open<V> ohlc_open;
+  typedef atp::time_series::sampler::close<V> ohlc_close;
+  typedef atp::time_series::sampler::min<V> ohlc_low;
+  typedef atp::time_series::sampler::max<V> ohlc_high;
 
   post_process_cout() :
       facet_(new time_facet("%Y-%m-%d %H:%M:%S%F%Q"))

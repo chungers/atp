@@ -20,7 +20,7 @@ using namespace atp::time_series;
 
 TEST(TimeSeriesTest, SamplerTest)
 {
-  atp::time_series::sampler<int>::open open;
+  atp::time_series::sampler::open<int> open;
   EXPECT_EQ(1, open(0, 1, true));
   EXPECT_EQ(1, open(1, 2, false));
   EXPECT_EQ(1, open(2, 3, false));
@@ -28,7 +28,7 @@ TEST(TimeSeriesTest, SamplerTest)
   EXPECT_EQ(1, open(4, 5, false));
   EXPECT_EQ(6, open(5, 6, true));
 
-  atp::time_series::sampler<int>::close close;
+  atp::time_series::sampler::close<int> close;
   EXPECT_EQ(0, close(-1, 0, false));
   EXPECT_EQ(1, close(0, 1, true));
   EXPECT_EQ(2, close(1, 2, false));
@@ -37,21 +37,21 @@ TEST(TimeSeriesTest, SamplerTest)
   EXPECT_EQ(5, close(4, 5, false));
   EXPECT_EQ(6, close(5, 6, true));
 
-  atp::time_series::sampler<int>::max max;
+  atp::time_series::sampler::max<int> max;
   EXPECT_EQ(2, max(1, 2, false));
   EXPECT_EQ(3, max(2, 3, true));
   EXPECT_EQ(3, max(3, 2, false));
   EXPECT_EQ(5, max(2, 5, false));
   EXPECT_EQ(1, max(5, 1, true));
 
-  atp::time_series::sampler<int>::min min;
+  atp::time_series::sampler::min<int> min;
   EXPECT_EQ(1, min(1, 2, false));
   EXPECT_EQ(3, min(2, 3, true));
   EXPECT_EQ(2, min(3, 2, false));
   EXPECT_EQ(2, min(2, 5, false));
   EXPECT_EQ(1, min(5, 1, true));
 
-  atp::time_series::sampler<int>::latest latest;
+  atp::time_series::sampler::latest<int> latest;
   EXPECT_EQ(1, latest(0, 1, true));
   EXPECT_EQ(2, latest(1, 2, false));
   EXPECT_EQ(3, latest(2, 3, false));
@@ -59,7 +59,7 @@ TEST(TimeSeriesTest, SamplerTest)
   EXPECT_EQ(5, latest(4, 5, false));
   EXPECT_EQ(6, latest(5, 6, true));
 
-  atp::time_series::sampler<double>::avg avg;
+  atp::time_series::sampler::avg<int> avg;
   EXPECT_EQ(1.,
             avg(0., 1., true));
   EXPECT_EQ((1. + 2.) / 2.,
@@ -113,8 +113,8 @@ TEST(TimeSeriesTest, MovingWindowPolicyTest)
 
 TEST(TimeSeriesTest, SampleOpenTest)
 {
-  using atp::time_series::sampler;
-  moving_window< double, sampler<double>::open > open(
+  using namespace atp::time_series::sampler;
+  moving_window< double, open<double> > open(
       microseconds(1000), microseconds(10), 0.);
 
   boost::uint64_t t = 10000000000;
@@ -139,7 +139,7 @@ TEST(TimeSeriesTest, SampleOpenTest)
   EXPECT_EQ(13., open[-2]);
   EXPECT_EQ(10., open[-3]);
 
-  moving_window< double, sampler<double>::close > close(
+  moving_window< double, sampler::close<double> > close(
       microseconds(1000), microseconds(10), 0.);
 
   close.on(t + 10001, 10.);
@@ -167,8 +167,8 @@ TEST(TimeSeriesTest, SampleOpenTest)
 
 TEST(TimeSeriesTest, MovingWindowUsage)
 {
-  using atp::time_series::sampler;
-  moving_window< double, sampler<double>::latest > last_trade(
+  using namespace atp::time_series::sampler;
+  moving_window< double, latest<double> > last_trade(
       microseconds(1000), microseconds(10), 0.);
 
   boost::uint64_t t = 10000000000;

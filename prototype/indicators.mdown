@@ -81,6 +81,20 @@ difference methods.  In this case, we use the backward difference form.
    d2x/dt2 = [ x(t) - 2x(t-1) + x(t-2) ] / T^2
 
 See [http://www.edaboard.com/thread169215.html](http://www.edaboard.com/thread169215.html)
-and [http://en.wikipedia.org/wiki/Finite_difference](http://en.wikipedia.org/wiki/Finite_difference)
+and [http://en.wikipedia.org/wiki/Finite_difference](http://en.wikipedia.org/wiki/Finite_difference).  Basically, the derivative of N th order is approximated by
+
+   dNf(x)/dtN = backward_diff(N, T, F(x)) / T^N + O(T)
+
+where O(T) is the error term from taylor series approximation and
+the backward_difference operator for discrete function of F is
+
+   backward_diff(N, T, F(x)) := sum[i=0:N]( -1 ^i * choose(N, i) * f(x - i*T) )
+
+where choose is `combination` of choose i from N or binomial coefficient.
+
+
+Using GSL, the backward difference derivative is computed as
+[https://github.com/lab616/third_party/blob/master/gsl-1.15/deriv/deriv.c#L101](https://github.com/lab616/third_party/blob/master/gsl-1.15/deriv/deriv.c#L101).
+Note that this uses a 4-point rule and assumes a continuous function.
 
 

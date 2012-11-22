@@ -284,7 +284,7 @@ TEST(AgentPrototype, LoadDataFromLogfile)
 }
 
 
-typedef moving_window< double, sampler<double>::latest > mw_latest_double;
+typedef moving_window< double, sampler::latest<double> > mw_latest_double;
 
 template <typename V>
 void callOnMethod(const timestamp_t& ts, const V& v,
@@ -394,16 +394,16 @@ class ohlc
 {
  public:
 
-  typedef typename sampler<V>::open ohlc_open;
+  typedef typename sampler::open<V> ohlc_open;
   typedef moving_window<V, ohlc_open > mw_open;
 
-  typedef typename sampler<V>::close ohlc_close;
+  typedef typename sampler::close<V> ohlc_close;
   typedef moving_window<V, ohlc_close > mw_close;
 
-  typedef typename sampler<V>::max ohlc_high;
+  typedef typename sampler::max<V> ohlc_high;
   typedef moving_window<V, ohlc_high > mw_high;
 
-  typedef typename sampler<V>::min ohlc_low;
+  typedef typename sampler::min<V> ohlc_low;
   typedef moving_window<V, ohlc_low > mw_low;
 
 

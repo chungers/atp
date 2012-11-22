@@ -9,17 +9,15 @@ using boost::posix_time::time_duration;
 
 namespace atp {
 namespace time_series {
-
-
 namespace callback {
 
 template <typename V>
-struct post_process
+struct ohlc_post_process
 {
-  typedef typename sampler<V>::open ohlc_open;
-  typedef typename sampler<V>::close ohlc_close;
-  typedef typename sampler<V>::min ohlc_low;
-  typedef typename sampler<V>::max ohlc_high;
+  typedef atp::time_series::sampler::open<V> ohlc_open;
+  typedef atp::time_series::sampler::close<V> ohlc_close;
+  typedef atp::time_series::sampler::min<V> ohlc_low;
+  typedef atp::time_series::sampler::max<V> ohlc_high;
 
   inline void operator()(const size_t count,
                          const moving_window<V, ohlc_open>& open,
@@ -30,27 +28,24 @@ struct post_process
     // no-op
   }
 };
-
-
 } // callback
 
 
-
-template <typename V, typename PostProcess = callback::post_process<V> >
+template <typename V, typename PostProcess = callback::ohlc_post_process<V> >
 class ohlc
 {
  public:
 
-  typedef typename sampler<V>::open ohlc_open;
+  typedef atp::time_series::sampler::open<V> ohlc_open;
   typedef moving_window<V, ohlc_open > mw_open;
 
-  typedef typename sampler<V>::close ohlc_close;
+  typedef atp::time_series::sampler::close<V> ohlc_close;
   typedef moving_window<V, ohlc_close > mw_close;
 
-  typedef typename sampler<V>::max ohlc_high;
+  typedef atp::time_series::sampler::max<V> ohlc_high;
   typedef moving_window<V, ohlc_high > mw_high;
 
-  typedef typename sampler<V>::min ohlc_low;
+  typedef atp::time_series::sampler::min<V> ohlc_low;
   typedef moving_window<V, ohlc_low > mw_low;
 
   ohlc(time_duration h, time_duration s, V initial) :
