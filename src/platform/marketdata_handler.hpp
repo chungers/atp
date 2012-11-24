@@ -67,11 +67,12 @@ class value_updater
       typename dispatch_map::iterator itr = dispatch_map_.find(event);
       if (itr != dispatch_map_.end()) {
         try {
-
           itr->second(ts, v);
           return true; // dispatched.
 
         } catch (...) {
+          LOG(WARNING) << "Exception while processing " << event
+                       << ": " << ts << "," << v;
           return false; // exception
         }
       }

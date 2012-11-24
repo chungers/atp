@@ -59,7 +59,7 @@ TEST(TimeSeriesTest, SamplerTest)
   EXPECT_EQ(5, latest(4, 5, false));
   EXPECT_EQ(6, latest(5, 6, true));
 
-  atp::time_series::sampler::avg<int> avg;
+  atp::time_series::sampler::avg<double> avg;
   EXPECT_EQ(1.,
             avg(0., 1., true));
   EXPECT_EQ((1. + 2.) / 2.,
@@ -215,12 +215,12 @@ TEST(TimeSeriesTest, MovingWindowUsage)
   EXPECT_EQ(20., last_trade[-2]);
   EXPECT_EQ(26., last_trade[-3]);
 
-  last_trade.on(t + 10158, 29.); // 26, 26, 26, 26, 20, 29
+  last_trade(t + 10158, 29.); // 26, 26, 26, 26, 20, 29
   EXPECT_EQ(29., last_trade[-1]);
   EXPECT_EQ(20., last_trade[-2]);
   EXPECT_EQ(26., last_trade[-3]);
 
-  last_trade.on(t + 10161, 31.); // 26, 26, 26, 26, 20, 29, 31
+  last_trade(t + 10161, 31.); // 26, 26, 26, 26, 20, 29, 31
   EXPECT_EQ(31., last_trade[-1]);
   EXPECT_EQ(29., last_trade[-2]);
   EXPECT_EQ(20., last_trade[-3]);

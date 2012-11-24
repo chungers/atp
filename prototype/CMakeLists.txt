@@ -25,7 +25,6 @@ set(prototype_incs
 )
 set(prototype_srcs
   ${TEST_DIR}/AllTests.cpp
-#  indicator_prototype.cpp
   numeric_prototype.cpp
 )
 set(prototype_libs
@@ -46,6 +45,37 @@ set(prototype_libs
   z
   )
 cpp_gtest(prototype)
+
+# Prototype
+set(prototype_indicator_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${TEST_DIR}
+  ${IBAPI_ROOT}
+  ${IBAPI_ROOT}/Shared
+)
+set(prototype_indicator_srcs
+  ${TEST_DIR}/AllTests.cpp
+  indicator_prototype.cpp
+)
+set(prototype_indicator_libs
+  api_base
+  ib_api_versioned_base
+  atp_log_reader
+  atp_message_processor
+  atp_proto
+  atp_zmq
+  boost_system
+  boost_iostreams
+  test_protos
+  gflags
+  glog
+  protobuf
+  ta_lib
+  bz2
+  z
+  )
+cpp_gtest(prototype_indicator)
 
 # prototype_strategy
 set(prototype_strategy_incs
@@ -105,5 +135,6 @@ add_custom_target(all_prototypes)
 add_dependencies(all_prototypes
   prototype
   prototype_data_structures
+  prototype_indicator
   prototype_strategy
 )
