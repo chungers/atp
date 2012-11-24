@@ -95,7 +95,7 @@ struct pipeline
 
   void operator()(const microsecond_t& t, const V& v)
   {
-    size_t len = 10;
+    size_t len = source.get().capacity() - 1;
     size_t pushes = source.get_pointer()->on(t, v);
     // copy the data
     V vbuffer[len];
