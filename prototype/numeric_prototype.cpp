@@ -18,7 +18,7 @@
 #include "common/ohlc_callbacks.hpp"
 #include "common/time_utils.hpp"
 
-#include "platform/marketdata_handler.hpp"
+#include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
 
 #include "proto/ib.pb.h"
@@ -39,23 +39,12 @@ using boost::function;
 
 namespace prototype {
 
-template <typename element_t>
-struct closing
-{
-    inline const element_t operator()(const element_t& last,
-                                      const element_t& now,
-                                      bool new_period)
-    {
-      return now;
-    }
-};
-
 template <typename V>
-class indicator : public moving_window<V, closing<V> >
+class indicator : public moving_window<V, atp::time_series::sampler::close<V> >
 {
  public:
   indicator(time_duration h, sample_interval_t i, V init) :
-      moving_window<V, closing<V> >(h, i, init)
+      moving_window<V, atp::time_series::sampler::close<V> >(h, i, init)
   {
   }
 
@@ -78,42 +67,117 @@ class first_derivative : public indicator<V>
 
 };
 
-
 template <typename V, typename S>
-size_t call_derived(moving_window< V, S>& source, indicator<V>& derived,
-                      const microsecond_t& ts, const V& v, size_t len)
+struct pipeline
 {
-  size_t pushes = source.on(ts, v);
-  // copy the data
-  V vbuffer[len];
-  microsecond_t tbuffer[len];
-  size_t copied = source.copy_last(tbuffer, vbuffer, len);
-  // calculate
-  V computed = derived.calculate(tbuffer, vbuffer, len);
-  return derived.on(ts, computed);
-}
+  typedef typename boost::reference_wrapper< indicator< V > > indicator_ref;
+  typedef typename std::vector< indicator_ref > indicator_list;
+  typedef typename std::vector< indicator_ref >::iterator indicator_list_itr;
+
+  pipeline(moving_window<V, S>& source) :
+      source(boost::ref(source))
+  {
+
+  }
+
+  void operator()(const microsecond_t& t, const V& v)
+  {
+    size_t len = 10;
+    size_t pushes = source.get_pointer()->on(t, v);
+    // copy the data
+    V vbuffer[len];
+    microsecond_t tbuffer[len];
+    size_t copied = source.get_pointer()->copy_last(tbuffer, vbuffer, len);
+
+    indicator_list_itr itr;
+    for(itr = list.begin(); itr != list.end(); ++itr) {
+      V computed = itr->get_pointer()->calculate(tbuffer, vbuffer, len);
+      itr->get_pointer()->on(t, computed);
+    }
+  }
+
+  void add(indicator<V>& derived)
+  {
+    list.push_back(boost::ref(derived));
+  }
+
+  pipeline<V, S>& operator>>(indicator<V>& derived)
+  {
+    add(derived);
+    return *this;
+  }
+
+  boost::reference_wrapper<moving_window<V, S> > source;
+  indicator_list list;
+};
 
 template <typename S, typename V>
-function<size_t(const microsecond_t& ts, const V&)>
-operator>>(moving_window<V, S>& source, indicator<V>& derived)
+pipeline<V, S>& operator>>(moving_window<V, S>& source, indicator<V>& derived)
 {
-  return boost::bind(&call_derived<S, V>, boost::cref(source), boost::cref(derived),
-                     _1, _2, 10);
+  pipeline<V,S>* p = new pipeline<V,S>(source);
+  p->add(derived);
+  return *p;
 }
 
 } // prototype
+
+namespace atp {
+namespace platform {
+
+template <typename E>
+class prototype_marketdata_handler : public marketdata_handler<E>
+{
+ public:
+
+  template <typename V, typename S>
+  void bind(const string& event_code,
+            prototype::pipeline<V,S>& pipeline);
+
+  template <typename S> void bind(const string& event_code,
+                                  prototype::pipeline<double,S>& pipeline)
+  {
+    bind(event_code, pipeline);
+  }
+
+  template <typename S> void bind(const string& event_code,
+                                  prototype::pipeline<int,S>& pipeline)
+  {
+    bind(event_code, pipeline);
+  }
+
+  template <typename S> void bind(const string& event_code,
+                                  prototype::pipeline<string,S>& pipeline)
+  {
+    bind(event_code, pipeline);
+  }
+
+};
+
+
+} // platform
+} // atp
 
 TEST(NumericPrototype, DerivedCalculations)
 {
   using namespace atp::time_series;
   using namespace atp::time_series::callback;
+  using namespace prototype;
+
+  atp::platform::prototype_marketdata_handler<MarketData> feed;
 
   moving_window< double, atp::time_series::sampler::close<double> >
       price(seconds(10), seconds(1), 0);
 
-  // what's the proper data structure for something that depends
-  // on another moving window?  ie. its value is not computed until
-  // the source moving window is done.
+  first_derivative<double> close_rate(seconds(10), seconds(1), 0);
+  first_derivative<double> close_rate2(seconds(10), seconds(1), 0);
+
+  price >> close_rate >> close_rate2;
+
+  prototype::pipeline<double, atp::time_series::sampler::close<double> >
+      pp(price);
+
+  feed.bind("LAST", price >> close_rate >> close_rate2);
+
 }
 
 

@@ -239,7 +239,7 @@ class moving_window
 
   /// Returns the number of pushes into the time slots
   /// This allows the caller to track the number aggregated samples.
-  size_t on(microsecond_t timestamp, element_t value)
+  size_t on(const microsecond_t& timestamp, const element_t& value)
   {
     int windows = sample_interval_policy_.count_windows(current_ts_, timestamp);
     // Don't fill in missing values if starting up.

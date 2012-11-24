@@ -85,19 +85,19 @@ class value_updater
   };
 
   inline void bind(const event_code_t& event,
-                    callback::update_event<double>::func updater)
+                   callback::update_event<double>::func updater)
   {
     double_dispatcher_.bind(event, updater);
   }
 
   inline void bind(const event_code_t& event,
-                    callback::update_event<int>::func updater)
+                   callback::update_event<int>::func updater)
   {
     int_dispatcher_.bind(event, updater);
   }
 
   inline void bind(const event_code_t& event,
-                    callback::update_event<string>::func updater)
+                   callback::update_event<string>::func updater)
   {
     string_dispatcher_.bind(event, updater);
   }
@@ -134,6 +134,8 @@ class marketdata_handler
 
  public:
 
+  typedef event_code_t event_code_type;
+
   bool operator()(const message_key_t& key,
                   const serialized_data_t& msg)
   {
@@ -167,22 +169,23 @@ class marketdata_handler
 
 
   inline void bind(const event_code_t& event,
-                    callback::update_event<double>::func updater)
+                   callback::update_event<double>::func updater)
   {
     updaters_.bind(event, updater);
   }
 
   inline void bind(const event_code_t& event,
-                    callback::update_event<int>::func updater)
+                   callback::update_event<int>::func updater)
   {
     updaters_.bind(event, updater);
   }
 
   inline void bind(const event_code_t& event,
-                    callback::update_event<string>::func updater)
+                   callback::update_event<string>::func updater)
   {
     updaters_.bind(event, updater);
   }
+
 
  private:
   value_updater<EventClass, event_code_t> updaters_;
