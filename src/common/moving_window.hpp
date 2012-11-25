@@ -215,8 +215,31 @@ class moving_window
   }
 
   template <typename buffer_t>
-  const size_t copy_last(microsecond_t timestamp[],
+  const size_t copy_last_(microsecond_t timestamp[],
                          buffer_t array[],
+                         const size_t length) const
+  {
+    if (length > buffer_.capacity() + 1) {
+      return 0; // No copy is done.
+    }
+    array[length - 1] = current_value_;
+    timestamp[length - 1] = sample_interval_policy_.get_time(current_ts_, 0);
+    size_t to_copy = length - 1;
+    size_t copied = 1;
+    reverse_itr r = buffer_.rbegin();
+
+    // fill the array in reverse order
+    for (; r != buffer_.rend() && to_copy > 0; --to_copy, ++copied, ++r) {
+      array[length - 1 - copied] = *r;
+      timestamp[length - 1 - copied] =
+          sample_interval_policy_.get_time(current_ts_, copied);
+    }
+    return copied;
+  }
+
+  template <typename buffer_t>
+  const size_t copy_last(microsecond_t *timestamp,
+                         buffer_t *array,
                          const size_t length) const
   {
     if (length > buffer_.capacity() + 1) {

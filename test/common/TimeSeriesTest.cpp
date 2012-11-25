@@ -196,7 +196,7 @@ TEST(TimeSeriesTest, MovingWindowUsage)
   microsecond_t tbuff[p.size()];
   double buff[p.size()];
 
-  int copied = last_trade.copy_last(tbuff, buff, p.size());
+  int copied = last_trade.copy_last(&tbuff[0], &buff[0], p.size());
 
   EXPECT_EQ(p.size(), copied);
 

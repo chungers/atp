@@ -21,6 +21,16 @@ namespace atp {
 namespace platform {
 namespace marketdata {
 
+
+namespace error_code {
+
+const int DISPATCHED = 1;
+const int NO_UPDATER_CONTINUE = 2;
+const int NO_VALUE_TYPE_MATCH = -100;
+const int EXCEPTION = -200;
+
+} // error_code
+
 template <typename EventClass, typename serialized_data_t>
 inline bool deserialize(const serialized_data_t& raw, EventClass& event);
 
@@ -62,21 +72,21 @@ class value_updater
     /// dispatches an event, with a timestamp and a typed value to the
     /// typed callback that's been registered.
     /// returns true if dispatch occurred.
-    bool dispatch(const event_code_t& event, const timestamp_t& ts, const V& v)
+    int dispatch(const event_code_t& event, const timestamp_t& ts, const V& v)
     {
       typename dispatch_map::iterator itr = dispatch_map_.find(event);
       if (itr != dispatch_map_.end()) {
         try {
           itr->second(ts, v);
-          return true; // dispatched.
+          return error_code::DISPATCHED; // dispatched.
 
         } catch (...) {
           LOG(WARNING) << "Exception while processing " << event
                        << ": " << ts << "," << v;
-          return false; // exception
+          return error_code::EXCEPTION;
         }
       }
-      return true;
+      return error_code::NO_UPDATER_CONTINUE;
     }
 
    private:
@@ -107,9 +117,9 @@ class value_updater
   /// actual operator called that performs the dispatch.
   /// There are template specializations for support for protobuffer
   /// (proto::ib::MarketData for example).
-  bool operator()(const timestamp_t& ts,
-                  const event_code_t& event_code,
-                  const EventClass& event);
+  int operator()(const timestamp_t& ts,
+                 const event_code_t& event_code,
+                 const EventClass& event);
 
  private:
 
@@ -137,8 +147,8 @@ class marketdata_handler
 
   typedef event_code_t event_code_type;
 
-  bool operator()(const message_key_t& key,
-                  const serialized_data_t& msg)
+  int operator()(const message_key_t& key,
+                 const serialized_data_t& msg)
   {
     return process_event(key, msg);
   }
@@ -146,8 +156,8 @@ class marketdata_handler
   /// processes the raw event in the form of the message key
   /// which is oftentimes the topic in a subscription, and
   /// some serialized form of data.
-  bool process_event(const message_key_t& key,
-                     const serialized_data_t& msg)
+  int process_event(const message_key_t& key,
+                    const serialized_data_t& msg)
   {
     EventClass event;
     if (deserialize(msg, event)) {
@@ -156,15 +166,11 @@ class marketdata_handler
       event_code_t event_code =
           get_event_code<EventClass, event_code_t>(event);
 
-      bool no_exception = updaters_(ts, event_code, event);
-      if (!no_exception) {
-        LOG(WARNING) << "Got exception while processing "
-                     << ts << "," << event_code;
-      }
-      return true; // continue
+      return updaters_(ts, event_code, event);
+
     } else {
       LOG(WARNING) << "Cannot deserialize: " << key << ", msg = " << msg;
-      return false;
+      return -1;
     }
   }
 

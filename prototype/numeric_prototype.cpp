@@ -51,7 +51,8 @@ class indicator : public moving_window<V, atp::time_series::sampler::close<V> >
     LOG(INFO) << get_id() << " created.";
   }
 
-  virtual const V calculate(microsecond_t t[], V v[], const size_t len) = 0;
+  virtual const V calculate(const microsecond_t *t, const V *v,
+                            const size_t len) = 0;
 
   const string& get_id() const
   {
@@ -72,7 +73,8 @@ class first_derivative : public indicator<V>
   {
   }
 
-  virtual const V calculate(microsecond_t t[], V v[], const size_t len)
+  virtual const V calculate(const microsecond_t *t, const V *v,
+                            const size_t len)
   {
     LOG(INFO) << indicator<V>::get_id() << ": calculate, len=" << len;
     return (v[len-1] - v[len-2]) / (t[len-1] - t[len-2]);

@@ -59,7 +59,8 @@ TEST(MarketDataHandlerTest, UsageSyntax)
   EXPECT_TRUE(bid.SerializeToString(&buff));
   EXPECT_TRUE(ask.SerializeToString(&buff2));
 
-  EXPECT_FALSE(h.process_event("AAPL.STK", buff)); // no handlers
+  EXPECT_EQ(atp::platform::marketdata::error_code::NO_UPDATER_CONTINUE,
+            h.process_event("AAPL.STK", buff)); // no handlers
 
   int bid_count = 0, ask_count = 0;
 

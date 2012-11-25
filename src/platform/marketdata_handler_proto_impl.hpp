@@ -37,9 +37,9 @@ inline const string& get_event_code<MarketData, string>(const MarketData& m)
 }
 
 template <>
-bool value_updater<MarketData, string>::operator()(const timestamp_t& ts,
-                                                   const string& event_code,
-                                                   const MarketData& event)
+int value_updater<MarketData, string>::operator()(const timestamp_t& ts,
+                                                  const string& event_code,
+                                                  const MarketData& event)
 {
   switch (event.value().type()) {
     case proto::common::Value::DOUBLE: {
@@ -57,7 +57,7 @@ bool value_updater<MarketData, string>::operator()(const timestamp_t& ts,
           event_code, ts, event.value().string_value());
     }
     default:
-      return false;
+      return atp::platform::marketdata::error_code::NO_VALUE_TYPE_MATCH;
   }
 }
 
