@@ -227,19 +227,25 @@ TEST(NumericPrototype, DerivedCalculations)
   // bind to the data feed
   feed.bind("LAST", price >> close_rate >> close_rate2);
 
-  // send a test message
-  MarketData md;
-  md.set_timestamp(now_micros());
-  md.set_symbol("AAPL.STK");
-  md.set_event("LAST");
-  md.mutable_value()->set_type(proto::common::Value::DOUBLE);
-  md.mutable_value()->set_double_value(600.);
-  md.set_contract_id(12345);
+  // send test messages
+  int count = 20;
+  for (int i = 0; i < count; ++i) {
 
-  string message;
-  EXPECT_TRUE(md.SerializeToString(&message));
+    LOG(INFO) << "count = " << i;
 
-  feed("AAPL.STK", message);
+    MarketData md;
+    md.set_timestamp(now_micros());
+    md.set_symbol("AAPL.STK");
+    md.set_event("LAST");
+    md.mutable_value()->set_type(proto::common::Value::DOUBLE);
+    md.mutable_value()->set_double_value(600. + 10 * i);
+    md.set_contract_id(12345);
+
+    string message;
+    EXPECT_TRUE(md.SerializeToString(&message));
+
+    feed("AAPL.STK", message);
+  }
 
 }
 

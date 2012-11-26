@@ -10,6 +10,7 @@
 
 #include "platform/types.hpp"
 #include "platform/callback.hpp"
+#include "platform/sequential_pipeline.hpp"
 
 using std::string;
 using boost::function;
@@ -113,7 +114,6 @@ class value_updater
     string_dispatcher_.bind(event, updater);
   }
 
-
   /// actual operator called that performs the dispatch.
   /// There are template specializations for support for protobuffer
   /// (proto::ib::MarketData for example).
@@ -191,6 +191,33 @@ class marketdata_handler
                    callback::update_event<string>::func updater)
   {
     updaters_.bind(event, updater);
+  }
+
+  template <typename V, typename S>
+  void bind(const string& event_code, sequential_pipeline<V,S>& pipeline);
+
+  template <typename S>
+  inline void bind(const event_code_t& event_code,
+                   sequential_pipeline<double,S>& pipeline)
+  {
+    callback::update_event<double>::func f = pipeline;
+    bind(event_code, f);
+  }
+
+  template <typename S>
+  inline void bind(const event_code_t& event_code,
+                   sequential_pipeline<int,S>& pipeline)
+  {
+    callback::update_event<int>::func f = pipeline;
+    bind(event_code, f);
+  }
+
+  template <typename S>
+  inline void bind(const event_code_t& event_code,
+                   sequential_pipeline<string,S>& pipeline)
+  {
+    callback::update_event<string>::func f = pipeline;
+    bind(event_code, f);
   }
 
 

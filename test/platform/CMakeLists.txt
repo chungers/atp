@@ -42,8 +42,28 @@ set(test_platform_marketdata_handler_libs
   )
 cpp_gtest(test_platform_marketdata_handler)
 
+# test_platform_indicator_pipeline
+set(test_platform_indicator_pipeline_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${TEST_DIR}
+)
+set(test_platform_indicator_pipeline_srcs
+  ${TEST_DIR}/AllTests.cpp
+  IndicatorPipelineTest.cpp
+)
+set(test_platform_indicator_pipeline_libs
+  atp_proto
+  atp_message_processor
+  gflags
+  glog
+  zmq
+  )
+cpp_gtest(test_platform_indicator_pipeline)
+
 add_custom_target(all_platform_tests)
 add_dependencies(all_platform_tests
   test_platform_message_processor
   test_platform_marketdata_handler
+  test_platform_indicator_pipeline
 )

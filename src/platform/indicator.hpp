@@ -5,6 +5,7 @@
 #include "common/time_utils.hpp"
 
 using atp::time_series::microsecond_t;
+using atp::time_series::moving_window;
 using atp::time_series::sample_interval_t;
 
 
