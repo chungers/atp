@@ -137,17 +137,33 @@ struct sample_interval_policy {
 };
 
 
+namespace callback {
+
+template <typename V>
+struct moving_window_post_process
+{
+  inline void operator()(const size_t count, const data_series<V>& window)
+  {
+    // no-op
+  }
+};
+} // callback
+
 
 /// A moving window of time-based values
 /// Different strategies for sampling can be set up.
 template <
   typename element_t,
-  typename sampler_t = boost::function<
-    element_t(const element_t& last, const element_t& current,
-              bool new_sample_period) >,
-  typename Alloc = boost::pool_allocator<element_t>,
-  typename sample_interval_policy = sample_interval_policy::align_at_zero >
-class moving_window
+  typename sampler_t =
+  boost::function<element_t(const element_t& last, const element_t& current,
+                            bool new_sample_period) >,
+  typename PostProcess =
+  callback::moving_window_post_process<element_t>,
+  typename Alloc =
+  boost::pool_allocator<element_t>,
+  typename sample_interval_policy =
+  sample_interval_policy::align_at_zero >
+class moving_window : public data_series<element_t>
 {
  public:
 
@@ -173,7 +189,7 @@ class moving_window
 
   /// Support for negative indexing as python
   /// -1 means the current value, -2 last element in buffer, ...
-  const element_t operator[](int index) const
+  virtual const element_t operator[](int index) const
   {
     if (index >= 0) {
       return buffer_[index];
@@ -203,38 +219,15 @@ class moving_window
     return buffer_.size();
   }
 
-  const size_t size() const
+  virtual const size_t size() const
   {
     return buffer_.size() + 1; // plus current unpushed value.
   }
 
   /// Must have negative index
-  const microsecond_t get_time(int offset = -1) const
+  virtual const microsecond_t get_time(int offset = -1) const
   {
     return sample_interval_policy_.get_time(current_ts_, -(offset + 1));
-  }
-
-  template <typename buffer_t>
-  const size_t copy_last_(microsecond_t timestamp[],
-                         buffer_t array[],
-                         const size_t length) const
-  {
-    if (length > buffer_.capacity() + 1) {
-      return 0; // No copy is done.
-    }
-    array[length - 1] = current_value_;
-    timestamp[length - 1] = sample_interval_policy_.get_time(current_ts_, 0);
-    size_t to_copy = length - 1;
-    size_t copied = 1;
-    reverse_itr r = buffer_.rbegin();
-
-    // fill the array in reverse order
-    for (; r != buffer_.rend() && to_copy > 0; --to_copy, ++copied, ++r) {
-      array[length - 1 - copied] = *r;
-      timestamp[length - 1 - copied] =
-          sample_interval_policy_.get_time(current_ts_, copied);
-    }
-    return copied;
   }
 
   template <typename buffer_t>
@@ -282,7 +275,16 @@ class moving_window
                               windows > 0 || current_ts_ == 0);
     current_ts_ = timestamp;
 
-    return static_cast<size_t>(windows);
+    size_t p = static_cast<size_t>(windows);
+
+    post_process_(p, *this);
+
+    return p;
+  }
+
+  virtual const sample_interval_t sample_interval() const
+  {
+    return interval_;
   }
 
  private:
@@ -297,6 +299,8 @@ class moving_window
 
   sampler_t sampler_;
   sample_interval_policy sample_interval_policy_;
+
+  PostProcess post_process_;
 };
 
 

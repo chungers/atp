@@ -8,7 +8,7 @@
 #include <glog/logging.h>
 
 #include "utils.hpp"
-#include "common/moving_window.hpp"
+#include "common/moving_window_callbacks.hpp"
 #include "common/time_utils.hpp"
 
 using namespace boost::assign;
@@ -165,13 +165,24 @@ TEST(TimeSeriesTest, SampleOpenTest)
 
 }
 
+struct label {
+  inline const string operator()() const { return "last"; }
+};
+
+
 TEST(TimeSeriesTest, MovingWindowUsage)
 {
   using namespace atp::time_series::sampler;
-  moving_window< double, latest<double> > last_trade(
+
+
+  typedef atp::time_series::callback::moving_window_post_process_cout<
+    label, double > pp;
+
+  moving_window<double, latest<double>, pp > last_trade(
       microseconds(1000), microseconds(10), 0.);
 
-  boost::uint64_t t = 10000000000;
+  boost::uint64_t t = now_micros();
+  t = t - ( t % 10 ); // this is so that time lines up nicely.
 
   last_trade.on(t + 10001, 10.); // 10.
   last_trade.on(t + 10011, 11.);

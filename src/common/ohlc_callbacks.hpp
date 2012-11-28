@@ -9,6 +9,8 @@
 
 using namespace std;
 using namespace boost::posix_time;
+using atp::time_series::data_series;
+
 
 namespace atp {
 namespace time_series {
@@ -33,10 +35,10 @@ class post_process_cout : public ohlc_post_process<V>
   }
 
   inline void operator()(const size_t count,
-                         const moving_window<V, ohlc_open>& open,
-                         const moving_window<V, ohlc_high>& high,
-                         const moving_window<V, ohlc_low>& low,
-                         const moving_window<V, ohlc_close>& close)
+                         const data_series<V>& open,
+                         const data_series<V>& high,
+                         const data_series<V>& low,
+                         const data_series<V>& close)
   {
     for (int i = -count; i < 0; ++i) {
       ptime t = atp::time::as_ptime(open.get_time(-2 + i));

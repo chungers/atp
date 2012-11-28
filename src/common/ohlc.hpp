@@ -5,6 +5,7 @@
 #include "common/moving_window.hpp"
 
 using boost::posix_time::time_duration;
+using atp::time_series::data_series;
 
 
 namespace atp {
@@ -20,10 +21,10 @@ struct ohlc_post_process
   typedef atp::time_series::sampler::max<V> ohlc_high;
 
   inline void operator()(const size_t count,
-                         const moving_window<V, ohlc_open>& open,
-                         const moving_window<V, ohlc_high>& high,
-                         const moving_window<V, ohlc_low>& low,
-                         const moving_window<V, ohlc_close>& close)
+                         const data_series<V>& open,
+                         const data_series<V>& high,
+                         const data_series<V>& low,
+                         const data_series<V>& close)
   {
     // no-op
   }
@@ -56,7 +57,12 @@ class ohlc
   {
   }
 
-  size_t on(microsecond_t timestamp, V value)
+  size_t operator()(const microsecond_t& timestamp, const V& value)
+  {
+    return (*this)(timestamp, value);
+  }
+
+  size_t on(const microsecond_t& timestamp, const V& value)
   {
     size_t open = open_.on(timestamp, value);
     size_t close = close_.on(timestamp, value);
