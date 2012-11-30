@@ -49,4 +49,4 @@ class moving_window_post_process_cout :
 } // time_series
 } // atp
 
-#endif ATP_TIME_SERIES_MOVING_WINDOW_CALLBACKS_H_
+#endif //ATP_TIME_SERIES_MOVING_WINDOW_CALLBACKS_H_
