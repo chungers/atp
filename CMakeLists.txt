@@ -108,11 +108,18 @@ add_subdirectory(prototype)
 add_subdirectory(test)
 add_subdirectory(R-packages)
 
+# Add this dependency here to make sure all the libs are built before R build
+# starts
+add_dependencies(all_R_packages
+  all_mains
+  all_tests
+  all_prototypes
+)
 
 add_custom_target(world)
 add_dependencies(world
   all_mains
   all_tests
   all_prototypes
-#  all_R_packages
+  all_R_packages
 )

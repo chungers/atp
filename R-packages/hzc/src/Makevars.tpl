@@ -14,11 +14,12 @@ PKG_CPPFLAGS = \
 ## Use the R_HOME indirection to support installations of multiple R version
 PKG_LIBS = \
 `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` \
--L@SRC_DIR@/zmq -lzmq_components \
--L@SRC_DIR@/historian -lhistorian_components \
--L@SRC_DIR@/proto -lproto_components \
--lprotobuf-lite \
+-L@SRC_DIR@/zmq -latp_zmq \
+-L@SRC_DIR@/historian -latp_historian \
+-L@SRC_DIR@/proto -latp_proto \
+-lprotobuf \
 -lzmq \
+-lboost_system \
 -lgflags -lglog
 
 

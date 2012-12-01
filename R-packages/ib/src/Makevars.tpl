@@ -19,11 +19,12 @@ PKG_CPPFLAGS = \
 PKG_LIBS = \
 `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` \
 -L@SRC_DIR@/ib -lapi_base \
--L@SRC_DIR@/ib/@IBAPI_IMPL_DIR@ -lib_api \
--L@SRC_DIR@/zmq -lzmq_components \
--L@SRC_DIR@/proto -lproto_components \
--lprotobuf-lite \
+-L@SRC_DIR@/ib/@IBAPI_IMPL_DIR@ -lib_api_versioned \
+-L@SRC_DIR@/zmq -latp_zmq \
+-L@SRC_DIR@/proto -latp_proto \
+-lprotobuf \
 -lzmq \
+-lboost_system \
 -lgflags -lglog
 
 

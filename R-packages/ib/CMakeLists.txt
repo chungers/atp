@@ -49,6 +49,7 @@ COMMENT "Compile / install R package ${R_PKG}",
 add_dependencies(r_bundle_ib
   ib_api
   api_base
+  api_versioned
   atp_zmq
   atp_proto
 )

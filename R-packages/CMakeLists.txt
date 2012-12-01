@@ -10,6 +10,7 @@ add_subdirectory(mds)
 
 add_custom_target(all_R_packages)
 add_dependencies(all_R_packages
+  ib_api_versioned
   r_package_ib
   r_package_hzc
   r_package_mds
