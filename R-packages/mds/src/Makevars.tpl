@@ -8,6 +8,7 @@
 
 # CXX flags for locating headers and libs
 PKG_CPPFLAGS = \
+-pg -g -W -ggdb -Wall -Wno-switch -fPIC -O2 \
 -I@SRC_DIR@ \
 -DR_EXTENSION
 

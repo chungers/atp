@@ -4,7 +4,8 @@
 message(STATUS "R-packages: hzc ==============================================")
 message(STATUS "OS: ${CMAKE_SYSTEM_NAME}")
 
-add_definitions('-fPIC')
+add_definitions('-pg -g -W -ggdb -Wall -Wno-switch -fPIC -O2')
+
 
 # Generate raptor R module MakeVars
 configure_file(

@@ -8,6 +8,7 @@
 
 # CXX flags for locating headers and libs
 PKG_CPPFLAGS = \
+-pg -g -W -ggdb -Wall -Wno-switch -fPIC -O2 \
 -I@IBAPI_ROOT@ \
 -I@SRC_DIR@ \
 -I@SRC_DIR@/ib/@IBAPI_IMPL_DIR@ \
