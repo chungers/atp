@@ -1,4 +1,6 @@
 
+#include <iostream>
+
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -119,5 +121,56 @@ bool operator<<(proto::ib::Contract& p, const Contract& c)
     }
   }
   return true;
+}
+
+//////////////// CONTRACT DETAIL /////////////////
+
+bool operator<<(ContractDetails& c, const proto::ib::ContractDetails& p)
+{
+  // NOT IMPLEMENTED -- the API never really requires sending contract details.
+  return true;
+}
+
+bool operator<<(proto::ib::ContractDetails& p, const ContractDetails& c)
+{
+  p.Clear();
+
+  proto::ib::Contract *summary = p.mutable_summary();
+  if (*summary << c.summary) {
+    p.set_id(c.summary.conId);
+    // compute the standard symbol... AAPL.STK or AAPL.OPT.20121130.650.C
+    std::ostringstream symbol;
+
+    symbol << c.summary.symbol << '.' << c.summary.secType;
+    if (summary->type() == proto::ib::Contract::OPTION) {
+      symbol << '.'
+             << summary->expiry().year()
+             << summary->expiry().month()
+             << summary->expiry().day()
+             << '.'
+             << c.summary.strike << '.' << c.summary.right;
+    }
+
+    p.set_symbol(symbol.str());
+    p.set_marketname(c.marketName);
+    p.set_tradingclass(c.tradingClass);
+    p.set_mintick(c.minTick);
+
+    p.set_ordertypes(c.orderTypes);
+    p.set_validexchanges(c.validExchanges);
+    p.set_pricemagnifier(c.priceMagnifier);
+    p.set_underconid(c.underConId);
+    p.set_longname(c.longName);
+    p.set_contractmonth(c.contractMonth);
+    p.set_industry(c.industry);
+    p.set_category(c.category);
+    p.set_subcategory(c.subcategory);
+    p.set_timezoneid(c.timeZoneId);
+    p.set_tradinghours(c.tradingHours);
+    p.set_liquidhours(c.liquidHours);
+
+    return true;
+  }
+  return false;
 }
 

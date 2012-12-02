@@ -22,6 +22,10 @@ const CallApiHandlerMap& _handlerMap()
   static CallApiHandlerMap handlerMap;
 
   {
+    ZmqMessagePtr p(new RequestContractDetails());
+    handlerMap[ (*p)->key() ] = p;
+  }
+  {
     ZmqMessagePtr p(new RequestMarketData());
     handlerMap[ (*p)->key() ] = p;
   }

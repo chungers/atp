@@ -31,6 +31,7 @@ set(ib_api_versioned_base_incs
 )
 set(ib_api_versioned_base_srcs
   ApiImpl.cpp
+  ContractEventDispatcher.cpp
   MarketEventDispatcher.cpp
   OrderEventDispatcher.cpp
   marshall_contract.cpp

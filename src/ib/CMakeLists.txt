@@ -52,6 +52,7 @@ set(IBAPIConnector_srcs
   SessionSetting.cpp
   SocketConnector.cpp
   SocketInitiator.cpp
+  ContractEventDispatcher.cpp
   MarketEventDispatcher.cpp
   OrderEventDispatcher.cpp
 )

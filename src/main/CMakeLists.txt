@@ -21,6 +21,24 @@ set(firehose_libs
 cpp_executable(firehose)
 
 ##########################################
+# CM - Contract Manager
+set(cm_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(cm_srcs
+  cm_main.cpp
+)
+set(cm_libs
+  IBAPIConnector
+  ib_api_versioned
+  boost_system
+  gflags
+  glog
+)
+cpp_executable(cm)
+
+##########################################
 # EM - Execution Manager
 set(em_incs
   ${GEN_DIR}

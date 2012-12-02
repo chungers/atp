@@ -19,6 +19,30 @@ namespace p = proto::ib;
 
 
 /**
+ * RequestContractDetails
+ */
+class RequestContractDetails :
+      public ProtoBufferApiMessage<p::RequestContractDetails,
+                                   RequestContractDetails>
+{
+ protected:
+  virtual bool callApi(const p::RequestContractDetails& proto,
+                       EClientPtr eclient)
+  {
+    long requestId = static_cast<int>(proto.message_id());
+    Contract c;
+    if (proto.contract() >> c) {
+
+      eclient->reqContractDetails(requestId, c);
+
+      return true;
+    }
+    return false;
+  }
+};
+
+
+/**
  * RequestMarketData
  */
 class RequestMarketData : public ProtoBufferApiMessage<p::RequestMarketData,
@@ -43,7 +67,6 @@ class RequestMarketData : public ProtoBufferApiMessage<p::RequestMarketData,
     return false;
   }
 };
-
 
 /**
  * CancelMarketData

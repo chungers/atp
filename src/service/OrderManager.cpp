@@ -3,16 +3,16 @@
 #include <vector>
 
 #include <zmq.hpp>
+#include <boost/unordered_map.hpp>
 #include <boost/thread.hpp>
 
 #include "zmq/Subscriber.hpp"
 #include "zmq/ZmqUtils.hpp"
 
 #include "ZmqProtoBuffer.hpp"
-#include "OrderManager.hpp"
+#include "service/OrderManager.hpp"
 
 using std::string;
-using std::map;
 using std::vector;
 using ::zmq::context_t;
 using ::zmq::socket_t;
@@ -74,7 +74,7 @@ class OrderManager::implementation : public Subscriber::Strategy
       if (more) {
 
         if (messageKeyFrame == ORDER_STATUS_MESSAGE_.GetTypeName()) {
-          p::OrderStatus* status = new p::OrderStatus();
+          p::OrderStatus *status = new p::OrderStatus();
           bool received = atp::receive<p::OrderStatus>(socket, *status);
 
           if (received) {
@@ -118,10 +118,8 @@ class OrderManager::implementation : public Subscriber::Strategy
     }
 
     AsyncOrderStatus status(response);
-
     boost::unique_lock<boost::shared_mutex> lock(mutex_);
     pendingOrders_[key] = status;
-
     return status;
   }
 
@@ -140,7 +138,7 @@ class OrderManager::implementation : public Subscriber::Strategy
   p::OrderStatus ORDER_STATUS_MESSAGE_;
 
   boost::shared_mutex mutex_;
-  map<SubmittedOrderId, AsyncOrderStatus> pendingOrders_;
+  boost::unordered_map<SubmittedOrderId, AsyncOrderStatus> pendingOrders_;
 };
 
 

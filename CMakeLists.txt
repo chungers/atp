@@ -121,5 +121,5 @@ add_dependencies(world
   all_mains
   all_tests
   all_prototypes
-  all_R_packages
+#  all_R_packages
 )

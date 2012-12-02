@@ -26,6 +26,18 @@ inline bool operator>>(const Contract& c, p::Contract& p)
 { return p << c; }
 
 
+//////////////// CONTRACT DETAILS /////////////////
+
+bool operator<<(ContractDetails& c, const p::ContractDetails& p);
+bool operator<<(p::ContractDetails& p, const ContractDetails& c);
+
+inline bool operator>>(const p::ContractDetails& p, ContractDetails& c)
+{ return c << p; }
+
+inline bool operator>>(const ContractDetails& c, p::ContractDetails& p)
+{ return p << c; }
+
+
 //////////////// ORDER /////////////////
 
 // Order base

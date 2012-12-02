@@ -82,6 +82,53 @@ message Contract {
   optional int32 multiplier = 9 [ default = 100 ];
 }
 
+message ContractDetails {
+
+  required uint64 id = 1;
+  required string symbol = 2;
+
+  required Contract summary = 3;
+
+
+  optional string marketName = 4;
+  optional string tradingClass = 5;
+  optional double minTick = 6;
+  optional string orderTypes = 7;
+  optional string validExchanges = 8;
+  optional int32 priceMagnifier = 9;
+  optional int32 underConId = 10;
+  optional string longName = 11;
+  optional string contractMonth = 12;
+  optional string industry = 13;
+  optional string category = 14;
+  optional string subcategory = 15;
+  optional string timeZoneId = 16;
+  optional string tradingHours = 17;
+  optional string liquidHours = 18;
+}
+
+message RequestContractDetails {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required uint32 request_id = 3;
+  required Contract contract = 4;
+}
+
+message ContractDetailsResponse {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required ContractDetails details = 3;
+}
+
+message ContractDetailsEnd {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required uint32 request_id = 3;
+}
+
 message RequestMarketData {
   required uint64 timestamp = 1;
   required uint64 message_id = 2;

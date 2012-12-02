@@ -27,7 +27,7 @@ using proto::ib::MarketDepth;
 
 
 
-class MarketEventDispatcher : public IBAPI::ApiEventDispatcher
+class MarketEventDispatcher : virtual public IBAPI::ApiEventDispatcher
 {
  public:
   MarketEventDispatcher(IBAPI::Application& app,
