@@ -189,7 +189,7 @@ class moving_window : public data_series<element_t>
 
   /// Support for negative indexing as python
   /// -1 means the current value, -2 last element in buffer, ...
-  virtual const element_t operator[](int index) const
+  virtual element_t operator[](int index) const
   {
     if (index >= 0) {
       return buffer_[index];
@@ -204,36 +204,36 @@ class moving_window : public data_series<element_t>
     }
   }
 
-  const long sample_microseconds() const
+  long sample_microseconds() const
   {
     return interval_.total_microseconds();
   }
 
-  const size_t capacity() const
+  size_t capacity() const
   {
     return buffer_.capacity() + 1;
   }
 
-  const size_t samples_buffered() const
+  size_t samples_buffered() const
   {
     return buffer_.size();
   }
 
-  virtual const size_t size() const
+  virtual size_t size() const
   {
     return buffer_.size() + 1; // plus current unpushed value.
   }
 
   /// Must have negative index
-  virtual const microsecond_t get_time(int offset = -1) const
+  virtual microsecond_t get_time(int offset = -1) const
   {
     return sample_interval_policy_.get_time(current_ts_, -(offset + 1));
   }
 
   template <typename buffer_t>
-  const size_t copy_last(microsecond_t *timestamp,
-                         buffer_t *array,
-                         const size_t length) const
+  size_t copy_last(microsecond_t *timestamp,
+                   buffer_t *array,
+                   const size_t length) const
   {
     if (length > buffer_.capacity() + 1) {
       return 0; // No copy is done.
@@ -282,7 +282,7 @@ class moving_window : public data_series<element_t>
     return p;
   }
 
-  virtual const sample_interval_t sample_interval() const
+  virtual sample_interval_t sample_interval() const
   {
     return interval_;
   }

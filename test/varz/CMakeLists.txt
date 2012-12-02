@@ -4,6 +4,7 @@
 
 message(STATUS "TESTS: Varz ================================================")
 
+add_definitions('-fPIC')
 add_definitions('-DJSON_SPIRIT_MVALUE_ENABLED')
 
 # Complete Test Suite

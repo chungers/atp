@@ -21,10 +21,10 @@ template <typename V>
 struct data_series
 {
   /// supports backwards indexing (negative index)
-  virtual const V operator[](int index) const = 0;
-  virtual const microsecond_t get_time(int index) const = 0;
-  virtual const size_t size() const = 0;
-  virtual const sample_interval_t sample_interval() const = 0;
+  virtual V operator[](int index) const = 0;
+  virtual microsecond_t get_time(int index) const = 0;
+  virtual size_t size() const = 0;
+  virtual sample_interval_t sample_interval() const = 0;
 };
 
 
