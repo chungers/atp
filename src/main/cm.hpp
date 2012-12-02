@@ -23,14 +23,12 @@ const string CONNECTOR_SPECS =
 const string OUTBOUND_ENDPOINTS =
     "0=tcp://127.0.0.1:9999";
 
-const proto::ib::ContractDetailsResponse CONTRACT_DETAILS_RESP;
-const proto::ib::ContractDetailsEnd CONTRACT_DETAILS_END;
+const proto::ib::RequestContractDetails REQUEST_CONTRACT_DETAILS;
 
 // ContractManager only supports messages related to orders
 const unordered_set<string> CM_VALID_MESSAGES_ =
     boost::assign::list_of
-    (CONTRACT_DETAILS_RESP.GetTypeName())
-    (CONTRACT_DETAILS_END.GetTypeName())
+    (REQUEST_CONTRACT_DETAILS.GetTypeName())
     ;
 
 class ContractManager : public IBAPI::ApplicationBase

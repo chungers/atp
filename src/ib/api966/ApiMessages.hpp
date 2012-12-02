@@ -29,7 +29,7 @@ class RequestContractDetails :
   virtual bool callApi(const p::RequestContractDetails& proto,
                        EClientPtr eclient)
   {
-    long requestId = static_cast<int>(proto.message_id());
+    long requestId = proto.request_id();
     Contract c;
     if (proto.contract() >> c) {
 

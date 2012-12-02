@@ -17,8 +17,10 @@ using std::string;
 using std::vector;
 using zmq::context_t;
 
-using proto::ib::Contract;
-using proto::ib::ContractDetailsEnd;
+namespace p = proto::ib;
+
+// using proto::ib::Contract;
+// using proto::ib::ContractDetailsEnd;
 
 using atp::common::async_response;
 
@@ -26,7 +28,7 @@ namespace atp {
 namespace service {
 
 
-typedef boost::shared_ptr< async_response<ContractDetailsEnd> >
+typedef boost::shared_ptr< async_response<p::ContractDetailsEnd> >
 AsyncContractDetailsEnd;
 
 static const vector<string> ALL_CONTRACT_EVENTS;
@@ -49,7 +51,7 @@ class ContractManager : NoCopyAndAssign
   requestContractDetails(const RequestId& id, const std::string& symbol);
 
   /// Key is something like 'AAPL.STK'
-  bool findContract(const std::string& key, Contract* contract) const;
+  bool findContract(const std::string& key, p::Contract* contract) const;
 
  private:
 

@@ -137,6 +137,7 @@ class ContractManager::implementation : public Subscriber::Strategy
       req.mutable_contract()->set_symbol(symbol);
       req.mutable_contract()->set_local_symbol(symbol);
 
+      req.set_request_id(id);
       req.set_message_id(id);
 
       size_t sent = atp::send(*cm_socket_, now_micros(), now_micros(), req);
@@ -153,7 +154,7 @@ class ContractManager::implementation : public Subscriber::Strategy
     return status;
   }
 
-  bool findContract(const std::string& key, Contract* contract) const
+  bool findContract(const std::string& key, p::Contract* contract) const
   {
     if (contractDetails_.find(key) != contractDetails_.end()) {
       contract->CopyFrom(contractDetails_.find(key)->second.summary());
@@ -206,7 +207,7 @@ ContractManager::requestContractDetails(const RequestId& id,
 }
 
 bool ContractManager::findContract(const std::string& key,
-                                   Contract* contract) const
+                                   p::Contract* contract) const
 {
   return impl_->findContract(key, contract);
 }

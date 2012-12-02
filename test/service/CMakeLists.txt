@@ -29,6 +29,38 @@ set(api_protocol_handler_libs
 )
 cpp_library(api_protocol_handler)
 
+# ContractManager
+set(test_service_contract_manager_incs
+  ${IBAPI_ROOT}
+  ${IBAPI_ROOT}/Shared
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${TEST_DIR}
+)
+set(test_service_contract_manager_srcs
+  ${TEST_DIR}/AllTests.cpp
+  ContractManagerTest.cpp
+)
+if(TEST_WITH_MOCK)
+  message(STATUS "Building with Mock")
+  add_definitions('-DTEST_WITH_MOCK')
+  set(test_service_contract_manager_libs
+    atp_contract_manager
+    IBAPIConnector
+    ib_api_versioned_base
+    )
+else(TEST_WITH_MOCK)
+  message(STATUS "Building with live connection")
+  set(test_service_contract_manager_libs
+    atp_order_manager
+    IBAPIConnector
+    ib_api_versioned_base
+    ib_api_versioned_handler # standard live protocol handler
+    )
+endif(TEST_WITH_MOCK)
+cpp_gtest(test_service_contract_manager)
+
+
 # OrderManager
 set(test_service_order_manager_incs
   ${IBAPI_ROOT}
@@ -93,5 +125,6 @@ cpp_gtest(test_service_log_reader)
 add_custom_target(all_service_tests)
 add_dependencies(all_service_tests
   test_service_log_reader
+  test_service_contract_manager
   test_service_order_manager
 )
