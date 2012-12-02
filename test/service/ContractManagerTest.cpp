@@ -158,7 +158,7 @@ TEST(ContractManagerTest, ContractManagerRequestDetailsResponseTimeoutTest)
   struct : public Assert {
     virtual void operator()(service::ContractManager::RequestId& reqId,
                             const ::Contract& c,
-                            EWrapper& e)
+                            EWrapper& ewrapper)
     {
       EXPECT_EQ(req_id, reqId);
       EXPECT_EQ(symbol, c.symbol);
@@ -188,3 +188,64 @@ TEST(ContractManagerTest, ContractManagerRequestDetailsResponseTimeoutTest)
   LOG(INFO) << "Cleanup";
   delete cm;
 }
+
+
+TEST(ContractManagerTest, ContractManagerRequestDetailsResponseSingle)
+{
+  clearAssert();
+  namespace p = proto::ib;
+
+  LOG(INFO) << "Starting contract manager";
+
+  ::ContractManager cmm;
+  SocketInitiator* cm = startContractManager(cmm, 16668, 19999);
+
+  service::ContractManager cm_client(
+      CM_ENDPOINT(16668), CM_EVENT_ENDPOINT(19999));
+  LOG(INFO) << "ContractManager ready.";
+
+  // create assert
+  struct : public Assert {
+    virtual void operator()(service::ContractManager::RequestId& reqId,
+                            const ::Contract& c,
+                            EWrapper& ewrapper)
+    {
+      EXPECT_EQ(req_id, reqId);
+      EXPECT_EQ(symbol, c.symbol);
+      EXPECT_EQ(0, c.conId); // Required for proper query to IB
+      EXPECT_EQ(symbol, c.localSymbol);
+      EXPECT_EQ(sec_type, c.secType);
+
+      ::ContractDetails details;
+      details.summary = c;
+      details.summary.conId = 12345;
+      ewrapper.contractDetails(reqId, details);
+
+      // send the end
+      ewrapper.contractDetailsEnd(reqId);
+    }
+
+    service::ContractManager::RequestId req_id;
+    std::string symbol;
+    std::string sec_type;
+  } assert;
+
+  assert.symbol = "GOOG";
+  assert.req_id = 200;
+  assert.sec_type = "STK";
+  setAssert(assert);
+
+  service::AsyncContractDetailsEnd future = cm_client.requestContractDetails(
+      200, "GOOG");
+  EXPECT_FALSE(future->is_ready());
+
+  sleep(5);
+  const p::ContractDetailsEnd& details_end = future->get(1000);
+
+  EXPECT_TRUE(future->is_ready());
+
+  sleep(2);
+  LOG(INFO) << "Cleanup";
+  delete cm;
+}
+

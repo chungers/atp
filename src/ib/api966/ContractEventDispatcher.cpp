@@ -47,7 +47,6 @@ class ContractEventEWrapper :
     resp.set_message_id(now);
 
     if (*(resp.mutable_details()) << contractDetails) {
-
       dispatcher_.publishContractEvent<proto::ib::ContractDetailsResponse>(
           reqId, resp);
 

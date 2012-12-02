@@ -71,6 +71,8 @@ class ContractManager::implementation : public Subscriber::Strategy
       string messageKeyFrame;
       bool more = atp::zmq::receive(socket, &messageKeyFrame);
 
+      LOG(INFO) << "Got frame " << messageKeyFrame;
+
       if (more) {
 
         if (messageKeyFrame == CONTRACT_DETAILS_RESPONSE_.GetTypeName()) {
@@ -100,6 +102,9 @@ class ContractManager::implementation : public Subscriber::Strategy
           bool received = atp::receive<p::ContractDetailsEnd>(socket, *status);
 
           if (received) {
+
+            LOG(INFO) << "Received END!";
+
             // Now check to see if there's a pending order status for this
             boost::shared_lock<boost::shared_mutex> lock(mutex_);
 

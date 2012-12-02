@@ -49,6 +49,7 @@ class ContractEventDispatcher : virtual public IBAPI::ApiEventDispatcher
       sent += atp::zmq::send_copy(*socket, buff, false);
 
       onPublish(now, sent);
+      CONTRACT_MANAGER_LOGGER << "Sent " << event.GetTypeName();
 
     } else {
 
