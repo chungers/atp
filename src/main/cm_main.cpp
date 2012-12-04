@@ -33,9 +33,9 @@ using IBAPI::SocketInitiator;
 static IBAPI::SocketInitiator* INITIATOR_INSTANCE;
 static atp::varz::VarzServer* VARZ_INSTANCE;
 
-DEFINE_string(connectors, CONNECTOR_SPECS,
+DEFINE_string(connectors, atp::global::CM_CONNECTOR_SPECS,
               "Comma-delimited list of gateway ip/port @ control endpoints.");
-DEFINE_string(outbound, OUTBOUND_ENDPOINTS,
+DEFINE_string(outbound, atp::global::CM_OUTBOUND_ENDPOINTS,
               "Comma-delimited list of channel and outbound endpoints");
 DEFINE_bool(publish, false,
             "True to publish at outbound endpoints, false to push to them");

@@ -13,16 +13,12 @@
 #include "ib/SocketInitiator.hpp"
 #include "ib/MarketEventDispatcher.hpp"
 
+#include "main/global_defaults.hpp"
+
 using boost::unordered_set;
 using std::string;
 using IBAPI::ApiEventDispatcher;
 using IBAPI::SessionID;
-
-/// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
-const std::string CONNECTOR_SPECS =
-    "100=127.0.0.1:4001@tcp://127.0.0.1:6666";
-
-const std::string OUTBOUND_ENDPOINTS = "0=tcp://127.0.0.1:7777";
 
 const proto::ib::RequestMarketData REQUEST_MARKET_DATA;
 const proto::ib::RequestMarketDepth REQUEST_MARKET_DEPTH;

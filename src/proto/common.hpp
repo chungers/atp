@@ -68,7 +68,7 @@ inline void set_as(const string& v, Value* val)
 }
 
 template <typename T>
-inline const void set_as(proto::common::Value_Type t, const T& v, Value* val)
+inline void set_as(proto::common::Value_Type t, const T& v, Value* val)
 {
   val->set_type(t);
   set_as(v, val);

@@ -88,8 +88,8 @@ inline void set_as(const IndexedValue& v, Record* record)
 }
 
 template <typename T>
-inline const void set_as(proto::historian::Type t,
-                         const T& v, Record* record)
+inline void set_as(proto::historian::Type t,
+                   const T& v, Record* record)
 {
   record->set_type(t);
   set_as(v, record);

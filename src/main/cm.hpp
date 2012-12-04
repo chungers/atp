@@ -10,18 +10,13 @@
 #include "ib/SocketInitiator.hpp"
 #include "ib/ContractEventDispatcher.hpp"
 
+#include "main/global_defaults.hpp"
+
+
 using boost::unordered_set;
 using std::string;
 using IBAPI::ApiEventDispatcher;
 using IBAPI::SessionID;
-
-
-/// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
-const string CONNECTOR_SPECS =
-    "300=127.0.0.1:4001@tcp://127.0.0.1:6668";
-
-const string OUTBOUND_ENDPOINTS =
-    "0=tcp://127.0.0.1:9999";
 
 const proto::ib::RequestContractDetails REQUEST_CONTRACT_DETAILS;
 

@@ -10,18 +10,13 @@
 #include "ib/SocketInitiator.hpp"
 #include "ib/OrderEventDispatcher.hpp"
 
+#include "main/global_defaults.hpp"
+
+
 using boost::unordered_set;
 using std::string;
 using IBAPI::ApiEventDispatcher;
 using IBAPI::SessionID;
-
-
-/// format:  {session_id}={gateway_ip_port}@{reactor_endpoint}
-const string CONNECTOR_SPECS =
-    "200=127.0.0.1:4001@tcp://127.0.0.1:6667";
-
-const string OUTBOUND_ENDPOINTS =
-    "0=tcp://127.0.0.1:8888";
 
 const proto::ib::CancelOrder CANCEL_ORDER;
 const proto::ib::MarketOrder MARKET_ORDER;

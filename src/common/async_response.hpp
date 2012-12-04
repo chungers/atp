@@ -39,7 +39,7 @@ class async_response
     return *result_;
   }
 
-  const bool is_ready() const
+  bool is_ready() const
   {
     return result_ != NULL;
   }
