@@ -249,9 +249,10 @@ const AsyncContractDetailsEnd
 ContractManager::requestOptionContractDetails(
     const RequestId& id,
     const std::string& symbol,
-    const p::Contract::Right& putOrCall,
+    const Date& expiry,
     const double strike,
-    const Date& expiry)
+    const p::Contract::Right& putOrCall)
+
 {
   p::Contract contract;
   contract.set_symbol(symbol);

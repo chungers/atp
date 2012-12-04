@@ -345,8 +345,9 @@ TEST(ContractManagerTest, RequestOptionDetails)
   service::AsyncContractDetailsEnd future =
       cm_client.requestOptionContractDetails(
           request_id, "GOOG",
-          service::ContractManager::PutOption, 600.,
-          date(2012, Dec, 20));
+          date(2012, Dec, 20),
+          600.,
+          service::ContractManager::PutOption);
 
   EXPECT_FALSE(future->is_ready());
 

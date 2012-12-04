@@ -57,9 +57,9 @@ class ContractManager : NoCopyAndAssign
   /// Symbol here is the simple case like 'AAPL'
   const AsyncContractDetailsEnd
   requestOptionContractDetails(const RequestId& id, const std::string& symbol,
-                               const p::Contract::Right& putOrCall,
+                               const Date& expiry,
                                const double strike,
-                               const Date& expiry);
+                               const p::Contract::Right& putOrCall);
 
   /// Symbol here is the simple case like 'AAPL'
   const AsyncContractDetailsEnd
