@@ -92,6 +92,14 @@ ApiProtocolHandler::ApiProtocolHandler(EWrapper& ewrapper) :
 } // ib
 
 
+TEST(ContractManagerTest, TestInvariants)
+{
+  namespace p = proto::ib;
+  // basic assertions
+  EXPECT_EQ(service::ContractManager::PutOption, p::Contract::PUT);
+  EXPECT_EQ(service::ContractManager::CallOption, p::Contract::CALL);
+}
+
 TEST(ContractManagerTest, ContractManagerCreateAndDestroyTest)
 {
   std::string p1(CM_ENDPOINT(16668));
@@ -142,8 +150,9 @@ SocketInitiator* startContractManager(::ContractManager& cm,
 
 TEST(ContractManagerTest, ContractManagerRequestDetailsResponseTimeoutTest)
 {
-  clearAssert();
   namespace p = proto::ib;
+
+  clearAssert();
 
   LOG(INFO) << "Starting contract manager";
 
@@ -195,9 +204,9 @@ TEST(ContractManagerTest, ContractManagerRequestDetailsResponseTimeoutTest)
 
 TEST(ContractManagerTest, RequestStockDetails)
 {
-  clearAssert();
   namespace p = proto::ib;
 
+  clearAssert();
   LOG(INFO) << "Starting contract manager";
 
   unsigned int cm_endpoint = 36668;
@@ -270,11 +279,10 @@ TEST(ContractManagerTest, RequestStockDetails)
 
 TEST(ContractManagerTest, RequestOptionDetails)
 {
-  clearAssert();
   namespace p = proto::ib;
-
   using namespace boost::gregorian;
 
+  clearAssert();
 
   LOG(INFO) << "Starting contract manager";
 

@@ -44,9 +44,9 @@ class ContractManager : NoCopyAndAssign
 
 
   ContractManager(const string& em_endpoint,  // receives orders
-               const string& em_messages_endpoint, // order status
-               const vector<string>& filters = ALL_CONTRACT_EVENTS,
-               context_t* context = NULL);
+                  const string& em_messages_endpoint, // order status
+                  const vector<string>& filters = ALL_CONTRACT_EVENTS,
+                  context_t* context = NULL);
 
   ~ContractManager();
 
