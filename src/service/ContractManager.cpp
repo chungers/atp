@@ -52,8 +52,9 @@ class ContractManager::implementation : public Subscriber::Strategy
 
     CONTRACT_MANAGER_LOGGER << "Connected to " << cm_endpoint_;
 
-    // Add one subscription specifically for order status
+    // Add subscriptions
     filters_.push_back(CONTRACT_DETAILS_RESPONSE_.GetTypeName());
+    filters_.push_back(CONTRACT_DETAILS_END_.GetTypeName());
 
     // Start inbound subscriber for Responses coming from CM
     contract_details_subscriber_.reset(new Subscriber(
@@ -70,8 +71,6 @@ class ContractManager::implementation : public Subscriber::Strategy
     try {
       string messageKeyFrame;
       bool more = atp::zmq::receive(socket, &messageKeyFrame);
-
-      LOG(INFO) << "Got frame " << messageKeyFrame;
 
       if (more) {
 
@@ -103,8 +102,6 @@ class ContractManager::implementation : public Subscriber::Strategy
 
           if (received) {
 
-            LOG(INFO) << "Received END!";
-
             // Now check to see if there's a pending order status for this
             boost::shared_lock<boost::shared_mutex> lock(mutex_);
 
@@ -113,10 +110,10 @@ class ContractManager::implementation : public Subscriber::Strategy
 
               AsyncContractDetailsEnd s = pendingRequests_[key];
 
-              LOG(INFO) << "Received final end for request: "
-                        << messageKeyFrame << ",reqId="
-                        << key
-                        << &s;
+              CONTRACT_MANAGER_LOGGER << "Received final end for request: "
+                                      << messageKeyFrame << ",reqId="
+                                      << key << ','
+                                      << &s;
 
               s->set_response(status);
             }
@@ -130,7 +127,7 @@ class ContractManager::implementation : public Subscriber::Strategy
   }
 
   const AsyncContractDetailsEnd
-  requestContractDetails(const RequestId& id, const std::string& symbol)
+  requestContractDetails(const RequestId& id, const p::Contract& contract)
   {
     async_response<p::ContractDetailsEnd>* response = NULL;
 
@@ -138,16 +135,14 @@ class ContractManager::implementation : public Subscriber::Strategy
 
       p::RequestContractDetails req;
 
+      req.mutable_contract()->CopyFrom(contract);
       req.mutable_contract()->set_id(0); // to be filled by response.
-      req.mutable_contract()->set_symbol(symbol);
-      req.mutable_contract()->set_local_symbol(symbol);
-
       req.set_request_id(id);
-      req.set_message_id(id);
 
       size_t sent = atp::send(*cm_socket_, now_micros(), now_micros(), req);
 
-      CONTRACT_MANAGER_LOGGER << "Sent " << req.GetTypeName()
+      CONTRACT_MANAGER_LOGGER << "Sent for contract details: "
+                              << req.GetTypeName()
                               << " (" << sent << ")";
 
       response = new async_response<p::ContractDetailsEnd>();
@@ -159,6 +154,37 @@ class ContractManager::implementation : public Subscriber::Strategy
     return status;
   }
 
+  const AsyncContractDetailsEnd
+  requestStockContractDetails(const RequestId& id, const std::string& symbol)
+  {
+    async_response<p::ContractDetailsEnd>* response = NULL;
+
+    if (cm_socket_ != NULL) {
+
+      p::RequestContractDetails req;
+
+      req.mutable_contract()->set_id(0); // to be filled by response.
+      req.mutable_contract()->set_symbol(symbol);
+      req.mutable_contract()->set_local_symbol(symbol);
+      req.mutable_contract()->set_type(p::Contract::STOCK);
+      req.set_request_id(id);
+
+      size_t sent = atp::send(*cm_socket_, now_micros(), now_micros(), req);
+
+      CONTRACT_MANAGER_LOGGER << "Sent for stock contract " << symbol << ' '
+                              << req.GetTypeName()
+                              << " (" << sent << ")";
+
+      response = new async_response<p::ContractDetailsEnd>();
+    }
+
+    AsyncContractDetailsEnd status(response);
+    boost::unique_lock<boost::shared_mutex> lock(mutex_);
+    pendingRequests_[id] = status;
+    return status;
+  }
+
+  /// Look up contract by key (e.g. AAPL.STK), returns true if found.
   bool findContract(const std::string& key, p::Contract* contract) const
   {
     if (contractDetails_.find(key) != contractDetails_.end()) {
@@ -190,6 +216,10 @@ class ContractManager::implementation : public Subscriber::Strategy
   boost::unordered_map<std::string, p::ContractDetails> contractDetails_;
 };
 
+const p::Contract::Right ContractManager::PutOption = p::Contract::PUT;
+const p::Contract::Right ContractManager::CallOption = p::Contract::CALL;
+
+
 
 ContractManager::ContractManager(const string& cm_endpoint,
                            const string& cm_messages_endpoint,
@@ -205,10 +235,58 @@ ContractManager::~ContractManager()
 }
 
 const AsyncContractDetailsEnd
-ContractManager::requestContractDetails(const RequestId& id,
-                                        const std::string& symbol)
+ContractManager::requestStockContractDetails(const RequestId& id,
+                                             const std::string& symbol)
 {
-  return impl_->requestContractDetails(id, symbol);
+  p::Contract contract;
+  contract.set_symbol(symbol);
+  contract.set_local_symbol(symbol);
+  contract.set_type(p::Contract::STOCK);
+  return impl_->requestContractDetails(id, contract);
+}
+
+const AsyncContractDetailsEnd
+ContractManager::requestOptionContractDetails(
+    const RequestId& id,
+    const std::string& symbol,
+    const p::Contract::Right& putOrCall,
+    const double strike,
+    const Date& expiry)
+{
+  p::Contract contract;
+  contract.set_symbol(symbol);
+  contract.set_local_symbol(symbol);
+  contract.set_type(p::Contract::OPTION);
+  contract.set_right(putOrCall);
+  contract.mutable_strike()->set_amount(strike);
+  contract.mutable_expiry()->set_year(expiry.year());
+  contract.mutable_expiry()->set_month(expiry.month());
+  contract.mutable_expiry()->set_day(expiry.day());
+
+  return impl_->requestContractDetails(id, contract);
+}
+
+const AsyncContractDetailsEnd
+ContractManager::requestOptionChain(const RequestId& id,
+                                    const std::string& symbol)
+{
+  p::Contract contract;
+  contract.set_symbol(symbol);
+  contract.set_local_symbol(symbol);
+  contract.set_type(p::Contract::OPTION);
+  return impl_->requestContractDetails(id, contract);
+}
+
+const AsyncContractDetailsEnd
+ContractManager::requestIndex(const RequestId& id,
+                              const std::string& symbol)
+{
+  p::Contract contract;
+  contract.set_symbol(symbol);
+  contract.set_local_symbol(symbol);
+  contract.set_type(p::Contract::INDEX);
+  return impl_->requestContractDetails(id, contract);
+
 }
 
 bool ContractManager::findContract(const std::string& key,

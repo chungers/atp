@@ -5,6 +5,7 @@
 #include <vector>
 #include <zmq.hpp>
 
+#include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/scoped_ptr.hpp>
 
 #include "proto/ib.pb.h"
@@ -19,14 +20,12 @@ using zmq::context_t;
 
 namespace p = proto::ib;
 
-// using proto::ib::Contract;
-// using proto::ib::ContractDetailsEnd;
-
 using atp::common::async_response;
 
 namespace atp {
 namespace service {
 
+namespace p = proto::ib;
 
 typedef boost::shared_ptr< async_response<p::ContractDetailsEnd> >
 AsyncContractDetailsEnd;
@@ -38,6 +37,11 @@ class ContractManager : NoCopyAndAssign
  public:
 
   typedef int RequestId;
+  typedef boost::gregorian::date Date;
+
+  const static p::Contract::Right PutOption;
+  const static p::Contract::Right CallOption;
+
 
   ContractManager(const string& em_endpoint,  // receives orders
                const string& em_messages_endpoint, // order status
@@ -48,7 +52,22 @@ class ContractManager : NoCopyAndAssign
 
   /// Symbol here is the simple case like 'AAPL'
   const AsyncContractDetailsEnd
-  requestContractDetails(const RequestId& id, const std::string& symbol);
+  requestStockContractDetails(const RequestId& id, const std::string& symbol);
+
+  /// Symbol here is the simple case like 'AAPL'
+  const AsyncContractDetailsEnd
+  requestOptionContractDetails(const RequestId& id, const std::string& symbol,
+                               const p::Contract::Right& putOrCall,
+                               const double strike,
+                               const Date& expiry);
+
+  /// Symbol here is the simple case like 'AAPL'
+  const AsyncContractDetailsEnd
+  requestOptionChain(const RequestId& id, const std::string& symbol);
+
+  /// Symbol here is the simple case like 'AAPL'
+  const AsyncContractDetailsEnd
+  requestIndex(const RequestId& id, const std::string& symbol);
 
   /// Key is something like 'AAPL.STK'
   bool findContract(const std::string& key, p::Contract* contract) const;
@@ -59,6 +78,8 @@ class ContractManager : NoCopyAndAssign
   boost::scoped_ptr<implementation> impl_;
 
 };
+
+
 
 } // service
 } // atp

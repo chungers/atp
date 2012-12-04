@@ -94,8 +94,8 @@ ApiProtocolHandler::ApiProtocolHandler(EWrapper& ewrapper) :
 
 TEST(ContractManagerTest, ContractManagerCreateAndDestroyTest)
 {
-  std::string p1(CM_ENDPOINT(6668));
-  std::string p2(CM_EVENT_ENDPOINT(9999));
+  std::string p1(CM_ENDPOINT(16668));
+  std::string p2(CM_EVENT_ENDPOINT(19999));
 
   LOG(ERROR) << p1 << ", " << p2;
   service::ContractManager cm(p1, p2);
@@ -147,11 +147,14 @@ TEST(ContractManagerTest, ContractManagerRequestDetailsResponseTimeoutTest)
 
   LOG(INFO) << "Starting contract manager";
 
+  unsigned int cm_endpoint = 26668;
+  unsigned int cm_publish = 29999;
+
   ::ContractManager cmm;
-  SocketInitiator* cm = startContractManager(cmm, 6668, 9999);
+  SocketInitiator* cm = startContractManager(cmm, cm_endpoint, cm_publish);
 
   service::ContractManager cm_client(
-      CM_ENDPOINT(6668), CM_EVENT_ENDPOINT(9999));
+      CM_ENDPOINT(cm_endpoint), CM_EVENT_ENDPOINT(cm_publish));
   LOG(INFO) << "ContractManager ready.";
 
   // create assert
@@ -175,8 +178,8 @@ TEST(ContractManagerTest, ContractManagerRequestDetailsResponseTimeoutTest)
   assert.req_id = 100;
   setAssert(assert);
 
-  service::AsyncContractDetailsEnd future = cm_client.requestContractDetails(
-      100, "AAPL");
+  service::AsyncContractDetailsEnd future =
+      cm_client.requestStockContractDetails(100, "AAPL");
 
   EXPECT_FALSE(future->is_ready());
 
@@ -184,24 +187,27 @@ TEST(ContractManagerTest, ContractManagerRequestDetailsResponseTimeoutTest)
 
   EXPECT_FALSE(future->is_ready());
 
-  sleep(2);
+  sleep(1);
   LOG(INFO) << "Cleanup";
   delete cm;
 }
 
 
-TEST(ContractManagerTest, ContractManagerRequestDetailsResponseSingle)
+TEST(ContractManagerTest, RequestStockDetails)
 {
   clearAssert();
   namespace p = proto::ib;
 
   LOG(INFO) << "Starting contract manager";
 
+  unsigned int cm_endpoint = 36668;
+  unsigned int cm_publish = 39999;
+
   ::ContractManager cmm;
-  SocketInitiator* cm = startContractManager(cmm, 16668, 19999);
+  SocketInitiator* cm = startContractManager(cmm, cm_endpoint, cm_publish);
 
   service::ContractManager cm_client(
-      CM_ENDPOINT(16668), CM_EVENT_ENDPOINT(19999));
+      CM_ENDPOINT(cm_endpoint), CM_EVENT_ENDPOINT(cm_publish));
   LOG(INFO) << "ContractManager ready.";
 
   // create assert
@@ -216,9 +222,11 @@ TEST(ContractManagerTest, ContractManagerRequestDetailsResponseSingle)
       EXPECT_EQ(symbol, c.localSymbol);
       EXPECT_EQ(sec_type, c.secType);
 
+      sleep(1); // to avoid race for the test.  simulate some delay
+
       ::ContractDetails details;
       details.summary = c;
-      details.summary.conId = 12345;
+      details.summary.conId = conId;
       ewrapper.contractDetails(reqId, details);
 
       // send the end
@@ -228,23 +236,130 @@ TEST(ContractManagerTest, ContractManagerRequestDetailsResponseSingle)
     service::ContractManager::RequestId req_id;
     std::string symbol;
     std::string sec_type;
+    int conId;
   } assert;
 
+  service::ContractManager::RequestId request_id = 200;
   assert.symbol = "GOOG";
-  assert.req_id = 200;
+  assert.req_id = request_id;
   assert.sec_type = "STK";
+  assert.conId = 12345;
+
   setAssert(assert);
 
-  service::AsyncContractDetailsEnd future = cm_client.requestContractDetails(
-      200, "GOOG");
+  service::AsyncContractDetailsEnd future =
+      cm_client.requestStockContractDetails(request_id, "GOOG");
   EXPECT_FALSE(future->is_ready());
 
-  sleep(5);
-  const p::ContractDetailsEnd& details_end = future->get(1000);
+  const p::ContractDetailsEnd& details_end = future->get(2000);
 
   EXPECT_TRUE(future->is_ready());
 
-  sleep(2);
+  // Now try to query for the contract
+  p::Contract goog;
+  EXPECT_TRUE(cm_client.findContract("GOOG.STK", &goog));
+
+  EXPECT_EQ("GOOG", goog.symbol());
+  EXPECT_EQ(p::Contract::STOCK, goog.type());
+  EXPECT_EQ(assert.conId, goog.id());
+
+  sleep(1);
+  LOG(INFO) << "Cleanup";
+  delete cm;
+}
+
+TEST(ContractManagerTest, RequestOptionDetails)
+{
+  clearAssert();
+  namespace p = proto::ib;
+
+  using namespace boost::gregorian;
+
+
+  LOG(INFO) << "Starting contract manager";
+
+  unsigned int cm_endpoint = 46668;
+  unsigned int cm_publish = 49999;
+
+  ::ContractManager cmm;
+  SocketInitiator* cm = startContractManager(cmm, cm_endpoint, cm_publish);
+
+  service::ContractManager cm_client(
+      CM_ENDPOINT(cm_endpoint), CM_EVENT_ENDPOINT(cm_publish));
+  LOG(INFO) << "ContractManager ready.";
+
+  // create assert
+  struct : public Assert {
+    virtual void operator()(service::ContractManager::RequestId& reqId,
+                            const ::Contract& c,
+                            EWrapper& ewrapper)
+    {
+      EXPECT_EQ(req_id, reqId);
+      EXPECT_EQ(symbol, c.symbol);
+      EXPECT_EQ(0, c.conId); // Required for proper query to IB
+      EXPECT_EQ(symbol, c.localSymbol);
+      EXPECT_EQ(sec_type, c.secType);
+      EXPECT_EQ(expiry, c.expiry);
+      EXPECT_EQ(right, c.right);
+      EXPECT_EQ(strike, c.strike);
+
+      sleep(1); // to avoid race for the test.  simulate some delay
+
+      ::ContractDetails details;
+      details.summary = c;
+      details.summary.conId = conId;
+      ewrapper.contractDetails(reqId, details);
+
+      // send the end
+      ewrapper.contractDetailsEnd(reqId);
+    }
+
+    service::ContractManager::RequestId req_id;
+    std::string symbol;
+    std::string sec_type;
+    int conId;
+    std::string expiry;
+    std::string right;
+    double strike;
+  } _assert;
+
+  service::ContractManager::RequestId request_id = 300;
+  _assert.symbol = "GOOG";
+  _assert.req_id = request_id;
+  _assert.sec_type = "OPT";
+  _assert.conId = 2234567;
+  _assert.expiry = "20121220";
+  _assert.right = "P";
+  _assert.strike = 600.;
+
+  setAssert(_assert);
+
+  service::AsyncContractDetailsEnd future =
+      cm_client.requestOptionContractDetails(
+          request_id, "GOOG",
+          service::ContractManager::PutOption, 600.,
+          date(2012, Dec, 20));
+
+  EXPECT_FALSE(future->is_ready());
+
+  const p::ContractDetailsEnd& details_end = future->get(2000);
+
+  EXPECT_TRUE(future->is_ready());
+
+  // Now try to query for the contract
+  p::Contract goog_put;
+  EXPECT_TRUE(cm_client.findContract("GOOG.OPT.20121220.600.P", &goog_put));
+
+  EXPECT_EQ("GOOG", goog_put.symbol());
+  EXPECT_EQ(p::Contract::OPTION, goog_put.type());
+  EXPECT_EQ(_assert.conId, goog_put.id());
+  EXPECT_EQ(600., goog_put.strike().amount());
+  EXPECT_EQ(2012, goog_put.expiry().year());
+  EXPECT_EQ(12, goog_put.expiry().month());
+  EXPECT_EQ(20, goog_put.expiry().day());
+  EXPECT_EQ(service::ContractManager::PutOption, goog_put.right());
+
+  sleep(1);
   LOG(INFO) << "Cleanup";
   delete cm;
 }

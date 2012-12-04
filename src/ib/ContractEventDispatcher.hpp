@@ -48,12 +48,14 @@ class ContractEventDispatcher : virtual public IBAPI::ApiEventDispatcher
       size_t sent = atp::zmq::send_copy(*socket, event.GetTypeName(), true);
       sent += atp::zmq::send_copy(*socket, buff, false);
 
+      CONTRACT_MANAGER_LOGGER << "Sent (" << sent << "): "
+                              << event.GetTypeName();
+
       onPublish(now, sent);
-      CONTRACT_MANAGER_LOGGER << "Sent " << event.GetTypeName();
 
     } else {
 
-      LOG(ERROR) << "Unable to serialize: " << event.GetTypeName();
+      CONTRACT_MANAGER_ERROR << "Unable to serialize: " << event.GetTypeName();
 
       onSerializeError();
     }
