@@ -306,7 +306,10 @@ TEST(OrderManagerTest, OrderManagerSendMarketOrderTest)
   delete em;
 }
 
-TEST(OrderManagerTest, OrderManagerSendLimitOrderTest)
+/// multiple responses as duplicates.
+void test_limit_order_with_responses(int responses,
+                                     unsigned int em_endpoint,
+                                     unsigned int pub_endpoint)
 {
   clearAssert();
 
@@ -315,9 +318,9 @@ TEST(OrderManagerTest, OrderManagerSendLimitOrderTest)
   LOG(INFO) << "Starting order manager";
 
   ExecutionManager exm;
-  SocketInitiator* em = startExecutionManager(exm, 6669, 8899);
+  SocketInitiator* em = startExecutionManager(exm, em_endpoint, pub_endpoint);
 
-  OrderManager om(EM_ENDPOINT(6669), EM_EVENT_ENDPOINT(8899));
+  OrderManager om(EM_ENDPOINT(em_endpoint), EM_EVENT_ENDPOINT(pub_endpoint));
   LOG(INFO) << "OrderManager ready.";
 
   // Create contract
@@ -367,7 +370,7 @@ TEST(OrderManagerTest, OrderManagerSendLimitOrderTest)
 
       // Send a few crap messages but only one for the order
       // submitted.
-      for (int i = 0; i < 5; ++i) {
+      for (int i = 0; i < responses; ++i) {
         ewrapper.orderStatus(respOrderId + i, status, filled, remaining,
                              avgFillPrice, permId, parentId,
                              lastFillPrice, clientId, whyHeld);
@@ -375,9 +378,12 @@ TEST(OrderManagerTest, OrderManagerSendLimitOrderTest)
     }
 
     int check_order_id;
+    int responses;
   } _assert;
 
   _assert.check_order_id = ORDER_ID;
+  _assert.responses = responses;
+
   setAssert(_assert);
   AsyncOrderStatus future = om.send(limitOrder);
 
@@ -396,3 +402,15 @@ TEST(OrderManagerTest, OrderManagerSendLimitOrderTest)
   LOG(INFO) << "Cleanup";
   delete em;
 }
+
+
+TEST(OrderManagerTest, OrderManagerSendLimitOrderSingleResponseTest)
+{
+  test_limit_order_with_responses(1, 6669, 8899);
+}
+
+TEST(OrderManagerTest, OrderManagerSendLimitOrderDuplicateResponseTest)
+{
+  test_limit_order_with_responses(10, 16669, 18899);
+}
+
