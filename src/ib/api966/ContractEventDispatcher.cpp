@@ -70,6 +70,15 @@ class ContractEventEWrapper :
     dispatcher_.publishContractEvent<proto::ib::ContractDetailsEnd>(
         reqId, detailsEnd);
   }
+
+  /// @overload base
+  virtual void onNoContractDefinition(int error_code, int req_id) {
+    LOG(ERROR) << "No contract definition for request " << req_id
+               << ", sending simulated contractDetailsEnd.";
+
+    contractDetailsEnd(req_id);
+  }
+
 };
 
 

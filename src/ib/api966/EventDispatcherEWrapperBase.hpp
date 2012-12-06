@@ -4,13 +4,16 @@
 #include "common.hpp"
 #include "log_levels.h"
 
+#include "common/time_utils.hpp"
 #include "ib/Application.hpp"
 #include "ib/SessionID.hpp"
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
 #include "ApiImpl.hpp"
-#include "ib/MarketEventDispatcher.hpp"
+//#include "ib/MarketEventDispatcher.hpp"
 #include "varz/varz.hpp"
+
+#include "proto/ib.pb.h"
 
 
 DEFINE_VARZ_int64(ib_api_error_no_security_definition, 0, "");
@@ -45,6 +48,11 @@ class EventDispatcherEWrapperBase : public LoggingEWrapper, NoCopyAndAssign
   const IBAPI::SessionID& sessionId_;
   D& dispatcher_;
 
+  virtual void onNoContractDefinition(int error_code, int req_id)
+  {
+    LOG(INFO) << "Error " << error_code << " - No security definition.";
+  }
+
  public:
 
   /// @overload EWrapper
@@ -68,6 +76,7 @@ class EventDispatcherEWrapperBase : public LoggingEWrapper, NoCopyAndAssign
         VARZ_ib_api_error_no_security_definition++;
         msg << "No security definition has been found for the request, id="
             << id;
+        onNoContractDefinition(errorCode, id);
         break;
       case 326:
         terminate = true;

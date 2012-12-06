@@ -39,7 +39,7 @@ Subscriber::Subscriber(const string& publisher_endpoint,
     }
   }
 
-  ZMQ_SUBSCRIBER_LOGGER << "Subscriber is ready.";
+  LOG(INFO) << "Subscriber is ready: " << publisher_endpoint_;
 }
 
 Subscriber::~Subscriber()
@@ -75,15 +75,15 @@ void Subscriber::process()
 
     socket.connect(publisher_endpoint_.c_str());
     connected = true;
-    ZMQ_SUBSCRIBER_LOGGER << "Connected to publisher " << publisher_endpoint_;
+    LOG(INFO) << "Connected to publisher " << publisher_endpoint_;
 
   } catch (::zmq::error_t e) {
     LOG(FATAL) << "Cannot connect " << publisher_endpoint_ << ":" << e.what();
   }
 
   // now add subscriptions
-  ZMQ_SUBSCRIBER_LOGGER << "Adding " << subscriptions_.size()
-                        << " subscriptions";
+  LOG(INFO) << "Adding " << subscriptions_.size()
+            << " subscriptions";
   try {
 
     for (vector<string>::const_iterator topic = subscriptions_.begin();
@@ -92,7 +92,7 @@ void Subscriber::process()
       socket.setsockopt(ZMQ_SUBSCRIBE,
                         topic->c_str(),
                         topic->length());
-      ZMQ_SUBSCRIBER_LOGGER << "subscribed to topic = " << *topic;
+      LOG(INFO) << "subscribed to topic = " << *topic;
     }
 
   } catch (::zmq::error_t e) {
@@ -109,7 +109,7 @@ void Subscriber::process()
 
   if (connected) {
 
-    ZMQ_SUBSCRIBER_LOGGER << "Start checking messages.";
+    LOG(INFO) << "Start checking messages.";
 
     try {
       while (strategy_.check_message(socket)) {

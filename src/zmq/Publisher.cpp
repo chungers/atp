@@ -47,7 +47,7 @@ Publisher::Publisher(const string& addr,
     isReady_.wait(lock);
   }
 
-  ZMQ_PUBLISHER_LOGGER << "Publisher is ready.";
+  LOG(INFO) << "Publisher is ready: " << publishAddr_;
 }
 
 Publisher::~Publisher()

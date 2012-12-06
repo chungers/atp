@@ -40,6 +40,32 @@ set(prototype_ib_libs
   )
 cpp_gtest(prototype_ib)
 
+# Contract Manager Prototype
+set(prototype_contract_manager_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${TEST_DIR}
+  ${IBAPI_ROOT}
+  ${IBAPI_ROOT}/Shared
+)
+set(prototype_contract_manager_srcs
+  ${TEST_DIR}/AllTests.cpp
+  contract_manager_prototype.cpp
+)
+set(prototype_contract_manager_libs
+  api_base
+  ib_api_versioned_base
+  atp_contract_manager
+  atp_proto
+  atp_zmq
+  boost_system
+  boost_iostreams
+  gflags
+  glog
+  protobuf
+  )
+cpp_gtest(prototype_contract_manager)
+
 # Prototype
 set(prototype_numeric_incs
   ${GEN_DIR}
@@ -158,6 +184,7 @@ cpp_gtest(prototype_data_structures)
 
 add_custom_target(all_prototypes)
 add_dependencies(all_prototypes
+  prototype_contract_manager
   prototype_ib
   prototype_numeric
   prototype_data_structures

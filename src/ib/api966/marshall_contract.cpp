@@ -44,6 +44,8 @@ bool operator<<(Contract& c, const proto::ib::Contract& p)
       c.secType = "OPT";
 
       // check required:
+      if (p.id() == 0) break; // This is a query. conId is not known.
+
       if (!p.has_right() ||
           !p.has_strike() ||
           !p.has_expiry() ||

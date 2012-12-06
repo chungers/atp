@@ -259,10 +259,11 @@ class SocketConnectorBase :
          attempts < maxAttempts;
          ++attempts, sleep(1)) {
 
-      LOG(ERROR) << "About to start ";
       int64 start = now_micros();
 
-      LOG(ERROR) << "About to connect " << start << ", clientId = " << clientId;
+      LOG(INFO) << "ClientId[" << clientId << "]: Connecting to "
+                << host << ':' << port;
+
       bool socketOk = driver_->Connect(host.c_str(), port, clientId);
 
       if (socketOk) {
@@ -274,8 +275,8 @@ class SocketConnectorBase :
         if (driver_->IsConnected()) {
 
           int64 elapsed = now_micros() - start;
-          IBAPI_ABSTRACT_SOCKET_CONNECTOR_LOGGER
-              << "Connected in " << elapsed << " microseconds.";
+          LOG(INFO) << "ClientId[" << clientId << "]: Connected in "
+                    << elapsed << " microseconds.";
 
           strategy->onConnect(*socketConnector_, clientId);
           return clientId;

@@ -33,7 +33,8 @@ Reactor::Reactor(const int socket_type,
     isReady_.wait(lock);
   }
 
-  ZMQ_REACTOR_LOGGER << "Reactor is ready.";
+  LOG(INFO) << "Reactor of socket type (" << socket_type_
+            << ") is ready: " << addr_;
 }
 
 Reactor::~Reactor()

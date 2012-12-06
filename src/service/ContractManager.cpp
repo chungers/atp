@@ -72,6 +72,8 @@ class ContractManager::implementation : public Subscriber::Strategy
       string messageKeyFrame;
       bool more = atp::zmq::receive(socket, &messageKeyFrame);
 
+      LOG(INFO) << "Received " << messageKeyFrame;
+
       if (more) {
 
         if (messageKeyFrame == CONTRACT_DETAILS_RESPONSE_.GetTypeName()) {

@@ -38,9 +38,9 @@ DEFINE_string(connectors, atp::global::FH_CONNECTOR_SPECS,
               "Comma-delimited list of gateway ip/port @ control endpoints.");
 DEFINE_string(outbound, atp::global::FH_OUTBOUND_ENDPOINTS,
               "Comma-delimited list of channel and outbound endpoints");
-DEFINE_bool(publish, true,
+DEFINE_bool(publish, atp::global::FH_OUTBOUND_PUBLISH,
             "True to publish at outbound endpoints, false to push to them");
-DEFINE_int32(varz, 18000, "The port varz server runs on.");
+DEFINE_int32(varz, atp::global::FH_VARZ_PORT, "The port varz server runs on.");
 
 DEFINE_VARZ_bool(fh_as_publisher, false, "if instance is also a publisher.");
 DEFINE_VARZ_string(fh_connector_specs, "", "Connector specs");
