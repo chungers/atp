@@ -1,29 +1,10 @@
 
 #include <iostream>
 
-#include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
+
+#include "platform/contract_symbol.hpp"
 
 #include "marshall.hpp"
-
-bool ParseDate(const std::string& date, int* year, int* month, int* day)
-{
-  if (date.length() != 8) return false;
-
-  *year = boost::lexical_cast<int>(date.substr(0,4));
-  *month = boost::lexical_cast<int>(date.substr(4,2));
-  *day = boost::lexical_cast<int>(date.substr(6,2));
-  return true;
-}
-
-std::string FormatExpiry(int year, int month, int day)
-{
-  ostringstream s1;
-  string fmt = (month > 9) ? "%4d%2d" : "%4d0%1d";
-  string fmt2 = (day > 9) ? "%2d" : "0%1d";
-  s1 << boost::format(fmt) % year % month << boost::format(fmt2) % day;
-  return s1.str();
-}
 
 
 bool operator<<(Contract& c, const proto::ib::Contract& p)
@@ -78,9 +59,11 @@ bool operator<<(Contract& c, const proto::ib::Contract& p)
     }
   }
   if (p.has_expiry()) {
-    c.expiry = FormatExpiry(p.expiry().year(),
-                            p.expiry().month(),
-                            p.expiry().day());
+    return atp::platform::format_expiry(
+          p.expiry().year(),
+          p.expiry().month(),
+          p.expiry().day(),
+          &c.expiry);
   }
 
   return true;
@@ -116,7 +99,7 @@ bool operator<<(proto::ib::Contract& p, const Contract& c)
   if (c.expiry.length() == 8) {
 
     int year, month, day;
-    if (ParseDate(c.expiry, &year, &month, &day)) {
+    if (atp::platform::parse_date(c.expiry, &year, &month, &day)) {
       p.mutable_expiry()->set_year(year);
       p.mutable_expiry()->set_month(month);
       p.mutable_expiry()->set_day(day);
@@ -140,20 +123,13 @@ bool operator<<(proto::ib::ContractDetails& p, const ContractDetails& c)
   proto::ib::Contract *summary = p.mutable_summary();
   if (*summary << c.summary) {
     p.set_id(c.summary.conId);
-    // compute the standard symbol... AAPL.STK or AAPL.OPT.20121130.650.C
-    std::ostringstream symbol;
 
-    symbol << c.summary.symbol << '.' << c.summary.secType;
-    if (summary->type() == proto::ib::Contract::OPTION) {
-      symbol << '.'
-             << summary->expiry().year()
-             << summary->expiry().month()
-             << summary->expiry().day()
-             << '.'
-             << c.summary.strike << '.' << c.summary.right;
+    string symbol;
+    if (!atp::platform::symbol_from_contract(*summary, &symbol)) {
+      return false;
     }
 
-    p.set_symbol(symbol.str());
+    p.set_symbol(symbol);
     p.set_marketname(c.marketName);
     p.set_tradingclass(c.tradingClass);
     p.set_mintick(c.minTick);

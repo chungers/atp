@@ -16,9 +16,13 @@
 
 #include "main/global_defaults.hpp"
 #include "service/ContractManager.hpp"
+#include "platform/contract_symbol.hpp"
 
 
 using std::string;
+using namespace boost::gregorian;
+
+
 namespace service = atp::service;
 namespace p = proto::ib;
 
@@ -93,5 +97,13 @@ TEST(ContractManagerPrototype, RequestOptionChain)
   const p::ContractDetailsEnd& details_end2 = future2->get();
 
   EXPECT_TRUE(future2->is_ready());
+
+  p::Contract aapl_put;
+  EXPECT_TRUE(cm.findContract("AAPL.OPT.20130104.510.P", &aapl_put));
+
+  EXPECT_TRUE(
+      cm.findOptionContract("AAPL", date(2013, Jan, 4), 510.,
+                            service::ContractManager::PutOption,
+                            &aapl_put));
 
 }

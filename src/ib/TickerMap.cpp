@@ -43,36 +43,38 @@ ContractPtr clone_contract(const Contract& contract)
   return c;
 }
 
-bool symbol_from_contract(const std::map<std::string, std::string>& nv,
-                          std::string* output)
-{
-  // Build the symbol string here.
-  try {
-    std::ostringstream s;
-    s << nv.at("symbol") << '.' << nv.at("secType");
+// bool symbol_from_contract(const std::map<std::string, std::string>& nv,
+//                           std::string* output)
+// {
+//   // Build the symbol string here.
+//   try {
+//     std::ostringstream s;
+//     s << nv.at("symbol") << '.' << nv.at("secType");
 
-    if (nv.at("secType") != "STK" && nv.at("secType") != "IND") {
-      s << '.'
-        << nv.at("expiry")
-        << '.'
-        << nv.at("strike")
-        << '.'
-        << nv.at("right");
-    }
-    *output = s.str();
-    return true;
+//     // if (nv.at("secType") != "STK" && nv.at("secType") != "IND") {
+//     if (nv.at("secType") == "OPT") {
+//       s << '.'
+//         << nv.at("expiry")
+//         << '.'
+//         << nv.at("strike")
+//         << '.'
+//         << nv.at("right");
+//     }
+//     output->assign(s.str());
+//     return true;
 
-  } catch (...) {
-    return false;
-  }
-}
+//   } catch (...) {
+//     return false;
+//   }
+// }
 
 bool symbol_from_contract(const Contract& contract, std::string* output)
 {
   std::ostringstream ss;
   ss << contract.symbol << '.' << contract.secType;
 
-  if (contract.secType != "STK" && contract.secType != "IND") {
+  // if (contract.secType != "STK" && contract.secType != "IND") {
+  if (contract.secType == "OPT") {
     ss << '.'
        << contract.expiry
        << '.'
@@ -80,7 +82,7 @@ bool symbol_from_contract(const Contract& contract, std::string* output)
        << '.'
        << contract.right;
   }
-  *output = ss.str();
+  output->assign(ss.str());
   return true;
 }
 

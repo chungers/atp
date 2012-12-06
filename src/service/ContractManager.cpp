@@ -11,6 +11,8 @@
 #include "zmq/ZmqUtils.hpp"
 
 #include "ZmqProtoBuffer.hpp"
+
+#include "platform/contract_symbol.hpp"
 #include "service/ContractManager.hpp"
 
 using std::string;
@@ -72,8 +74,6 @@ class ContractManager::implementation : public Subscriber::Strategy
       string messageKeyFrame;
       bool more = atp::zmq::receive(socket, &messageKeyFrame);
 
-      LOG(INFO) << "Received " << messageKeyFrame;
-
       if (more) {
 
         if (messageKeyFrame == CONTRACT_DETAILS_RESPONSE_.GetTypeName()) {
@@ -89,6 +89,9 @@ class ContractManager::implementation : public Subscriber::Strategy
             string key(resp.details().symbol());
             if (contractDetails_.find(key) == contractDetails_.end()) {
               contractDetails_[key] = resp.details();
+
+              CONTRACT_MANAGER_LOGGER << "Updated " << key;
+
             } else {
               CONTRACT_MANAGER_WARNING
                   << "Received another contract detail for "
@@ -275,7 +278,6 @@ ContractManager::requestOptionChain(const RequestId& id,
 {
   p::Contract contract;
   contract.set_symbol(symbol);
-  contract.set_local_symbol(symbol);
   contract.set_type(p::Contract::OPTION);
   return impl_->requestContractDetails(id, contract);
 }
@@ -298,6 +300,23 @@ bool ContractManager::findContract(const std::string& key,
   return impl_->findContract(key, contract);
 }
 
+bool ContractManager::findOptionContract(
+    const std::string& symbol,
+    const Date& expiry,
+    const double strike,
+    const p::Contract::Right& putOrCall,
+    p::Contract* contract) const
+{
+  std::string key;
+  if (atp::platform::format_option_contract_key(
+          symbol,
+          strike,
+          putOrCall,
+          expiry.year(), expiry.month(), expiry.day(), &key)) {
+    return impl_->findContract(key, contract);
+  }
+  return false;
+}
 
 
 } // service

@@ -45,6 +45,7 @@ set(ib_api_versioned_base_libs
   glog
   atp_proto
   atp_varz
+  atp_platform_base
 )
 cpp_library(ib_api_versioned_base)
 

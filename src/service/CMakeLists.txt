@@ -15,6 +15,7 @@ set(atp_order_manager_srcs
   OrderManager.cpp
 )
 set(atp_order_manager_libs
+ atp_platform_base
  atp_proto
  atp_zmq
  boost_system
@@ -37,6 +38,7 @@ set(atp_contract_manager_srcs
   ContractManager.cpp
 )
 set(atp_contract_manager_libs
+ atp_platform_base
  atp_proto
  atp_zmq
  boost_system
@@ -63,6 +65,7 @@ set(atp_log_reader_libs
  api_base
  atp_common
  atp_historian
+ atp_platform_base
  atp_proto
  atp_zmq
  boost_system

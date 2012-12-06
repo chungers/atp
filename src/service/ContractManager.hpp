@@ -72,6 +72,13 @@ class ContractManager : NoCopyAndAssign
   /// Key is something like 'AAPL.STK'
   bool findContract(const std::string& key, p::Contract* contract) const;
 
+  /// for Option
+  bool findOptionContract(const std::string& symbol,
+                          const Date& expiry,
+                          const double strike,
+                          const p::Contract::Right& putOrCall,
+                          p::Contract* contract) const;
+
  private:
 
   class implementation;
