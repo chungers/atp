@@ -1,7 +1,7 @@
 #
 # Tests for common code
 
-message(STATUS "TESTS: Prototypes ============================================")
+message(STATUS "PROTOTYPES ===================================================")
 
 # Use standard string library instead of mvc foundation classes:
 option(IB_USE_STD_STRING "Use standard c++ string (see Shared/IBString.h)." ON)
@@ -15,11 +15,11 @@ endif (IB_USE_STD_STRING)
 proto_library(test_protos test.proto ${SRC_DIR})
 
 
-# Prototype
+# IB Prototype
 set(prototype_ib_incs
   ${GEN_DIR}
   ${SRC_DIR}
-  ${TEST_DIR}
+  ${PROTOTYPE_DIR}
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
 )
@@ -40,11 +40,35 @@ set(prototype_ib_libs
   )
 cpp_gtest(prototype_ib)
 
+# CouchDB prototype
+set(prototype_couchdb_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${PROTOTYPE_DIR}
+)
+set(prototype_couchdb_srcs
+  ${TEST_DIR}/AllTests.cpp
+  couchdb_prototype.cpp
+)
+set(prototype_couchdb_libs
+  api_base
+  ib_api_versioned_base
+  atp_proto
+  atp_zmq
+  boost_system
+  boost_iostreams
+  curl
+  gflags
+  glog
+  protobuf
+  )
+cpp_gtest(prototype_couchdb)
+
 # Contract Manager Prototype
 set(prototype_contract_manager_incs
   ${GEN_DIR}
   ${SRC_DIR}
-  ${TEST_DIR}
+  ${PROTOTYPE_DIR}
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
 )
@@ -70,7 +94,7 @@ cpp_gtest(prototype_contract_manager)
 set(prototype_numeric_incs
   ${GEN_DIR}
   ${SRC_DIR}
-  ${TEST_DIR}
+  ${PROTOTYPE_DIR}
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
 )
@@ -101,7 +125,7 @@ cpp_gtest(prototype_numeric)
 set(prototype_indicator_incs
   ${GEN_DIR}
   ${SRC_DIR}
-  ${TEST_DIR}
+  ${PROTOTYPE_DIR}
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
 )
@@ -132,7 +156,7 @@ cpp_gtest(prototype_indicator)
 set(prototype_strategy_incs
   ${GEN_DIR}
   ${SRC_DIR}
-  ${TEST_DIR}
+  ${PROTOTYPE_DIR}
 )
 set(prototype_strategy_srcs
   ${TEST_DIR}/AllTests.cpp
@@ -159,7 +183,7 @@ cpp_gtest(prototype_strategy)
 set(prototype_data_structures_incs
   ${GEN_DIR}
   ${SRC_DIR}
-  ${TEST_DIR}
+  ${PROTOTYPE_DIR}
 )
 set(prototype_data_structures_srcs
   ${TEST_DIR}/AllTests.cpp
@@ -184,10 +208,11 @@ cpp_gtest(prototype_data_structures)
 
 add_custom_target(all_prototypes)
 add_dependencies(all_prototypes
-  prototype_contract_manager
-  prototype_ib
-  prototype_numeric
   prototype_data_structures
+  prototype_contract_manager
+  prototype_couchdb
+  prototype_numeric
+  prototype_ib
   prototype_indicator
   prototype_strategy
 )
