@@ -18,6 +18,8 @@ set(test_varz_all_srcs
   VarzTest.cpp
 )
 set(test_varz_all_libs
+  boost_system
+  boost_thread
   json_spirit
   atp_varz
 )
