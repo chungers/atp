@@ -26,6 +26,9 @@ add_subdirectory(varz)
 # ZMQ
 add_subdirectory(zmq)
 
+# CouchDB
+add_subdirectory(couchdb)
+
 # Platform
 # - composition of lower-level layers like zmq, ib, proto, etc.
 add_subdirectory(platform)
