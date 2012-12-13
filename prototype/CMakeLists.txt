@@ -40,6 +40,33 @@ set(prototype_ib_libs
   )
 cpp_gtest(prototype_ib)
 
+# Cluster Prototype
+# - for prototyping topology of different servers
+set(prototype_cluster_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${TEST_DIR}
+  ${PROTOTYPE_DIR}
+  ${IBAPI_ROOT}
+  ${IBAPI_ROOT}/Shared
+)
+set(prototype_cluster_srcs
+  ${TEST_DIR}/AllTests.cpp
+  cluster_prototype.cpp
+)
+set(prototype_cluster_libs
+  IBAPIConnector
+  ib_api_versioned_base
+  atp_contract_manager
+  atp_order_manager
+  atp_zmq
+  boost_system
+  boost_iostreams
+  gflags
+  glog
+  )
+cpp_gtest(prototype_cluster)
+
 # CouchDB prototype
 set(prototype_couchdb_incs
   ${GEN_DIR}
@@ -209,6 +236,7 @@ cpp_gtest(prototype_data_structures)
 add_custom_target(all_prototypes)
 add_dependencies(all_prototypes
   prototype_data_structures
+  prototype_cluster
   prototype_contract_manager
   prototype_couchdb
   prototype_numeric
