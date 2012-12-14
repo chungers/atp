@@ -24,8 +24,7 @@ bool checkEXT(ptime t)
 }
 
 /// Parse input string and set the ptime according to TIME_FORMAT
-const bool parse(const std::string& input, ptime* output,
-                 bool est)
+bool parse(const std::string& input, ptime* output, bool est)
 {
   ptime pt;
   std::istringstream is(input);
