@@ -24,17 +24,20 @@
 
 #include "service/MarketDataSubscriber.hpp"
 
+#include "main/global_defaults.hpp"
+
 
 // Flags for reactor / db query processor
-DEFINE_string(ep, "tcp://127.0.0.1:1111", "Reactor port");
+DEFINE_string(ep, atp::global::HZ_QUERY_ENDPOINT, "Reactor port");
 DEFINE_string(leveldb, "", "Leveldb");
 
 // Flags for subscriber
 DEFINE_bool(subscribe, true, "True to turn on subscriber and write to db.");
 DEFINE_string(id, "historian-hz", "Id of the subscriber");
-DEFINE_string(adminEp, "tcp://127.0.0.1:4444", "Admin endpoint");
-DEFINE_string(eventEp, "tcp://127.0.0.1:4445", "Event endpoint");
-DEFINE_string(pubsubEp, "tcp://127.0.0.1:7777", "PubSub Event endpoint");
+DEFINE_string(adminEp, atp::global::HZ_ADMIN_ENDPOINT, "Admin endpoint");
+DEFINE_string(eventEp, atp::global::HZ_EVENT_ENDPOINT, "Event endpoint");
+DEFINE_string(pubsubEp, atp::global::HZ_SUBSCRIBER_ENDPOINT,
+              "PubSub Event endpoint (marketdata / fh)");
 DEFINE_string(topics, "", "Comma-delimited subscription topics");
 DEFINE_int32(varz, 18001, "varz server port");
 DEFINE_bool(overwrite, true, "True to overwrite db records, false to check.");

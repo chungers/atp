@@ -43,8 +43,8 @@ class ContractManager : NoCopyAndAssign
   const static p::Contract::Right CallOption;
 
 
-  ContractManager(const string& em_endpoint,  // receives orders
-                  const string& em_messages_endpoint, // order status
+  ContractManager(const string& cm_endpoint,  // receives queries
+                  const string& cm_messages_endpoint, // query results
                   const vector<string>& filters = ALL_CONTRACT_EVENTS,
                   context_t* context = NULL);
 
@@ -65,9 +65,9 @@ class ContractManager : NoCopyAndAssign
   const AsyncContractDetailsEnd
   requestOptionChain(const RequestId& id, const std::string& symbol);
 
-  /// Symbol here is the simple case like 'AAPL'
+  /// Symbol here is the simple case like 'SPX'
   const AsyncContractDetailsEnd
-  requestIndex(const RequestId& id, const std::string& symbol);
+  requestIndexContractDetails(const RequestId& id, const std::string& symbol);
 
   /// Key is something like 'AAPL.STK'
   bool findContract(const std::string& key, p::Contract* contract) const;

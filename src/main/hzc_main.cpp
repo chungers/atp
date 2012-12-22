@@ -21,6 +21,8 @@
 #include "historian/Visitor.hpp"
 #include "historian/DbReactorClient.hpp"
 
+#include "main/global_defaults.hpp"
+
 
 void OnTerminate(int param)
 {
@@ -31,8 +33,9 @@ void OnTerminate(int param)
 
 DEFINE_bool(stream, true, "True to stream, false to buffer in array.");
 DEFINE_bool(cout, true, "Send output to cout");
-DEFINE_string(ep, "tcp://127.0.0.1:1111", "Reactor port");
-DEFINE_string(cb, "tcp://127.0.0.1:1112", "Callback port");
+DEFINE_string(ep, atp::global::HZ_QUERY_ENDPOINT, "Reactor port");
+DEFINE_string(cb, atp::global::HZC_RESULT_STREAM_ENDPOINT,
+              "Callback port for streaming of the result set.");
 DEFINE_string(symbol, "", "Symbol");
 DEFINE_string(first, "", "First of range");
 DEFINE_string(last, "", "Last of range");

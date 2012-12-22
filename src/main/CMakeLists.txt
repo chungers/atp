@@ -182,7 +182,25 @@ set(hzc_libs
 )
 cpp_executable(hzc)
 
-##########################################
+###########################################
+# Data Subscription (ds)
+set(ds_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+)
+set(ds_srcs
+  ds_main.cpp
+)
+set(ds_libs
+  atp_contract_manager
+  atp_platform_base
+  boost_system
+  gflags
+  glog
+)
+cpp_executable(ds)
+
+#########################################
 # Reactor test client / server
 set(zmq_reactor_incs
   ${GEN_DIR}
@@ -211,5 +229,6 @@ add_dependencies(all_mains
   hdb
   hz
   hzc
+  ds
   zmq_reactor
 )

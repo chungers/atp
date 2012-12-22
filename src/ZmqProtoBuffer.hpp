@@ -4,10 +4,11 @@
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <zmq.hpp>
+
 #include "log_levels.h"
 #include "utils.hpp"
 
-#include <zmq.hpp>
 #include "zmq/ZmqUtils.hpp"
 
 using ::zmq::error_t;
@@ -20,7 +21,6 @@ struct Nullable
 {
   typedef boost::optional< boost::shared_ptr< M > > ptr;
 };
-
 
 template <typename P>
 size_t send(socket_t& socket,
@@ -51,6 +51,13 @@ size_t send(socket_t& socket,
     ZMQ_PROTO_MESSAGE_ERROR << "Error sending: " << e.what();
   }
   return sent;
+}
+
+template <typename P>
+size_t send(socket_t& socket, P& proto)
+{
+  boost::uint64_t ts = now_micros();
+  return send<P>(socket, ts, ts, proto);
 }
 
 template <typename P>
