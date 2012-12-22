@@ -31,8 +31,8 @@ DEFINE_bool(optionChain, false,
             "True to request option chain for each stock symbol");
 DEFINE_int64(requestTimeoutMillis, 10000,
              "Timeout for requesting contract details in milliseconds.");
-DEFINE_bool(updateContractDb, false,
-            "Update the contract database.");
+DEFINE_bool(subscribe, true,
+            "True to start subscription via FH");
 
 void OnTerminate(int param)
 {
@@ -111,7 +111,7 @@ int main(int argc, char** argv)
           LOG(INFO) << "Canceled marketdata for " << *itr;
         }
 
-      } else {
+      } else if (FLAGS_subscribe) {
         // Now make a subscription:
         p::RequestMarketData req;
         req.mutable_contract()->CopyFrom(contract);
@@ -182,7 +182,7 @@ int main(int argc, char** argv)
               LOG(INFO) << "Canceled marketdata for " << *itr;
             }
 
-          } else {
+          } else if (FLAGS_subscribe) {
             // Now make a subscription:
             p::RequestMarketData req;
             req.mutable_contract()->CopyFrom(c);
