@@ -216,7 +216,7 @@ TEST(ClusterPrototype, BasicSetup)
 }
 
 
-TEST(ClusterPrototype, MultipleEndpoints)
+TEST(ClusterPrototype, SubscribeToMultipleEndpoints)
 {
   /// Server side
   LOG(INFO) << "Starting contract manager";
@@ -247,33 +247,21 @@ TEST(ClusterPrototype, MultipleEndpoints)
   for (int i = 0; i < 100; ++i) {
     sock.connect(atp::zmq::EndPoint::tcp(17000 + i).c_str());
   }
-
-
   // Subscription doesn't hang either.
   string event("event");
   sock.setsockopt(ZMQ_SUBSCRIBE, event.c_str(), event.length());
 
-  // Problem: we must have a proxy or event publisher will
-  // block on sending!  This is not ideal, because now we have
-  // a single point of failure...
+  sleep(3);
 
-  LOG(INFO) << "Starting event proxy";
-  ::zmq::context_t pctx(1);
-  ::zmq::socket_t event_proxy_in(pctx, ZMQ_XSUB);
-  event_proxy_in.bind(atp::zmq::EndPoint::tcp(1777).c_str());
-  // ::zmq::socket_t event_proxy_out(pctx, ZMQ_PUB);
-  // event_proxy_out.bind(atp::zmq::EndPoint::tcp(1778).c_str());
-  // ::zmq::device(ZMQ_FORWARDER, &event_proxy_in, &event_proxy_out);
-
-  unsigned int proxy_port = 1777;
+  // Start up even producers later...
 
   LOG(INFO) << "Event socket";
   ::zmq::socket_t event_sock(ctx, ZMQ_PUB);
-  event_sock.bind(atp::zmq::EndPoint::tcp(17001).c_str());
+  event_sock.bind(atp::zmq::EndPoint::tcp(17000 + 1).c_str());
 
   LOG(INFO) << "Event socket 2";
   ::zmq::socket_t event_sock2(ctx, ZMQ_PUB);
-  event_sock2.bind(atp::zmq::EndPoint::tcp(16002).c_str());
+  event_sock2.bind(atp::zmq::EndPoint::tcp(17000 + 2).c_str());
 
   // Note that event2 is on a port that's not connected by any subscriber
   // But the sending of the messages shouldn't block.
@@ -290,10 +278,132 @@ TEST(ClusterPrototype, MultipleEndpoints)
                         "event" + boost::lexical_cast<string>(i), false);
   }
 
-
   // Note: not sure if it's good idea to use a proxy -- since if the proxy
   // is down, sending events may block.  Need to prototype with 3.2 and see
   // if the behavior is different.  Right now, given the current version,
   // the best may be to have many publishers of events and have a event tracker
   // that subscribes to a range of port numbers.
 }
+
+
+#ifdef ZMQ_3X
+
+void startProxy(::zmq::context_t* pctx,
+                unsigned int proxy_xsub, unsigned int proxy_xpub)
+{
+  // Note that for pub/sub proxy, the proxy binds to the inbound
+  // and outbound ports while the publishers and subscribers all
+  // connect to the ports.
+  ::zmq::socket_t event_proxy_in(*pctx, ZMQ_XSUB);
+  ::zmq::socket_t event_proxy_out(*pctx, ZMQ_XPUB);
+
+  LOG(INFO) << "Bind at both ends";
+  event_proxy_in.bind(atp::zmq::EndPoint::tcp(proxy_xsub).c_str());
+  event_proxy_out.bind(atp::zmq::EndPoint::tcp(proxy_xpub).c_str());
+
+  LOG(INFO) << "connect frontend and backend -- start to block";
+
+  // Blocks
+  zmq_proxy((void*)event_proxy_in, (void*)event_proxy_out, NULL);
+}
+
+void startSubscriber(unsigned int proxy_xpub)
+{
+  ::zmq::context_t ctx(1);
+  ::zmq::socket_t sock(ctx, ZMQ_SUB);
+  try {
+    sock.connect(atp::zmq::EndPoint::tcp(proxy_xpub).c_str());
+    string event("event");
+    sock.setsockopt(ZMQ_SUBSCRIBE, event.c_str(), event.length());
+    string stop("stop");
+    sock.setsockopt(ZMQ_SUBSCRIBE, stop.c_str(), stop.length());
+
+    while (true) {
+      string buff;
+      atp::zmq::receive(sock, &buff);
+      LOG(INFO) << "Got " << buff;
+
+      if (buff == "stop") {
+        LOG(INFO) << "Stopping because told so.";
+        break;
+      }
+    }
+
+  } catch (::zmq::error_t e) {
+    LOG(ERROR) << "Exception " << e.what();
+  }
+}
+
+TEST(ClusterPrototype, EventProxy)
+{
+  unsigned int proxy_xsub = 17778;
+  unsigned int proxy_xpub = 17779;
+
+
+  // Note that with proxy, the publishers CONNECT to a known port.
+  // Even if the proxy isn't running, the connect will not block.
+  ::zmq::context_t ctx(1);
+  LOG(INFO) << "Event socket";
+  ::zmq::socket_t event_sock(ctx, ZMQ_PUB);
+  event_sock.connect(atp::zmq::EndPoint::tcp(proxy_xsub).c_str());
+
+  LOG(INFO) << "Event socket 2";
+  ::zmq::socket_t event_sock2(ctx, ZMQ_PUB);
+  event_sock2.connect(atp::zmq::EndPoint::tcp(proxy_xsub).c_str());
+
+  // At the point, still no proxy. Generating events anyway; shouldn't block.
+  LOG(INFO) << "Sending events without proxy or subscriber running.";
+
+  int block = 10;
+  int total = 30;
+  for (int i = 0; i < block; ++i) {
+    atp::zmq::send_copy(event_sock,
+                        "event-sock-" + boost::lexical_cast<string>(i), false);
+    atp::zmq::send_copy(event_sock2,
+                        "event-sock2-" + boost::lexical_cast<string>(i), false);
+  }
+
+  sleep(3);
+
+  // Start a proxy after some events have been sent.
+  LOG(INFO) << "Starting event proxy";
+  ::zmq::context_t pctx(1);
+  boost::thread proxy(boost::bind(&startProxy, &pctx, proxy_xsub, proxy_xpub));
+
+  sleep(1);
+
+  LOG(INFO) << "Now sending events with a running proxy.  Still no subscriber.";
+
+  for (int i = block; i < block*2; ++i) {
+    atp::zmq::send_copy(event_sock2,
+                        "event-sock2-" + boost::lexical_cast<string>(i), false);
+    atp::zmq::send_copy(event_sock,
+                        "event-sock-" + boost::lexical_cast<string>(i), false);
+  }
+
+  sleep(2);
+
+  LOG(INFO) << "Starting subscriber.";
+  boost::thread subscriber(boost::bind(&startSubscriber, proxy_xpub));
+
+  sleep(2);
+
+  LOG(INFO) << "Now sending more events, with proxy and subscriber running.";
+
+  for (int i = block*2; i < total; ++i) {
+    atp::zmq::send_copy(event_sock2,
+                        "event-sock2-" + boost::lexical_cast<string>(i), false);
+    atp::zmq::send_copy(event_sock,
+                        "event-sock-" + boost::lexical_cast<string>(i), false);
+  }
+
+  atp::zmq::send_copy(event_sock, "stop", false);
+
+  subscriber.join();
+
+  // Apprently the proxy will not store messages when there are no subscribers.
+  // The subscriber joins late and receives only the last batch of 10*2 messages
+  // from the producer sockets.
+}
+
+#endif

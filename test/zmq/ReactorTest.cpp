@@ -17,7 +17,7 @@
 using namespace atp::zmq;
 
 typedef std::vector<std::string> Message;
-#define LOGGER VLOG(20)
+#define LOGGER LOG(INFO)
 
 
 struct TestStrategy : Reactor::Strategy
@@ -44,13 +44,19 @@ struct TestStrategy : Reactor::Strategy
         hasReceivedMessage.notify_one();
       }
       status = true;
-
+    } catch (zmq::error_t e) {
+      LOG(WARNING) << "Got exception on read: "
+                   << e.num() << ": " << e.what();
+      status = false;
+    }
+    try {
       reply_ = "OK";
       size_t sent = atp::zmq::send_zero_copy(socket , reply_);
       return sent == reply_.length();
 
     } catch (zmq::error_t e) {
-      LOG(WARNING) << "Got exception " << e.what() << std::endl;
+      LOG(WARNING) << "Got exception on write: "
+                   << e.num() << ": " << e.what();
       status = false;
     }
     return status;
@@ -75,6 +81,7 @@ TEST(ReactorTest, SimpleIPCSendReceiveTest)
   zmq::context_t context(1);
 
   const std::string& addr = atp::zmq::EndPoint::ipc("test1");
+
   // Immediately starts a listening thread at the given address.
   Reactor reactor(testStrategy.socketType(), addr, testStrategy);
 
@@ -105,6 +112,8 @@ TEST(ReactorTest, SimpleIPCSendReceiveTest)
   LOGGER << "Response was " << response << std::endl;
 
   client.close();
+
+  sleep(2);
 }
 
 TEST(ReactorTest, InProcSendReceiveTest)
@@ -117,6 +126,7 @@ TEST(ReactorTest, InProcSendReceiveTest)
   zmq::context_t context(1);
 
   const std::string& addr = atp::zmq::EndPoint::inproc("test.inproc");
+
   // Immediately starts a listening thread at the given address.
   Reactor reactor(testStrategy.socketType(), addr, testStrategy, &context);
 
@@ -147,6 +157,8 @@ TEST(ReactorTest, InProcSendReceiveTest)
   LOGGER << "Response was " << response << std::endl;
 
   client.close();
+
+  sleep(2);
 }
 
 TEST(ReactorTest, IPCMultiSendReceiveTest)
@@ -190,7 +202,7 @@ TEST(ReactorTest, IPCMultiSendReceiveTest)
 
       ASSERT_EQ("OK", reply);
     } catch (zmq::error_t e) {
-      LOG(ERROR) << "Exception: " << e.what() << std::endl;
+      LOG(ERROR) << "Exception: " << e.num() << "," << e.what();
       exception = true;
     }
     ASSERT_FALSE(exception);
@@ -208,6 +220,7 @@ TEST(ReactorTest, IPCMultiSendReceiveTest)
     EXPECT_EQ(sent[i++], itr->at(0));
   }
 
+  sleep(2);
 }
 
 TEST(ReactorTest, InProcMultiSendReceiveTest)
@@ -267,5 +280,8 @@ TEST(ReactorTest, InProcMultiSendReceiveTest)
        ++itr) {
     EXPECT_EQ(sent[i++], itr->at(0));
   }
+
+  sleep(2);
+
 }
 

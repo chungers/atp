@@ -53,7 +53,6 @@ size_t send(socket_t& socket,
   return sent;
 }
 
-
 template <typename P>
 bool receive(socket_t& socket, P& proto)
 {
@@ -75,7 +74,6 @@ bool receive(socket_t& socket, P& proto)
   }
   return false;
 }
-
 
 } // atp
 

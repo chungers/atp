@@ -41,6 +41,10 @@ message(STATUS
 set(FIX_VERSION 4.2)
 set(QUICKFIX_ROOT ${THIRD_PARTY_DIR}/quickfix/src/C++)
 
+
+add_definitions('-DZMQ_3X')
+
+
 # R Integration
 execute_process(
   COMMAND R CMD config --cppflags

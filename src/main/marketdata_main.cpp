@@ -14,14 +14,16 @@
 
 #include "service/MarketDataSubscriber.hpp"
 
+#include "main/global_defaults.hpp"
+
 
 DEFINE_string(adminEp, "tcp://127.0.0.1:4444", "Admin endpoint");
-DEFINE_string(eventEp, "tcp://127.0.0.1:4445", "Event endpoint");
+DEFINE_string(eventEp, "tcp://127.0.0.1:7800", "Event endpoint");
 DEFINE_string(id, "marketdata", "Id of the subscriber");
-DEFINE_string(ep, "tcp://127.0.0.1:7777", "Marketdata endpoint");
+DEFINE_string(ep, atp::global::FH_OUTBOUND_ENDPOINT, "Marketdata endpoint");
 DEFINE_string(topics, "", "Comma-delimited subscription topics");
 DEFINE_bool(playback, false, "True if data is playback from logs");
-DEFINE_int32(varz, 18002, "varz server port");
+DEFINE_int32(varz, 39000, "varz server port");
 
 DEFINE_VARZ_int64(subscriber_messages_received, 0, "total messages");
 DEFINE_VARZ_bool(subscriber_latency_offset, false, "latency offset");

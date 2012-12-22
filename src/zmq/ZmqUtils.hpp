@@ -42,13 +42,20 @@ inline static bool receive(::zmq::socket_t & socket, std::string* output) {
   ::zmq::message_t message;
   socket.recv(&message);
   if (message.size() > 0) {
-
     output->assign(static_cast<char*>(message.data()), message.size());
 
-    int64_t more;           //  Multipart detection
+    //  Multipart detection
+#ifdef ZMQ_3X
+    int more = 0;
+    size_t more_size = sizeof (more);
+    socket.getsockopt(ZMQ_RCVMORE, &more, &more_size);
+    return more > 0;
+#else
+    int64_t more;
     size_t more_size = sizeof (more);
     socket.getsockopt(ZMQ_RCVMORE, &more, &more_size);
     return more;
+#endif
   } else {
     return receive(socket, output);
   }
