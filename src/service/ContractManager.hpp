@@ -65,9 +65,9 @@ class ContractManager : NoCopyAndAssign
   const AsyncContractDetailsEnd
   requestOptionChain(const RequestId& id, const std::string& symbol);
 
-  /// Symbol here is the simple case like 'AAPL'
+  /// Symbol here is the simple case like 'SPX'
   const AsyncContractDetailsEnd
-  requestIndex(const RequestId& id, const std::string& symbol);
+  requestIndexContractDetails(const RequestId& id, const std::string& symbol);
 
   /// Key is something like 'AAPL.STK'
   bool findContract(const std::string& key, p::Contract* contract) const;

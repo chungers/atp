@@ -1,5 +1,8 @@
 
+#include <string>
 #include <sstream>
+#include <vector>
+#include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -109,6 +112,49 @@ bool symbol_from_contract(const p::Contract& contract, std::string* output)
   }
 }
 
+// symbol = AAPL.STK or AAPL.OPT.20121216.650.C
+bool parse_encoded_symbol(const std::string& key,
+                          std::string* symbol,
+                          p::Contract::Type* sec_type,
+                          double* strike,
+                          p::Contract::Right* right,
+                          int* year,
+                          int* month,
+                          int* day)
+{
+  using namespace std;
+  vector<string> parts;
+  boost::split(parts, key, boost::is_any_of("."));
+
+  if (parts.size() < 2) return false;
+
+  *symbol = parts[0];
+  if (parts[1] == "STK") {
+    *sec_type = p::Contract::STOCK;
+    return true;
+  }
+
+  if (parts[1] == "IND") {
+    *sec_type = p::Contract::INDEX;
+    return true;
+  }
+
+  if (parts[1] == "OPT" && parts.size() == 5) {
+    *sec_type = p::Contract::OPTION;
+    *strike = boost::lexical_cast<double>(parts[2]);
+
+    if (!parse_date(parts[4], year, month, day)) return false;
+
+    if (parts[4] == "P") *right = p::Contract::PUT;
+    if (parts[4] == "C") *right = p::Contract::CALL;
+
+    return true;
+
+  } else {
+    return false;
+  }
+
+}
 
 } // platform
 } // atp

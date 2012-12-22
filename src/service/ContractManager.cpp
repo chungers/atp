@@ -283,8 +283,8 @@ ContractManager::requestOptionChain(const RequestId& id,
 }
 
 const AsyncContractDetailsEnd
-ContractManager::requestIndex(const RequestId& id,
-                              const std::string& symbol)
+ContractManager::requestIndexContractDetails(const RequestId& id,
+                                             const std::string& symbol)
 {
   p::Contract contract;
   contract.set_symbol(symbol);

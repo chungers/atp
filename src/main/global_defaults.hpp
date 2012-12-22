@@ -16,6 +16,7 @@ typedef unsigned int SessionId;
 typedef unsigned int ChannelId;
 typedef string Host;
 typedef string ZmqEndPoint;
+typedef string CouchDbEndPoint;
 typedef string ConnectorSpec;
 typedef string OutboundEndPoint;
 
@@ -94,8 +95,17 @@ const ConnectorSpec CM_CONNECTOR_SPECS = build_connector_spec(
 const OutboundEndPoint CM_OUTBOUND_ENDPOINTS = build_outbound_spec(
     CM_OUTBOUND_ENDPOINT);
 
+//// hz - historian server
+const ZmqEndPoint HZ_QUERY_ENDPOINT = "tcp://127.0.0.1:5503";
+const ZmqEndPoint HZ_ADMIN_ENDPOINT = "tcp://127.0.0.1:5504";
+const ZmqEndPoint HZ_EVENT_ENDPOINT = "tcp://127.0.0.1:7703"; // agent events
+const ZmqEndPoint HZ_SUBSCRIBER_ENDPOINT = FH_OUTBOUND_ENDPOINT;
+const Port HZ_VARZ_PORT = 38003;
 
+//// hzc - historian client
+const ZmqEndPoint HZC_RESULT_STREAM_ENDPOINT = "tcp://127.0.0.1:6600";
 
+const CouchDbEndPoint CONTRACT_DB_ENDPOINT = "http://127.0.0.1:5984";
 
 } // global
 } // atp

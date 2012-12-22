@@ -23,6 +23,8 @@ using boost::uint64_t;
 namespace atp {
 namespace time {
 
+typedef boost::uint64_t timestamp_t;
+
 //eastern timezone is utc-5
 /// http://www.boost.org/doc/libs/1_37_0/doc/html/boost/date_time/local_adjustor.html
 typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;

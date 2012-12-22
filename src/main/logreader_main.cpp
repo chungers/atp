@@ -31,12 +31,16 @@
 #include "historian/historian.hpp"
 #include "zmq/ZmqUtils.hpp"
 
+#include "main/global_defaults.hpp"
+
+
 const static std::string NO_VALUE("__no_value__");
 
 DEFINE_bool(rth, true, "Regular trading hours");
 DEFINE_bool(delay, false, "True to simulate sample delays when publishing");
 DEFINE_string(logfile, "logfile", "The name of the log file.");
-DEFINE_string(endpoint, "tcp://127.0.0.1:5555", "Endpoint for publishing.");
+DEFINE_string(endpoint, atp::global::FH_OUTBOUND_ENDPOINT,
+              "Endpoint for publishing.");
 DEFINE_bool(publish, false, "True to publish to endpoint.");
 DEFINE_int64(playback, 1, "N multiple speed in playback.");
 DEFINE_string(leveldb, NO_VALUE, "leveldb file");
