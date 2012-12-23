@@ -45,14 +45,14 @@ if(TEST_WITH_MOCK)
   message(STATUS "Building with Mock")
   add_definitions('-DTEST_WITH_MOCK')
   set(test_service_contract_manager_libs
-    atp_contract_manager
+    atp_service_contract_manager
     IBAPIConnector
     ib_api_versioned_base
     )
 else(TEST_WITH_MOCK)
   message(STATUS "Building with live connection")
   set(test_service_contract_manager_libs
-    atp_order_manager
+    atp_service_order_manager
     IBAPIConnector
     ib_api_versioned_base
     ib_api_versioned_handler # standard live protocol handler
@@ -77,14 +77,14 @@ if(TEST_WITH_MOCK)
   message(STATUS "Building with Mock")
   add_definitions('-DTEST_WITH_MOCK')
   set(test_service_order_manager_libs
-    atp_order_manager
+    atp_service_order_manager
     IBAPIConnector
     ib_api_versioned_base
     )
 else(TEST_WITH_MOCK)
   message(STATUS "Building with live connection")
   set(test_service_order_manager_libs
-    atp_order_manager
+    atp_service_order_manager
     IBAPIConnector
     ib_api_versioned_base
     ib_api_versioned_handler # standard live protocol handler
@@ -109,7 +109,7 @@ set(test_service_log_reader_libs
   atp_common
   atp_historian
   atp_zmq
-  atp_log_reader
+  atp_service_log_reader
   boost_system
   boost_iostreams
   gflags

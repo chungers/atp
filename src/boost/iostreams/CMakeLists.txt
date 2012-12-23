@@ -1,6 +1,6 @@
 # Boost iostreams
 #
-message(STATUS "Boost iostreams ==================================================")
+message(STATUS "Boost iostreams ==============================================")
 
 add_definitions('-fPIC')
 

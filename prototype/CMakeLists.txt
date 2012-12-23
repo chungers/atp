@@ -57,13 +57,8 @@ set(prototype_cluster_srcs
 set(prototype_cluster_libs
   IBAPIConnector
   ib_api_versioned_base
-  atp_contract_manager
-  atp_order_manager
-  atp_zmq
-  boost_system
-  boost_iostreams
+  atp_service_all
   gflags
-  glog
   )
 cpp_gtest(prototype_cluster)
 
@@ -106,13 +101,8 @@ set(prototype_contract_manager_srcs
 set(prototype_contract_manager_libs
   api_base
   ib_api_versioned_base
-  atp_contract_manager
-  atp_proto
-  atp_zmq
-  boost_system
-  boost_iostreams
+  atp_service_all
   gflags
-  glog
   protobuf
   )
 cpp_gtest(prototype_contract_manager)
@@ -132,12 +122,8 @@ set(prototype_numeric_srcs
 set(prototype_numeric_libs
   api_base
   ib_api_versioned_base
-  atp_log_reader
-  atp_message_processor
-  atp_proto
-  atp_zmq
-  boost_system
-  boost_iostreams
+  atp_platform_all
+  atp_service_all
   test_protos
   gflags
   glog
@@ -163,10 +149,8 @@ set(prototype_indicator_srcs
 set(prototype_indicator_libs
   api_base
   ib_api_versioned_base
-  atp_log_reader
-  atp_message_processor
-  atp_proto
-  atp_zmq
+  atp_service_all
+  atp_platform_all
   boost_system
   boost_iostreams
   test_protos
@@ -190,10 +174,8 @@ set(prototype_strategy_srcs
   agent_prototype.cpp
 )
 set(prototype_strategy_libs
-  atp_message_processor
-  atp_log_reader
-  atp_proto
-  atp_zmq
+  atp_platform_all
+  atp_service_all
   boost_system
   boost_iostreams
   gflags
@@ -217,14 +199,9 @@ set(prototype_data_structures_srcs
   misc_prototype.cpp
 )
 set(prototype_data_structures_libs
-  atp_message_processor
-  atp_log_reader
-  atp_proto
-  atp_zmq
-  boost_system
-  boost_iostreams
+  atp_platform_all
+  atp_service_all
   gflags
-  glog
   test_protos
   protobuf
   ta_lib

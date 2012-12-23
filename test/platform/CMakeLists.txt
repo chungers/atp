@@ -14,11 +14,8 @@ set(test_platform_message_processor_srcs
   MessageProcessorTest.cpp
 )
 set(test_platform_message_processor_libs
-  atp_proto
-  atp_message_processor
+  atp_platform_all
   gflags
-  glog
-  zmq
   )
 cpp_gtest(test_platform_message_processor)
 
@@ -34,11 +31,8 @@ set(test_platform_marketdata_handler_srcs
   MarketDataHandlerTest.cpp
 )
 set(test_platform_marketdata_handler_libs
-  atp_proto
-  atp_message_processor
+  atp_platform_all
   gflags
-  glog
-  zmq
   )
 cpp_gtest(test_platform_marketdata_handler)
 
@@ -53,11 +47,8 @@ set(test_platform_indicator_pipeline_srcs
   IndicatorPipelineTest.cpp
 )
 set(test_platform_indicator_pipeline_libs
-  atp_proto
-  atp_message_processor
+  atp_platform_all
   gflags
-  glog
-  zmq
   )
 cpp_gtest(test_platform_indicator_pipeline)
 

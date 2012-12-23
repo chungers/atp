@@ -2,7 +2,7 @@
 # Tests for Varz
 
 
-message(STATUS "TESTS: Varz ================================================")
+message(STATUS "TESTS: Varz ==================================================")
 
 add_definitions('-fPIC')
 add_definitions('-DJSON_SPIRIT_MVALUE_ENABLED')
