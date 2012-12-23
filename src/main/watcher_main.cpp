@@ -45,27 +45,51 @@ struct state_t
   boost::posix_time::ptime ct;
 };
 
+#define CONSOLE_RED "\033[1;31m"
+#define CONSOLE_GREEN "\033[1;32m"
+#define CONSOLE_YELLOW "\033[1;33m"
+#define CONSOLE_RESET "\033[1;0m"
+#define CONSOLE_BOLD "\033[1;1m"
+#define CONSOLE_UNDERLINE "\033[1;4m"
+#define CONSOLE_BLINK "\033[1;5m"
+#define CONSOLE_REVERSE "\033[1;7m"
+
+
 template <typename V>
 void print(const timestamp_t& ts, const V& v,
            V* state_var, state_t* state)
 {
+  if (v == 0) return;
+
   boost::posix_time::ptime t = atp::time::as_ptime(ts);
   state->ct = t;
   *state_var = v;
 
-  std::cout << atp::time::to_est(t) << ',' << state->symbol << ','
-            << "bid=" << state->bid << '/' << state->bid_size << ','
-            << "ask=" << state->ask << '/' << state->ask_size << ','
+  string color;
+  if (state->last >= state->ask) {
+    color = CONSOLE_GREEN;
+    if (state->last == state->ask) {
+      color += CONSOLE_UNDERLINE;
+    }
+  } else if (state->last <= state->bid) {
+    color = CONSOLE_RED;
+    if (state->last == state->bid) {
+      color += CONSOLE_UNDERLINE;
+    }
+  } else if (state->bid > state->ask) {
+    color = CONSOLE_YELLOW;
+  } else {
+    color = CONSOLE_RESET;
+  }
+
+  std::cout << color
+            << atp::time::to_est(t) << ' ' << state->symbol << ' '
+            << "bid=" << state->bid << '/' << state->bid_size << ' '
+            << "ask=" << state->ask << '/' << state->ask_size << ' '
+            << (state->bid_size - state->ask_size) << ' '
             << "trade=" << state->last << '/' << state->last_size;
 
-  if (state->last > state->ask) {
-    std::cout << " VVV";
-  } else if (state->last < state->bid) {
-    std::cout << " ^^^";
-  } else if (state->bid > state->ask) {
-    std::cout << " !!!";
-  }
-  std::cout << std::endl;
+  std::cout << CONSOLE_RESET << std::endl;
 }
 
 
