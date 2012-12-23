@@ -245,5 +245,6 @@ add_dependencies(all_mains
   hz
   hzc
   ds
+  watcher
   zmq_reactor
 )
