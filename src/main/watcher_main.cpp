@@ -82,14 +82,14 @@ void print(const timestamp_t& ts, const V& v,
     color = CONSOLE_RESET;
   }
 
-  std::cout << color
+  std::cerr << color
             << atp::time::to_est(t) << ' ' << state->symbol << ' '
             << "bid=" << state->bid << '/' << state->bid_size << ' '
             << "ask=" << state->ask << '/' << state->ask_size << ' '
             << (state->bid_size - state->ask_size) << ' '
             << "trade=" << state->last << '/' << state->last_size;
 
-  std::cout << CONSOLE_RESET << std::endl;
+  std::cerr << CONSOLE_RESET << std::endl;
 }
 
 
