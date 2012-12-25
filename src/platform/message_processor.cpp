@@ -89,16 +89,27 @@ class message_processor::implementation : NoCopyAndAssign
     message.reserve(200);
 
     bool run = true;
-    while (run) {
+    do {
 
-      if (atp::zmq::receive(socket, &topic) &&
-          !atp::zmq::receive(socket, &message)) {
-        run = handlers_.process_raw_message(topic, message);
+      try {
 
-      } else {
-        LOG(INFO) << "Got instead " << topic << "@" << message;
+        if (atp::zmq::receive(socket, &topic) &&
+            !atp::zmq::receive(socket, &message)) {
+          run = handlers_.process_raw_message(topic, message);
+
+        } else {
+          LOG(INFO) << "Got instead " << topic << "@" << message;
+        }
+
+      } catch (::zmq::error_t e) {
+        LOG(WARNING) << "Exception " << e.num() << "[" << e.what() << "]";
+        if (e.num() == EINTR) {
+          LOG(WARNING) << "Continuing";
+        } else {
+          run = false;
+        }
       }
-    }
+    } while (run);
 
     LOG(INFO) << "Listening thread stopped.";
   }

@@ -46,16 +46,15 @@ inline static bool receive(::zmq::socket_t & socket, std::string* output) {
 
     //  Multipart detection
 #ifdef ZMQ_3X
+    /// http://api.zeromq.org/3-2:zmq-getsockopt
     int more = 0;
+#else
+    /// http://api.zeromq.org/2-2:zmq-getsockopt
+    int64_t more = 0;
+#endif
     size_t more_size = sizeof (more);
     socket.getsockopt(ZMQ_RCVMORE, &more, &more_size);
     return more > 0;
-#else
-    int64_t more;
-    size_t more_size = sizeof (more);
-    socket.getsockopt(ZMQ_RCVMORE, &more, &more_size);
-    return more;
-#endif
   } else {
     return receive(socket, output);
   }
