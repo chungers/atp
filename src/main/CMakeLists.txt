@@ -128,25 +128,6 @@ cpp_executable(hloader)
 
 
 ##########################################
-# Historian - DB command line client
-set(hdb_incs
-  ${GEN_DIR}
-  ${SRC_DIR}
-)
-set(hdb_srcs
-  hdb_main.cpp
-)
-set(hdb_libs
-  gflags
-  glog
-  atp_historian
-  atp_varz
-  atp_zmq
-)
-cpp_executable(hdb)
-
-
-##########################################
 # Historian - DB ZMQ reactor
 set(hz_incs
   ${GEN_DIR}
@@ -241,7 +222,6 @@ add_dependencies(all_mains
   logreader
   marketdata
   hloader
-  hdb
   hz
   hzc
   ds

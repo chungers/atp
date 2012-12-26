@@ -68,13 +68,19 @@ void OnTerminate(int param)
 //
 // MAIN
 //
-// EM - Execution / Order Manager
+// CM - Contract Manager
 //
 int main(int argc, char** argv)
 {
   google::SetUsageMessage("CM - Contract Manager");
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
+  atp::varz::Varz::initialize();
+
+  std::string zmqVersion;
+  atp::zmq::version(&zmqVersion);
+
+  LOG(INFO) << "ZMQ " << zmqVersion;
   atp::varz::Varz::initialize();
 
   LOG(INFO) << "CM - IB API version: " << IB_API_VERSION;

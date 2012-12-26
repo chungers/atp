@@ -77,6 +77,12 @@ int main(int argc, char** argv)
   google::InitGoogleLogging(argv[0]);
   atp::varz::Varz::initialize();
 
+  std::string zmqVersion;
+  atp::zmq::version(&zmqVersion);
+
+  LOG(INFO) << "ZMQ " << zmqVersion;
+  atp::varz::Varz::initialize();
+
   LOG(INFO) << "EM - IB API version: " << IB_API_VERSION;
 
   // Signal handler: Ctrl-C

@@ -16,8 +16,10 @@
 
 
 
-DEFINE_string(fhPublishEp, atp::global::FH_OUTBOUND_ENDPOINT,
-              "FH market data publish endpoint");
+DEFINE_string(fhHost, atp::global::FH_HOST,
+              "FH market data publish host");
+DEFINE_int32(fhPort, atp::global::FH_OUTBOUND_PORT,
+              "FH market data publish port");
 DEFINE_string(symbols, "",
               "Comma-delimited list of stocks to watch.");
 
@@ -107,6 +109,11 @@ int main(int argc, char** argv)
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
+  std::string zmqVersion;
+  atp::zmq::version(&zmqVersion);
+
+  LOG(INFO) << "ZMQ " << zmqVersion;
+
   // Signal handler: Ctrl-C
   signal(SIGINT, OnTerminate);
   // Signal handler: kill -TERM pid
@@ -162,7 +169,8 @@ int main(int argc, char** argv)
                          boost::bind(&stop_function, _1, _2));
   }
 
-  platform::message_processor agent(FLAGS_fhPublishEp, symbols_map);
+  platform::message_processor agent(atp::zmq::EndPoint::tcp(
+      FLAGS_fhPort, FLAGS_fhHost), symbols_map);
 
   agent.block();
 }

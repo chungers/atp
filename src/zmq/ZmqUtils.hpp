@@ -4,12 +4,24 @@
 #include <stdio.h>
 #include <string>
 #include <sstream>
+
+
 #include <zmq.hpp>
 
 #include "log_levels.h"
 
 namespace atp {
 namespace zmq {
+
+inline void version(std::string* output)
+{
+  int major, minor, patch;
+  ::zmq::version(&major, &minor, &patch);
+  std::ostringstream oss;
+  oss << major << '.' << minor << '.' << patch;
+  output->assign(oss.str());
+}
+
 
 struct EndPoint {
   static std::string inproc(const std::string& name)

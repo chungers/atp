@@ -76,6 +76,11 @@ int main(int argc, char** argv)
   google::SetUsageMessage("Firehose connecting message queue and IB gateways.");
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
+
+  std::string zmqVersion;
+  atp::zmq::version(&zmqVersion);
+
+  LOG(INFO) << "ZMQ " << zmqVersion;
   atp::varz::Varz::initialize();
 
   LOG(INFO) << "Firehose - IB API version: " << IB_API_VERSION;
