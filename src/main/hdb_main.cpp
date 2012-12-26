@@ -85,7 +85,7 @@ int main(int argc, char** argv)
       switch (record.type()) {
 
         case SESSION_LOG: {
-          optional<SessionLog> value = p::as<SessionLog>(record);
+          optional<p::SessionLog> value = p::as<p::SessionLog>(record);
           if (value) {
             std::cout << *value;
           }
@@ -99,14 +99,14 @@ int main(int argc, char** argv)
         }
           break;
         case IB_MARKET_DATA: {
-          optional<MarketData> value = p::as<MarketData>(record);
+          optional<p::MarketData> value = p::as<p::MarketData>(record);
           if (value) {
             std::cout << *value;
           }
         }
           break;
         case IB_MARKET_DEPTH: {
-          optional<MarketDepth> value = p::as<MarketDepth>(record);
+          optional<p::MarketDepth> value = p::as<p::MarketDepth>(record);
           if (value) {
             std::cout << *value;
           }
