@@ -86,7 +86,8 @@ void print(const timestamp_t& ts, const V& v,
             << atp::time::to_est(t) << ' ' << state->symbol << ' '
             << "bid=" << state->bid << '/' << state->bid_size << ' '
             << "ask=" << state->ask << '/' << state->ask_size << ' '
-            << (state->bid_size - state->ask_size) << ' '
+            << (state->ask - state->bid) << ' '
+            << (state->ask_size - state->bid_size) << ' '
             << "trade=" << state->last << '/' << state->last_size;
 
   std::cerr << CONSOLE_RESET << std::endl;
