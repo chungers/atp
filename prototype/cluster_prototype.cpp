@@ -432,7 +432,6 @@ TEST(ClusterPrototype, PubSubMultiFrameTest)
 {
   unsigned int port = 37779;
 
-
   // Note that with proxy, the publishers CONNECT to a known port.
   // Even if the proxy isn't running, the connect will not block.
   ::zmq::context_t ctx(1);
