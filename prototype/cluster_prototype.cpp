@@ -19,6 +19,7 @@
 
 #include "common/time_utils.hpp"
 #include "zmq/ZmqUtils.hpp"
+#include "ZmqProtoBuffer.hpp"
 
 #include "ib/internal.hpp"
 #include "ib/ApiProtocolHandler.hpp"
@@ -29,6 +30,9 @@
 
 #include "main/cm.hpp"
 #include "main/em.hpp"
+
+#include "proto/ib.pb.h"
+
 #include "service/ContractManager.hpp"
 #include "service/OrderManager.hpp"
 
@@ -283,6 +287,233 @@ TEST(ClusterPrototype, SubscribeToMultipleEndpoints)
   // if the behavior is different.  Right now, given the current version,
   // the best may be to have many publishers of events and have a event tracker
   // that subscribes to a range of port numbers.
+}
+
+
+void startSimpleSubscriber(unsigned int port, const string& id)
+{
+  ::zmq::context_t ctx(1);
+  ::zmq::socket_t sock(ctx, ZMQ_SUB);
+  try {
+    sock.connect(atp::zmq::EndPoint::tcp(port).c_str());
+    sock.connect(atp::zmq::EndPoint::tcp(port+1).c_str());
+    string event("event");
+    sock.setsockopt(ZMQ_SUBSCRIBE, event.c_str(), event.length());
+    string stop("stop");
+    sock.setsockopt(ZMQ_SUBSCRIBE, stop.c_str(), stop.length());
+
+    while (true) {
+      string buff;
+      atp::zmq::receive(sock, &buff);
+      LOG(INFO) << id << ": Got " << buff;
+
+      if (buff == "stop") {
+        LOG(INFO) << id << ": Stopping because told so.";
+        break;
+      }
+    }
+
+  } catch (::zmq::error_t e) {
+    LOG(ERROR) << id << ": Exception " << e.what();
+  }
+}
+
+TEST(ClusterPrototype, PubSubSingleFrameTest)
+{
+  unsigned int port = 47779;
+
+
+  // Note that with proxy, the publishers CONNECT to a known port.
+  // Even if the proxy isn't running, the connect will not block.
+  ::zmq::context_t ctx(1);
+  LOG(INFO) << "Event socket";
+  ::zmq::socket_t event_sock(ctx, ZMQ_PUB);
+  event_sock.bind(atp::zmq::EndPoint::tcp(port).c_str());
+
+  LOG(INFO) << "Event socket 2";
+  ::zmq::socket_t event_sock2(ctx, ZMQ_PUB);
+  event_sock2.bind(atp::zmq::EndPoint::tcp(port+1).c_str());
+
+  // At the point, still no proxy. Generating events anyway; shouldn't block.
+  LOG(INFO) << "Sending events without subscribers running.";
+
+  int block = 10;
+  int total = 30;
+  for (int i = 0; i < block; ++i) {
+    atp::zmq::send_copy(event_sock,
+                        "event-sf-" +
+                        boost::lexical_cast<string>(i), false);
+    atp::zmq::send_copy(event_sock2,
+                        "event-sf-" + boost::lexical_cast<string>(i), false);
+    LOG(INFO) << "Published event " << i;
+  }
+
+  sleep(3);
+  LOG(INFO) << "Starting subscribers.";
+  boost::thread subscriber(boost::bind(&startSimpleSubscriber, port,
+                                       "simple1"));
+  boost::thread subscriber2(boost::bind(&startSimpleSubscriber, port,
+                                       "simple2"));
+
+  sleep(2);
+
+  LOG(INFO) << "Now sending more events, with subscriber running.";
+
+  for (int i = block; i < total; ++i) {
+    atp::zmq::send_copy(event_sock,
+                        "event-sf-" + boost::lexical_cast<string>(i), false);
+    atp::zmq::send_copy(event_sock2,
+                        "event-sf-" + boost::lexical_cast<string>(i), false);
+    LOG(INFO) << "Published event " << i;
+  }
+
+  atp::zmq::send_copy(event_sock, "stop", false);
+
+  subscriber.join();
+  subscriber2.join();
+}
+
+void startMarketDataSubscriber(unsigned int port, const string& id)
+{
+  ::zmq::context_t ctx(1);
+  ::zmq::socket_t sock(ctx, ZMQ_SUB);
+  try {
+    sock.connect(atp::zmq::EndPoint::tcp(port).c_str());
+    sock.connect(atp::zmq::EndPoint::tcp(port+1).c_str());
+
+    LOG(INFO) << id << ": connected to " << port;
+
+    proto::ib::MarketData md;
+    string event(md.GetTypeName());
+    sock.setsockopt(ZMQ_SUBSCRIBE, event.c_str(),event.length());
+
+    LOG(INFO) << id << ": subscribe to " << event;
+
+    string stop("stop");
+    sock.setsockopt(ZMQ_SUBSCRIBE, stop.c_str(), stop.length());
+
+    LOG(INFO) << id << ": subscribe to " << stop;
+
+    while (true) {
+      string buff;
+
+      LOG(INFO) << id << ":about to recv";
+      atp::zmq::receive(sock, &buff);
+      LOG(INFO) << "Got " << buff;
+      if (buff == event) {
+
+        string buff2;
+        atp::zmq::receive(sock, &buff2);
+
+        proto::ib::MarketData m;
+        if (m.ParseFromString(buff2)) {
+          LOG(INFO) << id << ": Received marketdata: " << m.symbol()
+                    << ',' << m.event();
+        } else {
+          LOG(INFO) << id << ": Cannot parse " << buff2;
+        }
+
+      } else if (buff == "stop") {
+        LOG(INFO) << id << ": Stopping because told so.";
+        break;
+      }
+    }
+
+  } catch (::zmq::error_t e) {
+    LOG(ERROR) << "Exception " << e.what();
+  }
+}
+
+
+TEST(ClusterPrototype, PubSubMultiFrameTest)
+{
+  unsigned int port = 37779;
+
+
+  // Note that with proxy, the publishers CONNECT to a known port.
+  // Even if the proxy isn't running, the connect will not block.
+  ::zmq::context_t ctx(1);
+  LOG(INFO) << "Event socket";
+  ::zmq::socket_t event_sock(ctx, ZMQ_PUB);
+  event_sock.bind(atp::zmq::EndPoint::tcp(port).c_str());
+
+  LOG(INFO) << "Event socket 2";
+  ::zmq::socket_t event_sock2(ctx, ZMQ_PUB);
+  event_sock2.bind(atp::zmq::EndPoint::tcp(port+1).c_str());
+
+  // At the point, still no proxy. Generating events anyway; shouldn't block.
+  LOG(INFO) << "Sending events without subscribers running.";
+
+  int block = 10;
+  int total = 30;
+  for (int i = 0; i < block; ++i) {
+
+    string f1, f2;
+    proto::ib::MarketData bid;
+    bid.set_timestamp(now_micros());
+    bid.set_symbol("AAPL.STK");
+    bid.set_event("BID");
+    bid.mutable_value()->set_type(proto::common::Value::DOUBLE);
+    bid.mutable_value()->set_double_value(600. + i);
+    bid.set_contract_id(12345);
+
+    f1 = bid.GetTypeName();
+    EXPECT_TRUE(bid.SerializeToString(&f2));
+    atp::zmq::send_copy(event_sock, f1, true);
+    atp::zmq::send_copy(event_sock, f2, false);
+
+    bid.set_symbol("GOOG.STK");
+    f1 = bid.GetTypeName();
+    EXPECT_TRUE(bid.SerializeToString(&f2));
+    atp::zmq::send_copy(event_sock2, f1, true);
+    atp::zmq::send_copy(event_sock2, f2, false);
+
+    LOG(INFO) << "Published event " << i;
+  }
+
+  sleep(3);
+  LOG(INFO) << "Starting subscribers.";
+  boost::thread subscriber(boost::bind(&startMarketDataSubscriber, port,
+                                       "sub1"));
+  boost::thread subscriber2(boost::bind(&startMarketDataSubscriber, port,
+                                       "sub2"));
+
+  sleep(2);
+
+  LOG(INFO) << "Now sending more events, with subscriber running.";
+
+  for (int i = block; i < total; ++i) {
+    string f1, f2;
+    proto::ib::MarketData ask;
+    ask.set_timestamp(now_micros());
+    ask.set_symbol("AAPL.STK");
+    ask.set_event("ASK");
+    ask.mutable_value()->set_type(proto::common::Value::DOUBLE);
+    ask.mutable_value()->set_double_value(600. + i);
+    ask.set_contract_id(12345);
+
+    f1 = ask.GetTypeName();
+    EXPECT_TRUE(ask.SerializeToString(&f2));
+    atp::zmq::send_copy(event_sock, f1, true);
+    atp::zmq::send_copy(event_sock, f2, false);
+
+    ask.set_symbol("GOOG.STK");
+    f1 = ask.GetTypeName();
+    EXPECT_TRUE(ask.SerializeToString(&f2));
+    atp::zmq::send_copy(event_sock2, f1, true);
+    atp::zmq::send_copy(event_sock2, f2, false);
+
+    LOG(INFO) << "Published event " << i;
+  }
+
+  atp::zmq::send_copy(event_sock, "stop", false);
+
+  subscriber.join();
+  subscriber2.join();
+
+  // Apprently the proxy will not store messages when there are no subscribers.
+  // The subscriber joins late and receives only the last batch of 10*2 messages
+  // from the producer sockets.
 }
 
 
