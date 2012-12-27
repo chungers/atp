@@ -178,6 +178,9 @@ service::OrderManager& getOm(int p1, int p2)
 
 TEST(ClusterPrototype, BasicSetup)
 {
+  atp::zmq::Version version;
+  LOG(INFO) << "ZMQ " << version;
+
   /// Server side
   LOG(INFO) << "Starting contract manager";
 

@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <string>
-#include <sstream>
+#include <iostream>
 
 
 #include <zmq.hpp>
@@ -13,15 +13,39 @@
 namespace atp {
 namespace zmq {
 
+struct Version
+{
+  Version()
+  {
+    ::zmq::version(&major, &minor, &patch);
+  }
+
+  int major, minor, patch;
+};
+
+inline std::ostream& operator<<(std::ostream& oss, const Version& v)
+{
+  oss << v.major << '.' << v.minor << '.' << v.patch;
+  return oss;
+}
+
+
 inline void version(std::string* output)
 {
-  int major, minor, patch;
-  ::zmq::version(&major, &minor, &patch);
+  Version v;
   std::ostringstream oss;
-  oss << major << '.' << minor << '.' << patch;
+  oss << v.major << '.' << v.minor << '.' << v.patch;
   output->assign(oss.str());
 }
 
+// inline void version(std::string* output)
+// {
+//   int major, minor, patch;
+//   ::zmq::version(&major, &minor, &patch);
+//   std::ostringstream oss;
+//   oss << major << '.' << minor << '.' << patch;
+//   output->assign(oss.str());
+// }
 
 struct EndPoint {
   static std::string inproc(const std::string& name)
