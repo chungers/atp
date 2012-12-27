@@ -192,6 +192,11 @@ int main(int argc, char** argv)
               LOG(INFO) << "Requested marketdata for " << *itr;
             }
           }
+        } else {
+          LOG(INFO) << "No contract information after requesting "
+                    << "contract details.  "
+                    << "Contract definition not known to IB: "
+                    << *itr;
         }
       }
     }
