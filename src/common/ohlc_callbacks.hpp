@@ -57,4 +57,4 @@ class post_process_cout : public ohlc_post_process<V>
 } // time_series
 } // atp
 
-#endif ATP_TIME_SERIES_OHLC_CALLBACKS_H_
+#endif //ATP_TIME_SERIES_OHLC_CALLBACKS_H_
