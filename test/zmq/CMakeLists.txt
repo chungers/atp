@@ -16,6 +16,7 @@ set(test_zmq_all_incs
 set(test_zmq_all_srcs
   ${TEST_DIR}/AllTests.cpp
   ReactorTest.cpp
+  PubSubTest.cpp
 )
 set(test_zmq_all_libs
   IBAPIConnector

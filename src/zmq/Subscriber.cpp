@@ -96,7 +96,7 @@ void Subscriber::process()
     }
 
   } catch (::zmq::error_t e) {
-    LOG(FATAL) << "Cannot add subscriptions: " << e.what();
+    LOG(ERROR) << "Cannot add subscriptions: " << e.what();
   }
 
   {
@@ -108,20 +108,24 @@ void Subscriber::process()
   }
 
   if (connected) {
-
     LOG(INFO) << "Start checking messages.";
-
-    try {
-      while (strategy_.check_message(socket)) {
-        // just loop
+    bool run = true;
+    do {
+      try {
+        run = strategy_.check_message(socket);
+      } catch (::zmq::error_t e) {
+        if (e.num() == EINTR) {
+          LOG(ERROR) << "Interrupted while processing messages: " << e.what()
+                     << ", continue.";
+        } else {
+          LOG(ERROR) << "Exception while processing messages: " << e.what()
+                     << ", stopping.";
+          run = false;
+        }
       }
-
-      ZMQ_SUBSCRIBER_LOGGER << "Stopping after strategy returns false.";
-
-    } catch (::zmq::error_t e) {
-      LOG(ERROR) << "Exception while processing messages: " << e.what()
-                 << ", stopping.";
-    }
+    } while (run);
+  } else {
+    LOG(ERROR) << "Not able to connect.  Stopping thread.";
   }
 
   if (localContext && context_ != NULL) delete context_;
