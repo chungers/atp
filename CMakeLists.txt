@@ -41,9 +41,9 @@ message(STATUS
 set(FIX_VERSION 4.2)
 set(QUICKFIX_ROOT ${THIRD_PARTY_DIR}/quickfix/src/C++)
 
-#message(STATUS
-#  "ZMQ Version 3.2")
-#add_definitions('-DZMQ_3X')
+message(STATUS
+  "ZMQ Version 3.2")
+add_definitions('-DZMQ_3X')
 
 
 # R Integration

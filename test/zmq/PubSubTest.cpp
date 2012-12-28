@@ -10,6 +10,7 @@
 #include <boost/thread.hpp>
 
 #include "common.hpp"
+#include "zmq/Publisher.hpp"
 #include "zmq/Subscriber.hpp"
 #include "zmq/ZmqUtils.hpp"
 
@@ -73,21 +74,30 @@ TEST(PubSubTest, PubSubSingleFrameTest)
 
   LOG(INFO) << "Started subscriber";
 
+  // Now start publisher - proxy
+  int push_port = 7772;
+  const std::string& push_addr = atp::zmq::EndPoint::tcp(push_port);
+
+  Publisher pub(push_addr, addr);
+  LOG(INFO) << "Started publisher / proxy";
+
+  LOG(INFO) << "Starting push client to push events.";
   ::zmq::context_t context(1);
-  ::zmq::socket_t pub(context, ZMQ_PUB);
-  pub.bind(addr.c_str());
-  LOG(INFO) << "pub bound @ " << addr;
+  ::zmq::socket_t push(context, ZMQ_PUSH);
+  push.connect(push_addr.c_str());
+  LOG(INFO) << "push client connected to " << push_addr
+            << " for publishing on " << addr;
 
   vector<string> sent;
   for (int i = 0; i < messages; ++i) {
     string msg("event-" + boost::lexical_cast<string>(i));
-    size_t out = atp::zmq::send_copy(pub, msg, false);
+    size_t out = atp::zmq::send_copy(push, msg, false);
     LOG(INFO) << "Sent message: " << i << ',' << msg << ',' << out;
     sent.push_back(msg);
   }
 
   LOG(INFO) << "Sending stop";
-  atp::zmq::send_copy(pub, "stop", false);
+  atp::zmq::send_copy(push, "stop", false);
 
   LOG(INFO) << "Blocking for subscriber's completion.";
   sub.block();
