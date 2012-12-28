@@ -39,10 +39,12 @@ class OrderManager::implementation
       em_endpoint_(em_endpoint),
       em_messages_endpoint_(em_messages_endpoint),
       context_(context),
+      own_context_(false),
       order_status_subscriber_(NULL)
   {
     if (context_ == NULL) {
       context_ = new context_t(1);
+      own_context_ = true;
     }
     // Connect to Execution Manager socket (outbound)
     em_socket_ = new socket_t(*context_, ZMQ_PUSH);
@@ -66,7 +68,16 @@ class OrderManager::implementation
         new platform::message_processor(em_messages_endpoint_, handlers_));
 
     ORDER_MANAGER_LOGGER << "OrderManager ready.";
+  }
 
+  ~implementation()
+  {
+    ORDER_MANAGER_LOGGER << "Closing socket to em";
+    if (em_socket_) delete em_socket_;
+    if (context_ && own_context_) {
+      ORDER_MANAGER_LOGGER << "Closing own context";
+      delete context_;
+    }
   }
 
   bool handleOrderStatus(const string& topic, const string& message)
@@ -128,6 +139,7 @@ class OrderManager::implementation
 
   context_t* context_;
   socket_t* em_socket_;
+  bool own_context_;
 
   platform::message_processor::protobuf_handlers_map handlers_;
   boost::scoped_ptr<platform::message_processor> order_status_subscriber_;
