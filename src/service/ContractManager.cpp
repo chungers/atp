@@ -3,12 +3,12 @@
 #include <vector>
 
 #include <zmq.hpp>
+#include <boost/bind.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
 
-#include "zmq/Subscriber.hpp"
-#include "zmq/ZmqUtils.hpp"
+#include "platform/message_processor.hpp"
 
 #include "ZmqProtoBuffer.hpp"
 
@@ -21,8 +21,7 @@ using ::zmq::context_t;
 using ::zmq::socket_t;
 using ::zmq::error_t;
 
-using atp::zmq::Subscriber;
-
+namespace platform = atp::platform;
 namespace p = proto::ib;
 
 
@@ -30,23 +29,23 @@ namespace atp {
 namespace service {
 
 
-class ContractManager::implementation : public Subscriber::Strategy
+class ContractManager::implementation
 {
 
  public:
 
   explicit implementation(const string& cm_endpoint,
                           const string& cm_messages_endpoint,
-                          const vector<string>& filters,
                           context_t* context) :
       cm_endpoint_(cm_endpoint),
       cm_messages_endpoint_(cm_messages_endpoint),
-      filters_(filters),
       context_(context),
+      own_context_(false),
       contract_details_subscriber_(NULL)
   {
     if (context_ == NULL) {
       context_ = new context_t(1);
+      own_context_ = true;
     }
     // Connect to Contract Manager (CM) socket (outbound)
     cm_socket_ = new socket_t(*context_, ZMQ_PUSH);
@@ -54,81 +53,86 @@ class ContractManager::implementation : public Subscriber::Strategy
 
     CONTRACT_MANAGER_LOGGER << "Connected to " << cm_endpoint_;
 
-    // Add subscriptions
-    filters_.push_back(CONTRACT_DETAILS_RESPONSE_.GetTypeName());
-    filters_.push_back(CONTRACT_DETAILS_END_.GetTypeName());
-
     // Start inbound subscriber for Responses coming from CM
-    contract_details_subscriber_.reset(new Subscriber(
-        cm_messages_endpoint_,
-        filters_, *this, context_));
+
+    // contractDetailsResponse
+    p::ContractDetailsResponse contractDetailsResponse;
+    handlers_.register_handler(
+        contractDetailsResponse.GetTypeName(),
+        boost::bind(&implementation::handleContractDetailsResponse,
+                    this, _1, _2));
+
+    // contractDetailsEnd
+    p::ContractDetailsEnd contractDetailsEnd;
+    handlers_.register_handler(
+        contractDetailsEnd.GetTypeName(),
+        boost::bind(&implementation::handleContractDetailsEnd,
+                    this, _1, _2));
+
+    // stop
+    handlers_.register_handler(
+        "stop",
+        boost::bind(&implementation::handleStop,
+                    this, _1, _2));
+    contract_details_subscriber_.reset(
+        new platform::message_processor(cm_messages_endpoint_, handlers_));
 
     CONTRACT_MANAGER_LOGGER << "ContractManager ready.";
-
   }
 
-  // implements Strategy
-  virtual bool check_message(socket_t& socket)
+  bool handleContractDetailsResponse(const string& topic, const string& message)
   {
-    try {
-      string messageKeyFrame;
-      bool more = atp::zmq::receive(socket, &messageKeyFrame);
+    p::ContractDetailsResponse resp;
+    bool received = resp.ParseFromString(message);
+    if (received) {
+      // Now check to see if there's a pending order status for this
+      boost::shared_lock<boost::shared_mutex> lock(mutex_);
 
-      if (more) {
+      string key(resp.details().symbol());
+      if (contractDetails_.find(key) == contractDetails_.end()) {
+        contractDetails_[key] = resp.details();
 
-        if (messageKeyFrame == CONTRACT_DETAILS_RESPONSE_.GetTypeName()) {
+        CONTRACT_MANAGER_LOGGER << "Updated " << key;
 
-          p::ContractDetailsResponse resp;
-          bool received = atp::receive<p::ContractDetailsResponse>(
-              socket, resp);
-
-          if (received) {
-            // Now check to see if there's a pending order status for this
-            boost::shared_lock<boost::shared_mutex> lock(mutex_);
-
-            string key(resp.details().symbol());
-            if (contractDetails_.find(key) == contractDetails_.end()) {
-              contractDetails_[key] = resp.details();
-
-              CONTRACT_MANAGER_LOGGER << "Updated " << key;
-
-            } else {
-              CONTRACT_MANAGER_WARNING
-                  << "Received another contract detail for "
-                  << key
-                  << ", updating.";
-              contractDetails_[key] = resp.details();
-            }
-          }
-
-        } else if (messageKeyFrame == CONTRACT_DETAILS_END_.GetTypeName()) {
-          p::ContractDetailsEnd *status = new p::ContractDetailsEnd();
-          bool received = atp::receive<p::ContractDetailsEnd>(socket, *status);
-
-          if (received) {
-
-            // Now check to see if there's a pending order status for this
-            boost::shared_lock<boost::shared_mutex> lock(mutex_);
-
-            RequestId key(status->request_id());
-            if (pendingRequests_.find(key) != pendingRequests_.end()) {
-
-              AsyncContractDetailsEnd s = pendingRequests_[key];
-
-              CONTRACT_MANAGER_LOGGER << "Received final end for request: "
-                                      << messageKeyFrame << ",reqId="
-                                      << key << ','
-                                      << &s;
-
-              s->set_response(status);
-            }
-          }
-        }
+      } else {
+        CONTRACT_MANAGER_WARNING
+            << "Received another contract detail for "
+            << key
+            << ", updating.";
+        contractDetails_[key] = resp.details();
       }
-    } catch (::zmq::error_t e) {
-      CONTRACT_MANAGER_ERROR << "Error: " << e.what();
     }
     return true;
+  }
+
+  bool handleContractDetailsEnd(const string& topic, const string& message)
+  {
+    p::ContractDetailsEnd *status = new p::ContractDetailsEnd();
+    bool received = status->ParseFromString(message);
+    if (received) {
+      // Now check to see if there's a pending order status for this
+      boost::shared_lock<boost::shared_mutex> lock(mutex_);
+
+      RequestId key(status->request_id());
+      if (pendingRequests_.find(key) != pendingRequests_.end()) {
+
+        AsyncContractDetailsEnd s = pendingRequests_[key];
+
+        CONTRACT_MANAGER_LOGGER << "Received final end for request: "
+                                << topic << ",reqId="
+                                << key << ','
+                                << &s;
+
+        s->set_response(status);
+      }
+    }
+    return true;
+  }
+
+  bool handleStop(const string& topic, const string& message)
+  {
+    ORDER_MANAGER_LOGGER << "Stopping on " << topic << ',' << message;
+    return false;
   }
 
   const AsyncContractDetailsEnd
@@ -209,11 +213,10 @@ class ContractManager::implementation : public Subscriber::Strategy
 
   context_t* context_;
   socket_t* cm_socket_;
+  bool own_context_;
 
-  boost::scoped_ptr<Subscriber> contract_details_subscriber_;
-
-  p::ContractDetailsResponse CONTRACT_DETAILS_RESPONSE_;
-  p::ContractDetailsEnd CONTRACT_DETAILS_END_;
+  platform::message_processor::protobuf_handlers_map handlers_;
+  boost::scoped_ptr<platform::message_processor> contract_details_subscriber_;
 
   boost::shared_mutex mutex_;
   boost::unordered_map<RequestId, AsyncContractDetailsEnd> pendingRequests_;
@@ -224,14 +227,10 @@ class ContractManager::implementation : public Subscriber::Strategy
 const p::Contract::Right ContractManager::PutOption = p::Contract::PUT;
 const p::Contract::Right ContractManager::CallOption = p::Contract::CALL;
 
-
-
 ContractManager::ContractManager(const string& cm_endpoint,
                            const string& cm_messages_endpoint,
-                           const vector<string>& filters,
                            context_t* context) :
-    impl_(new implementation(cm_endpoint, cm_messages_endpoint,
-                             filters, context))
+    impl_(new implementation(cm_endpoint, cm_messages_endpoint, context))
 {
 }
 

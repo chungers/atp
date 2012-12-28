@@ -30,7 +30,6 @@ namespace p = proto::ib;
 typedef boost::shared_ptr< async_response<p::ContractDetailsEnd> >
 AsyncContractDetailsEnd;
 
-static const vector<string> ALL_CONTRACT_EVENTS;
 
 class ContractManager : NoCopyAndAssign
 {
@@ -45,7 +44,6 @@ class ContractManager : NoCopyAndAssign
 
   ContractManager(const string& cm_endpoint,  // receives queries
                   const string& cm_messages_endpoint, // query results
-                  const vector<string>& filters = ALL_CONTRACT_EVENTS,
                   context_t* context = NULL);
 
   ~ContractManager();
