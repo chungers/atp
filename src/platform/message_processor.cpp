@@ -98,11 +98,11 @@ class message_processor::implementation : NoCopyAndAssign
           run = handlers_.process_raw_message(topic, message);
 
         } else {
-          LOG(INFO) << "Got instead " << topic << "@" << message;
+          LOG(INFO) << "Got instead [" << topic << "][" << message << ']';
         }
 
       } catch (::zmq::error_t e) {
-        LOG(WARNING) << "Exception " << e.num() << "[" << e.what() << "]";
+        LOG(WARNING) << "Exception[" << e.num() << "][" << e.what() << "]";
         if (e.num() == EINTR) {
           LOG(WARNING) << "Continuing";
         } else {
