@@ -82,21 +82,50 @@ struct goog
   size_t count;
 };
 
+struct aapl_mp
+{
+  aapl_mp(const string& ep) : count(0)
+  {
+    handlers.register_handler("AAPL.STK",
+                              boost::bind(&aapl_mp::process, this, _1, _2));
+    handlers.register_handler("STOP",
+                              boost::bind(&aapl_mp::stop, this, _1, _2));
+    mp = new message_processor(ep, handlers);
+  }
+
+  ~aapl_mp()
+  {
+    delete mp;
+  }
+
+  bool process(const string& topic, const string& message)
+  {
+    count++;
+    LOG(INFO) << "appl_mp:" << topic << "," << message << "," << count;
+    return true;
+  }
+
+  bool stop(const string& topic, const string& message)
+  {
+    LOG(INFO) << "aapl_mp stopping.";
+    return false;
+  }
+
+  size_t count;
+  message_processor::protobuf_handlers_map handlers;
+  message_processor* mp;
+};
+
 TEST(MessageProcessorTest, UsageSyntax)
 {
+  // create a special message processor
+  aapl_mp aapl_watcher(PUB_ENDPOINT);
+
   // create and register handlers
-
-  work_functor aapl;
-  aapl.id = "AAPL.STK", aapl.count = 0;
-
-
   message_processor::protobuf_handlers_map handlers;
-  handlers.register_handler("AAPL.STK", aapl);
-
   goog g;
   handlers.register_handler("GOOG.STK",
                             boost::bind(&goog::process, &g, _1, _2));
-
   handlers.register_handler("STOP",
                             boost::bind(&stop_function, _1, _2, "hello"));
 
@@ -108,6 +137,7 @@ TEST(MessageProcessorTest, UsageSyntax)
   // create the message processor -- runs a new thread
   message_processor subscriber(PUB_ENDPOINT, handlers);
 
+  LOG(INFO) <<  "Started watchers.  Now creating the publisher.";
 
   // create the message publisher
   ::zmq::context_t ctx(1);
@@ -127,14 +157,16 @@ TEST(MessageProcessorTest, UsageSyntax)
 
   timer start = now_micros();
 
-
+  size_t nflx_sent = 0;
+  size_t goog_sent = 0;
+  size_t aapl_sent = 0;
   while (count--) {
 
     string topic;
     switch (count % 3) {
-      case 0 : topic = "AAPL.STK"; break;
-      case 1 : topic = "NFLX.STK"; break;
-      case 2 : topic = "GOOG.STK"; break;
+      case 0 : topic = "AAPL.STK"; aapl_sent++; break;
+      case 1 : topic = "NFLX.STK"; nflx_sent++; break;
+      case 2 : topic = "GOOG.STK"; goog_sent++; break;
     }
     string message = boost::lexical_cast<string>(now_micros());
 
@@ -152,9 +184,12 @@ TEST(MessageProcessorTest, UsageSyntax)
   atp::zmq::send_copy(socket, "STOP", false);
   LOG(INFO) << "Sent stop";
 
-  LOG(INFO) << "nflx " << nflx_count;
-  EXPECT_GT(nflx_count, 0);
-  EXPECT_GT(g.count, 0);
+  LOG(INFO) << "aapl got " << aapl_watcher.count << ", aapl sent " << aapl_sent;
+  LOG(INFO) << "goog got " << g.count << ", goog sent " << goog_sent;
+  LOG(INFO) << "nflx got " << nflx_count << ", nflx sent " << nflx_sent;
+  EXPECT_GE(aapl_sent, aapl_watcher.count);
+  EXPECT_GE(nflx_sent, nflx_count);
+  EXPECT_GE(goog_sent, g.count);
 
   subscriber.block();
 }
