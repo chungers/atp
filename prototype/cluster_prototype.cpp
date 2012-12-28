@@ -46,6 +46,25 @@ using namespace boost::gregorian;
 namespace service = atp::service;
 namespace p = proto::ib;
 
+struct Assert
+{
+  virtual ~Assert() {}
+  virtual void operator()(service::ContractManager::RequestId& reqId,
+                          const Contract& c,
+                          EWrapper& e) = 0;
+};
+
+static Assert* CONTRACT_DETAILS_ASSERT;
+
+void setAssert(Assert& assert)
+{
+  CONTRACT_DETAILS_ASSERT = &assert;
+}
+void clearAssert()
+{
+  CONTRACT_DETAILS_ASSERT = NULL;
+}
+
 
 namespace ib {
 namespace internal {
@@ -61,6 +80,10 @@ class EClientSimulator : public EClientMock
   virtual void reqContractDetails(int reqId, const Contract &contract)
   {
     LOG(INFO) << "RequestId=" << reqId << ", Contract=" << contract;
+    EXPECT_TRUE(getWrapper() != NULL);
+    if (CONTRACT_DETAILS_ASSERT) {
+      (*CONTRACT_DETAILS_ASSERT)(reqId, contract, *getWrapper());
+    }
   }
 
   virtual void placeOrder(OrderId id, const Contract &contract,
@@ -174,8 +197,6 @@ service::OrderManager& getOm(int p1, int p2)
 
 
 
-
-
 TEST(ClusterPrototype, BasicSetup)
 {
   atp::zmq::Version version;
@@ -202,24 +223,60 @@ TEST(ClusterPrototype, BasicSetup)
   service::ContractManager& cm = getCm(cm_endpoint, cm_publish);
   LOG(INFO) << "ContractManager ready.";
 
+  // create assert
+  struct : public Assert {
+    virtual void operator()(service::ContractManager::RequestId& reqId,
+                            const ::Contract& c,
+                            EWrapper& ewrapper)
+    {
+      EXPECT_EQ(req_id, reqId);
+      EXPECT_EQ(symbol, c.symbol);
+      EXPECT_EQ(0, c.conId); // Required for proper query to IB
+      EXPECT_EQ(symbol, c.localSymbol);
+      EXPECT_EQ(sec_type, c.secType);
+
+      sleep(1); // to avoid race for the test.  simulate some delay
+
+      ::ContractDetails details;
+      details.summary = c;
+      details.summary.conId = conId;
+      ewrapper.contractDetails(reqId, details);
+
+      // send the end
+      ewrapper.contractDetailsEnd(reqId);
+    }
+
+    service::ContractManager::RequestId req_id;
+    std::string symbol;
+    std::string sec_type;
+    int conId;
+  } assert;
+
+  service::ContractManager::RequestId request_id = 200;
+  assert.symbol = "GOOG";
+  assert.req_id = request_id;
+  assert.sec_type = "STK";
+  assert.conId = 12345;
+
+  setAssert(assert);
+
   /// order manager
   service::OrderManager& om = getOm(em_endpoint, em_publish);
   LOG(INFO) << "OrderManager ready.";
 
   // Do something
-  service::ContractManager::RequestId reqId(100);
   string symbol("GOOG");
 
   LOG(INFO) << "Sending request";
 
   service::AsyncContractDetailsEnd future =
-      cm.requestStockContractDetails(reqId, symbol);
+      cm.requestStockContractDetails(request_id, symbol);
 
   LOG(INFO) << "Waiting for response";
 
   const p::ContractDetailsEnd& details_end = future->get(2000);
 
-
+  EXPECT_TRUE(future->is_ready());
 }
 
 
