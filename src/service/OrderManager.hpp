@@ -31,22 +31,18 @@ namespace service {
 
 typedef boost::shared_ptr< async_response<OrderStatus> > AsyncOrderStatus;
 
-static const vector<string> ALL_ORDER_EVENTS;
-
 class OrderManager : NoCopyAndAssign
 {
  public:
 
   OrderManager(const string& em_endpoint,  // receives orders
                const string& em_messages_endpoint, // order status
-               const vector<string>& filters = ALL_ORDER_EVENTS,
                context_t* context = NULL);
 
   ~OrderManager();
 
 
   const AsyncOrderStatus send(CancelOrder& order);
-
   const AsyncOrderStatus send(MarketOrder& order);
   const AsyncOrderStatus send(LimitOrder& order);
   const AsyncOrderStatus send(StopLimitOrder& order);

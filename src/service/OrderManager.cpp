@@ -3,11 +3,11 @@
 #include <vector>
 
 #include <zmq.hpp>
+#include <boost/bind.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/thread.hpp>
 
-#include "zmq/Subscriber.hpp"
-#include "zmq/ZmqUtils.hpp"
+#include "platform/message_processor.hpp"
 
 #include "ZmqProtoBuffer.hpp"
 #include "service/OrderManager.hpp"
@@ -18,8 +18,7 @@ using ::zmq::context_t;
 using ::zmq::socket_t;
 using ::zmq::error_t;
 
-using atp::zmq::Subscriber;
-
+namespace platform = atp::platform;
 namespace p = proto::ib;
 
 
@@ -27,20 +26,18 @@ namespace atp {
 namespace service {
 
 
-class OrderManager::implementation : public Subscriber::Strategy
+class OrderManager::implementation
 {
 
  public:
 
   typedef boost::uint64_t SubmittedOrderId;
 
-  explicit implementation(const string& em_endpoint,
-                          const string& em_messages_endpoint,
-                          const vector<string>& filters,
+  explicit implementation(const string& em_endpoint,  // input to em
+                          const string& em_messages_endpoint, // output from em
                           context_t* context) :
       em_endpoint_(em_endpoint),
       em_messages_endpoint_(em_messages_endpoint),
-      filters_(filters),
       context_(context),
       order_status_subscriber_(NULL)
   {
@@ -53,55 +50,56 @@ class OrderManager::implementation : public Subscriber::Strategy
 
     ORDER_MANAGER_LOGGER << "Connected to " << em_endpoint_;
 
-    // Add one subscription specifically for order status
-    filters_.push_back(ORDER_STATUS_MESSAGE_.GetTypeName());
-
     // Start inbound subscriber for OrderStatus coming from EM
-    order_status_subscriber_.reset(new Subscriber(em_messages_endpoint_,
-                                                  filters_, *this, context_));
+
+    // order status
+    p::OrderStatus orderStatus;
+    handlers_.register_handler(
+        orderStatus.GetTypeName(),
+        boost::bind(&implementation::handleOrderStatus,
+                    this, _1, _2));
+    handlers_.register_handler(
+        "stop",
+        boost::bind(&implementation::handleStop,
+                    this, _1, _2));
+    order_status_subscriber_.reset(
+        new platform::message_processor(em_messages_endpoint_, handlers_));
 
     ORDER_MANAGER_LOGGER << "OrderManager ready.";
 
   }
 
-  // implements Strategy
-  virtual bool check_message(socket_t& socket)
+  bool handleOrderStatus(const string& topic, const string& message)
   {
-    try {
-      string messageKeyFrame;
-      bool more = atp::zmq::receive(socket, &messageKeyFrame);
+    p::OrderStatus *status = new p::OrderStatus();
 
-      if (more) {
+    bool received = status->ParseFromString(message);
+    if (received) {
+      // Now check to see if there's a pending order status for this
+      boost::shared_lock<boost::shared_mutex> lock(mutex_);
 
-        if (messageKeyFrame == ORDER_STATUS_MESSAGE_.GetTypeName()) {
-          p::OrderStatus *status = new p::OrderStatus();
-          bool received = atp::receive<p::OrderStatus>(socket, *status);
+      SubmittedOrderId key(status->order_id());
+      if (pendingOrders_.find(key) != pendingOrders_.end()) {
 
-          if (received) {
-            // Now check to see if there's a pending order status for this
-            boost::shared_lock<boost::shared_mutex> lock(mutex_);
+        AsyncOrderStatus s = pendingOrders_[key];
 
-            SubmittedOrderId key(status->order_id());
-            if (pendingOrders_.find(key) != pendingOrders_.end()) {
+        LOG(INFO) << "Received status for pending order: "
+                  << topic << ",orderId="
+                  << key
+                  << ",status=" << status->status()
+                  << ",filled=" << status->filled()
+                  << &s;
 
-              AsyncOrderStatus s = pendingOrders_[key];
-
-              LOG(INFO) << "Received status for pending order: "
-                        << messageKeyFrame << ",orderId="
-                        << key
-                        << ",status=" << status->status()
-                        << ",filled=" << status->filled()
-                        << &s;
-
-              s->set_response(status);
-            }
-          }
-        }
+        s->set_response(status);
       }
-    } catch (::zmq::error_t e) {
-      ORDER_MANAGER_ERROR << "Error: " << e.what();
     }
     return true;
+  }
+
+  bool handleStop(const string& topic, const string& message)
+  {
+    ORDER_MANAGER_LOGGER << "Stopping on " << topic << ',' << message;
+    return false;
   }
 
   template <typename P, typename K>
@@ -128,14 +126,11 @@ class OrderManager::implementation : public Subscriber::Strategy
   const string em_endpoint_;
   const string em_messages_endpoint_;
 
-  vector<string> filters_;
-
   context_t* context_;
   socket_t* em_socket_;
 
-  boost::scoped_ptr<Subscriber> order_status_subscriber_;
-
-  p::OrderStatus ORDER_STATUS_MESSAGE_;
+  platform::message_processor::protobuf_handlers_map handlers_;
+  boost::scoped_ptr<platform::message_processor> order_status_subscriber_;
 
   boost::shared_mutex mutex_;
   boost::unordered_map<SubmittedOrderId, AsyncOrderStatus> pendingOrders_;
@@ -144,10 +139,8 @@ class OrderManager::implementation : public Subscriber::Strategy
 
 OrderManager::OrderManager(const string& em_endpoint,
                            const string& em_messages_endpoint,
-                           const vector<string>& filters,
                            context_t* context) :
-    impl_(new implementation(em_endpoint, em_messages_endpoint,
-                             filters, context))
+    impl_(new implementation(em_endpoint, em_messages_endpoint, context))
 {
 }
 
