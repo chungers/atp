@@ -12,11 +12,14 @@
 #include "ib/api966/EClientMock.hpp"
 #include "ib/api966/ostream.hpp"
 
+#include "ZmqProtoBuffer.hpp"
 #include "service/OrderManager.hpp"
 
 
 using atp::service::AsyncOrderStatus;
 using atp::service::OrderManager;
+
+namespace p = proto::ib;
 
 using IBAPI::SocketInitiator;
 
@@ -113,6 +116,85 @@ TEST(OrderManagerTest, OrderManagerCreateAndDestroyTest)
   LOG(INFO) << "OrderManager ready.";
 }
 
+TEST(OrderManagerTest, OrderManagerNoMockEmTest)
+{
+  std::string p1(EM_ENDPOINT(5667));
+  std::string p2(EM_EVENT_ENDPOINT(5888));
+
+  LOG(INFO) << p1 << ", " << p2;
+
+  LOG(INFO) << "Starting em pull socket";
+  ::zmq::context_t em_ctx(1);
+  ::zmq::socket_t em(em_ctx, ZMQ_PULL);
+  em.bind(p1.c_str());
+
+  LOG(INFO) << "Starting em pub socket";
+  ::zmq::context_t em_pub_ctx(1);
+  ::zmq::socket_t em_pub(em_pub_ctx, ZMQ_PUB);
+  em_pub.bind(p2.c_str());
+
+  LOG(INFO) << "Starting order manager.";
+  OrderManager om(p1, p2);
+  LOG(INFO) << "OrderManager ready.";
+
+  // send order
+  // Create contract
+  p::Contract aapl;
+  aapl.set_id(AAPL_CONID);
+  aapl.set_type(p::Contract::STOCK);
+  aapl.set_symbol("AAPL");
+
+  int ORDER_ID = GetOrderId();
+
+  // Set a market order
+  p::MarketOrder marketOrder;
+  marketOrder.mutable_order()->set_id(100);
+  marketOrder.mutable_order()->set_action(p::Order::BUY);
+  marketOrder.mutable_order()->set_quantity(100);
+  marketOrder.mutable_order()->set_min_quantity(0);
+  marketOrder.mutable_order()->mutable_contract()->CopyFrom(aapl);
+
+  AsyncOrderStatus future = om.send(marketOrder);
+
+  LOG(INFO) << "Sent market order: " << future->is_ready();
+
+  // Now check the pull socket
+  string frame1, frame2;
+  EXPECT_TRUE(atp::zmq::receive(em, &frame1));
+  EXPECT_FALSE(atp::zmq::receive(em, &frame2));
+
+  p::MarketOrder received;
+  EXPECT_EQ(received.GetTypeName(), frame1);
+  EXPECT_TRUE(received.ParseFromString(frame2));
+
+  EXPECT_FALSE(future->is_ready());
+
+  sleep(1);
+
+  // Now send response
+  p::OrderStatus os;
+  os.set_timestamp(now_micros());
+  os.set_message_id(now_micros());
+  os.set_order_id(received.order().id());
+  os.set_status("filled");
+  os.set_filled(100);
+  os.set_remaining(0);
+  os.mutable_avg_fill_price()->set_amount(600.);
+  os.mutable_last_fill_price()->set_amount(600.);
+  os.set_client_id(100);
+  os.set_perm_id(100);
+  os.set_parent_id(0);
+  os.set_why_held("");
+
+  LOG(INFO) << "Publishing order status.";
+  EXPECT_GE(atp::send<p::OrderStatus>(em_pub, os), 0);
+
+  LOG(INFO) << "OrderManager checks for reply.";
+  future->get(2000);
+  EXPECT_TRUE(future->is_ready());
+}
+
+
 // Create a EM stubb
 SocketInitiator* startExecutionManager(ExecutionManager& em,
                                        int reactor_port,
@@ -154,8 +236,6 @@ SocketInitiator* startExecutionManager(ExecutionManager& em,
 TEST(OrderManagerTest, OrderManagerSendOrderResponseTimeoutTest)
 {
   clearAssert();
-
-  namespace p = proto::ib;
 
   LOG(INFO) << "Starting order manager";
 

@@ -94,12 +94,13 @@ class OrderManager::implementation
 
         AsyncOrderStatus s = pendingOrders_[key];
 
-        LOG(INFO) << "Received status for pending order: "
+        LOG(INFO) << "Received status for pending order @"
+                  << &s << ": "
                   << topic << ",orderId="
                   << key
                   << ",status=" << status->status()
                   << ",filled=" << status->filled()
-                  << &s;
+                  << ",remain=" << status->remaining();
 
         s->set_response(status);
       }
