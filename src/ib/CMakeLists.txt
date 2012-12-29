@@ -26,6 +26,7 @@ set(api_base_srcs
   contract_symbol.cpp
 )
 set(api_base_libs
+ atp_proto
  atp_zmq
  boost_system
  boost_thread
