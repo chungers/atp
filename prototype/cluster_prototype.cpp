@@ -12,6 +12,10 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
+#ifdef ZMQ_3X
+#include <zmq.h>
+#endif
+
 #include <zmq.hpp>
 
 #include <Shared/EClient.h>
