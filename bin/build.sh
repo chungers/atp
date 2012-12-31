@@ -39,6 +39,7 @@ function processLdd {
 DIR=$(dirname $0)/..
 cd $DIR
 DIR=$(pwd)
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 echo "Running from $DIR"
 
