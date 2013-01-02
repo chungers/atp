@@ -29,6 +29,15 @@
 DEFINE_int32(scan_minutes, 4, "minutes to scan after market opens");
 DEFINE_int32(scan_seconds, 60, "seconds to scan after market opens");
 
+static const string DATA_DIR = "test/sample_data/";
+static const string LOG_FILE = "firehose.log.gz";
+static const string PUB_ENDPOINT = "ipc://_logreader.ipc";
+
+
+DEFINE_string(data_dir, DATA_DIR, "test data directory");
+DEFINE_string(log_file, LOG_FILE, "log file name");
+
+
 
 using std::string;
 
@@ -43,11 +52,6 @@ using atp::platform::types::timestamp_t;
 using proto::ib::MarketData;
 
 using boost::posix_time::time_duration;
-
-
-static const string DATA_DIR = "test/sample_data/";
-static const string LOG_FILE = "firehose.li126-61.jenkins.log.INFO.20121004.gz";
-static const string PUB_ENDPOINT = "ipc://_logreader.ipc";
 
 
 bool stop_function(const string& topic, const string& message,
@@ -204,7 +208,7 @@ TEST(AgentPrototype, OrderFlowTracking)
   message_processor agent(PUB_ENDPOINT, symbol_handlers);
 
   LOG(INFO) << "Starting thread";
-  LogReader reader(DATA_DIR + LOG_FILE);
+  LogReader reader(FLAGS_data_dir + FLAGS_log_file);
   boost::thread* th = atp::log_reader::DispatchEventsInThread(
       reader,
       PUB_ENDPOINT,
@@ -269,7 +273,7 @@ TEST(AgentPrototype, LoadDataFromLogfile)
   message_processor agent(PUB_ENDPOINT, symbol_handlers);
 
   LOG(INFO) << "Starting thread";
-  LogReader reader(DATA_DIR + LOG_FILE);
+  LogReader reader(FLAGS_data_dir + FLAGS_log_file);
   boost::thread* th = atp::log_reader::DispatchEventsInThread(
       reader,
       PUB_ENDPOINT,
@@ -361,7 +365,7 @@ TEST(AgentPrototype, MovingWindowUsage)
 
 
   LOG(INFO) << "Starting thread";
-  LogReader reader(DATA_DIR + LOG_FILE);
+  LogReader reader(FLAGS_data_dir + FLAGS_log_file);
   boost::thread* th = atp::log_reader::DispatchEventsInThread(
       reader,
       PUB_ENDPOINT,

@@ -59,20 +59,10 @@ TEST(PubSubTest, PubSubSingleFrameTest)
   LOG(INFO) << "ZMQ " << version;
 
 
-  int messages = 10;
-  TestStrategy testStrategy(messages);
+  int messages = 50;
 
   int port = 7771;
   const std::string& addr = atp::zmq::EndPoint::tcp(port);
-
-
-  // first start subscriber
-  vector<string> subscriptions;
-  subscriptions.push_back("event");
-  subscriptions.push_back("stop");
-  Subscriber sub(addr, subscriptions, testStrategy);
-
-  LOG(INFO) << "Started subscriber";
 
   // Now start publisher - proxy
   int push_port = 7772;
@@ -81,12 +71,22 @@ TEST(PubSubTest, PubSubSingleFrameTest)
   Publisher pub(push_addr, addr);
   LOG(INFO) << "Started publisher / proxy";
 
+  // first start subscriber
+  vector<string> subscriptions;
+  subscriptions.push_back("event");
+  subscriptions.push_back("stop");
+  TestStrategy testStrategy(messages);
+  Subscriber sub(addr, subscriptions, testStrategy);
+  LOG(INFO) << "Started subscriber";
+
   LOG(INFO) << "Starting push client to push events.";
   ::zmq::context_t context(1);
   ::zmq::socket_t push(context, ZMQ_PUSH);
   push.connect(push_addr.c_str());
   LOG(INFO) << "push client connected to " << push_addr
             << " for publishing on " << addr;
+
+  sleep(2);
 
   vector<string> sent;
   for (int i = 0; i < messages; ++i) {
@@ -96,8 +96,12 @@ TEST(PubSubTest, PubSubSingleFrameTest)
     sent.push_back(msg);
   }
 
+  sleep(1);
+
   LOG(INFO) << "Sending stop";
   atp::zmq::send_copy(push, "stop", false);
+
+  sleep(1);
 
   LOG(INFO) << "Blocking for subscriber's completion.";
   sub.block();

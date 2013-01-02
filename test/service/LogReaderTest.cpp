@@ -8,6 +8,7 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
+#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
@@ -25,14 +26,19 @@ using namespace atp::log_reader;
 
 
 static const string DATA_DIR = "test/sample_data/";
-static const string LOG_FILE = "firehose.li126-61.jenkins.log.INFO.20121004.gz";
+static const string LOG_FILE = "firehose.log.gz";
+
+
+DEFINE_string(data_dir, DATA_DIR, "test data directory");
+DEFINE_string(log_file, LOG_FILE, "log file name");
+
 static const string PUB_ENDPOINT = "ipc://_logreader.ipc";
 
 TEST(LogReaderTest, LoadLogFileTest)
 {
   using namespace atp::log_reader;
 
-  LogReader reader(DATA_DIR + LOG_FILE);
+  LogReader reader(FLAGS_data_dir + FLAGS_log_file);
 
   atp::log_reader::visitor::MarketDataPrinter p1;
   atp::log_reader::visitor::MarketDepthPrinter p2;
@@ -41,7 +47,7 @@ TEST(LogReaderTest, LoadLogFileTest)
   LogReader::marketdepth_visitor_t m2 = p2;
 
   ptime start;
-  EXPECT_TRUE(atp::time::parse("2012-10-04 09:35:00", &start));
+  EXPECT_TRUE(atp::time::parse("2012-12-31 09:35:00", &start));
 
   LOG(INFO) << "Starting at " << start;
   size_t processed = reader.Process(m1, m2, seconds(5), start);
@@ -51,7 +57,7 @@ TEST(LogReaderTest, LoadLogFileTest)
 
 void dispatch_events(::zmq::context_t* ctx, const time_duration& duration)
 {
-  LogReader reader(DATA_DIR + LOG_FILE);
+  LogReader reader(FLAGS_data_dir + FLAGS_log_file);
 
   ::zmq::socket_t sock(*ctx, ZMQ_PUB);
   string endpoint(PUB_ENDPOINT.c_str());
@@ -117,7 +123,7 @@ TEST(LogReaderTest, ZmqVisitorTest)
 
   LOG(INFO) << "Starting subscriber";
   vector<string> topics = boost::assign::list_of
-      ("GOOG.OPT.20121005.765.C")("AAPL.STK")("BAC.STK");
+      ("GOOG.OPT.20121005.765.C")("AAPL.STK")("GOOG.STK")("AMZN.STK");
 
   Subscriber strategy(100);
   atp::zmq::Subscriber sub(PUB_ENDPOINT, topics, strategy, &ctx);

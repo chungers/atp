@@ -48,9 +48,12 @@ using proto::ib::MarketData;
 
 using boost::posix_time::time_duration;
 
-
 static const string DATA_DIR = "test/sample_data/";
-static const string LOG_FILE = "firehose.li126-61.jenkins.log.INFO.20121004.gz";
+static const string LOG_FILE = "firehose.log.gz";
+
+DEFINE_string(data_dir, DATA_DIR, "test data directory");
+DEFINE_string(log_file, LOG_FILE, "log file name");
+
 static const string PUB_ENDPOINT = "ipc://_logreader.ipc";
 
 
@@ -214,7 +217,7 @@ TEST(IndicatorPrototype, OhlcUsage)
   message_processor agent2(PUB_ENDPOINT, symbol_handlers2);
 
   LOG(INFO) << "Starting thread";
-  LogReader reader(DATA_DIR + LOG_FILE);
+  LogReader reader(FLAGS_data_dir + FLAGS_log_file);
   boost::thread* th = atp::log_reader::DispatchEventsInThread(
       reader,
       PUB_ENDPOINT,

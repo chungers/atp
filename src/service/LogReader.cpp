@@ -307,7 +307,7 @@ size_t LogReader::Process(marketdata_visitor_t& marketdata_visitor,
   while (infile >> std::skipws >> line) {
     if (line.find(',') != std::string::npos) {
 
-      //LOG_READER_DEBUG << "Log entry = " << line;
+      LOG_READER_DEBUG << "log:" << line;
 
       // parse the log line text into record
       log_record_t nv; // basic name /value pair

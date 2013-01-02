@@ -454,6 +454,7 @@ void test_limit_order_with_responses(int responses,
         ewrapper.orderStatus(respOrderId + i, status, filled, remaining,
                              avgFillPrice, permId, parentId,
                              lastFillPrice, clientId, whyHeld);
+        LOG(INFO) << "++++ Sent order status for " << respOrderId;
       }
     }
 
@@ -470,7 +471,7 @@ void test_limit_order_with_responses(int responses,
   EXPECT_FALSE(future->is_ready());
 
   // This will block until received or until timeout.
-  const p::OrderStatus& status = future->get(2000);
+  const p::OrderStatus& status = future->get(3000);
 
   EXPECT_TRUE(future->is_ready());
 

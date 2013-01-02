@@ -122,11 +122,14 @@ void Publisher::process()
       size_t more_size = sizeof(more);
       //  Process all parts of the message
       try {
+
         inbound.recv(&message);
         inbound.getsockopt( ZMQ_RCVMORE, &more, &more_size);
 
+
         VARZ_publisher_bytes_sent += publish.send(message,
                                                   more? ZMQ_SNDMORE: 0);
+
         VARZ_publisher_messages_sent++;
       } catch (::zmq::error_t e) {
         // Ignore signal 4 on linux which causes
