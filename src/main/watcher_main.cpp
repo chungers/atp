@@ -38,12 +38,15 @@ namespace p = proto::ib;
 struct state_t
 {
   state_t(const string& symbol) :
-      symbol(symbol), bid(0.), ask(0.), last(0.),
-      bid_size(0), ask_size(0), last_size(0) {}
+      symbol(symbol), bid(0.), ask(0.), last(0.), mid(0.),
+      bid_size(0), ask_size(0), last_size(0),
+      balance(0.)
+  {}
 
   string symbol;
-  double bid, ask, last;
+  double bid, ask, last, mid;
   int bid_size, ask_size, last_size;
+  double balance;
   boost::posix_time::ptime ct;
 };
 
@@ -67,6 +70,15 @@ void print(const timestamp_t& ts, const V& v,
   state->ct = t;
   *state_var = v;
 
+  // compute balance (from jbooktrader: http://goo.gl/eqykk)
+  state->mid = (state->bid + state->ask) / 2.;
+  double total_top = state->bid_size + state->ask_size;
+  if (total_top != 0.) {
+    state->balance = 100. * (state->bid_size - state->ask_size) / total_top;
+  } else {
+    state->balance = 0.;
+  }
+
   string color;
   if (state->last >= state->ask) {
     color = CONSOLE_GREEN;
@@ -89,7 +101,8 @@ void print(const timestamp_t& ts, const V& v,
             << "bid=" << state->bid << '/' << state->bid_size << ' '
             << "ask=" << state->ask << '/' << state->ask_size << ' '
             << (state->ask - state->bid) << ' '
-            << (state->ask_size - state->bid_size) << ' '
+            << state->balance << ' '
+            << "mid=" << state->mid << ' '
             << "trade=" << state->last << '/' << state->last_size;
 
   std::cerr << CONSOLE_RESET << std::endl;

@@ -57,50 +57,21 @@ set(em_libs
 cpp_executable(em)
 
 ##########################################
-# Marketdata subscriber
-set(marketdata_incs
-  ${GEN_DIR}
-  ${SRC_DIR}
-)
-set(marketdata_srcs
-  marketdata_main.cpp
-)
-set(marketdata_libs
-  IBAPIConnector
-  ib_api_versioned
-  boost_system
-  gflags
-  glog
-)
-cpp_executable(marketdata)
-
-##########################################
-# Simple Log File Reader
-set(logreader_incs
+# Log publisher
+set(lp_incs
   ${GEN_DIR}
   ${SRC_DIR}
   ${IBAPI_ROOT}
   ${IBAPI_ROOT}/Shared
   ${IBAPI_IMPL_DIR}
 )
-set(logreader_srcs
-  logreader_main.cpp
+set(lp_srcs
+  lp_main.cpp
 )
-set(logreader_libs
-  IBAPIConnector
-  ib_api_versioned
-  boost_system
-  boost_iostreams
-  gflags
-  glog
-  atp_historian
-  protobuf-lite
-  leveldb
-  bz2
-  z
+set(lp_libs
+  atp_service_all
 )
-cpp_executable(logreader)
-
+cpp_executable(lp)
 
 ##########################################
 # Log File to Db loader

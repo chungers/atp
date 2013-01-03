@@ -58,11 +58,14 @@ set(atp_service_log_reader_libs
  atp_platform_base
  atp_proto
  atp_zmq
+ boost_iostreams
  boost_system
  boost_thread
  gflags
  glog
  zmq
+ bz2
+ z
 )
 # Client implementation:
 cpp_library(atp_service_log_reader)
