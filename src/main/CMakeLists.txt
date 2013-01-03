@@ -167,31 +167,12 @@ set(watcher_libs
 )
 cpp_executable(watcher)
 
-#########################################
-# Reactor test client / server
-set(zmq_reactor_incs
-  ${GEN_DIR}
-  ${SRC_DIR}
-)
-set(zmq_reactor_srcs
-  reactor_main.cpp
-)
-set(zmq_reactor_libs
-  boost_system
-  gflags
-  glog
-  atp_zmq
-)
-cpp_executable(zmq_reactor)
-
-
 add_custom_target(all_mains)
 add_dependencies(all_mains
   cm
   em
   firehose
-  logreader
-  marketdata
+  lp
   hloader
   hz
   hzc
