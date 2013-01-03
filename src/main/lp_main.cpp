@@ -23,6 +23,8 @@ DEFINE_bool(rth, true,
             "Regular trading hours.");
 DEFINE_bool(est, true,
             "Eastern timezone.");
+DEFINE_bool(send_stop, true,
+            "Sends stop event at end of logfile.");
 
 void OnTerminate(int param)
 {
@@ -74,5 +76,9 @@ int main(int argc, char** argv)
   size_t processed = reader.Process(m1, m2);
   LOG(INFO) << "processed " << processed;
 
+  if (FLAGS_send_stop) {
+    atp::zmq::send_copy(pub_socket, "STOP", true);
+    atp::zmq::send_copy(pub_socket, "STOP", false);
+  }
   pub_socket.close();
 }

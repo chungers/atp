@@ -33,6 +33,8 @@ DEFINE_int64(requestTimeoutMillis, 10000,
              "Timeout for requesting contract details in milliseconds.");
 DEFINE_bool(subscribe, true,
             "True to start subscription via FH");
+DEFINE_bool(depth, false,
+            "True to request depth in addition to marketdata");
 
 void OnTerminate(int param)
 {
@@ -190,6 +192,20 @@ int main(int argc, char** argv)
             size_t sent = atp::send<p::RequestMarketData>(fh_socket, req);
             if (sent > 0) {
               LOG(INFO) << "Requested marketdata for " << *itr;
+
+              // also for market depth
+              if (FLAGS_depth) {
+                p::RequestMarketDepth depth;
+                depth.mutable_contract()->CopyFrom(c);
+                sent = atp::send<p::RequestMarketDepth>(fh_socket, depth);
+                if (sent > 0) {
+                  LOG(INFO) << "Requested marketdepth for " << *itr;
+                } else {
+                  LOG(ERROR) << "Failed to request depth for " << *itr;
+                }
+              }
+            } else {
+              LOG(ERROR) << "Failed to request marketdata for " << *itr;
             }
           }
         } else {
