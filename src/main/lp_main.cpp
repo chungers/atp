@@ -77,8 +77,8 @@ int main(int argc, char** argv)
   LOG(INFO) << "processed " << processed;
 
   if (FLAGS_send_stop) {
-    atp::zmq::send_copy(pub_socket, "STOP", true);
-    atp::zmq::send_copy(pub_socket, "STOP", false);
+    atp::zmq::send_copy(pub_socket, atp::log_reader::DATA_END, true);
+    atp::zmq::send_copy(pub_socket, atp::log_reader::DATA_END, false);
   }
   pub_socket.close();
 }

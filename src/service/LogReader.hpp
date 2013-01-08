@@ -10,6 +10,7 @@
 #include "log_levels.h"
 #include "proto/ib.pb.h"
 #include "common/time_utils.hpp"
+#include "platform/platform.hpp"
 
 
 using namespace std;
@@ -20,12 +21,16 @@ using namespace boost::posix_time;
 namespace atp {
 namespace log_reader {
 
+
 typedef boost::posix_time::ptime time_t;
 typedef boost::posix_time::time_duration time_duration_t;
 typedef boost::posix_time::time_period time_period_t;
 
 using proto::ib::MarketData;
 using proto::ib::MarketDepth;
+
+
+const static string DATA_END(atp::platform::DATA_END);
 
 
 /////////////////////////////////////////////////////////////

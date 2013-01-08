@@ -11,6 +11,7 @@
 #include "common/time_utils.hpp"
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
+#include "platform/platform.hpp"
 
 #include "main/global_defaults.hpp"
 
@@ -197,7 +198,7 @@ int main(int argc, char** argv)
     handler->bind("LAST_SIZE", last_size);
 
     symbols_map.register_handler(state->symbol, *handler);
-    symbols_map.register_handler("STOP",
+    symbols_map.register_handler(atp::platform::DATA_END,
                          boost::bind(&stop_function, _1, _2));
   }
 

@@ -12,8 +12,6 @@ using namespace std;
 namespace atp {
 namespace log_reader {
 
-const static string DATA_END("DATA_END");
-
 void DispatchEvents(LogReader& logReader,
                     const std::string& endpoint,
                     const time_duration& duration);
