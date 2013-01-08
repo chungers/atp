@@ -69,6 +69,9 @@ const ConnectorSpec FH_CONNECTOR_SPECS = build_connector_spec(
 const OutboundEndPoint FH_OUTBOUND_ENDPOINTS = build_outbound_spec(
     FH_OUTBOUND_ENDPOINT);
 
+//// lp - log publisher
+const Host LP_HOST = FH_HOST;
+const Port LP_OUTBOUND_PORT = FH_OUTBOUND_PORT;
 
 //// em - execution manager
 const Host EM_IBG_HOST = "127.0.0.1";

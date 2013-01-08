@@ -13,10 +13,10 @@
 #include "zmq/ZmqUtils.hpp"
 
 
-DEFINE_string(fhHost, atp::global::FH_HOST,
-              "FH market data publish host");
-DEFINE_int32(fhPort, atp::global::FH_OUTBOUND_PORT,
-              "FH market data publish port");
+DEFINE_string(pub_host, atp::global::LP_HOST,
+              "Market data publish host");
+DEFINE_int32(pub_port, atp::global::LP_OUTBOUND_PORT,
+              "Market data publish port");
 DEFINE_string(logfile, "",
               "Name of the logfile.");
 DEFINE_bool(rth, true,
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
   // Start the log reader:
   service::LogReader reader(FLAGS_logfile, FLAGS_rth, FLAGS_est);
 
-  string pub_endpoint = atp::zmq::EndPoint::tcp(FLAGS_fhPort, FLAGS_fhHost);
+  string pub_endpoint = atp::zmq::EndPoint::tcp(FLAGS_pub_port, FLAGS_pub_host);
   LOG(INFO) << "Starting publish endpoint at " << pub_endpoint;
 
   ::zmq::context_t context(1);
