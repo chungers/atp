@@ -48,14 +48,19 @@ namespace p = proto::ib;
 
 struct state_t
 {
+  enum event {
+    IGNORE = 0, LAST = 1
+  };
+
   state_t(const string& symbol) :
-      symbol(symbol), bid(0.), ask(0.), last(0.), mid(0.), spread(0.),
+      symbol(symbol), bid(0.), ask(0.), last(0.), prev_last(0.),
+      mid(0.), spread(0.),
       bid_size(0), ask_size(0), last_size(0),
       balance(0.)
   {}
 
   string symbol;
-  double bid, ask, last, mid, spread;
+  double bid, ask, last, prev_last, mid, spread;
   int bid_size, ask_size, last_size;
   double balance;
   boost::posix_time::ptime ct;
@@ -69,11 +74,17 @@ void OnTerminate(int param)
   exit(1);
 }
 
+
 template <typename V>
 void print(const timestamp_t& ts, const V& v,
-           V* state_var, state_t* state, bool print)
+           V* state_var, state_t* state, bool print,
+           state_t::event e)
 {
   if (v == 0) return;
+
+  if (e == state_t::LAST) {
+    state->prev_last = state->last;
+  }
 
   boost::posix_time::ptime t = atp::time::as_ptime(ts);
   state->ct = t;
@@ -116,14 +127,58 @@ void print(const timestamp_t& ts, const V& v,
     color = CONSOLE_RESET;
   }
 
+  std::cout << std::fixed << std::showpoint;
+
   std::cout << color
-            << atp::time::to_est(t) << ',' << state->symbol << ','
-            << state->bid << '/' << state->bid_size << ','
-            << state->mid << ','
-            << state->ask << '/' << state->ask_size << ','
-            << state->spread << ','
-            << state->balance << ','
-            << state->last << '/' << state->last_size;
+            << atp::time::to_est(t) << ' ' << state->symbol << ' '
+            << std::setprecision(2)
+            << state->bid << " "
+            << std::setw(3)
+            << state->bid_size
+            << "  "
+            << std::setprecision(2)
+            << state->mid
+            << "  "
+            << std::setprecision(2)
+            << state->ask << " "
+            << std::setw(3)
+            << state->ask_size << ' '
+            << CONSOLE_RESET;
+
+  string color2;
+  if (state->last == state->prev_last) {
+    color2 = CONSOLE_WHITE;
+  } else if (state->last > state->prev_last) {
+    color2 = CONSOLE_GREEN;
+  } else {
+    color2 = CONSOLE_RED;
+  }
+
+  std::cout << color2 << ' '
+            << std::setprecision(2)
+            << state->last << " "
+            << std::setw(3)
+            << state->last_size << ' '
+            << CONSOLE_RESET;
+
+  string color3;
+  if (state->balance == 0) {
+    color3 = CONSOLE_WHITE;
+  } else if (state->balance > 0) {
+    color3 = CONSOLE_GREEN;
+  } else {
+    color3 = CONSOLE_RED;
+  }
+
+  std::cout << color3 << ' '
+            << std::setprecision(2)
+            << state->spread << ' '
+            << std::setw(3)
+            << (state->bid_size + state->ask_size) // total liquidity
+            << ' ' << std::setw(3) << std::showpos
+            << state->balance << std::noshowpos
+      ;
+
 
   std::cout << CONSOLE_RESET << std::endl;
 }
@@ -173,22 +228,28 @@ int main(int argc, char** argv)
         platform::marketdata::marketdata_handler<p::MarketData>();
 
     platform::callback::update_event<double>::func bid =
-        boost::bind(&print<double>, _1, _2, &(state->bid), state, !FLAGS_last);
+        boost::bind(&print<double>, _1, _2, &(state->bid), state, !FLAGS_last,
+                    state_t::IGNORE);
 
     platform::callback::update_event<double>::func ask =
-        boost::bind(&print<double>, _1, _2, &(state->ask), state, !FLAGS_last);
+        boost::bind(&print<double>, _1, _2, &(state->ask), state, !FLAGS_last,
+                    state_t::IGNORE);
 
     platform::callback::update_event<double>::func last =
-        boost::bind(&print<double>, _1, _2, &(state->last), state, !FLAGS_last);
+        boost::bind(&print<double>, _1, _2, &(state->last), state, true,
+                    state_t::LAST);
 
     platform::callback::update_event<int>::func bid_size =
-        boost::bind(&print<int>, _1, _2, &(state->bid_size), state, !FLAGS_last);
+        boost::bind(&print<int>, _1, _2, &(state->bid_size), state, !FLAGS_last,
+                    state_t::IGNORE);
 
     platform::callback::update_event<int>::func ask_size =
-        boost::bind(&print<int>, _1, _2, &(state->ask_size), state, !FLAGS_last);
+        boost::bind(&print<int>, _1, _2, &(state->ask_size), state, !FLAGS_last,
+                    state_t::IGNORE);
 
     platform::callback::update_event<int>::func last_size =
-        boost::bind(&print<int>, _1, _2, &(state->last_size), state, true);
+        boost::bind(&print<int>, _1, _2, &(state->last_size), state, true,
+                    state_t::IGNORE);
 
     handler->bind("BID", bid);
     handler->bind("ASK", ask);
