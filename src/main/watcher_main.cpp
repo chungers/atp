@@ -49,7 +49,7 @@ namespace p = proto::ib;
 struct state_t
 {
   enum event {
-    IGNORE = 0, LAST = 1
+    OTHER = 0, LAST = 1
   };
 
   state_t(const string& symbol) :
@@ -229,11 +229,11 @@ int main(int argc, char** argv)
 
     platform::callback::update_event<double>::func bid =
         boost::bind(&print<double>, _1, _2, &(state->bid), state, !FLAGS_last,
-                    state_t::IGNORE);
+                    state_t::OTHER);
 
     platform::callback::update_event<double>::func ask =
         boost::bind(&print<double>, _1, _2, &(state->ask), state, !FLAGS_last,
-                    state_t::IGNORE);
+                    state_t::OTHER);
 
     platform::callback::update_event<double>::func last =
         boost::bind(&print<double>, _1, _2, &(state->last), state, true,
@@ -241,15 +241,15 @@ int main(int argc, char** argv)
 
     platform::callback::update_event<int>::func bid_size =
         boost::bind(&print<int>, _1, _2, &(state->bid_size), state, !FLAGS_last,
-                    state_t::IGNORE);
+                    state_t::OTHER);
 
     platform::callback::update_event<int>::func ask_size =
         boost::bind(&print<int>, _1, _2, &(state->ask_size), state, !FLAGS_last,
-                    state_t::IGNORE);
+                    state_t::OTHER);
 
     platform::callback::update_event<int>::func last_size =
         boost::bind(&print<int>, _1, _2, &(state->last_size), state, true,
-                    state_t::IGNORE);
+                    state_t::OTHER);
 
     handler->bind("BID", bid);
     handler->bind("ASK", ask);
