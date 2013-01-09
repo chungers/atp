@@ -310,6 +310,7 @@ TEST(ContractManagerTest, RequestOptionDetails)
       EXPECT_EQ(expiry, c.expiry);
       EXPECT_EQ(right, c.right);
       EXPECT_EQ(strike, c.strike);
+      EXPECT_EQ(currency, c.currency);
 
       sleep(1); // to avoid race for the test.  simulate some delay
 
@@ -329,6 +330,7 @@ TEST(ContractManagerTest, RequestOptionDetails)
     std::string expiry;
     std::string right;
     double strike;
+    std::string currency;
   } _assert;
 
   service::ContractManager::RequestId request_id = 300;
@@ -339,7 +341,7 @@ TEST(ContractManagerTest, RequestOptionDetails)
   _assert.expiry = "20121220";
   _assert.right = "P";
   _assert.strike = 600.;
-
+  _assert.currency = "USD";
   setAssert(_assert);
 
   service::AsyncContractDetailsEnd future =

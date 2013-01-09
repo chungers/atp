@@ -90,17 +90,24 @@ class ContractManager::implementation
 
       string key(resp.details().symbol());
       if (contractDetails_.find(key) == contractDetails_.end()) {
-        contractDetails_[key] = resp.details();
 
-        CONTRACT_MANAGER_LOGGER << "Updated " << key;
+        CONTRACT_MANAGER_LOGGER << "Received: " << key;
 
       } else {
         CONTRACT_MANAGER_WARNING
             << "Received another contract detail for "
-            << key
-            << ", updating.";
-        contractDetails_[key] = resp.details();
+            << key;
       }
+
+      // we need to make sure the contract's currency is USD;
+      if (resp.details().summary().strike().currency() ==
+          proto::common::Money::USD) {
+        contractDetails_[key] = resp.details();
+        CONTRACT_MANAGER_LOGGER << "Updated " << key;
+      } else {
+        CONTRACT_MANAGER_LOGGER << "Non-USD contract ignored: " << key;
+      }
+
     }
     return true;
   }
@@ -151,36 +158,6 @@ class ContractManager::implementation
       size_t sent = atp::send(*cm_socket_, now_micros(), now_micros(), req);
 
       CONTRACT_MANAGER_LOGGER << "Sent for contract details: "
-                              << req.GetTypeName()
-                              << " (" << sent << ")";
-
-      response = new async_response<p::ContractDetailsEnd>();
-    }
-
-    AsyncContractDetailsEnd status(response);
-    boost::unique_lock<boost::shared_mutex> lock(mutex_);
-    pendingRequests_[id] = status;
-    return status;
-  }
-
-  const AsyncContractDetailsEnd
-  requestStockContractDetails(const RequestId& id, const std::string& symbol)
-  {
-    async_response<p::ContractDetailsEnd>* response = NULL;
-
-    if (cm_socket_ != NULL) {
-
-      p::RequestContractDetails req;
-
-      req.mutable_contract()->set_id(0); // to be filled by response.
-      req.mutable_contract()->set_symbol(symbol);
-      req.mutable_contract()->set_local_symbol(symbol);
-      req.mutable_contract()->set_type(p::Contract::STOCK);
-      req.set_request_id(id);
-
-      size_t sent = atp::send(*cm_socket_, now_micros(), now_micros(), req);
-
-      CONTRACT_MANAGER_LOGGER << "Sent for stock contract " << symbol << ' '
                               << req.GetTypeName()
                               << " (" << sent << ")";
 
@@ -246,6 +223,11 @@ ContractManager::requestStockContractDetails(const RequestId& id,
   contract.set_symbol(symbol);
   contract.set_local_symbol(symbol);
   contract.set_type(p::Contract::STOCK);
+
+  // Specify a 0 strike so that we can set the currency properly.
+  contract.mutable_strike()->set_amount(0.);
+  contract.mutable_strike()->set_currency(proto::common::Money::USD);
+
   return impl_->requestContractDetails(id, contract);
 }
 
@@ -264,6 +246,7 @@ ContractManager::requestOptionContractDetails(
   contract.set_type(p::Contract::OPTION);
   contract.set_right(putOrCall);
   contract.mutable_strike()->set_amount(strike);
+  contract.mutable_strike()->set_currency(proto::common::Money::USD);
   contract.mutable_expiry()->set_year(expiry.year());
   contract.mutable_expiry()->set_month(expiry.month());
   contract.mutable_expiry()->set_day(expiry.day());

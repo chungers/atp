@@ -64,6 +64,17 @@ TEST(V966_MarshallTest, STKContractToProtoConversion)
   EXPECT_EQ(100, p.id());
   EXPECT_EQ("SMART", p.exchange()); // default
   EXPECT_EQ(proto::ib::Contract::STOCK, p.type()); // default
+  EXPECT_EQ(proto::common::Money::IGNORE, p.strike().currency()); // default
+
+  c.currency = "USD";
+  EXPECT_TRUE(c >> p);
+  EXPECT_TRUE(p.IsInitialized());
+  EXPECT_EQ("AAPL", p.symbol());
+  EXPECT_EQ(100, p.id());
+  EXPECT_EQ("SMART", p.exchange()); // default
+  EXPECT_EQ(proto::ib::Contract::STOCK, p.type()); // default
+  EXPECT_EQ(proto::common::Money::USD, p.strike().currency()); // default
+
 
   // Do the inverse
   Contract c2;
@@ -95,6 +106,7 @@ TEST(V966_MarshallTest, OptionContractToProtoConversion)
   c.right = "P";
   c.expiry = "20120505";
   c.secType = "OPT";
+  c.currency = "USD";
 
   EXPECT_TRUE(c >> p);
   EXPECT_TRUE(p.IsInitialized());
