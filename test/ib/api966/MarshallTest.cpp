@@ -64,7 +64,7 @@ TEST(V966_MarshallTest, STKContractToProtoConversion)
   EXPECT_EQ(100, p.id());
   EXPECT_EQ("SMART", p.exchange()); // default
   EXPECT_EQ(proto::ib::Contract::STOCK, p.type()); // default
-  EXPECT_EQ(proto::common::Money::IGNORE, p.strike().currency()); // default
+  EXPECT_EQ(proto::common::Money::OTHER, p.strike().currency()); // default
 
   c.currency = "USD";
   EXPECT_TRUE(c >> p);

@@ -6,11 +6,11 @@ package proto.common;
 
 message Money {
   enum Currency {
-    IGNORE = 0; // We are not trading anything non-USD.
+    OTHER = 0; // We are not trading anything non-USD.
     USD = 1;
   }
   required double amount = 1;
-  optional Currency currency = 2 [ default = IGNORE ];
+  optional Currency currency = 2 [ default = OTHER ];
 }
 
 message Date {
