@@ -11,6 +11,7 @@
 #include "ZmqProtoBuffer.hpp"
 #include "common/time_utils.hpp"
 #include "platform/contract_symbol.hpp"
+#include "platform/version_info.hpp"
 #include "proto/ib.pb.h"
 #include "service/ContractManager.hpp"
 #include "main/global_defaults.hpp"
@@ -56,9 +57,7 @@ int main(int argc, char** argv)
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
-  std::string zmqVersion;
-  atp::zmq::version(&zmqVersion);
-  LOG(INFO) << "ZMQ " << zmqVersion;
+  atp::version_info::log("ds");
 
   // Signal handler: Ctrl-C
   signal(SIGINT, OnTerminate);

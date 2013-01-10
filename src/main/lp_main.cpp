@@ -6,6 +6,8 @@
 #include <glog/logging.h>
 #include <zmq.hpp>
 
+#include "platform/version_info.hpp"
+
 #include "service/LogReader.hpp"
 #include "service/LogReaderVisitor.hpp"
 
@@ -43,6 +45,8 @@ int main(int argc, char** argv)
   google::SetUsageMessage("Log data publisher");
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
+
+  atp::version_info::log("lp");
 
   // Signal handler: Ctrl-C
   signal(SIGINT, OnTerminate);

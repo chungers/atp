@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <sstream>
 
 
 #include <zmq.hpp>
@@ -38,14 +39,6 @@ inline void version(std::string* output)
   output->assign(oss.str());
 }
 
-// inline void version(std::string* output)
-// {
-//   int major, minor, patch;
-//   ::zmq::version(&major, &minor, &patch);
-//   std::ostringstream oss;
-//   oss << major << '.' << minor << '.' << patch;
-//   output->assign(oss.str());
-// }
 
 struct EndPoint {
   static std::string inproc(const std::string& name)

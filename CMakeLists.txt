@@ -17,6 +17,27 @@ set(CFLAGS "-pg -g -W")
 # Macros to include
 include(${PROJECT_SOURCE_DIR}/tools/cmake/Init.cmk)
 
+
+# GIT Commit Hash
+execute_process(
+  COMMAND git rev-list --max-count=1 --reverse HEAD
+  OUTPUT_VARIABLE GIT_LAST_COMMIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+execute_process(
+  COMMAND git log -1
+  COMMAND tail -1
+  COMMAND sed -e "s/^[ ]*//g"
+  OUTPUT_VARIABLE GIT_LAST_COMMIT_MSG
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+message(STATUS
+  "GIT COMMIT - " ${GIT_LAST_COMMIT_HASH}
+)
+message(STATUS
+  "GIT COMMIT - " ${GIT_LAST_COMMIT_MSG}
+)
+
 # Common dependencies
 #
 

@@ -14,6 +14,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "platform/version_info.hpp"
+
 #include "varz/varz.hpp"
 #include "varz/VarzServer.hpp"
 
@@ -45,7 +47,7 @@ DEFINE_VARZ_bool(em_as_publisher, false, "if instance is also a publisher.");
 DEFINE_VARZ_string(em_connector_specs, "", "Connector specs");
 DEFINE_VARZ_string(em_outbound_endpoints, "", "Outbound endpoints");
 
-DEFINE_VARZ_string(ib_api_version, IB_API_VERSION, "IB api version");
+DEFINE_VARZ_string(ib_api_version, _IB_API_VERSION, "IB api version");
 
 
 void OnTerminate(int param)
@@ -77,13 +79,9 @@ int main(int argc, char** argv)
   google::InitGoogleLogging(argv[0]);
   atp::varz::Varz::initialize();
 
-  std::string zmqVersion;
-  atp::zmq::version(&zmqVersion);
+  atp::version_info::log("cm");
 
-  LOG(INFO) << "ZMQ " << zmqVersion;
   atp::varz::Varz::initialize();
-
-  LOG(INFO) << "CM - IB API version: " << IB_API_VERSION;
 
   // Signal handler: Ctrl-C
   signal(SIGINT, OnTerminate);

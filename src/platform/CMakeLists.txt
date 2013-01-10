@@ -14,9 +14,11 @@ set(atp_platform_base_incs
 )
 set(atp_platform_base_srcs
   contract_symbol.cpp
+  version_info.cpp
  )
 set(atp_platform_base_libs
  atp_proto
+ zmq
 )
 cpp_library(atp_platform_base)
 

@@ -12,6 +12,7 @@
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
 #include "platform/platform.hpp"
+#include "platform/version_info.hpp"
 
 #include "main/global_defaults.hpp"
 
@@ -197,10 +198,7 @@ int main(int argc, char** argv)
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
-  std::string zmqVersion;
-  atp::zmq::version(&zmqVersion);
-
-  LOG(INFO) << "ZMQ " << zmqVersion;
+  atp::version_info::log("watcher");
 
   // Signal handler: Ctrl-C
   signal(SIGINT, OnTerminate);
