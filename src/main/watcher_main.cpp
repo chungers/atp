@@ -18,10 +18,10 @@
 
 
 
-DEFINE_string(fhHost, atp::global::FH_HOST,
-              "FH market data publish host");
-DEFINE_int32(fhPort, atp::global::FH_OUTBOUND_PORT,
-              "FH market data publish port");
+DEFINE_string(pub_host, atp::global::FH_HOST,
+              "Market data publish host");
+DEFINE_int32(pub_port, atp::global::FH_OUTBOUND_PORT,
+              "Market data publish port");
 DEFINE_string(symbols, "",
               "Comma-delimited list of stocks to watch.");
 DEFINE_bool(last, false,
@@ -262,7 +262,7 @@ int main(int argc, char** argv)
   }
 
   platform::message_processor agent(atp::zmq::EndPoint::tcp(
-      FLAGS_fhPort, FLAGS_fhHost), symbols_map);
+      FLAGS_pub_port, FLAGS_pub_host), symbols_map);
 
   agent.block();
 }
