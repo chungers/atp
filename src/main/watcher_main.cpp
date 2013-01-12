@@ -26,6 +26,8 @@ DEFINE_string(symbols, "",
               "Comma-delimited list of stocks to watch.");
 DEFINE_bool(last, false,
             "Update only on last trade");
+DEFINE_bool(csv, false,
+            "True to generate csv");
 
 
 #define CONSOLE_RED "\033[1;31m"
@@ -75,11 +77,10 @@ void OnTerminate(int param)
   exit(1);
 }
 
-
 template <typename V>
-void print(const timestamp_t& ts, const V& v,
-           V* state_var, state_t* state, bool print,
-           state_t::event e)
+void update(const boost::posix_time::ptime& t, const V& v,
+            V* state_var, state_t* state, bool print,
+            state_t::event e)
 {
   if (v == 0) return;
 
@@ -87,7 +88,6 @@ void print(const timestamp_t& ts, const V& v,
     state->prev_last = state->last;
   }
 
-  boost::posix_time::ptime t = atp::time::as_ptime(ts);
   state->ct = t;
   *state_var = v;
 
@@ -101,87 +101,116 @@ void print(const timestamp_t& ts, const V& v,
   } else {
     state->balance = 0.;
   }
+}
+
+template <typename V>
+void print(const timestamp_t& ts, const V& v,
+           V* state_var, state_t* state, bool print,
+           state_t::event e)
+{
+  boost::posix_time::ptime t = atp::time::as_ptime(ts);
+  update<V>(t, v, state_var, state, print, e);
 
   // print output
   if (!print) return;
 
-  string color;
-  if (state->last >= state->ask) {
-    color = CONSOLE_GREEN;
-    if (state->last == state->ask) {
-      color += CONSOLE_UNDERLINE;
+  string color(""), console_reset(""), delim(",");
+
+  if (!FLAGS_csv) {
+
+    console_reset = CONSOLE_RESET;
+    delim = "  ";
+
+    if (state->last >= state->ask) {
+      color = CONSOLE_GREEN;
+      if (state->last == state->ask) {
+        color += CONSOLE_UNDERLINE;
+      }
+    } else if (state->last <= state->bid) {
+      color = CONSOLE_RED;
+      if (state->last == state->bid) {
+        color += CONSOLE_UNDERLINE;
+      }
+    } else if (state->last > state->mid) {
+      color = CONSOLE_CYAN;
+    } else if (state->last == state->mid) {
+      color = CONSOLE_WHITE;
+    } else if (state->last < state->mid) {
+      color = CONSOLE_YELLOW;
+    } else if (state->bid > state->ask) {
+      color = CONSOLE_MAGENTA;
+    } else {
+      color = CONSOLE_RESET;
     }
-  } else if (state->last <= state->bid) {
-    color = CONSOLE_RED;
-    if (state->last == state->bid) {
-      color += CONSOLE_UNDERLINE;
-    }
-  } else if (state->last > state->mid) {
-    color = CONSOLE_CYAN;
-  } else if (state->last == state->mid) {
-    color = CONSOLE_WHITE;
-  } else if (state->last < state->mid) {
-    color = CONSOLE_YELLOW;
-  } else if (state->bid > state->ask) {
-    color = CONSOLE_MAGENTA;
-  } else {
-    color = CONSOLE_RESET;
   }
 
   std::cout << std::fixed << std::showpoint;
 
   std::cout << color
-            << atp::time::to_est(t) << ' ' << state->symbol << ' '
+            << atp::time::to_est(t)
+            << delim
+            << state->symbol
+            << delim
             << std::setprecision(2)
-            << state->bid << " "
+            << state->bid
+            << delim
             << std::setw(3)
             << state->bid_size
-            << "  "
+            << delim
             << std::setprecision(2)
             << state->mid
-            << "  "
+            << delim
             << std::setprecision(2)
-            << state->ask << " "
+            << state->ask
+            << delim
             << std::setw(3)
-            << state->ask_size << ' '
-            << CONSOLE_RESET;
+            << state->ask_size
+            << delim
+            << console_reset;
 
-  string color2;
-  if (state->last == state->prev_last) {
-    color2 = CONSOLE_WHITE;
-  } else if (state->last > state->prev_last) {
-    color2 = CONSOLE_GREEN;
-  } else {
-    color2 = CONSOLE_RED;
+  if (!FLAGS_csv) {
+    if (state->last == state->prev_last) {
+      color = CONSOLE_WHITE;
+    } else if (state->last > state->prev_last) {
+      color = CONSOLE_GREEN;
+    } else {
+      color = CONSOLE_RED;
+    }
   }
 
-  std::cout << color2 << ' '
+  std::cout << color
             << std::setprecision(2)
-            << state->last << " "
+            << state->last
+            << delim
             << std::setw(3)
-            << state->last_size << ' '
-            << CONSOLE_RESET;
+            << state->last_size
+            << delim
+            << console_reset;
 
-  string color3;
-  if (state->balance == 0) {
-    color3 = CONSOLE_WHITE;
-  } else if (state->balance > 0) {
-    color3 = CONSOLE_GREEN;
-  } else {
-    color3 = CONSOLE_RED;
+  if (!FLAGS_csv) {
+    if (state->balance == 0) {
+      color = CONSOLE_WHITE;
+    } else if (state->balance > 0) {
+      color = CONSOLE_GREEN;
+    } else {
+      color = CONSOLE_RED;
+    }
   }
 
-  std::cout << color3 << ' '
+  std::cout << color
             << std::setprecision(2)
-            << state->spread << ' '
+            << state->spread
+            << delim
             << std::setw(3)
             << (state->bid_size + state->ask_size) // total liquidity
-            << ' ' << std::setw(3) << std::showpos
-            << state->balance << std::noshowpos
+            << delim
+            << std::setw(3)
+            << std::showpos
+            << state->balance
+            << std::noshowpos
       ;
 
-
-  std::cout << CONSOLE_RESET << std::endl;
+  std::cout << console_reset << std::endl;
 }
 
 
@@ -199,6 +228,9 @@ int main(int argc, char** argv)
   google::InitGoogleLogging(argv[0]);
 
   atp::version_info::log("watcher");
+
+  std::cout.imbue(atp::time::TIME_FORMAT);
+
 
   // Signal handler: Ctrl-C
   signal(SIGINT, OnTerminate);

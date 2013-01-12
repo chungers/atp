@@ -36,13 +36,16 @@ typedef boost::date_time::local_adjustor<ptime, -8, us_dst> us_pacific;
 static const ptime EPOCH(boost::gregorian::date(1970,boost::gregorian::Jan,1));
 static const std::locale TIME_FORMAT = std::locale(
     std::cout.getloc(),
-    new boost::posix_time::time_input_facet("%Y-%m-%d %H:%M:%S%F%Q"));
+    new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S%F%Q"));
+
+// static const std::locale TIME_FORMAT = std::locale(
+//     std::cout.getloc(),
+//     new boost::posix_time::time_input_facet("%Y-%m-%d %H:%M:%S%F%Q"));
 
 static const time_duration RTH_START_EST(9, 30, 0, 0);
 static const time_duration RTH_END_EST(16, 0, 0, 0);
 static const time_duration EXT_START(4, 0, 0, 0);
 static const time_duration EXT_END(20, 0, 0, 0);
-
 
 /// from micros to posix time (ptime)
 inline ptime as_ptime(const boost::uint64_t ts)
