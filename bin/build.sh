@@ -5,6 +5,7 @@ function showHelp {
     echo " -c : clean (default = off)"
     echo " -a : build all (default = off)"
     echo " -t <target> : for target"
+    echo " -p <target> : push and deploy target"
     echo " -d : for deployment to directory (hub/atp)"
     echo " -m <message> : commit message for release."
     exit 0;
@@ -28,7 +29,7 @@ function processLdd {
         if [ ! -f $i ]; then
             i=$(find /usr/local/lib /usr/lib -name $i)
         fi
-        if [ -f $i ]; then
+        if [[ -f $i ]]; then
             echo "Copying $i to $deps_dir"
             cp -f $i $deps_dir
         fi
@@ -49,15 +50,17 @@ TARGET=""
 DEPLOY_HUB="$DIR/../hub"
 DEPLOY_HUB_ATP="$DEPLOY_HUB/atp"
 DEPLOY=0
+PUSH=0  # for deploying single binary
 MESSAGE=""
 DO_COMMIT=0
 
-while getopts "t:m:cad" optionName; do
+while getopts "t:m:cadp:" optionName; do
 case "$optionName" in
 c) CLEAN=1;;
 t) TARGET="$OPTARG"; BUILD=1;;
 a) BUILD=1;;
 d) DEPLOY=1;;
+p) TARGET="$OPTARG"; BUILD=1; DEPLOY=1; PUSH=1;;
 m) MESSAGE="$OPTARG";DO_COMMIT=1;;
 [?]) showHelp;;
 esac
@@ -107,20 +110,33 @@ if [ $DEPLOY == 1 ]; then
     popd
     # run full installation to build/
     rm -rf $DIR/install/
-    make install
+
     mkdir -p $DEPLOY_TARGET
     mkdir -p $DEPLOY_OPS
     mkdir -p $DEPLOY_R_PKGS
     mkdir -p $DEPLOY_TARGET/deps
-    cp -r -f $DIR/install/* $DEPLOY_TARGET
-    cp -r -f $DIR/ops/munin $DEPLOY_OPS
-    cp -r -f $(find $DIR/R-packages -name *.tgz) $DEPLOY_R_PKGS
-    cp -r -f $(find $DIR/R-packages -name *.gz) $DEPLOY_R_PKGS
-    # determine the shared library dependencies
-    l=$(ls $DEPLOY_TARGET/bin)
-    for i in $l; do
-        processLdd $DEPLOY_TARGET/bin/$i $DEPLOY_TARGET/deps
-    done
+
+    if [ $PUSH == 1 ]; then
+        for t in $TARGETS; do
+            cp -f $DIR/build/$t $DEPLOY_TARGET/bin
+            processLdd $DEPLOY_TARGET/bin/$t $DEPLOY_TARGET/deps
+        done
+    else # copy everything
+
+        make install
+
+        cp -r -f $DIR/install/* $DEPLOY_TARGET
+        cp -r -f $DIR/ops/munin $DEPLOY_OPS
+        cp -r -f $(find $DIR/R-packages -name *.tgz) $DEPLOY_R_PKGS
+        cp -r -f $(find $DIR/R-packages -name *.gz) $DEPLOY_R_PKGS
+
+        # determine the shared library dependencies
+        l=$(ls $DEPLOY_TARGET/bin)
+        for i in $l; do
+            processLdd $DEPLOY_TARGET/bin/$i $DEPLOY_TARGET/deps
+        done
+
+    fi
 
     if [ $DO_COMMIT == 1 ]; then
         pushd $DEPLOY_HUB/
