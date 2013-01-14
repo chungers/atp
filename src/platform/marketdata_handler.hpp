@@ -114,6 +114,12 @@ class value_updater
     string_dispatcher_.bind(event, updater);
   }
 
+  inline void bind(const event_code_t& event,
+                   callback::update_event<timestamp_t>::func updater)
+  {
+    timestamp_dispatcher_.bind(event, updater);
+  }
+
   /// actual operator called that performs the dispatch.
   /// There are template specializations for support for protobuffer
   /// (proto::ib::MarketData for example).
@@ -126,6 +132,7 @@ class value_updater
   typed_dispatcher<int> int_dispatcher_;
   typed_dispatcher<double> double_dispatcher_;
   typed_dispatcher<string> string_dispatcher_;
+  typed_dispatcher<timestamp_t> timestamp_dispatcher_;
 };
 
 
@@ -193,6 +200,12 @@ class marketdata_handler
     updaters_.bind(event, updater);
   }
 
+  inline void bind(const event_code_t& event,
+                   callback::update_event<timestamp_t>::func updater)
+  {
+    updaters_.bind(event, updater);
+  }
+
   template <typename V, typename S>
   void bind(const string& event_code, sequential_pipeline<V,S>& pipeline);
 
@@ -217,6 +230,14 @@ class marketdata_handler
                    sequential_pipeline<string,S>& pipeline)
   {
     callback::update_event<string>::func f = pipeline;
+    bind(event_code, f);
+  }
+
+  template <typename S>
+  inline void bind(const event_code_t& event_code,
+                   sequential_pipeline<timestamp_t,S>& pipeline)
+  {
+    callback::update_event<timestamp_t>::func f = pipeline;
     bind(event_code, f);
   }
 

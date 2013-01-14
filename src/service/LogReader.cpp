@@ -11,6 +11,9 @@ namespace p = proto::ib;
 using namespace std;
 typedef boost::uint64_t timer_t;
 
+using atp::time::timestamp_t;
+
+
 ticker_id_symbol_map_t& symbol_map()
 {
   static ticker_id_symbol_map_t m;
@@ -30,11 +33,26 @@ const action_field_map_t& action_map()
 
 const event_value_type_map_t& event_value_map()
 {
+  using namespace proto::common;
+
   static event_value_type_map_t map =
       boost::assign::map_list_of
-      ("tickPrice", event_type("price", proto::common::Value_Type_DOUBLE))
-      ("tickSize", event_type("size", proto::common::Value_Type_INT))
-      ("tickGeneric", event_type("value", proto::common::Value_Type_STRING))
+      ("tickPrice", event_type("price", Value_Type_DOUBLE))
+      ("tickPrice/CLOSE", event_type("price", Value_Type_DOUBLE))
+      ("tickPrice/BID", event_type("price", Value_Type_DOUBLE))
+      ("tickPrice/ASK", event_type("price", Value_Type_DOUBLE))
+      ("tickPrice/LAST", event_type("price", Value_Type_DOUBLE))
+
+      ("tickSize", event_type("size", Value_Type_INT))
+      ("tickSize/BID_SIZE", event_type("size", Value_Type_INT))
+      ("tickSize/ASK_SIZE", event_type("size", Value_Type_INT))
+      ("tickSize/LAST_SIZE", event_type("size", Value_Type_INT))
+
+      ("tickString", event_type("value", Value_Type_STRING))
+      ("tickString/LAST_TIMESTAMP", event_type("value", Value_Type_TIMESTAMP))
+
+      // ("tickGeneric", event_type("value", Value_Type_STRING))
+
       ;
   return map;
 }
@@ -136,38 +154,62 @@ bool operator<<(p::MarketData& result, const log_record_t& nv)
   using proto::common::Value_Type;
 
   string method;
-  double value;
   u::event_type ft;
   if (internal::get_field(nv, "event", &method)) {
-    if (!u::get_event_type(method, &ft)) {
-      LOG_READER_DEBUG << "method ==> " << method;
+    string key(method + '/' + event);
+    if (!u::get_event_type(key, &ft)) {
+      LOG_READER_DEBUG << "method ==> " << key;
       return false;
     }
 
     string fieldToUse = ft.first;
     Value_Type type = ft.second;
-
-    if (!internal::get_field(nv, fieldToUse, &value)) {
-      LOG(FATAL) << "no field to use " << fieldToUse;
-      return false;
-    }
     result.mutable_value()->set_type(type);
     switch (type) {
       case proto::common::Value_Type_INT :
-        result.mutable_value()->set_int_value(value);
+        {
+          int value;
+          if (!internal::get_field(nv, fieldToUse, &value)) {
+            LOG(FATAL) << "no field to use " << fieldToUse;
+            return false;
+          }
+          result.mutable_value()->set_int_value(value);
+        }
         break;
       case proto::common::Value_Type_DOUBLE :
-        result.mutable_value()->set_double_value(value);
+        {
+          double value;
+          if (!internal::get_field(nv, fieldToUse, &value)) {
+            LOG(FATAL) << "no field to use " << fieldToUse;
+            return false;
+          }
+          result.mutable_value()->set_double_value(value);
+        }
         break;
       case proto::common::Value_Type_STRING :
-        result.mutable_value()->set_string_value(""); // TODO
+        {
+          string value;
+          if (!internal::get_field(nv, fieldToUse, &value)) {
+            LOG(FATAL) << "no field to use " << fieldToUse;
+            return false;
+          }
+          result.mutable_value()->set_string_value(value);
+        }
+        break;
+      case proto::common::Value_Type_TIMESTAMP :
+        {
+          timestamp_t value;
+          if (!internal::get_field(nv, fieldToUse, &value)) {
+            LOG(FATAL) << "no field to use " << fieldToUse;
+            return false;
+          }
+          result.mutable_value()->set_timestamp_value(value);
+        }
         break;
       default:
         return false;
     }
   }
-  LOG_READER_DEBUG << "value ==> " << result.value().double_value();
-
   return true;
 }
 

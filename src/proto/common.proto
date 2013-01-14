@@ -49,9 +49,10 @@ message Duration {
 message Value {
 
   enum Type {
-    DOUBLE = 0;
-    INT    = 1;
-    STRING = 2;
+    DOUBLE    = 0;
+    INT       = 1;
+    STRING    = 2;
+    TIMESTAMP = 3;
   }
 
   required Type type = 1;
@@ -59,5 +60,6 @@ message Value {
   optional string string_value = 2;
   optional double double_value = 3;
   optional int64 int_value = 4;
+  optional int64 timestamp_value = 5;
 }
 

@@ -56,6 +56,13 @@ int value_updater<MarketData, string>::operator()(const timestamp_t& ts,
       return string_dispatcher_.dispatch(
           event_code, ts, event.value().string_value());
     }
+
+    case proto::common::Value::TIMESTAMP: {
+      return timestamp_dispatcher_.dispatch(
+          event_code, ts,
+          static_cast<timestamp_t>(event.value().timestamp_value()));
+    }
+
     default:
       return atp::platform::marketdata::error_code::NO_VALUE_TYPE_MATCH;
   }

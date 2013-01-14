@@ -1,5 +1,6 @@
 /// Simple main to set up market data subscription
 
+#include <cmath>
 #include <iostream>
 #include <vector>
 #include <signal.h>
@@ -28,6 +29,8 @@ DEFINE_bool(last, false,
             "Update only on last trade");
 DEFINE_bool(csv, false,
             "True to generate csv");
+DEFINE_int32(drift_millis, 1500,
+             "Drift limit between local and ib server time, in milliseconds");
 
 
 #define CONSOLE_RED "\033[1;31m"
@@ -48,18 +51,20 @@ using std::string;
 using std::vector;
 namespace platform = atp::platform;
 namespace p = proto::ib;
+using atp::time::timestamp_t;
 
 struct state_t
 {
   enum event {
-    OTHER = 0, LAST = 1
+    OTHER = 0, LAST = 1, TIME_CHECK = 2
   };
 
   state_t(const string& symbol) :
       symbol(symbol), bid(0.), ask(0.), last(0.), prev_last(0.),
       mid(0.), spread(0.),
       bid_size(0), ask_size(0), last_size(0),
-      balance(0.)
+      balance(0.),
+      last_timestamp(0)
   {}
 
   string symbol;
@@ -67,6 +72,7 @@ struct state_t
   int bid_size, ask_size, last_size;
   double balance;
   boost::posix_time::ptime ct;
+  timestamp_t last_timestamp;
 };
 
 void OnTerminate(int param)
@@ -85,7 +91,7 @@ void update(const boost::posix_time::ptime& t, const V& v,
   if (v == 0) return;
 
   if (e == state_t::LAST) {
-    state->prev_last = state->last;
+      state->prev_last = state->last;
   }
 
   state->ct = t;
@@ -100,6 +106,19 @@ void update(const boost::posix_time::ptime& t, const V& v,
     state->balance = 100. * (state->bid_size - state->ask_size) / total_top;
   } else {
     state->balance = 0.;
+  }
+
+  if (e == state_t::TIME_CHECK) {
+
+    boost::posix_time::ptime ib_time = atp::time::as_ptime(v * 1000000);
+    boost::posix_time::time_duration drift = t - ib_time;
+    if (drift >= boost::posix_time::milliseconds(FLAGS_drift_millis)) {
+      LOG(WARNING) << "Time drift exceeded " << FLAGS_drift_millis
+                   << " msec: local="
+                   << atp::time::to_est(t)
+                   << ", ib=" << atp::time::to_est(ib_time)
+                   << ", drift = " << drift.total_microseconds();
+    }
   }
 }
 
@@ -281,12 +300,19 @@ int main(int argc, char** argv)
         boost::bind(&print<int>, _1, _2, &(state->last_size), state, true,
                     state_t::OTHER);
 
+    platform::callback::update_event<timestamp_t>::func last_timestamp =
+        boost::bind(&print<timestamp_t>, _1, _2, &(state->last_timestamp),
+                    state, !FLAGS_last,
+                    state_t::TIME_CHECK);
+
+
     handler->bind("BID", bid);
     handler->bind("ASK", ask);
     handler->bind("LAST", last);
     handler->bind("BID_SIZE", bid_size);
     handler->bind("ASK_SIZE", ask_size);
     handler->bind("LAST_SIZE", last_size);
+    handler->bind("LAST_TIMESTAMP", last_timestamp);
 
     symbols_map.register_handler(state->symbol, *handler);
     symbols_map.register_handler(atp::platform::DATA_END,
