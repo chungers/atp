@@ -48,7 +48,7 @@ string build_outbound_spec(const ZmqEndPoint& outbound_endpoint,
 
 
 //// firehose - marketdata
-const Host FH_IBG_HOST = "*";
+const Host FH_IBG_HOST = "127.0.0.1";
 const Port FH_IBG_PORT = 4001;
 const Host FH_HOST = "*";
 const Port FH_CONTROLLER_PORT = 5500;
@@ -74,7 +74,7 @@ const Host LP_HOST = FH_HOST;
 const Port LP_OUTBOUND_PORT = FH_OUTBOUND_PORT;
 
 //// em - execution manager
-const Host EM_IBG_HOST = "*";
+const Host EM_IBG_HOST = "127.0.0.1";
 const Port EM_IBG_PORT = 4001;
 const Host EM_HOST = "*";
 const Port EM_CONTROLLER_PORT = 5501;
@@ -96,7 +96,7 @@ const OutboundEndPoint EM_OUTBOUND_ENDPOINTS = build_outbound_spec(
     EM_OUTBOUND_ENDPOINT);
 
 //// cm - contract manager
-const Host CM_IBG_HOST = "*";
+const Host CM_IBG_HOST = "127.0.0.1";
 const Port CM_IBG_PORT = 4001;
 const Host CM_HOST = "*";
 const Port CM_CONTROLLER_PORT = 5502;
