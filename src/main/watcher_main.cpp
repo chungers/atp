@@ -31,6 +31,8 @@ DEFINE_bool(csv, false,
             "True to generate csv");
 DEFINE_int32(drift_millis, 1500,
              "Drift limit between local and ib server time, in milliseconds");
+DEFINE_int32(max_time_lapse_millis, 10000,
+             "Max time lapse between updates of events for a given symbol.");
 
 
 #define CONSOLE_RED "\033[1;31m"
@@ -49,8 +51,14 @@ DEFINE_int32(drift_millis, 1500,
 
 using std::string;
 using std::vector;
+
 namespace platform = atp::platform;
 namespace p = proto::ib;
+
+using boost::posix_time::ptime;
+using boost::posix_time::time_duration;
+using boost::posix_time::milliseconds;
+
 using atp::time::timestamp_t;
 
 struct state_t
@@ -64,15 +72,19 @@ struct state_t
       mid(0.), spread(0.),
       bid_size(0), ask_size(0), last_size(0),
       balance(0.),
-      last_timestamp(0)
+      last_timestamp(0),
+      count_timestamp_drift(0),
+      count_time_lapse(0)
   {}
 
   string symbol;
   double bid, ask, last, prev_last, mid, spread;
   int bid_size, ask_size, last_size;
   double balance;
-  boost::posix_time::ptime ct;
+  ptime ct;
   timestamp_t last_timestamp;
+  int count_timestamp_drift;
+  int count_time_lapse;
 };
 
 void OnTerminate(int param)
@@ -84,7 +96,7 @@ void OnTerminate(int param)
 }
 
 template <typename V>
-void update(const boost::posix_time::ptime& t, const V& v,
+void update(const ptime& t, const V& v,
             V* state_var, state_t* state, bool print,
             state_t::event e)
 {
@@ -92,6 +104,15 @@ void update(const boost::posix_time::ptime& t, const V& v,
 
   if (e == state_t::LAST) {
       state->prev_last = state->last;
+  }
+  time_duration elapsed_time = t - state->ct;
+  if (elapsed_time > milliseconds(FLAGS_max_time_lapse_millis)) {
+    LOG(WARNING) << "Event update exceeded " << FLAGS_max_time_lapse_millis
+                 << " msec. last=" << atp::time::to_est(state->ct)
+                 << ", now=" << atp::time::to_est(t)
+                 << ", dt=" << elapsed_time.total_milliseconds()
+                 << " msec";
+    state->count_time_lapse++;
   }
 
   state->ct = t;
@@ -110,14 +131,16 @@ void update(const boost::posix_time::ptime& t, const V& v,
 
   if (e == state_t::TIME_CHECK) {
 
-    boost::posix_time::ptime ib_time = atp::time::as_ptime(v * 1000000);
-    boost::posix_time::time_duration drift = t - ib_time;
-    if (drift >= boost::posix_time::milliseconds(FLAGS_drift_millis)) {
+    ptime ib_time = atp::time::as_ptime(v * 1000000);
+    time_duration drift = t - ib_time;
+    if (drift >= milliseconds(FLAGS_drift_millis)) {
       LOG(WARNING) << "Time drift exceeded " << FLAGS_drift_millis
                    << " msec: local="
                    << atp::time::to_est(t)
                    << ", ib=" << atp::time::to_est(ib_time)
-                   << ", drift = " << drift.total_microseconds();
+                   << ", drift=" << drift.total_milliseconds()
+                   << " msec";
+      state->count_timestamp_drift++;
     }
   }
 }
@@ -127,7 +150,7 @@ void print(const timestamp_t& ts, const V& v,
            V* state_var, state_t* state, bool print,
            state_t::event e)
 {
-  boost::posix_time::ptime t = atp::time::as_ptime(ts);
+  ptime t = atp::time::as_ptime(ts);
   update<V>(t, v, state_var, state, print, e);
 
   // print output
