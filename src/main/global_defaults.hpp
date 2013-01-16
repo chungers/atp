@@ -71,7 +71,7 @@ const OutboundEndPoint FH_OUTBOUND_ENDPOINTS = build_outbound_spec(
     FH_OUTBOUND_ENDPOINT);
 
 //// lp - log publisher
-const Host LP_HOST = FH_HOST; // for client socket connect
+const Host LP_HOST = FH_BIND_HOST; // for server socket bind
 const Port LP_OUTBOUND_PORT = FH_OUTBOUND_PORT;
 
 //// em - execution manager

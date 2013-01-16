@@ -18,12 +18,16 @@
 
 
 
-DEFINE_string(fhEp, atp::global::FH_CONTROLLER_ENDPOINT,
-              "Firehose (fh) reactor endpoint");
-DEFINE_string(cmEp, atp::global::CM_CONTROLLER_ENDPOINT,
-              "ContractManager (cm) reactor endpoint");
-DEFINE_string(cmPublishEp, atp::global::CM_OUTBOUND_ENDPOINT,
-              "ContractManager (cm) publish outbound endpoint");
+DEFINE_string(fh_host, atp::global::FH_HOST,
+              "Firehose (fh) controller endpoint hostname");
+DEFINE_int32(fh_port, atp::global::FH_CONTROLLER_PORT,
+              "Firehose (fh) controller endpoint port");
+DEFINE_string(cm_host, atp::global::CM_HOST,
+              "ContractManager (cm) controller endpoint hostname");
+DEFINE_int32(cm_port, atp::global::CM_CONTROLLER_PORT,
+             "ContractManager (cm) controller endpoint port");
+DEFINE_int32(cm_pub_port, atp::global::CM_OUTBOUND_PORT,
+             "ContractManager (cm) publish outbound endpoint");
 DEFINE_bool(unsubscribe, false,
             "True to unsubscribe");
 DEFINE_string(symbols, "",
@@ -69,7 +73,9 @@ int main(int argc, char** argv)
   }
 
   // Start the contract manager:
-  service::ContractManager cm_client(FLAGS_cmEp, FLAGS_cmPublishEp);
+  string cmEp = atp::zmq::EndPoint::tcp(FLAGS_cm_port, FLAGS_cm_host);
+  string cmPubEp = atp::zmq::EndPoint::tcp(FLAGS_cm_pub_port, FLAGS_cm_host);
+  service::ContractManager cm_client(cmEp, cmPubEp);
 
   LOG(INFO) << "ContractManager started.";
 
@@ -79,8 +85,9 @@ int main(int argc, char** argv)
 
   try {
 
-    LOG(INFO) << "Connecting to fh @ " << FLAGS_fhEp;
-    fh_socket.connect(FLAGS_fhEp.c_str());
+    string fhEp = atp::zmq::EndPoint::tcp(FLAGS_fh_port, FLAGS_fh_host);
+    LOG(INFO) << "Connecting to fh @ " << fhEp;
+    fh_socket.connect(fhEp.c_str());
 
   } catch (::zmq::error_t e) {
 
