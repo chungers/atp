@@ -24,7 +24,7 @@ struct data_series
   virtual V operator[](int index) const = 0;
   virtual microsecond_t get_time(int index) const = 0;
   virtual size_t size() const = 0;
-  virtual sample_interval_t sample_interval() const = 0;
+  virtual sample_interval_t time_period() const = 0;
 };
 
 

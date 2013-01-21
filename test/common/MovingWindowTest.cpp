@@ -319,15 +319,17 @@ TEST(MovingWindowTest, FunctionTest)
   typedef std::pair<microsecond_t, int> sample;
   typedef std::vector<sample> series;
   typedef series::iterator series_itr;
+  typedef series::reverse_iterator series_reverse_itr;
 
   unsigned int period_duration = 3;
   unsigned int periods = 10;
 
   // NOTE the default here is closing value of the period and
-  // is sampling at 2 us interval.
-  // So this has the effect of shifting data backwards:
+  // is sampling at some weird duration us interval.
+  // So this has the effect of shifting data backwards.
+  // For example, at time period of 2 usec:
   // input = [0, 1], [1, 2], [2, 3], [3, 4], [4, 5]
-  // output = [0, 2], [2, 4], [4, 5]
+  // moving_window = [0, 2], [2, 4], [4, 5]
   moving_window<double, latest<double>, pp > fx(
       microseconds(period_duration * periods),
       microseconds(period_duration), 0.);
@@ -384,8 +386,29 @@ TEST(MovingWindowTest, FunctionTest)
         << atp::time::to_est(atp::time::as_ptime(tbuff[i])) << ", "
         << "(" << tbuff[i] - t << ", " << buff[i] << ")";
 
-    EXPECT_EQ(expects[i].first, tbuff[i]);
-    EXPECT_EQ(expects[i].second, buff[i]);
+    ASSERT_EQ(expects[i].first, tbuff[i]);
+    ASSERT_EQ(expects[i].second, buff[i]);
   }
 
+  /// Quick test of the data_series interface
+  LOG(INFO) << "data_series";
+  ASSERT_EQ(expects.size(), fx.size());
+
+  // Checks the current observation
+  series_reverse_itr expects_itr = expects.rbegin();
+  ASSERT_EQ(expects_itr->first, fx.get_time(0));
+  ASSERT_EQ(expects_itr->second, fx[0]);
+
+  expects_itr++;
+
+  // Past observations
+  for (int i = 1; i < fx.size(); ++i, ++expects_itr) {
+    microsecond_t tt = fx.get_time(-i);
+    int v = fx[-i];
+    LOG(INFO)
+        << atp::time::to_est(atp::time::as_ptime(tt)) << ", "
+        << "(" << tt - t << ", " << v << ")";
+    ASSERT_EQ(expects_itr->first, tt);
+    ASSERT_EQ(expects_itr->second, v);
+  }
 }

@@ -176,19 +176,35 @@ class moving_window : public data_series<element_t>
   /// total duration, time resolution, and initial value
   moving_window(boost::posix_time::time_duration h, sample_interval_t i,
                 element_t init) :
-      samples_(h.total_microseconds() / i.total_microseconds()),
-      collected_(0),
+      history_duration_(h),
       interval_(i),
-      buffer_(samples_),
+      buffer_(h.total_microseconds() / i.total_microseconds()),
       init_(init),
       current_value_(init),
       current_ts_(0),
+      collected_(0),
       sample_interval_policy_(i.total_microseconds())
   {
     // fill the buffer with the default valule.
     for (size_t i = 0; i < buffer_.capacity(); ++i) {
       buffer_.push_back(init);
     }
+  }
+
+  /// Returns the duration of the history maintained by this moving_window
+  const time_duration& history_duration() const
+  {
+    return history_duration_;
+  }
+
+  size_t total_events() const
+  {
+    return collected_;
+  }
+
+  size_t capacity() const
+  {
+    return buffer_.capacity() + 1;
   }
 
   /// Support for negative indexing as python
@@ -203,24 +219,10 @@ class moving_window : public data_series<element_t>
     return boost::lexical_cast<element_t>(init_);
   }
 
-  long sample_microseconds() const
+  /// Returns the time period of samples, eg. 1 usec or 1 min
+  virtual sample_interval_t time_period() const
   {
-    return interval_.total_microseconds();
-  }
-
-  size_t collected() const
-  {
-    return collected_;
-  }
-
-  size_t capacity() const
-  {
-    return buffer_.capacity() + 1;
-  }
-
-  size_t samples_buffered() const
-  {
-    return buffer_.size();
+    return interval_;
   }
 
   virtual size_t size() const
@@ -229,6 +231,8 @@ class moving_window : public data_series<element_t>
   }
 
   /// Must have negative index
+  /// 0 means current observation for the current time interval
+  /// -1 means the previous interval
   virtual microsecond_t get_time(int offset = 0) const
   {
     return sample_interval_policy_.get_time(current_ts_, -offset);
@@ -291,22 +295,16 @@ class moving_window : public data_series<element_t>
     return p;
   }
 
-  virtual sample_interval_t sample_interval() const
-  {
-    return interval_;
-  }
-
  private:
 
-  size_t samples_;
-  size_t collected_;
-
+  time_duration history_duration_;
   sample_interval_t interval_;
   history_t buffer_;
 
   element_t init_;
   element_t current_value_;
   microsecond_t current_ts_;
+  size_t collected_;
 
   sampler_t sampler_;
   sample_interval_policy sample_interval_policy_;
