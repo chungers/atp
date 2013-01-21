@@ -319,6 +319,11 @@ TEST(MovingWindowTest, FunctionTest)
   typedef std::vector<std::pair<microsecond_t, int> > checks;
   typedef checks::iterator checks_itr;
 
+  // NOTE the default here is closing value of the period and
+  // is sampling at 2 us interval.
+  // So this has the effect of shifting data backwards:
+  // input = [0, 1], [1, 2], [2, 3], [3, 4], [4, 5]
+  // output = [0, 2], [2, 4], [4, 5]
   moving_window<double, latest<double>, pp > fx(
       microseconds(20), microseconds(2), 0.);
 
