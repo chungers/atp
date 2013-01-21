@@ -179,7 +179,7 @@ class moving_window : public data_series<element_t>
       samples_(h.total_microseconds() / i.total_microseconds()),
       collected_(0),
       interval_(i),
-      buffer_(samples_ - 1),
+      buffer_(samples_),
       init_(init),
       current_value_(init),
       current_ts_(0),
@@ -239,7 +239,7 @@ class moving_window : public data_series<element_t>
                    buffer_t *array,
                    const size_t length) const
   {
-    if (length > buffer_.capacity() + 1) {
+    if (length > capacity()) {
       return 0; // No copy is done.
     }
     array[length - 1] = current_value_;

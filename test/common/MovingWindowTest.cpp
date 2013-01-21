@@ -316,8 +316,12 @@ TEST(MovingWindowTest, FunctionTest)
   typedef atp::time_series::callback::moving_window_post_process_cout<
     label, double > pp;
 
-  typedef std::vector<std::pair<microsecond_t, int> > checks;
-  typedef checks::iterator checks_itr;
+  typedef std::pair<microsecond_t, int> sample;
+  typedef std::vector<sample> series;
+  typedef series::iterator series_itr;
+
+  unsigned int period_duration = 3;
+  unsigned int periods = 10;
 
   // NOTE the default here is closing value of the period and
   // is sampling at 2 us interval.
@@ -325,28 +329,45 @@ TEST(MovingWindowTest, FunctionTest)
   // input = [0, 1], [1, 2], [2, 3], [3, 4], [4, 5]
   // output = [0, 2], [2, 4], [4, 5]
   moving_window<double, latest<double>, pp > fx(
-      microseconds(20), microseconds(2), 0.);
+      microseconds(period_duration * periods),
+      microseconds(period_duration), 0.);
 
   boost::uint64_t t = now_micros();
-  t = t - ( t % 10 ); // this is so that time lines up nicely.
+  t = t - ( t % period_duration ); // this is so that time lines up nicely.
 
-  checks check;
-  for (int i = 0; i <= 10*2; ++i) {
+  series data, expects;
+  for (int i = 0; i <= periods*period_duration; ++i) {
     double val = pow(static_cast<double>(i), 2.);
     LOG(INFO) << atp::time::to_est(atp::time::as_ptime(t + i))
               <<", i = " << i << ", " << val;
     fx(t + i, val);
 
-    check.push_back(pair<microsecond_t, int>(t + i, val));
+    data.push_back(sample(t + i, val));
   }
-  LOG(INFO) << "input:";
-  for (checks_itr itr = check.begin(); itr != check.end(); ++itr) {
+
+  // Calculate expectations based on closing of a period to
+  // match the moving_window's sampler (defaults to close)
+  microsecond_t period_start = t;
+  int period_close = 0;
+  for (series_itr itr = data.begin(); itr != data.end(); ++itr) {
+    if (itr->first - period_start >= period_duration) {
+      expects.push_back(sample(period_start, period_close));
+      period_start = itr->first;
+    }
+    // closing value of the period --> always the latest value
+    period_close = itr->second;
+  }
+  // add last current observation
+  expects.push_back(sample(period_start, period_close));
+
+  LOG(INFO) << "expectations:";
+  for (series_itr itr = expects.begin(); itr != expects.end(); ++itr) {
     LOG(INFO)
         << atp::time::to_est(atp::time::as_ptime(itr->first)) << ", "
         << "(" << itr->first - t << ", " << itr->second << ")";
   }
 
-  size_t len = 10;
+  size_t len = periods + 1;  // history + current observation
   microsecond_t tbuff[len];
   double buff[len];
 
@@ -357,10 +378,14 @@ TEST(MovingWindowTest, FunctionTest)
   LOG(INFO) << "t = " << t;
   LOG(INFO) << "get_time[0] = " << fx.get_time() - t;
 
+  // Compare the sampled data with expectations
   for (int i = 0; i < len; ++i) {
     LOG(INFO)
         << atp::time::to_est(atp::time::as_ptime(tbuff[i])) << ", "
         << "(" << tbuff[i] - t << ", " << buff[i] << ")";
+
+    EXPECT_EQ(expects[i].first, tbuff[i]);
+    EXPECT_EQ(expects[i].second, buff[i]);
   }
 
 }
