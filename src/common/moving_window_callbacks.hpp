@@ -32,13 +32,23 @@ class moving_window_post_process_cout :
 
   inline void operator()(const size_t count, const data_series<V>& window)
   {
-    for (int i = 1; i <= count; ++i) {
-      ptime t = atp::time::as_ptime(window.get_time(-i));
-      cout << atp::time::to_est(t) << ","
-           << label_() << ","
-           << window[-i] << endl;
-    }
+    // Writes to stdout the last stable sample
+    ptime t = atp::time::as_ptime(window.get_time(-1));
+    cout << atp::time::to_est(t) << ","
+         << label_() << ","
+         << window[-1] << endl;
+
   }
+
+  // inline void operator()(const size_t count, const data_series<V>& window)
+  // {
+  //   for (int i = 1; i <= count; ++i) {
+  //     ptime t = atp::time::as_ptime(window.get_time(-i));
+  //     cout << atp::time::to_est(t) << ","
+  //          << label_() << ","
+  //          << window[-i] << endl;
+  //   }
+  // }
 
  private:
   time_facet* facet_;

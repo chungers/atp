@@ -179,7 +179,7 @@ class moving_window : public data_series<element_t>
       samples_(h.total_microseconds() / i.total_microseconds()),
       collected_(0),
       interval_(i),
-      buffer_(samples_),
+      buffer_(samples_ - 1),
       init_(init),
       current_value_(init),
       current_ts_(0),
@@ -234,12 +234,6 @@ class moving_window : public data_series<element_t>
     return sample_interval_policy_.get_time(current_ts_, -offset);
   }
 
-  /// Current time bin for the samples
-  microsecond_t current_sample_time() const
-  {
-    return sample_interval_policy_.get_time(current_ts_, 0);
-  }
-
   template <typename buffer_t>
   size_t copy_last(microsecond_t *timestamp,
                    buffer_t *array,
@@ -287,8 +281,12 @@ class moving_window : public data_series<element_t>
                               windows > 0 || current_ts_ == 0);
     current_ts_ = timestamp;
 
+    // TODO - compute dependent indicators
+
+    // Call the post process callback after time have advanced to the
+    // next window
     size_t p = static_cast<size_t>(windows);
-    post_process_(p, *this);
+    if (p > 0) post_process_(p, *this);
 
     return p;
   }

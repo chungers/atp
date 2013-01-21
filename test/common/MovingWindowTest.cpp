@@ -316,20 +316,32 @@ TEST(MovingWindowTest, FunctionTest)
   typedef atp::time_series::callback::moving_window_post_process_cout<
     label, double > pp;
 
+  typedef std::vector<std::pair<microsecond_t, int> > checks;
+  typedef checks::iterator checks_itr;
+
   moving_window<double, latest<double>, pp > fx(
-      microseconds(40), microseconds(2), 0.);
+      microseconds(20), microseconds(2), 0.);
 
   boost::uint64_t t = now_micros();
   t = t - ( t % 10 ); // this is so that time lines up nicely.
 
-  for (int i = 0; i <= 40*2; ++i) {
+  checks check;
+  for (int i = 0; i <= 10*2; ++i) {
     double val = pow(static_cast<double>(i), 2.);
     LOG(INFO) << atp::time::to_est(atp::time::as_ptime(t + i))
               <<", i = " << i << ", " << val;
     fx(t + i, val);
+
+    check.push_back(pair<microsecond_t, int>(t + i, val));
+  }
+  LOG(INFO) << "input:";
+  for (checks_itr itr = check.begin(); itr != check.end(); ++itr) {
+    LOG(INFO)
+        << atp::time::to_est(atp::time::as_ptime(itr->first)) << ", "
+        << "(" << itr->first - t << ", " << itr->second << ")";
   }
 
-  size_t len = 20;
+  size_t len = 10;
   microsecond_t tbuff[len];
   double buff[len];
 
@@ -339,7 +351,7 @@ TEST(MovingWindowTest, FunctionTest)
 
   LOG(INFO) << "t = " << t;
   LOG(INFO) << "get_time[0] = " << fx.get_time() - t;
-  LOG(INFO) << "current_t = " << fx.current_sample_time() - t;
+
   for (int i = 0; i < len; ++i) {
     LOG(INFO)
         << atp::time::to_est(atp::time::as_ptime(tbuff[i])) << ", "
