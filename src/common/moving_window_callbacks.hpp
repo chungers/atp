@@ -32,11 +32,11 @@ class moving_window_post_process_cout :
 
   inline void operator()(const size_t count, const data_series<V>& window)
   {
-    for (int i = -count; i < 0; ++i) {
-      ptime t = atp::time::as_ptime(window.get_time(-2 + i));
+    for (int i = 0; i < count; ++i) {
+      ptime t = atp::time::as_ptime(window.get_time(-i-1));
       cout << atp::time::to_est(t) << ","
            << label_() << ","
-           << window[-2 + i] << endl;
+           << window[-i-1] << endl;
     }
   }
 

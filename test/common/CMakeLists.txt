@@ -21,7 +21,6 @@ set(test_common_srcs
   ${TEST_DIR}/AllTests.cpp
   ExecutorTest.cpp
   FactoryTest.cpp
-  TimeSeriesTest.cpp
 )
 set(test_common_libs
   api_base
@@ -34,8 +33,27 @@ set(test_common_libs
   )
 cpp_gtest(test_common)
 
+# MovingWindow
+set(test_common_moving_window_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${TEST_DIR}
+)
+set(test_common_moving_window_srcs
+  ${TEST_DIR}/AllTests.cpp
+  MovingWindowTest.cpp
+ )
+set(test_common_moving_window_libs
+  atp_common
+  atp_proto
+  atp_zmq
+  gflags
+  glog
+  )
+cpp_gtest(test_common_moving_window)
 
 add_custom_target(all_common_tests)
 add_dependencies(all_common_tests
   test_common
+  test_commom_moving_window
 )

@@ -1,6 +1,7 @@
 #ifndef ATP_TIME_SERIES_MOVING_WINDOW_H_
 #define ATP_TIME_SERIES_MOVING_WINDOW_H_
 
+#include <cmath>
 #include "common/time_series.hpp"
 
 namespace atp {
@@ -108,8 +109,9 @@ struct sample_interval_policy {
     {
     }
 
+    /// returns the sampled time instant -- aligned at zero
     inline microsecond_t get_time(const microsecond_t& curr_ts,
-                           const size_t& offset) const
+                                  const size_t& offset) const
     {
       microsecond_t r = curr_ts - (curr_ts % window_size_);
       return r - offset * window_size_;
@@ -175,8 +177,10 @@ class moving_window : public data_series<element_t>
   moving_window(boost::posix_time::time_duration h, sample_interval_t i,
                 element_t init) :
       samples_(h.total_microseconds() / i.total_microseconds()),
+      collected_(0),
       interval_(i),
-      buffer_(samples_ - 1),
+      buffer_(samples_),
+      init_(init),
       current_value_(init),
       current_ts_(0),
       sample_interval_policy_(i.total_microseconds())
@@ -191,22 +195,22 @@ class moving_window : public data_series<element_t>
   /// -1 means the current value, -2 last element in buffer, ...
   virtual element_t operator[](int index) const
   {
-    if (index >= 0) {
-      return buffer_[index];
-    } else {
-      element_t val = current_value_;
-      int start = index + 1;
-      for (reverse_itr itr = buffer_.rbegin();
-           start < 0; ++itr, ++start) {
-        val = *itr;
-      }
-      return val;
+    if (index == 0) {
+      return current_value_;
+    } else if (index < 0) {
+      return buffer_[buffer_.size() + index];
     }
+    return boost::lexical_cast<element_t>(init_);
   }
 
   long sample_microseconds() const
   {
     return interval_.total_microseconds();
+  }
+
+  size_t collected() const
+  {
+    return collected_;
   }
 
   size_t capacity() const
@@ -225,9 +229,15 @@ class moving_window : public data_series<element_t>
   }
 
   /// Must have negative index
-  virtual microsecond_t get_time(int offset = -1) const
+  virtual microsecond_t get_time(int offset = 0) const
   {
-    return sample_interval_policy_.get_time(current_ts_, -(offset + 1));
+    return sample_interval_policy_.get_time(current_ts_, -offset);
+  }
+
+  /// Current time bin for the samples
+  microsecond_t current_sample_time() const
+  {
+    return sample_interval_policy_.get_time(current_ts_, 0);
   }
 
   template <typename buffer_t>
@@ -247,6 +257,7 @@ class moving_window : public data_series<element_t>
     // fill the array in reverse order
     for (; r != buffer_.rend() && to_copy > 0; --to_copy, ++copied, ++r) {
       array[length - 1 - copied] = *r;
+
       timestamp[length - 1 - copied] =
           sample_interval_policy_.get_time(current_ts_, copied);
     }
@@ -267,6 +278,7 @@ class moving_window : public data_series<element_t>
     if (current_ts_ > 0) {
       for (int i = 0; i < windows; ++i) {
         buffer_.push_back(current_value_);
+        collected_++;
       }
     } else {
       windows = 0;
@@ -276,7 +288,6 @@ class moving_window : public data_series<element_t>
     current_ts_ = timestamp;
 
     size_t p = static_cast<size_t>(windows);
-
     post_process_(p, *this);
 
     return p;
@@ -290,10 +301,12 @@ class moving_window : public data_series<element_t>
  private:
 
   size_t samples_;
+  size_t collected_;
 
   sample_interval_t interval_;
   history_t buffer_;
 
+  element_t init_;
   element_t current_value_;
   microsecond_t current_ts_;
 
