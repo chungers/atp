@@ -1,7 +1,10 @@
 
 #include <cmath>
 #include <vector>
+
 #include <boost/assign/std/vector.hpp>
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
 
 
 #include <gflags/gflags.h>
@@ -10,18 +13,20 @@
 
 #include "utils.hpp"
 #include "common/moving_window_callbacks.hpp"
+#include "common/moving_window_samplers.hpp"
+#include "common/moving_window.hpp"
 #include "common/time_utils.hpp"
 
 using namespace boost::assign;
 using namespace boost::posix_time;
-
 using namespace atp::time_series;
+using namespace atp::time_series::sampler;
 
 
 
 TEST(MovingWindowTest, MovingWindowPolicyTest)
 {
-  sample_interval_policy::align_at_zero p(10);
+  time_interval_policy::align_at_zero p(10);
   EXPECT_EQ(10000, p.get_time(10001, 0));
   EXPECT_EQ(10000, p.get_time(10009, 0));
   EXPECT_EQ(10010, p.get_time(10010, 0));
@@ -34,7 +39,7 @@ TEST(MovingWindowTest, MovingWindowPolicyTest)
   EXPECT_FALSE(p.is_new_window(18, 19));
   EXPECT_TRUE(p.is_new_window(19, 20));
 
-  sample_interval_policy::align_at_zero p2(1000000);// 1 sec.
+  time_interval_policy::align_at_zero p2(1000000);// 1 sec.
   {
     microsecond_t t1 = 1349357412826693;
     microsecond_t t2 = 1349357414055175;
@@ -239,7 +244,7 @@ TEST(MovingWindowTest, MovingWindowUsage)
 
 
   typedef atp::time_series::callback::moving_window_post_process_cout<
-    label, double > pp;
+    label, microsecond_t, double > pp;
 
   moving_window<double, latest<double>, pp > last_trade(
       microseconds(1000), microseconds(10), 0.);
@@ -280,7 +285,7 @@ TEST(MovingWindowTest, MovingWindowUsage)
 
   EXPECT_EQ(p.size(), copied);
 
-  for (int i = 0; i < p.size(); ++i) {
+  for (size_t i = 0; i < p.size(); ++i) {
     LOG(INFO) << "(" << tbuff[i] << ", " << buff[i] << ")";
     EXPECT_EQ(p[i], buff[i]);
     EXPECT_EQ(t + 10000 + i * 10, tbuff[i]);
@@ -310,11 +315,8 @@ TEST(MovingWindowTest, MovingWindowUsage)
 
 TEST(MovingWindowTest, FunctionTest)
 {
-  using namespace atp::time_series::sampler;
-
-
   typedef atp::time_series::callback::moving_window_post_process_cout<
-    label, double > pp;
+    label, microsecond_t, double > pp;
 
   typedef std::pair<microsecond_t, int> sample;
   typedef std::vector<sample> series;
@@ -397,6 +399,7 @@ TEST(MovingWindowTest, FunctionTest)
   // Checks the current observation
   series_reverse_itr expects_itr = expects.rbegin();
   ASSERT_EQ(expects_itr->first, fx.get_time(0));
+  ASSERT_EQ(expects_itr->first, fx.t[0]);
   ASSERT_EQ(expects_itr->second, fx[0]);
 
   expects_itr++;
@@ -404,6 +407,10 @@ TEST(MovingWindowTest, FunctionTest)
   // Past observations
   for (int i = 1; i < fx.size(); ++i, ++expects_itr) {
     microsecond_t tt = fx.get_time(-i);
+    microsecond_t tt2 = fx.t[-i];
+
+    ASSERT_EQ(tt, tt2);
+
     int v = fx[-i];
     LOG(INFO)
         << atp::time::to_est(atp::time::as_ptime(tt)) << ", "
@@ -411,4 +418,81 @@ TEST(MovingWindowTest, FunctionTest)
     ASSERT_EQ(expects_itr->first, tt);
     ASSERT_EQ(expects_itr->second, v);
   }
+}
+
+namespace operations {
+
+/// first derivative
+struct dfdt
+{
+  double operator()(const data_series<microsecond_t, double>& series)
+  {
+    return (series[0] - series[-1]) / (series.t[0] - series.t[-1]);
+  }
+};
+
+/// second derivative
+struct df2dt2
+{
+  double operator()(const data_series<microsecond_t, double>& series)
+  {
+    return (series[0] - 2. * series[-1] + series[-2]) /
+        pow((series.t[0] - series.t[-1]), 2.);
+  }
+};
+
+struct log
+{
+  double operator()(const data_series<microsecond_t, double>& series)
+  {
+    return ::log(series[0]);
+  }
+};
+
+struct negate
+{
+  double operator()(const data_series<microsecond_t, double>& series)
+  {
+    return -series[0];
+  }
+};
+
+struct linear
+{
+  linear(const double slope, const double intercept) :
+      slope(slope), intercept(intercept) {}
+
+  double operator()(const data_series<microsecond_t, double>& series)
+  {
+    return slope * series[0] + intercept;
+  }
+
+  double slope;
+  double intercept;
+};
+
+} // operations
+
+TEST(MovingWindowTest, SeriesOperationsUsage)
+{
+  typedef atp::time_series::callback::moving_window_post_process_cout<
+    label, microsecond_t, double > pp_stdout;
+
+  typedef moving_window<double, latest<double>, pp_stdout > close_series;
+  typedef std::pair<microsecond_t, int> sample;
+  typedef std::vector<sample> series;
+  typedef series::iterator series_itr;
+  typedef series::reverse_iterator series_reverse_itr;
+
+  unsigned int period_duration = 1;
+  unsigned int periods = 10;
+
+  close_series fx(
+      microseconds(period_duration * periods),
+      microseconds(period_duration), 0.);
+
+  fx.apply("2x+1", operations::linear(2., 1.));
+  fx.apply("log", operations::log());
+  fx.apply("df/dt", operations::dfdt(), 2);
+  fx.apply("df2/dt2", operations::df2dt2(), 3);
 }

@@ -1,177 +1,48 @@
-#ifndef ATP_TIME_SERIES_MOVING_WINDOW_H_
-#define ATP_TIME_SERIES_MOVING_WINDOW_H_
+#ifndef ATP_COMMON_MOVING_WINDOW_H_
+#define ATP_COMMON_MOVING_WINDOW_H_
 
-#include <cmath>
-#include "common/time_series.hpp"
+#include <string>
+#include <vector>
+
+#include <boost/ref.hpp>
+
+#include "common/moving_window_callback.hpp"
+#include "common/moving_window_interval_policy.hpp"
+
+
+using boost::function;
+using std::pair;
+using std::string;
+using std::vector;
+
 
 namespace atp {
 namespace time_series {
-namespace sampler {
 
-template <typename element_t>
-struct latest
-{
-  inline const element_t operator()(const element_t& last,
-                                    const element_t& now,
-                                    bool new_period)
-  {
-    return now;
-  }
-};
-
-template <typename element_t>
-class avg
-{
- public:
-  avg() : count(0) {}
-
-  inline const element_t operator()(const element_t& last,
-                                    const element_t& now,
-                                    bool new_period)
-  {
-    if (new_period) {
-      count = 0;
-      sum = now;
-    }
-    sum = (count == 0) ? sum = now : sum + now;
-    return sum / static_cast<element_t>(++count);
-  }
-
- private:
-  size_t count;
-  element_t sum;
-};
-
-template <typename element_t>
-struct max
-{
-  inline const element_t operator()(const element_t& last,
-                                    const element_t& now,
-                                    bool new_period)
-  {
-    return (new_period) ? now : std::max(last, now);
-  }
-};
-
-template <typename element_t>
-struct min
-{
-  inline const element_t operator()(const element_t& last,
-                                    const element_t& now,
-                                    bool new_period)
-  {
-    return (new_period) ? now : std::min(last, now);
-  }
-};
-
-template <typename element_t>
-class open
-{
- public:
-
-  open() : init_(false) {}
-
-  inline const element_t operator()(const element_t& last,
-                                    const element_t& now,
-                                    bool new_period)
-  {
-    if (new_period) { open_ = now; init_ = true; }
-    if (!init_) { open_ = now; init_ = true; }
-    return open_;
-  }
-
- private:
-  element_t open_;
-  bool init_;
-};
-
-template <typename element_t>
-struct close
-{
-  inline const element_t operator()(const element_t& last,
-                                    const element_t& now,
-                                    bool new_period)
-  {
-    return now;
-  }
-};
-
-} // namespace sampler
-
-
-struct sample_interval_policy {
-
-  struct align_at_zero
-  {
-
-    align_at_zero(const microsecond_t& window_size)
-        : window_size_(window_size)
-    {
-    }
-
-    /// returns the sampled time instant -- aligned at zero
-    inline microsecond_t get_time(const microsecond_t& curr_ts,
-                                  const size_t& offset) const
-    {
-      microsecond_t r = curr_ts - (curr_ts % window_size_);
-      return r - offset * window_size_;
-    }
-
-    inline int count_windows(const microsecond_t& last_ts,
-                             const microsecond_t& timestamp)
-    {
-      if (timestamp < last_ts) return 0;
-
-      microsecond_t m1 = last_ts - (last_ts % window_size_);
-      microsecond_t m2 = timestamp - (timestamp % window_size_);
-      return (m2 - m1) / window_size_;
-    }
-
-    inline bool is_new_window(const microsecond_t& last_ts,
-                       const microsecond_t& timestamp)
-    {
-      return count_windows(last_ts, timestamp) > 0;
-    }
-
-    microsecond_t window_size_;
-  };
-
-};
-
-
-namespace callback {
-
-template <typename V>
-struct moving_window_post_process
-{
-  inline void operator()(const size_t count, const data_series<V>& window)
-  {
-    // no-op
-  }
-};
-} // callback
-
+using namespace callback;
 
 /// A moving window of time-based values
 /// Different strategies for sampling can be set up.
 template <
   typename element_t,
-  typename sampler_t =
-  boost::function<element_t(const element_t& last, const element_t& current,
-                            bool new_sample_period) >,
-  typename PostProcess =
-  callback::moving_window_post_process<element_t>,
-  typename Alloc =
-  boost::pool_allocator<element_t>,
-  typename sample_interval_policy =
-  sample_interval_policy::align_at_zero >
-class moving_window : public data_series<element_t>
+  typename sampler_t = function<element_t(const element_t& last,
+                                          const element_t& current,
+                                          bool new_sample_period) >,
+  typename PostProcess = moving_window_post_process<microsecond_t, element_t>,
+  typename Alloc = boost::pool_allocator<element_t>,
+  typename time_interval_policy = time_interval_policy::align_at_zero >
+class moving_window : public data_series<microsecond_t, element_t>
 {
  public:
 
-  typedef boost::circular_buffer<element_t, Alloc> history_t;
-  typedef typename
-  boost::circular_buffer<element_t, Alloc>::const_reverse_iterator reverse_itr;
+  typedef
+  function< element_t(const data_series<microsecond_t, element_t>&) >
+  series_operation;
+
+  typedef
+  function< element_t(const microsecond_t*, const element_t*, const size_t) >
+  array_operation;
+
 
   /// total duration, time resolution, and initial value
   moving_window(boost::posix_time::time_duration h, sample_interval_t i,
@@ -183,7 +54,7 @@ class moving_window : public data_series<element_t>
       current_value_(init),
       current_ts_(0),
       collected_(0),
-      sample_interval_policy_(i.total_microseconds())
+      time_interval_policy_(i.total_microseconds())
   {
     // fill the buffer with the default valule.
     for (size_t i = 0; i < buffer_.capacity(); ++i) {
@@ -235,7 +106,7 @@ class moving_window : public data_series<element_t>
   /// -1 means the previous interval
   virtual microsecond_t get_time(int offset = 0) const
   {
-    return sample_interval_policy_.get_time(current_ts_, -offset);
+    return time_interval_policy_.get_time(current_ts_, -offset);
   }
 
   template <typename buffer_t>
@@ -247,7 +118,7 @@ class moving_window : public data_series<element_t>
       return 0; // No copy is done.
     }
     array[length - 1] = current_value_;
-    timestamp[length - 1] = sample_interval_policy_.get_time(current_ts_, 0);
+    timestamp[length - 1] = time_interval_policy_.get_time(current_ts_, 0);
     size_t to_copy = length - 1;
     size_t copied = 1;
     reverse_itr r = buffer_.rbegin();
@@ -257,7 +128,7 @@ class moving_window : public data_series<element_t>
       array[length - 1 - copied] = *r;
 
       timestamp[length - 1 - copied] =
-          sample_interval_policy_.get_time(current_ts_, copied);
+          time_interval_policy_.get_time(current_ts_, copied);
     }
     return copied;
   }
@@ -271,7 +142,7 @@ class moving_window : public data_series<element_t>
 
   size_t operator()(const microsecond_t& timestamp, const element_t& value)
   {
-    int windows = sample_interval_policy_.count_windows(current_ts_, timestamp);
+    int windows = time_interval_policy_.count_windows(current_ts_, timestamp);
     // Don't fill in missing values if starting up.
     if (current_ts_ > 0) {
       for (int i = 0; i < windows; ++i) {
@@ -295,7 +166,17 @@ class moving_window : public data_series<element_t>
     return p;
   }
 
+  void apply(const string& id, series_operation op,
+             const size_t min_samples = 1)
+  {
+    series_operations.push_back(series_operation_pair(id, op));
+  }
+
+
  private:
+
+  typedef typename boost::circular_buffer<element_t, Alloc> history_t;
+  typedef typename history_t::const_reverse_iterator reverse_itr;
 
   time_duration history_duration_;
   sample_interval_t interval_;
@@ -307,9 +188,13 @@ class moving_window : public data_series<element_t>
   size_t collected_;
 
   sampler_t sampler_;
-  sample_interval_policy sample_interval_policy_;
+  time_interval_policy time_interval_policy_;
 
   PostProcess post_process_;
+
+  typedef pair<string, series_operation> series_operation_pair;
+  vector<series_operation_pair> series_operations;
+
 };
 
 
@@ -318,4 +203,4 @@ class moving_window : public data_series<element_t>
 } // atp
 
 
-#endif //ATP_TIME_SERIES_MOVING_WINDOW_H_
+#endif //ATP_COMMON_MOVING_WINDOW_H_

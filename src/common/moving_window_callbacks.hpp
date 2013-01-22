@@ -12,13 +12,16 @@ using namespace std;
 using namespace boost::posix_time;
 using atp::time_series::data_series;
 
+/// Contains actual implementation of the callbacks as
+/// defined in common/moving_window_callback.hpp
+
 namespace atp {
 namespace time_series {
 namespace callback {
 
-template <typename label_functor, typename V>
+template <typename label_functor, typename T, typename V>
 class moving_window_post_process_cout :
-      public moving_window_post_process<V>
+      public moving_window_post_process<T, V>
 {
  public:
 
@@ -30,25 +33,16 @@ class moving_window_post_process_cout :
   }
 
 
-  inline void operator()(const size_t count, const data_series<V>& window)
+  inline virtual void operator()(const size_t count,
+                                 const data_series<T, V>& window)
   {
+    (void)(count);
     // Writes to stdout the last stable sample
     ptime t = atp::time::as_ptime(window.get_time(-1));
     cout << atp::time::to_est(t) << ","
          << label_() << ","
          << window[-1] << endl;
-
   }
-
-  // inline void operator()(const size_t count, const data_series<V>& window)
-  // {
-  //   for (int i = 1; i <= count; ++i) {
-  //     ptime t = atp::time::as_ptime(window.get_time(-i));
-  //     cout << atp::time::to_est(t) << ","
-  //          << label_() << ","
-  //          << window[-i] << endl;
-  //   }
-  // }
 
  private:
   time_facet* facet_;
