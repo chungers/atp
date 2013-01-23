@@ -193,11 +193,11 @@ void print(const timestamp_t& ts, const V& v,
             << delim
             << state->symbol
             << delim
-            << std::setprecision(2)
-            << state->bid
-            << delim
             << std::setw(3)
             << state->bid_size
+            << delim
+            << std::setprecision(2)
+            << state->bid
             << delim
             << std::setprecision(2)
             << state->mid
