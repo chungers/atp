@@ -493,11 +493,11 @@ TEST(MovingWindowTest, SeriesOperationsUsage)
       microseconds(period_duration), 0.);
 
   trace& log = fx.apply("log", operations::log());
-  trace& dfdt = fx.apply("df/dt", operations::dfdt(), 2);
-  trace& df2dt2 = fx.apply("df2/dt2", operations::df2dt2(), 3);
+  trace& dxdt = fx.apply("dx/dt", operations::dfdt(), 2);
+  trace& d2xdt2 = fx.apply("d2x/dt2", operations::df2dt2(), 3);
 
   close_series& linear = fx.apply2("2x+1", operations::linear(2., 1.));
-  trace& dfdt2 = linear.apply("df/dt", operations::dfdt(), 2);
+  trace& dxdt_2 = linear.apply("dx/dt", operations::dfdt(), 2);
 
   boost::uint64_t t = now_micros();
   t = t - ( t % period_duration ); // this is so that time lines up nicely.
@@ -529,10 +529,10 @@ TEST(MovingWindowTest, SeriesOperationsUsage)
     LOG(INFO)
         << "t = " << fx.t[j] - t
         << ", fx = " << fx[j]
-        << ", dxdt = " << dfdt[j]
-        << ", dx2dt2 = " << df2dt2[j]
+        << ", dxdt = " << dxdt[j]
+        << ", d2xdt2 = " << d2xdt2[j]
         << ", 2x+1 = " << linear[j]
-        << ", d(2x+1)/dt = " << dfdt2[j]
+        << ", d(2x+1)/dt = " << dxdt_2[j]
         << ", log = " << log[j];
   }
 
