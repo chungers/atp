@@ -2,6 +2,7 @@
 #define ATP_TIME_SERIES_OHLC_CALLBACKS_H_
 
 
+#include "common/moving_window_samplers.hpp"
 #include "common/ohlc.hpp"
 #include "common/time_utils.hpp"
 
@@ -16,6 +17,7 @@ namespace atp {
 namespace time_series {
 namespace callback {
 
+using atp::time_series::microsecond_t;
 
 // partial specialization of the template
 template <typename V>
@@ -35,10 +37,10 @@ class post_process_cout : public ohlc_post_process<V>
   }
 
   inline void operator()(const size_t count,
-                         const data_series<V>& open,
-                         const data_series<V>& high,
-                         const data_series<V>& low,
-                         const data_series<V>& close)
+                         const data_series<microsecond_t, V>& open,
+                         const data_series<microsecond_t, V>& high,
+                         const data_series<microsecond_t, V>& low,
+                         const data_series<microsecond_t, V>& close)
   {
     for (int i = -count; i < 0; ++i) {
       ptime t = atp::time::as_ptime(open.get_time(-2 + i));

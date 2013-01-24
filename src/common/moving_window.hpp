@@ -11,6 +11,7 @@
 
 
 using boost::function;
+using boost::posix_time::time_duration;
 using std::pair;
 using std::string;
 using std::vector;

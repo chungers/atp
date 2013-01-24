@@ -2,6 +2,7 @@
 #define ATP_PLATFORM_INDICATOR_H_
 
 #include "common/moving_window.hpp"
+#include "common/moving_window_samplers.hpp"
 #include "common/time_utils.hpp"
 
 using atp::time_series::microsecond_t;

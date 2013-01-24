@@ -87,6 +87,7 @@ namespace time_series {
 namespace callback {
 
 using atp::time_series::data_series;
+using atp::time_series::microsecond_t;
 
 
 // partial specialization of the template
@@ -101,10 +102,10 @@ struct logger_post_process : public ohlc_post_process<V>
   typedef atp::time_series::sampler::max<V> ohlc_high;
 
   inline void operator()(const size_t count,
-                         const data_series<V>& open,
-                         const data_series<V>& high,
-                         const data_series<V>& low,
-                         const data_series<V>& close)
+                         const data_series<microsecond_t, V>& open,
+                         const data_series<microsecond_t, V>& high,
+                         const data_series<microsecond_t, V>& low,
+                         const data_series<microsecond_t, V>& close)
   {
     for (int i = -count; i < 0; ++i) {
       ptime t = atp::time::as_ptime(open.get_time(-2 + i));

@@ -3,6 +3,7 @@
 
 #include "common/time_series.hpp"
 #include "common/moving_window.hpp"
+#include "common/moving_window_samplers.hpp"
 
 using boost::posix_time::time_duration;
 using atp::time_series::data_series;
@@ -11,6 +12,8 @@ using atp::time_series::data_series;
 namespace atp {
 namespace time_series {
 namespace callback {
+
+using atp::time_series::microsecond_t;
 
 template <typename V>
 struct ohlc_post_process
@@ -21,10 +24,10 @@ struct ohlc_post_process
   typedef atp::time_series::sampler::max<V> ohlc_high;
 
   inline void operator()(const size_t count,
-                         const data_series<V>& open,
-                         const data_series<V>& high,
-                         const data_series<V>& low,
-                         const data_series<V>& close)
+                         const data_series<microsecond_t, V>& open,
+                         const data_series<microsecond_t, V>& high,
+                         const data_series<microsecond_t, V>& low,
+                         const data_series<microsecond_t, V>& close)
   {
     // no-op
   }
