@@ -8,6 +8,7 @@
 
 #include "common/moving_window_callback.hpp"
 #include "common/moving_window_interval_policy.hpp"
+#include "common/moving_window_samplers.hpp"
 
 
 using boost::function;
@@ -16,6 +17,7 @@ using std::pair;
 using std::string;
 using std::vector;
 
+using atp::time_series::sampler::latest;
 
 namespace atp {
 namespace time_series {
@@ -41,13 +43,12 @@ class moving_window : public data_series<microsecond_t, element_t>
   series_operation;
 
   typedef
-  function< element_t(const microsecond_t*, const element_t*, const size_t) >
+  function< element_t(microsecond_t*, element_t*, size_t) >
   array_operation;
 
 
   /// total duration, time resolution, and initial value
-  moving_window(boost::posix_time::time_duration h, sample_interval_t i,
-                element_t init) :
+  moving_window(time_duration h, sample_interval_t i, element_t init) :
       history_duration_(h),
       interval_(i),
       buffer_(h.total_microseconds() / i.total_microseconds()),
@@ -60,6 +61,23 @@ class moving_window : public data_series<microsecond_t, element_t>
     // fill the buffer with the default valule.
     for (size_t i = 0; i < buffer_.capacity(); ++i) {
       buffer_.push_back(init);
+    }
+  }
+
+
+  ~moving_window()
+  {
+    typename vector<series_operation_pair>::iterator itr;
+    for (itr = series_operations.begin();
+         itr != series_operations.end();
+         ++itr) {
+      delete itr->second.series;
+    }
+    typename vector<array_operation_pair>::iterator itr2;
+    for (itr2 = array_operations.begin();
+         itr2 != array_operations.end();
+         ++itr2) {
+      delete itr2->second.series;
     }
   }
 
@@ -157,7 +175,31 @@ class moving_window : public data_series<microsecond_t, element_t>
                               windows > 0 || current_ts_ == 0);
     current_ts_ = timestamp;
 
-    // TODO - compute dependent indicators
+    // Compute dependent indicators
+    typename vector<series_operation_pair>::iterator itr;
+    for (itr = series_operations.begin();
+         itr != series_operations.end();
+         ++itr) {
+      element_t derived = itr->second.functor(*this);
+      (*itr->second.series)(current_ts_, derived);
+    }
+
+    if (array_operations.size() > 0) {
+      // do array copy
+      size_t len = capacity();
+      microsecond_t tbuff[len];
+      element_t vbuff[len];
+
+      if (copy_last(&tbuff[0], &vbuff[0], len)) {
+        typename vector<array_operation_pair>::iterator itr2;
+        for (itr2 = array_operations.begin();
+             itr2 != array_operations.end();
+           ++itr2) {
+          element_t derived = itr2->second.functor(&tbuff[0], &vbuff[0], len);
+          (*itr2->second.series)(current_ts_, derived);
+        }
+      }
+    }
 
     // Call the post process callback after time have advanced to the
     // next window
@@ -167,12 +209,25 @@ class moving_window : public data_series<microsecond_t, element_t>
     return p;
   }
 
-  void apply(const string& id, series_operation op,
-             const size_t min_samples = 1)
+  data_series<microsecond_t, element_t>& apply(const string& id,
+                                               series_operation op,
+                                               const size_t min_samples = 1)
   {
-    series_operations.push_back(series_operation_pair(id, op));
+    operation<series_operation> rec(id, op, min_samples, history_duration_,
+                                    interval_, init_);
+    series_operations.push_back(series_operation_pair(id, rec));
+    return *rec.series;
   }
 
+  moving_window<element_t, latest<element_t> >& apply2(const string& id,
+                                               series_operation op,
+                                               const size_t min_samples = 1)
+  {
+    operation<series_operation> rec(id, op, min_samples, history_duration_,
+                                    interval_, init_);
+    series_operations.push_back(series_operation_pair(id, rec));
+    return *rec.series;
+  }
 
  private:
 
@@ -193,8 +248,26 @@ class moving_window : public data_series<microsecond_t, element_t>
 
   PostProcess post_process_;
 
-  typedef pair<string, series_operation> series_operation_pair;
+  template <typename operation_type>
+  struct operation
+  {
+    explicit operation(const string id, operation_type op, size_t min_samples,
+                       time_duration h, sample_interval_t i, element_t init) :
+        id(id), functor(op), min_samples(min_samples),
+        series(new moving_window<element_t, latest<element_t> >(h, i, init))
+    {}
+
+    string id;
+    operation_type functor;
+    size_t min_samples;
+    moving_window< element_t, latest<element_t> >* series;
+  };
+
+  typedef pair<string, operation<series_operation> > series_operation_pair;
+  typedef pair<string, operation<array_operation> > array_operation_pair;
+
   vector<series_operation_pair> series_operations;
+  vector<array_operation_pair> array_operations;
 
 };
 

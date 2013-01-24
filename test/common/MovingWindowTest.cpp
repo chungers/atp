@@ -478,21 +478,64 @@ TEST(MovingWindowTest, SeriesOperationsUsage)
   typedef atp::time_series::callback::moving_window_post_process_cout<
     label, microsecond_t, double > pp_stdout;
 
-  typedef moving_window<double, latest<double>, pp_stdout > close_series;
+  typedef moving_window<double, latest<double> > close_series;
+  typedef data_series<microsecond_t, double> trace;
   typedef std::pair<microsecond_t, int> sample;
   typedef std::vector<sample> series;
   typedef series::iterator series_itr;
   typedef series::reverse_iterator series_reverse_itr;
 
   unsigned int period_duration = 1;
-  unsigned int periods = 10;
+  unsigned int periods = 500;
 
   close_series fx(
       microseconds(period_duration * periods),
       microseconds(period_duration), 0.);
 
-  fx.apply("2x+1", operations::linear(2., 1.));
-  fx.apply("log", operations::log());
-  fx.apply("df/dt", operations::dfdt(), 2);
-  fx.apply("df2/dt2", operations::df2dt2(), 3);
+  trace& log = fx.apply("log", operations::log());
+  trace& dfdt = fx.apply("df/dt", operations::dfdt(), 2);
+  trace& df2dt2 = fx.apply("df2/dt2", operations::df2dt2(), 3);
+
+  close_series& linear = fx.apply2("2x+1", operations::linear(2., 1.));
+  trace& dfdt2 = linear.apply("df/dt", operations::dfdt(), 2);
+
+  boost::uint64_t t = now_micros();
+  t = t - ( t % period_duration ); // this is so that time lines up nicely.
+
+  series data, expects;
+
+  vector<microsecond_t> times;
+
+  microsecond_t now = now_micros();
+  for (int i = 0; i <= periods*period_duration; ++i) {
+    double val = pow(static_cast<double>(i), 2.);
+
+    microsecond_t now2 = now_micros();
+    fx(t + i, val);
+    times.push_back(now_micros() - now2);
+    data.push_back(sample(t + i, val));
+  }
+  LOG(INFO) << "push/ compute dt = " << (now_micros() - now);
+
+  microsecond_t sum = 0;;
+  for (int i = 0; i < times.size(); ++i) {
+    sum += times[i];
+  }
+  LOG(INFO) << "avg = " << sum/times.size();
+
+  int len = 20;
+  for (int i = fx.size(); i > (fx.size() - len); --i) {
+    int j = -i + 1;
+    LOG(INFO)
+        << "t = " << fx.t[j] - t
+        << ", fx = " << fx[j]
+        << ", dxdt = " << dfdt[j]
+        << ", dx2dt2 = " << df2dt2[j]
+        << ", 2x+1 = " << linear[j]
+        << ", d(2x+1)/dt = " << dfdt2[j]
+        << ", log = " << log[j];
+  }
+
+
+
 }
