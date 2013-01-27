@@ -1,6 +1,7 @@
 #ifndef ATP_TIME_SERIES_OHLC_H_
 #define ATP_TIME_SERIES_OHLC_H_
 
+#include "common.hpp"
 #include "common/time_series.hpp"
 #include "common/moving_window.hpp"
 #include "common/moving_window_samplers.hpp"
@@ -29,7 +30,7 @@ struct ohlc_post_process
                          const data_series<microsecond_t, V>& low,
                          const data_series<microsecond_t, V>& close)
   {
-    // no-op
+    UNUSED(count); UNUSED(open); UNUSED(high); UNUSED(low); UNUSED(close);
   }
 };
 } // callback
@@ -57,20 +58,26 @@ class ohlc
       , close_(h, s, initial)
       , high_(h, s, initial)
       , low_(h, s, initial)
+      , t(open_)
   {
   }
 
   size_t operator()(const microsecond_t& timestamp, const V& value)
   {
-    return (*this)(timestamp, value);
+    return on(timestamp, value);
+  }
+
+  size_t size()
+  {
+    return open_.size(); // any of the components
   }
 
   size_t on(const microsecond_t& timestamp, const V& value)
   {
-    size_t open = open_.on(timestamp, value);
-    size_t close = close_.on(timestamp, value);
-    size_t high = high_.on(timestamp, value);
-    size_t low = low_.on(timestamp, value);
+    size_t open = open_(timestamp, value);
+    close_(timestamp, value);
+    high_(timestamp, value);
+    low_(timestamp, value);
 
     // assume the sizes are all the same.
     post_(open, open_, high_, low_, close_);
@@ -97,6 +104,9 @@ class ohlc
     return low_;
   }
 
+ public:
+  const time_axis<microsecond_t, V> t;
+
  private:
 
   mw_open open_;
@@ -104,6 +114,7 @@ class ohlc
   mw_high high_;
   mw_low low_;
   PostProcess post_;
+
 };
 
 

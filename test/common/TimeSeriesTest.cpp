@@ -81,13 +81,51 @@ TEST(TimeSeriesTest, OhlcUsage)
 {
   typedef moving_window<double, latest<double> > mw;
   typedef data_series<microsecond_t, double> series;
+  typedef std::pair<microsecond_t, int> sample;
+  typedef std::vector<sample> samples;
 
 
-  unsigned int period_duration = 1;
-  unsigned int periods = 500;
+  unsigned int period_duration = 10;
+  unsigned int periods = 10000;
 
   ohlc<double> fx(
       microseconds(period_duration * periods),
       microseconds(period_duration), 0.);
+
+  vector<microsecond_t> times;
+  samples data;
+
+  microsecond_t t = now_micros();
+  t = t - ( t % period_duration ); // this is so that time lines up nicely.
+
+  microsecond_t now = now_micros();
+  for (int i = 0; i <= periods*period_duration; ++i) {
+    //double val = pow(static_cast<double>(i), 2.);
+
+    double val = static_cast<double>(i);
+
+    microsecond_t now2 = now_micros();
+    fx(t + i, val);
+    times.push_back(now_micros() - now2);
+    data.push_back(sample(t + i, val));
+  }
+
+  microsecond_t sum = 0;;
+  for (int i = 0; i < times.size(); ++i) {
+    sum += times[i];
+  }
+  LOG(INFO) << "avg = " << sum/times.size();
+
+  int len = 20;
+  for (int i = fx.size(); i > (fx.size() - len); --i) {
+    int j = 1-i;
+
+    LOG(INFO) << "t = " << fx.t[j] - t
+              << ", open  = " << fx.open()[j]
+              << ", high  = " << fx.high()[j]
+              << ", low   = " << fx.low()[j]
+              << ", close = " << fx.close()[j];
+
+  }
 
 }
