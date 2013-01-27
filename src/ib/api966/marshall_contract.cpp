@@ -1,7 +1,7 @@
 
 #include <iostream>
 
-
+#include "common.hpp"
 #include "platform/contract_symbol.hpp"
 
 #include "marshall.hpp"
@@ -112,6 +112,7 @@ bool operator<<(proto::ib::Contract& p, const Contract& c)
 
 bool operator<<(ContractDetails& c, const proto::ib::ContractDetails& p)
 {
+  UNUSED(c); UNUSED(p);
   // NOT IMPLEMENTED -- the API never really requires sending contract details.
   return true;
 }

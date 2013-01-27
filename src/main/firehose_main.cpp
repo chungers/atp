@@ -18,7 +18,7 @@
 #include "varz/varz.hpp"
 #include "varz/VarzServer.hpp"
 
-#include "constants.h"
+#include "common.hpp"
 #include "fh.hpp"
 
 using std::map;
@@ -53,6 +53,8 @@ DEFINE_VARZ_string(ib_api_version, _IB_API_VERSION,
 
 void OnTerminate(int param)
 {
+  UNUSED(param);
+
   LOG(INFO) << "===================== SHUTTING DOWN =======================";
   if (INITIATOR_INSTANCE) {
     INITIATOR_INSTANCE->stop();

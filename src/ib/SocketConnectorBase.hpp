@@ -10,8 +10,7 @@
 #include <boost/thread/tss.hpp>
 #include <zmq.hpp>
 
-#include "log_levels.h"
-#include "utils.hpp"
+#include "common.hpp"
 
 #include "ib/internal.hpp"
 #include "ib/ApiEventDispatcher.hpp"
@@ -359,6 +358,7 @@ class SocketConnectorBase :
                             zmq::socket_t& socket,
                             ib::internal::ZmqMessagePtr& origMessageOptional)
   {
+    UNUSED(origMessageOptional);
     if (GetReactorSocketType() == ZMQ_REP) {
       atp::zmq::send_copy(socket, boost::lexical_cast<string>(responseCode));
     }

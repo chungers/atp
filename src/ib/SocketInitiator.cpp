@@ -17,16 +17,18 @@
 #include "zmq/Publisher.hpp"
 
 
-namespace ib {
-namespace internal {
+// namespace ib {
+// namespace internal {
 
-static bool isInProc(const std::string& address)
-{
-  return boost::starts_with(address, "inproc://");
-}
+// static bool isInProc(const std::string& address)
+// {
+//   return boost::starts_with(address, "inproc://");
+// }
 
-} // namespace internal
-} // namespace ib
+// } // namespace internal
+// } // namespace ib
+
+
 namespace IBAPI {
 
 

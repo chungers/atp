@@ -72,6 +72,7 @@ class ApiProtocolHandler::implementation :
 
   virtual bool eConnect(const char *host, unsigned int port, int clientId=0)
   {
+    UNUSED(host); UNUSED(port); UNUSED(clientId);
     return false;
   }
 

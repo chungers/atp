@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "common.hpp"
 #include "proto/historian.pb.h"
 
 namespace historian {
@@ -25,7 +26,7 @@ struct DefaultVisitor : public Visitor
   virtual ~DefaultVisitor() {}
 
   virtual bool operator()(const Record& record)
-  { return true; }
+  { UNUSED(record); return true; }
 };
 
 

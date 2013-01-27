@@ -8,10 +8,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
 
-#include "platform/message_processor.hpp"
-
+#include "common.hpp"
 #include "ZmqProtoBuffer.hpp"
 
+#include "platform/message_processor.hpp"
 #include "platform/contract_symbol.hpp"
 #include "service/ContractManager.hpp"
 
@@ -82,6 +82,7 @@ class ContractManager::implementation
 
   bool handleContractDetailsResponse(const string& topic, const string& message)
   {
+    UNUSED(topic);
     p::ContractDetailsResponse resp;
     bool received = resp.ParseFromString(message);
     if (received) {

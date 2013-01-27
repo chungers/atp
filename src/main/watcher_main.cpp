@@ -9,6 +9,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "common.hpp"
 #include "common/time_utils.hpp"
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
@@ -89,6 +90,8 @@ struct state_t
 
 void OnTerminate(int param)
 {
+  UNUSED(param);
+
   std::cout << CONSOLE_RESET << std::endl;
   LOG(INFO) << "===================== SHUTTING DOWN =======================";
   LOG(INFO) << "Bye.";
@@ -100,6 +103,8 @@ void update(const ptime& t, const V& v,
             V* state_var, state_t* state, bool print,
             state_t::event e)
 {
+  UNUSED(print);
+
   if (v == 0) return;
 
   if (e == state_t::LAST) {
@@ -258,6 +263,8 @@ void print(const timestamp_t& ts, const V& v,
 
 bool stop_function(const string& topic, const string& message)
 {
+  UNUSED(message);
+
   LOG(INFO) << "Stopping: " << topic;
   return false;
 }
