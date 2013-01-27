@@ -15,7 +15,7 @@ struct moving_window_post_process
 {
   virtual void operator()(const size_t count, const data_series<T,V>& window)
   {
-    UNUSED(count), UNUSED(window);
+    UNUSED(count); UNUSED(window);
     // no-op
   }
 };

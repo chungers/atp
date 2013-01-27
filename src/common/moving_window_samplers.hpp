@@ -18,7 +18,7 @@ struct latest
                                     const element_t& now,
                                     bool new_period)
   {
-    UNUSED(last), UNUSED(new_period);
+    UNUSED(last); UNUSED(new_period);
     return now;
   }
 };
@@ -33,6 +33,7 @@ class avg
                                     const element_t& now,
                                     bool new_period)
   {
+    UNUSED(last);
     if (new_period) {
       count = 0;
       sum = now;
@@ -79,7 +80,7 @@ class open
                                     const element_t& now,
                                     bool new_period)
   {
-    UNUSED(new_period), UNUSED(last);
+    UNUSED(new_period); UNUSED(last);
 
     if (new_period) { open_ = now; init_ = true; }
     if (!init_) { open_ = now; init_ = true; }

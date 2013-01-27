@@ -74,4 +74,20 @@ TEST(TimeSeriesTest, SamplerTest)
             avg(4., 5., true));
 }
 
+using atp::time_series::ohlc;
 
+
+TEST(TimeSeriesTest, OhlcUsage)
+{
+  typedef moving_window<double, latest<double> > mw;
+  typedef data_series<microsecond_t, double> series;
+
+
+  unsigned int period_duration = 1;
+  unsigned int periods = 500;
+
+  ohlc<double> fx(
+      microseconds(period_duration * periods),
+      microseconds(period_duration), 0.);
+
+}
