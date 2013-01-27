@@ -9,7 +9,7 @@
 #include <Shared/EWrapper.h>
 
 
-#include "log_levels.h"
+#include "common.hpp"
 #include "ib/internal.hpp"
 #include "ib/Exceptions.hpp"
 #include "ib/Message.hpp"
@@ -41,11 +41,13 @@ class Application {
 
   virtual ApiEventDispatcher* GetApiEventDispatcher(const SessionID& sessionId)
   {
+    UNUSED(sessionId);
     return NULL;
   }
 
   virtual bool IsMessageSupported(const std::string& key)
   {
+    UNUSED(key);
     return true;
   }
 

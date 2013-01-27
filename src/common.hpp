@@ -15,6 +15,10 @@
 typedef boost::noncopyable NoCopyAndAssign;
 
 
+/// Macro for making sure that compiler does not complain about
+/// unused parameters
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
 // Whether we should die when reporting an error.
 enum DieWhenReporting { DIE, DO_NOT_DIE };
 

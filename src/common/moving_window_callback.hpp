@@ -1,6 +1,7 @@
 #ifndef ATP_COMMON_MOVING_WINDOW_CALLBACK_H_
 #define ATP_COMMON_MOVING_WINDOW_CALLBACK_H_
 
+#include "common.hpp"
 #include "common/time_series.hpp"
 
 namespace atp {
@@ -14,7 +15,7 @@ struct moving_window_post_process
 {
   virtual void operator()(const size_t count, const data_series<T,V>& window)
   {
-    (void)(count), (void)(window);
+    UNUSED(count), UNUSED(window);
     // no-op
   }
 };

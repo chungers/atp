@@ -43,7 +43,7 @@ class EventDispatcherEWrapperBase : public LoggingEWrapper, NoCopyAndAssign
 
   virtual void onNoContractDefinition(int error_code, int req_id)
   {
-    LOG(INFO) << "Error " << error_code <<
+    LOG(INFO) << "Request[" << req_id << "] Error " << error_code <<
         " - No security definition.";
   }
 

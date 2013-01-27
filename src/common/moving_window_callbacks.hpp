@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "common.hpp"
 #include "common/moving_window.hpp"
 #include "common/time_utils.hpp"
 
@@ -36,7 +37,7 @@ class moving_window_post_process_cout :
   inline virtual void operator()(const size_t count,
                                  const data_series<T, V>& window)
   {
-    (void)(count);
+    UNUSED(count);
     // Writes to stdout the last stable sample
     ptime t = atp::time::as_ptime(window.get_time(-1));
     cout << atp::time::to_est(t) << ","

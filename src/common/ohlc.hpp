@@ -77,22 +77,22 @@ class ohlc
     return open;
   }
 
-  const mw_open& open() const
+  const data_series<microsecond_t, V>& open() const
   {
     return open_;
   }
 
-  const mw_close& close() const
+  const data_series<microsecond_t, V>& close() const
   {
     return close_;
   }
 
-  const mw_high& high() const
+  const data_series<microsecond_t, V>& high() const
   {
     return high_;
   }
 
-  const mw_low& low() const
+  const data_series<microsecond_t, V>& low() const
   {
     return low_;
   }

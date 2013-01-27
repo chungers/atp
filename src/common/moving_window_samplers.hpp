@@ -3,6 +3,8 @@
 
 #include <cmath>
 
+#include "common.hpp"
+
 
 namespace atp {
 namespace time_series {
@@ -16,7 +18,7 @@ struct latest
                                     const element_t& now,
                                     bool new_period)
   {
-    (void)(last), (void)(new_period);
+    UNUSED(last), UNUSED(new_period);
     return now;
   }
 };
@@ -77,7 +79,7 @@ class open
                                     const element_t& now,
                                     bool new_period)
   {
-    (void)(new_period), (void)(last);
+    UNUSED(new_period), UNUSED(last);
 
     if (new_period) { open_ = now; init_ = true; }
     if (!init_) { open_ = now; init_ = true; }
@@ -96,7 +98,7 @@ struct close
                                     const element_t& now,
                                     bool new_period)
   {
-    (void)(last); (void)(new_period);
+    UNUSED(last); UNUSED(new_period);
     return now;
   }
 };

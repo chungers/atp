@@ -73,6 +73,7 @@ class ContractEventEWrapper :
 
   /// @overload base
   virtual void onNoContractDefinition(int error_code, int req_id) {
+    UNUSED(error_code);
     LOG(ERROR) << "No contract definition for request " << req_id
                << ", sending simulated contractDetailsEnd.";
 

@@ -40,6 +40,8 @@ class ContractEventDispatcher : virtual public IBAPI::ApiEventDispatcher
   template <typename Proto>
   void publishContractEvent(int requestId, const Proto& event)
   {
+    UNUSED(requestId);
+
     boost::uint64_t now = now_micros();
 
     string buff;

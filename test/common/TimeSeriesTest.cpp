@@ -9,6 +9,7 @@
 #include <glog/logging.h>
 
 #include "utils.hpp"
+#include "common/ohlc.hpp"
 #include "common/moving_window_callbacks.hpp"
 #include "common/time_utils.hpp"
 
