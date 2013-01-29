@@ -5,6 +5,7 @@
 #include <boost/assign/std/vector.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
+#include <boost/tuple/tuple.hpp>
 
 
 #include <gflags/gflags.h>
@@ -342,7 +343,7 @@ TEST(MovingWindowTest, FunctionTest)
   series data, expects;
   for (int i = 0; i <= periods*period_duration; ++i) {
     double val = pow(static_cast<double>(i), 2.);
-    LOG(INFO) << atp::time::to_est(atp::time::as_ptime(t + i))
+    VLOG(50) << atp::time::to_est(atp::time::as_ptime(t + i))
               <<", i = " << i << ", " << val;
     fx(t + i, val);
 
@@ -364,9 +365,9 @@ TEST(MovingWindowTest, FunctionTest)
   // add last current observation
   expects.push_back(sample(period_start, period_close));
 
-  LOG(INFO) << "expectations:";
+  VLOG(50) << "expectations:";
   for (series_itr itr = expects.begin(); itr != expects.end(); ++itr) {
-    LOG(INFO)
+    VLOG(50)
         << atp::time::to_est(atp::time::as_ptime(itr->first)) << ", "
         << "(" << itr->first - t << ", " << itr->second << ")";
   }
@@ -384,7 +385,7 @@ TEST(MovingWindowTest, FunctionTest)
 
   // Compare the sampled data with expectations
   for (int i = 0; i < len; ++i) {
-    LOG(INFO)
+    VLOG(50)
         << atp::time::to_est(atp::time::as_ptime(tbuff[i])) << ", "
         << "(" << tbuff[i] - t << ", " << buff[i] << ")";
 
@@ -412,7 +413,7 @@ TEST(MovingWindowTest, FunctionTest)
     ASSERT_EQ(tt, tt2);
 
     int v = fx[-i];
-    LOG(INFO)
+    VLOG(50)
         << atp::time::to_est(atp::time::as_ptime(tt)) << ", "
         << "(" << tt - t << ", " << v << ")";
     ASSERT_EQ(expects_itr->first, tt);
@@ -473,6 +474,15 @@ struct linear
 
 } // operations
 
+double get_average_time(vector<microsecond_t>& times)
+{
+  double avg = 0.;
+  for (int i = 0; i < times.size(); ++i) {
+    avg += static_cast<double>(times[i]) / times.size();
+  }
+  return avg;
+}
+
 TEST(MovingWindowTest, SeriesOperationsUsage)
 {
   typedef atp::time_series::callback::moving_window_post_process_cout<
@@ -496,6 +506,7 @@ TEST(MovingWindowTest, SeriesOperationsUsage)
   trace& dxdt = fx.apply("dx/dt", operations::dfdt(), 2);
   trace& d2xdt2 = fx.apply("d2x/dt2", operations::df2dt2(), 3);
 
+  // dependent the result of the computation --> an extra pipeline stage.
   close_series& linear = fx.apply2("2x+1", operations::linear(2., 1.));
   trace& dxdt_2 = linear.apply("dx/dt", operations::dfdt(), 2);
 
@@ -516,17 +527,12 @@ TEST(MovingWindowTest, SeriesOperationsUsage)
     data.push_back(sample(t + i, val));
   }
   LOG(INFO) << "push/ compute dt = " << (now_micros() - now);
-
-  microsecond_t sum = 0;;
-  for (int i = 0; i < times.size(); ++i) {
-    sum += times[i];
-  }
-  LOG(INFO) << "avg = " << sum/times.size();
+  LOG(INFO) << "avg = " << get_average_time(times);
 
   int len = 20;
   for (int i = fx.size(); i > (fx.size() - len); --i) {
     int j = -i + 1;
-    LOG(INFO)
+    VLOG(50)
         << "t = " << fx.t[j] - t
         << ", fx = " << fx[j]
         << ", dxdt = " << dxdt[j]
@@ -535,7 +541,101 @@ TEST(MovingWindowTest, SeriesOperationsUsage)
         << ", d(2x+1)/dt = " << dxdt_2[j]
         << ", log = " << log[j];
   }
+}
 
+TEST(MovingWindowTest, TupleUsageTest)
+{
+  using namespace boost;
+  using namespace atp::time_series::sampler;
 
+  typedef tuple<double, double, int> value_t;
+  typedef moving_window<value_t, latest<value_t> > time_window;
+  typedef std::pair<microsecond_t, value_t> sample;
+  typedef std::vector<sample> series;
+  typedef series::iterator series_itr;
+  typedef series::reverse_iterator series_reverse_itr;
 
+  unsigned int period_duration = 1;
+  unsigned int periods = 1000;
+
+  time_window fx(microseconds(period_duration * periods),
+                 microseconds(period_duration), value_t(0., 0., 0));
+
+  boost::uint64_t t = now_micros();
+  t = t - ( t % period_duration ); // this is so that time lines up nicely.
+
+  series data, expects;
+  vector<microsecond_t> times;
+
+  microsecond_t now = now_micros();
+  for (int i = 0; i <= periods*period_duration; ++i) {
+    value_t val = value_t(pow(static_cast<double>(i), 2.), 2.*i, 2);
+    VLOG(50) << atp::time::to_est(atp::time::as_ptime(t + i))
+              <<", i = " << i << ", "
+              << '['
+              << get<0>(val) << "," << get<1>(val) << "," << get<2>(val)
+              << ']';
+
+    microsecond_t now2 = now_micros();
+    fx(t + i, val);
+    times.push_back(now_micros() - now2);
+
+    data.push_back(sample(t + i, val));
+  }
+  microsecond_t total_elapsed = now_micros() - now;
+
+  // Calculate expectations based on closing of a period to
+  // match the moving_window's sampler (defaults to close)
+  microsecond_t period_start = t;
+  value_t period_close;
+  for (series_itr itr = data.begin(); itr != data.end(); ++itr) {
+    if (itr->first - period_start >= period_duration) {
+      expects.push_back(sample(period_start, period_close));
+      period_start = itr->first;
+    }
+    // closing value of the period --> always the latest value
+    period_close = itr->second;
+  }
+  // add last current observation
+  expects.push_back(sample(period_start, period_close));
+
+  VLOG(50) << "expectations:";
+  for (series_itr itr = expects.begin(); itr != expects.end(); ++itr) {
+    value_t val = itr->second;
+    VLOG(50)
+        << atp::time::to_est(atp::time::as_ptime(itr->first)) << ", "
+        << "(" << itr->first - t << ", "
+        << '['
+        << get<0>(val) << "," << get<1>(val) << "," << get<2>(val)
+        << ']';
+  }
+
+  size_t len = periods + 1;  // history + current observation
+  microsecond_t tbuff[len];
+  value_t buff[len];
+
+  int copied = fx.copy_last(&tbuff[0], &buff[0], len);
+
+  EXPECT_EQ(len, copied);
+
+  LOG(INFO) << "t = " << t;
+  LOG(INFO) << "get_time[0] = " << fx.get_time() - t;
+
+  // Compare the sampled data with expectations
+  for (int i = 0; i < len; ++i) {
+    value_t val = buff[i];
+    VLOG(50)
+        << atp::time::to_est(atp::time::as_ptime(tbuff[i])) << ", "
+        << "(" << tbuff[i] - t << ", "
+        << '['
+        << get<0>(val) << "," << get<1>(val) << "," << get<2>(val)
+        << "])";
+
+    ASSERT_EQ(expects[i].first, tbuff[i]);
+    ASSERT_EQ(get<0>(expects[i].second), get<0>(buff[i]));
+    ASSERT_EQ(get<1>(expects[i].second), get<1>(buff[i]));
+    ASSERT_EQ(get<2>(expects[i].second), get<2>(buff[i]));
+  }
+  LOG(INFO) << "Total t = " << total_elapsed << " usec";
+  LOG(INFO) << "avg t = " << get_average_time(times);
 }

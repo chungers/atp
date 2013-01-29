@@ -106,7 +106,7 @@ class moving_window : public data_series<microsecond_t, element_t>
     } else if (index < 0) {
       return buffer_[buffer_.size() + index];
     }
-    return boost::lexical_cast<element_t>(init_);
+    return init_;
   }
 
   /// Returns the time period of samples, eg. 1 usec or 1 min
