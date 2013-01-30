@@ -1,5 +1,6 @@
 
 
+#include <cmath>
 #include <string>
 
 #include <boost/circular_buffer.hpp>
@@ -19,37 +20,218 @@
 
 DEFINE_int32(num_objects_to_create, 1000, "Number of objects to create.");
 
-TEST(IndicatorPrototype, CircularBuffer1)
+using boost::circular_buffer;
+typedef boost::uint64_t microsecond_t;
+
+TEST(MiscPrototype, CircularBuffer1)
 {
-  boost::circular_buffer<int> cb(3);
+  circular_buffer<int> cb(5);
   cb.push_back(1);
   cb.push_back(2);
   cb.push_back(3);
+  cb.push_back(4);
+  cb.push_back(5);
 
   EXPECT_EQ(1, cb[0]);
   EXPECT_EQ(2, cb[1]);
   EXPECT_EQ(3, cb[2]);
+  EXPECT_EQ(4, cb[3]);
+  EXPECT_EQ(5, cb[4]);
 
-  cb.push_back(4);
+  cb.push_back(6);
+
   EXPECT_EQ(2, cb[0]);
   EXPECT_EQ(3, cb[1]);
   EXPECT_EQ(4, cb[2]);
+  EXPECT_EQ(5, cb[3]);
+  EXPECT_EQ(6, cb[4]);
 
-  cb.push_back(5);
-  cb.push_back(6);
-
-  EXPECT_EQ(4, cb[0]);
-  EXPECT_EQ(5, cb[1]);
-  EXPECT_EQ(6, cb[2]);
-
-  EXPECT_EQ(3, cb.size());
-  EXPECT_EQ(3, cb.capacity());
+  EXPECT_EQ(5, cb.size());
+  EXPECT_EQ(5, cb.capacity());
 
   EXPECT_EQ(6, *cb.rbegin());
+
+  cb.push_back(7);
+
+  typename boost::circular_buffer<int>::array_range one = cb.array_one();
+  typename boost::circular_buffer<int>::array_range two = cb.array_two();
+  LOG(INFO) << "one = " << one.first << ", " << one.second;
+  LOG(INFO) << "two = " << two.first << ", " << two.second;
+
+  // copy the last 3 elements -- in reverse order
+  size_t length = 3;
+  size_t sz = sizeof(int);
+  int buff[length];
+
+  void* array = static_cast<void*>(&buff[0]);
+  memset(array, 0, sz * length);
+  for (int i = 0; i < length; ++i) {
+    LOG(INFO) << "set buff[" << i << "] = " << buff[i];
+  }
+
+  size_t to_copy2 = min(two.second, length);
+  size_t to_copy1 = length - to_copy2;
+
+  size_t dest_offset2 = length - to_copy2;
+  size_t src_offset2 = max(static_cast<size_t>(0), two.second - to_copy2);
+  void* dest_ptr2 = array + dest_offset2 * sz;
+  void* src_ptr2 = static_cast<void*>(two.first) + src_offset2 * sz;
+  size_t bytes2 = to_copy2 * sz;
+
+  if (to_copy2 > 0) {
+    memcpy(dest_ptr2, src_ptr2, bytes2);
+  }
+
+  size_t dest_offset1 = 0;
+  size_t src_offset1 = max(static_cast<size_t>(0), one.second - to_copy1);
+  void* dest_ptr1 = array + dest_offset1 * sz;
+  void* src_ptr1 = static_cast<void*>(one.first) + src_offset1 * sz;
+  size_t bytes1 = to_copy1 * sz;
+
+  if (to_copy1 > 0) {
+    memcpy(dest_ptr1, src_ptr1, bytes1);
+  }
+
+  for (int i = 0; i < length; ++i) {
+    LOG(INFO) << "buff[" << i << "] = " << buff[i];
+  }
 }
 
+/// fill the array in reverse order
+template <typename buffer_t>
+size_t copy_last(circular_buffer<buffer_t>& cb,
+                 buffer_t *array,
+                 const size_t length)
+{
+  size_t to_copy = length;
+  size_t copied = 0;
+  typename circular_buffer<buffer_t>::reverse_iterator r = cb.rbegin();
+  for (; r != cb.rend() && to_copy > 0; --to_copy, ++copied, ++r) {
+    array[length - 1 - copied] = *r;
+  }
+  return copied;
+}
 
-TEST(IndicatorPrototype, CircularBuffer2)
+/// fill the array in reverse order -- calls linearize
+template <typename buffer_t>
+size_t copy_last2(circular_buffer<buffer_t>& cb,
+                  buffer_t *array,
+                  const size_t length)
+{
+  size_t to_copy = length;
+  size_t copied = 0;
+  cb.linearize();
+  typename circular_buffer<buffer_t>::reverse_iterator r = cb.rbegin();
+  for (; r != cb.rend() && to_copy > 0; --to_copy, ++copied, ++r) {
+    array[length - 1 - copied] = *r;
+  }
+  return copied;
+}
+
+/// fill the array in reverse order -- use array_one and array_two
+template <typename buffer_t>
+size_t copy_last3(circular_buffer<buffer_t>& cb,
+                  buffer_t *array,
+                  const size_t length)
+{
+  typename boost::circular_buffer<buffer_t>::array_range two = cb.array_two();
+  typename boost::circular_buffer<buffer_t>::array_range one = cb.array_one();
+
+  buffer_t* array_ptr = array;
+  size_t array_len = length;
+
+  size_t to_copy2 = min(two.second, length);
+  size_t to_copy1 = length - to_copy2;
+  size_t sz = sizeof(buffer_t);
+  size_t zero = 0;
+
+  // LOG(INFO) << "two.sz = " << two.second
+  //           << ", one.sz = " << one.second
+  //           << ", to_copy2 = " << to_copy2
+  //           << ", to_copy1 = " << to_copy1
+  //           << ", sz = " << sz;
+
+  size_t dest_offset2 = length - to_copy2;
+  size_t src_offset2 = max(zero, two.second - to_copy2);
+  void* dest_ptr2 = static_cast<void*>(array) + dest_offset2 * sz;
+  void* src_ptr2 = static_cast<void*>(two.first) + src_offset2 * sz;
+  size_t bytes2 = to_copy2 * sz;
+
+  size_t dest_offset1 = 0;
+  size_t src_offset1 = max(zero, one.second - to_copy1);
+  void* dest_ptr1 = static_cast<void*>(array) + dest_offset1 * sz;
+  void* src_ptr1 = static_cast<void*>(one.first) + src_offset1 * sz;
+  size_t bytes1 = to_copy1 * sz;
+
+  if (to_copy2 > 0) {
+    memcpy(dest_ptr2, src_ptr2, bytes2);
+  }
+
+  if (to_copy1 > 0) {
+    memcpy(dest_ptr1, src_ptr1, bytes1);
+  }
+  return to_copy2 + to_copy1;
+}
+
+TEST(MiscPrototype, CircularBufferArrayCopy)
+{
+  // for indicators we tend to use small numbrer of points of history
+  // eg. SMA(20), etc. but executes many many times
+  int events = 100000;
+
+  size_t len = 100;
+  circular_buffer<double> cb(len);
+
+  microsecond_t total_copy = 0;
+  microsecond_t start = now_micros();
+  double buff[len / 2];
+  for (int i = 0; i < events; ++i) {
+    cb.push_back(static_cast<double>(i) * 2.);
+
+    if (cb.size() >= len) {
+      microsecond_t copy_start = now_micros();
+      EXPECT_EQ(len / 2, copy_last(cb, &buff[0], len/2));
+      total_copy += now_micros() - copy_start;
+    }
+  }
+  microsecond_t dt = now_micros() - start;
+
+  LOG(INFO) << "avg dt (reverse iterator) = " << total_copy / events;
+
+  ////////////////////////////
+  /// Alternative implementation of copy
+  total_copy = 0;
+  start = now_micros();
+  for (int i = 0; i < events; ++i) {
+    cb.push_back(static_cast<double>(i) * 2.);
+
+    if (cb.size() >= len) {
+      microsecond_t copy_start = now_micros();
+      EXPECT_EQ(len / 2, copy_last2(cb, &buff[0], len/2));
+      total_copy += now_micros() - copy_start;
+    }
+  }
+  dt = now_micros() - start;
+  LOG(INFO) << "avg dt (reverse iterator+linearize) = " << total_copy / events;
+
+  ////////////////////////////
+  /// Alternative implementation of copy
+  total_copy = 0;
+  start = now_micros();
+  for (int i = 0; i < events; ++i) {
+    cb.push_back(static_cast<double>(i) * 2.);
+
+    if (cb.size() >= len) {
+      microsecond_t copy_start = now_micros();
+      EXPECT_EQ(len / 2, copy_last3<double>(cb, &buff[0], len/2));
+      total_copy += now_micros() - copy_start;
+    }
+  }
+  dt = now_micros() - start;
+  LOG(INFO) << "avg dt (memcpy + array_one/two) = " << total_copy / events;
+}
+
+TEST(MiscPrototype, CircularBuffer)
 {
   using proto::test::Candle;
 
@@ -81,7 +263,7 @@ TEST(IndicatorPrototype, CircularBuffer2)
   LOG(INFO) << length << " objects in " << elapsed << " usecs";
 }
 
-TEST(IndicatorPrototype, CircularBufferTiming)
+TEST(MiscPrototype, CircularBufferTiming)
 {
   using proto::test::Candle;
   typedef boost::circular_buffer<Candle> ring;
@@ -116,7 +298,7 @@ TEST(IndicatorPrototype, CircularBufferTiming)
 }
 
 struct CandleTag {};
-TEST(IndicatorPrototype, ObjectPool1)
+TEST(MiscPrototype, ObjectPool1)
 {
   using proto::test::Candle;
   typedef boost::singleton_pool<CandleTag, sizeof(Candle)> singleton_pool;
@@ -210,7 +392,7 @@ TEST(IndicatorPrototype, ObjectPool1)
   }
 }
 
-TEST(IndicatorPrototype, CircularBufferWithPoolAllocator)
+TEST(MiscPrototype, CircularBufferWithPoolAllocator)
 {
   using proto::test::Candle;
   typedef boost::object_pool<Candle> pool;
@@ -354,7 +536,7 @@ void print_array(const boost::circular_buffer<int>& array, int len)
   }
 }
 
-TEST(IndicatorPrototype, CircularBufferAsArray)
+TEST(MiscPrototype, CircularBufferAsArray)
 {
   size_t len = 5;
   int array[len];
@@ -383,7 +565,7 @@ TEST(IndicatorPrototype, CircularBufferAsArray)
 
 /// It appears that there are some initialization cost associated with
 /// the TA lib.  So a trivial case to get the code initialized.
-TEST(IndicatorPrototype, TALibWarmUp)
+TEST(MiscPrototype, TALibWarmUp)
 {
   typedef boost::uint64_t ts;
 
@@ -413,7 +595,7 @@ TEST(IndicatorPrototype, TALibWarmUp)
 }
 
 
-TEST(IndicatorPrototype, TALibCircularBuffer1)
+TEST(MiscPrototype, TALibCircularBuffer1)
 {
 
   typedef boost::uint64_t ts;
@@ -578,7 +760,7 @@ struct by_elapsed_time
 };
 
 
-TEST(IndicatorPrototype, TimeWindowPolicyTest)
+TEST(MiscPrototype, TimeWindowPolicyTest)
 {
   time_window_policy::align_at_zero p1(100);
 
@@ -824,7 +1006,7 @@ class min_t
 
 
 
-TEST(IndicatorPrototype, TimeSeries1)
+TEST(MiscPrototype, TimeSeries1)
 {
   using boost::posix_time::time_duration;
   using boost::posix_time::minutes;
@@ -878,7 +1060,7 @@ struct Verifier
   const std::vector<T>& expectations;
 };
 
-TEST(IndicatorPrototype, TimeSeries2)
+TEST(MiscPrototype, TimeSeries2)
 {
   using boost::posix_time::time_duration;
   using boost::posix_time::microseconds;
@@ -976,7 +1158,7 @@ TEST(IndicatorPrototype, TimeSeries2)
 }
 
 
-TEST(IndicatorPrototype, TimeSeries3)
+TEST(MiscPrototype, TimeSeries3)
 {
   time_series< double, current_t<double> > last_trade(
       microseconds(1000), microseconds(10), 0.);
