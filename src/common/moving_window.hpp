@@ -1,6 +1,7 @@
 #ifndef ATP_COMMON_MOVING_WINDOW_H_
 #define ATP_COMMON_MOVING_WINDOW_H_
 
+#include <cmath>
 #include <string>
 #include <vector>
 
@@ -128,10 +129,71 @@ class moving_window : public data_series<microsecond_t, element_t>
     return time_interval_policy_.get_time(current_ts_, -offset);
   }
 
+  /// Copies the last N values into the array
+  template <typename buffer_t>
+  size_t copy_last_data(buffer_t *array, const size_t length)
+  {
+    if (length > capacity()) {
+      return 0; // No copy is done.
+    }
+
+    // current value is the last element:
+    array[length - 1] = current_value_;
+
+    typename history_t::array_range two = buffer_.array_two();
+    typename history_t::array_range one = buffer_.array_one();
+
+    size_t remain = length - 1;
+    size_t to_copy2 = min(two.second, remain);
+    size_t to_copy1 = remain - to_copy2;
+    size_t sz = sizeof(buffer_t);
+    size_t zero = 0;
+
+    size_t dest_offset2 = remain - to_copy2;
+    size_t src_offset2 = max(zero, two.second - to_copy2);
+    buffer_t* dest_ptr2 = array + dest_offset2;
+    buffer_t* src_ptr2 = two.first + src_offset2;
+
+    size_t dest_offset1 = 0;
+    size_t src_offset1 = max(zero, one.second - to_copy1);
+    buffer_t* dest_ptr1 = array + dest_offset1;
+    buffer_t* src_ptr1 = one.first + src_offset1;
+
+    if (to_copy2 > 0) {
+      memcpy(static_cast<void*>(dest_ptr2),
+             static_cast<void*>(src_ptr2),
+             to_copy2 * sz);
+    }
+
+    if (to_copy1 > 0) {
+      memcpy(static_cast<void*>(dest_ptr1),
+             static_cast<void*>(src_ptr1),
+             to_copy1 * sz);
+    }
+    return to_copy2 + to_copy1 + 1;
+  }
+
+  /// Copies the last N samples (t, value) into the arrays
   template <typename buffer_t>
   size_t copy_last(microsecond_t *timestamp,
                    buffer_t *array,
-                   const size_t length) const
+                   const size_t length)
+  {
+    if (length > capacity()) {
+      return 0; // No copy is done.
+    }
+
+    size_t copied1 = copy_last_data(array, length);
+    size_t copied2 = generate_time_array(timestamp, length);
+    assert(copied1 == copied2);
+    return copied1;
+  }
+
+  /// Copies the last N samples (t, value) into the arrays
+  /// This is the slow way, using reverse iterator
+  template <typename buffer_t>
+  size_t copy_last_slow(microsecond_t *timestamp,
+                        buffer_t *array, const size_t length)
   {
     if (length > capacity()) {
       return 0; // No copy is done.
@@ -145,7 +207,6 @@ class moving_window : public data_series<microsecond_t, element_t>
     // fill the array in reverse order
     for (; r != buffer_.rend() && to_copy > 0; --to_copy, ++copied, ++r) {
       array[length - 1 - copied] = *r;
-
       timestamp[length - 1 - copied] =
           time_interval_policy_.get_time(current_ts_, copied);
     }
@@ -230,6 +291,23 @@ class moving_window : public data_series<microsecond_t, element_t>
   }
 
  private:
+
+  /// Generate the time array based on the current time and the sampling
+  /// intervals and the time interal policy.
+  size_t generate_time_array(microsecond_t *timestamp, const size_t length)
+  {
+    if (length > capacity()) {
+      return 0; // No copy is done.
+    }
+    timestamp[length - 1] = time_interval_policy_.get_time(current_ts_, 0);
+    // fill the array in reverse order
+    for (size_t to_copy = 0; to_copy < length - 1; ++to_copy) {
+      timestamp[length - to_copy - 2] =
+          time_interval_policy_.get_time(current_ts_, to_copy + 1);
+    }
+    return length;
+  }
+
 
   typedef typename boost::circular_buffer<element_t, Alloc> history_t;
   typedef typename history_t::const_reverse_iterator reverse_itr;

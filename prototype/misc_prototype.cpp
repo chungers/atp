@@ -53,8 +53,8 @@ TEST(MiscPrototype, CircularBuffer1)
 
   cb.push_back(7);
 
-  typename boost::circular_buffer<int>::array_range one = cb.array_one();
-  typename boost::circular_buffer<int>::array_range two = cb.array_two();
+  boost::circular_buffer<int>::array_range one = cb.array_one();
+  boost::circular_buffer<int>::array_range two = cb.array_two();
   LOG(INFO) << "one = " << one.first << ", " << one.second;
   LOG(INFO) << "two = " << two.first << ", " << two.second;
 
@@ -63,8 +63,8 @@ TEST(MiscPrototype, CircularBuffer1)
   size_t sz = sizeof(int);
   int buff[length];
 
-  void* array = static_cast<void*>(&buff[0]);
-  memset(array, 0, sz * length);
+  int* array = &buff[0];
+  memset(static_cast<void*>(array), 0, sz * length);
   for (int i = 0; i < length; ++i) {
     LOG(INFO) << "set buff[" << i << "] = " << buff[i];
   }
@@ -74,24 +74,23 @@ TEST(MiscPrototype, CircularBuffer1)
 
   size_t dest_offset2 = length - to_copy2;
   size_t src_offset2 = max(static_cast<size_t>(0), two.second - to_copy2);
-  void* dest_ptr2 = array + dest_offset2 * sz;
-  void* src_ptr2 = static_cast<void*>(two.first) + src_offset2 * sz;
+  int* dest_ptr2 = array + dest_offset2;
+  int* src_ptr2 = two.first + src_offset2;
   size_t bytes2 = to_copy2 * sz;
 
   if (to_copy2 > 0) {
-    memcpy(dest_ptr2, src_ptr2, bytes2);
+    memcpy(static_cast<void*>(dest_ptr2), static_cast<void*>(src_ptr2), bytes2);
   }
 
   size_t dest_offset1 = 0;
   size_t src_offset1 = max(static_cast<size_t>(0), one.second - to_copy1);
-  void* dest_ptr1 = array + dest_offset1 * sz;
-  void* src_ptr1 = static_cast<void*>(one.first) + src_offset1 * sz;
+  int* dest_ptr1 = array + dest_offset1;
+  int* src_ptr1 = one.first + src_offset1;
   size_t bytes1 = to_copy1 * sz;
 
   if (to_copy1 > 0) {
-    memcpy(dest_ptr1, src_ptr1, bytes1);
+    memcpy(static_cast<void*>(dest_ptr1), static_cast<void*>(src_ptr1), bytes1);
   }
-
   for (int i = 0; i < length; ++i) {
     LOG(INFO) << "buff[" << i << "] = " << buff[i];
   }
@@ -137,38 +136,29 @@ size_t copy_last3(circular_buffer<buffer_t>& cb,
   typename boost::circular_buffer<buffer_t>::array_range two = cb.array_two();
   typename boost::circular_buffer<buffer_t>::array_range one = cb.array_one();
 
-  buffer_t* array_ptr = array;
-  size_t array_len = length;
-
   size_t to_copy2 = min(two.second, length);
   size_t to_copy1 = length - to_copy2;
   size_t sz = sizeof(buffer_t);
   size_t zero = 0;
 
-  // LOG(INFO) << "two.sz = " << two.second
-  //           << ", one.sz = " << one.second
-  //           << ", to_copy2 = " << to_copy2
-  //           << ", to_copy1 = " << to_copy1
-  //           << ", sz = " << sz;
-
   size_t dest_offset2 = length - to_copy2;
   size_t src_offset2 = max(zero, two.second - to_copy2);
-  void* dest_ptr2 = static_cast<void*>(array) + dest_offset2 * sz;
-  void* src_ptr2 = static_cast<void*>(two.first) + src_offset2 * sz;
+  buffer_t* dest_ptr2 = array + dest_offset2;
+  buffer_t* src_ptr2 = two.first + src_offset2;
   size_t bytes2 = to_copy2 * sz;
 
   size_t dest_offset1 = 0;
   size_t src_offset1 = max(zero, one.second - to_copy1);
-  void* dest_ptr1 = static_cast<void*>(array) + dest_offset1 * sz;
-  void* src_ptr1 = static_cast<void*>(one.first) + src_offset1 * sz;
+  buffer_t* dest_ptr1 = array + dest_offset1;
+  buffer_t* src_ptr1 = one.first + src_offset1;
   size_t bytes1 = to_copy1 * sz;
 
   if (to_copy2 > 0) {
-    memcpy(dest_ptr2, src_ptr2, bytes2);
+    memcpy(static_cast<void*>(dest_ptr2), static_cast<void*>(src_ptr2), bytes2);
   }
 
   if (to_copy1 > 0) {
-    memcpy(dest_ptr1, src_ptr1, bytes1);
+    memcpy(static_cast<void*>(dest_ptr1), static_cast<void*>(src_ptr1), bytes1);
   }
   return to_copy2 + to_copy1;
 }

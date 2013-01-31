@@ -325,7 +325,7 @@ TEST(MovingWindowTest, FunctionTest)
   typedef series::reverse_iterator series_reverse_itr;
 
   unsigned int period_duration = 3;
-  unsigned int periods = 10;
+  unsigned int periods = 500;
 
   // NOTE the default here is closing value of the period and
   // is sampling at some weird duration us interval.
@@ -333,7 +333,7 @@ TEST(MovingWindowTest, FunctionTest)
   // For example, at time period of 2 usec:
   // input = [0, 1], [1, 2], [2, 3], [3, 4], [4, 5]
   // moving_window = [0, 2], [2, 4], [4, 5]
-  moving_window<double, latest<double>, pp > fx(
+  moving_window<double, latest<double> > fx(
       microseconds(period_duration * periods),
       microseconds(period_duration), 0.);
 
@@ -342,7 +342,7 @@ TEST(MovingWindowTest, FunctionTest)
 
   series data, expects;
   for (int i = 0; i <= periods*period_duration; ++i) {
-    double val = pow(static_cast<double>(i), 2.);
+    double val = pow(static_cast<double>(i), 2.) - 10. * i;
     VLOG(50) << atp::time::to_est(atp::time::as_ptime(t + i))
               <<", i = " << i << ", " << val;
     fx(t + i, val);
@@ -556,7 +556,7 @@ TEST(MovingWindowTest, TupleUsageTest)
   typedef series::reverse_iterator series_reverse_itr;
 
   unsigned int period_duration = 1;
-  unsigned int periods = 1000;
+  unsigned int periods = 5000;
 
   time_window fx(microseconds(period_duration * periods),
                  microseconds(period_duration), value_t(0., 0., 0));
@@ -613,11 +613,47 @@ TEST(MovingWindowTest, TupleUsageTest)
   size_t len = periods + 1;  // history + current observation
   microsecond_t tbuff[len];
   value_t buff[len];
+  microsecond_t tbuff2[len];
+  value_t buff2[len];
+  value_t buff3[len];
 
-  int copied = fx.copy_last(&tbuff[0], &buff[0], len);
+  int runs = 10000;
+  microsecond_t total1 = 0;
+  microsecond_t total2 = 0;
+  microsecond_t total3 = 0;
+  microsecond_t s = 0;
 
-  EXPECT_EQ(len, copied);
+  for (int i = 0; i < runs; ++i) {
+    s = now_micros();
+    int copied1 = fx.copy_last(&tbuff[0], &buff[0], len);
+    total1 += now_micros() - s;
 
+    EXPECT_EQ(len, copied1);
+
+    s = now_micros();
+    int copied2 = fx.copy_last_slow(&tbuff2[0], &buff2[0], len);
+    total2 += now_micros() - s;
+
+    EXPECT_EQ(len, copied2);
+
+    s = now_micros();
+    int copied3 = fx.copy_last_data(&buff3[0], len);
+    total3 += now_micros() - s;
+
+    EXPECT_EQ(len, copied3);
+    // EXPECT_EQ(0,
+    //           memcmp(static_cast<void*>(&tbuff[0]),
+    //                  static_cast<void*>(&tbuff2[0]),
+    //                  len * sizeof(microsecond_t)));
+    // EXPECT_EQ(0,
+    //           memcmp(static_cast<void*>(&buff[0]),
+    //                  static_cast<void*>(&buff2[0]),
+    //                  len * sizeof(value_t)));
+  }
+  LOG(INFO) << "copy " << runs << " runs";
+  LOG(INFO) << "avg copy time (array_one/two) data only = " << total3/runs;
+  LOG(INFO) << "avg copy time (array_one/two)           = " << total1/runs;
+  LOG(INFO) << "avg copy time (reverse_itr)             = " << total2/runs;
   LOG(INFO) << "t = " << t;
   LOG(INFO) << "get_time[0] = " << fx.get_time() - t;
 
@@ -635,6 +671,10 @@ TEST(MovingWindowTest, TupleUsageTest)
     ASSERT_EQ(get<0>(expects[i].second), get<0>(buff[i]));
     ASSERT_EQ(get<1>(expects[i].second), get<1>(buff[i]));
     ASSERT_EQ(get<2>(expects[i].second), get<2>(buff[i]));
+
+    ASSERT_EQ(get<0>(expects[i].second), get<0>(buff3[i]));
+    ASSERT_EQ(get<1>(expects[i].second), get<1>(buff3[i]));
+    ASSERT_EQ(get<2>(expects[i].second), get<2>(buff3[i]));
   }
   LOG(INFO) << "Total t = " << total_elapsed << " usec";
   LOG(INFO) << "avg t = " << get_average_time(times);
