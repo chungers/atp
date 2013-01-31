@@ -1,6 +1,7 @@
 
 #include <cmath>
 #include <vector>
+#include <iostream>
 
 #include <boost/assign/std/vector.hpp>
 #include <boost/bind.hpp>
@@ -556,7 +557,7 @@ TEST(MovingWindowTest, TupleUsageTest)
   typedef series::reverse_iterator series_reverse_itr;
 
   unsigned int period_duration = 1;
-  unsigned int periods = 5000;
+  unsigned int periods = 1000;
 
   time_window fx(microseconds(period_duration * periods),
                  microseconds(period_duration), value_t(0., 0., 0));
@@ -678,4 +679,205 @@ TEST(MovingWindowTest, TupleUsageTest)
   }
   LOG(INFO) << "Total t = " << total_elapsed << " usec";
   LOG(INFO) << "avg t = " << get_average_time(times);
+}
+
+template <typename value_t>
+void test_series(unsigned int period_duration,
+                 unsigned int periods,
+                 unsigned int total_events,
+                 function< value_t(int, microsecond_t) > func,
+                 const value_t& initial,
+                 function< std::string(value_t&) > tostring,
+                 function< bool(value_t&, value_t&) > compare,
+                 int copy_length, // = periods + 1,
+                 int runs = 10000)
+{
+  using namespace boost;
+  using namespace atp::time_series::sampler;
+
+  typedef moving_window<value_t, latest<value_t> > time_window;
+  typedef std::pair<microsecond_t, value_t> sample;
+  typedef std::vector<sample> series;
+  typedef typename series::iterator series_itr;
+  typedef typename series::reverse_iterator series_reverse_itr;
+
+  time_window fx(microseconds(period_duration * periods),
+                 microseconds(period_duration), initial);
+
+  boost::uint64_t t = now_micros();
+  t = t - ( t % period_duration ); // this is so that time lines up nicely.
+
+  series data, expects, expects_last;
+  vector<microsecond_t> times;
+
+  microsecond_t now = now_micros();
+  for (int i = 0; i <= total_events; ++i) {
+    value_t val = func(i, t + i);
+    VLOG(50) << "event: "
+             << atp::time::to_est(atp::time::as_ptime(t + i)) << ", "
+             << i << ", "
+             << t << ", "
+             << tostring(val);
+
+    microsecond_t now2 = now_micros();
+    fx(t + i, val);
+    times.push_back(now_micros() - now2);
+    data.push_back(sample(t + i, val));
+  }
+  microsecond_t total_elapsed = now_micros() - now;
+
+  // Calculate expectations based on closing of a period to
+  // match the moving_window's sampler (defaults to close)
+  microsecond_t period_start = t;
+  value_t period_close;
+  for (series_itr itr = data.begin(); itr != data.end(); ++itr) {
+    if (itr->first - period_start >= period_duration) {
+      expects.push_back(sample(period_start, period_close));
+      period_start = itr->first;
+    }
+    // closing value of the period --> always the latest value
+    period_close = itr->second;
+  }
+  // add last current observation
+  expects.push_back(sample(period_start, period_close));
+
+  // Need to truncate the expectations by the last copy_length elements
+
+  VLOG(50) << "expectations:";
+  int skip = expects.size() - copy_length;
+  for (series_itr itr = expects.begin();
+       itr != expects.end();
+       ++itr, --skip) {
+    if (skip <= 0) expects_last.push_back(*itr);
+    value_t val = itr->second;
+    VLOG(50)
+        << "expect: "
+        << atp::time::to_est(atp::time::as_ptime(itr->first)) << ", "
+        << itr->first - t << ", "
+        << itr->first << ", "
+        << tostring(val);
+  }
+
+  for (series_itr itr = expects_last.begin();
+       itr != expects_last.end();
+       ++itr) {
+    value_t val = itr->second;
+    VLOG(50)
+        << "last: "
+        << atp::time::to_est(atp::time::as_ptime(itr->first)) << ", "
+        << itr->first - t << ", "
+        << itr->first << ", "
+        << tostring(val);
+  }
+
+  microsecond_t tbuff[copy_length];
+  value_t buff[copy_length];
+  microsecond_t tbuff2[copy_length];
+  value_t buff2[copy_length];
+  value_t buff3[copy_length];
+
+  microsecond_t total1 = 0;
+  microsecond_t total2 = 0;
+  microsecond_t total3 = 0;
+  microsecond_t s = 0;
+
+  for (int i = 0; i < runs; ++i) {
+    s = now_micros();
+    int copied1 = fx.copy_last(&tbuff[0], &buff[0], copy_length);
+    total1 += now_micros() - s;
+
+    EXPECT_EQ(copy_length, copied1);
+
+    s = now_micros();
+    int copied2 = fx.copy_last_slow(&tbuff2[0], &buff2[0], copy_length);
+    total2 += now_micros() - s;
+
+    EXPECT_EQ(copy_length, copied2);
+
+    s = now_micros();
+    int copied3 = fx.copy_last_data(&buff3[0], copy_length);
+    total3 += now_micros() - s;
+
+    EXPECT_EQ(copy_length, copied3);
+  }
+  LOG(INFO) << "copy " << runs << " runs";
+  LOG(INFO) << "avg copy time (array_one/two) data only = " << total3/runs;
+  LOG(INFO) << "avg copy time (array_one/two)           = " << total1/runs;
+  LOG(INFO) << "avg copy time (reverse_itr)             = " << total2/runs;
+  LOG(INFO) << "t = " << t;
+  LOG(INFO) << "get_time[0] = " << fx.get_time() - t;
+
+  // Compare the sampled data with expectations
+  for (int i = 0; i < copy_length; ++i) {
+    value_t val = buff[i];
+    VLOG(50)
+        << atp::time::to_est(atp::time::as_ptime(tbuff[i])) << ", "
+        << tbuff[i] - t << ", "
+        << tbuff[i] << ", "
+        << tostring(val)
+        << " ... expects: "
+        << expects_last[i].first << ", "
+        << expects_last[i].second;
+
+    ASSERT_EQ(expects_last[i].first, tbuff[i]);
+    ASSERT_TRUE(compare(buff[i], buff3[i]));
+    ASSERT_TRUE(compare(expects_last[i].second, buff[i]));
+  }
+  LOG(INFO) << "Total t = " << total_elapsed << " usec";
+  LOG(INFO) << "avg t = " << get_average_time(times);
+}
+
+template<typename V>
+struct f_2x {
+  V operator()(int i, microsecond_t t)
+  {
+    return 2. * i;
+  }
+};
+
+
+template<typename V>
+struct f_tostring {
+
+  std::string operator()(V& v)
+  {
+    std::ostringstream os;
+    os << v;
+    return os.str();
+  }
+};
+
+template<typename V>
+struct f_compare {
+  bool operator()(V& expect, V& actual)
+  {
+    VLOG(50) << "expect = " << expect << ", actual = " << actual;
+    return expect == actual;
+  }
+};
+
+TEST(MovingWindowTest, UsageDoubleTest1)
+{
+  test_series<double>(1, // period duration
+                      5, // periods
+                      5, // total events
+                      f_2x<double>(),
+                      0., // initial
+                      f_tostring<double>(),
+                      f_compare<double>(),
+                      5 + 1, // length to copy
+                      10000); // runs
+}
+
+TEST(MovingWindowTest, UsageDoubleTest2)
+{
+  test_series<double>(1, // period duration
+                      5000, // periods
+                      1000013, // total events
+                      f_2x<double>(),
+                      0., // initial
+                      f_tostring<double>(),
+                      f_compare<double>(),
+                      500, // length to copy
+                      100000); // runs
 }
