@@ -344,7 +344,7 @@ TEST(MovingWindowTest, FunctionTest)
   series data, expects;
   for (int i = 0; i <= periods*period_duration; ++i) {
     double val = pow(static_cast<double>(i), 2.) - 10. * i;
-    VLOG(50) << atp::time::to_est(atp::time::as_ptime(t + i))
+    VLOG(100) << atp::time::to_est(atp::time::as_ptime(t + i))
               <<", i = " << i << ", " << val;
     fx(t + i, val);
 
@@ -571,7 +571,7 @@ TEST(MovingWindowTest, TupleUsageTest)
   microsecond_t now = now_micros();
   for (int i = 0; i <= periods*period_duration; ++i) {
     value_t val = value_t(pow(static_cast<double>(i), 2.), 2.*i, 2);
-    VLOG(50) << atp::time::to_est(atp::time::as_ptime(t + i))
+    VLOG(100) << atp::time::to_est(atp::time::as_ptime(t + i))
               <<", i = " << i << ", "
               << '['
               << get<0>(val) << "," << get<1>(val) << "," << get<2>(val)
@@ -603,7 +603,7 @@ TEST(MovingWindowTest, TupleUsageTest)
   VLOG(50) << "expectations:";
   for (series_itr itr = expects.begin(); itr != expects.end(); ++itr) {
     value_t val = itr->second;
-    VLOG(50)
+    VLOG(100)
         << atp::time::to_est(atp::time::as_ptime(itr->first)) << ", "
         << "(" << itr->first - t << ", "
         << '['
@@ -661,7 +661,7 @@ TEST(MovingWindowTest, TupleUsageTest)
   // Compare the sampled data with expectations
   for (int i = 0; i < len; ++i) {
     value_t val = buff[i];
-    VLOG(50)
+    VLOG(100)
         << atp::time::to_est(atp::time::as_ptime(tbuff[i])) << ", "
         << "(" << tbuff[i] - t << ", "
         << '['
@@ -711,7 +711,7 @@ void test_series(unsigned int period_duration,
   vector<microsecond_t> times;
 
   microsecond_t now = now_micros();
-  for (int i = 0; i <= total_events; ++i) {
+  for (int i = 0; i < total_events; ++i) {
     value_t val = func(i, t + i);
     VLOG(50) << "event: "
              << atp::time::to_est(atp::time::as_ptime(t + i)) << ", "
@@ -808,20 +808,21 @@ void test_series(unsigned int period_duration,
   LOG(INFO) << "get_time[0] = " << fx.get_time() - t;
 
   // Compare the sampled data with expectations
-  for (int i = 0; i < copy_length; ++i) {
-    value_t val = buff[i];
+  for (int i = 1; i <= expects_last.size(); ++i) {
+    value_t val = buff[copy_length - i];
     VLOG(50)
         << atp::time::to_est(atp::time::as_ptime(tbuff[i])) << ", "
-        << tbuff[i] - t << ", "
-        << tbuff[i] << ", "
+        << tbuff[copy_length - i] - t << ", "
+        << tbuff[copy_length - i] << ", "
         << tostring(val)
         << " ... expects: "
-        << expects_last[i].first << ", "
-        << expects_last[i].second;
+        << expects_last[expects_last.size() - i].first << ", "
+        << expects_last[expects_last.size() - i].second;
 
-    ASSERT_EQ(expects_last[i].first, tbuff[i]);
-    ASSERT_TRUE(compare(buff[i], buff3[i]));
-    ASSERT_TRUE(compare(expects_last[i].second, buff[i]));
+    ASSERT_EQ(expects_last[expects_last.size()-i].first, tbuff[copy_length-i]);
+    ASSERT_TRUE(compare(buff[copy_length - i], buff3[copy_length - i]));
+    ASSERT_TRUE(compare(expects_last[expects_last.size() - i].second,
+                        buff[copy_length - i]));
   }
   LOG(INFO) << "Total t = " << total_elapsed << " usec";
   LOG(INFO) << "avg t = " << get_average_time(times);
@@ -859,14 +860,14 @@ struct f_compare {
 TEST(MovingWindowTest, UsageDoubleTest1)
 {
   test_series<double>(1, // period duration
-                      5, // periods
-                      5, // total events
+                      5001, // periods
+                      1000013, // total events
                       f_2x<double>(),
                       0., // initial
                       f_tostring<double>(),
                       f_compare<double>(),
-                      5 + 1, // length to copy
-                      10000); // runs
+                      501, // length to copy
+                      100000); // runs
 }
 
 TEST(MovingWindowTest, UsageDoubleTest2)
@@ -881,3 +882,30 @@ TEST(MovingWindowTest, UsageDoubleTest2)
                       500, // length to copy
                       100000); // runs
 }
+
+TEST(MovingWindowTest, UsageDoubleTest3)
+{
+  test_series<double>(1, // period duration
+                      10, // periods
+                      5, // total events
+                      f_2x<double>(),
+                      0., // initial
+                      f_tostring<double>(),
+                      f_compare<double>(),
+                      4, // length to copy
+                      10000); // runs
+}
+
+TEST(MovingWindowTest, UsageDoubleTest4)
+{
+  test_series<double>(1, // period duration
+                      10, // periods
+                      4, // total events
+                      f_2x<double>(),
+                      0., // initial
+                      f_tostring<double>(),
+                      f_compare<double>(),
+                      6, // length to copy
+                      10000); // runs
+}
+
