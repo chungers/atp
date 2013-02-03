@@ -19,6 +19,7 @@
 #include "common/moving_window.hpp"
 #include "common/time_utils.hpp"
 
+using namespace boost;
 using namespace boost::assign;
 using namespace boost::posix_time;
 using namespace atp::time_series;
@@ -817,7 +818,7 @@ void test_series(unsigned int period_duration,
         << tostring(val)
         << " ... expects: "
         << expects_last[expects_last.size() - i].first << ", "
-        << expects_last[expects_last.size() - i].second;
+        << tostring(expects_last[expects_last.size() - i].second);
 
     ASSERT_EQ(expects_last[expects_last.size()-i].first, tbuff[copy_length-i]);
     ASSERT_TRUE(compare(buff[copy_length - i], buff3[copy_length - i]));
@@ -909,3 +910,99 @@ TEST(MovingWindowTest, UsageDoubleTest4)
                       10000); // runs
 }
 
+TEST(MovingWindowTest, UsageDoubleTest5)
+{
+  test_series<double>(3, // period duration
+                      10, // periods
+                      4000, // total events
+                      f_2x<double>(),
+                      0., // initial
+                      f_tostring<double>(),
+                      f_compare<double>(),
+                      5, // length to copy
+                      10000); // runs
+}
+
+
+typedef tuple<double, double, int> value_t;
+struct f_tuple {
+  value_t operator()(int i, microsecond_t t)
+  {
+    return value_t(i * 2., static_cast<double>(i) / 2., i);
+  }
+};
+struct tostring_tuple {
+  std::string operator()(value_t& v)
+  {
+    std::ostringstream os;
+    os << "<" << get<0>(v) << "," << get<1>(v) << "," << get<2>(v) << ">";
+    return os.str();
+  }
+};
+struct compare_tuple {
+  bool operator()(value_t& expect, value_t& actual)
+  {
+    return get<0>(expect) == get<0>(actual) &&
+        get<1>(expect) == get<1>(actual) &&
+        get<2>(expect) == get<2>(actual);
+  }
+};
+
+TEST(MovingWindowTest, TupleTest1)
+{
+  test_series<value_t>(1, // period duration
+                       10000, // periods
+                       1000000, // total events
+                       f_tuple(),
+                       value_t(0., 0., 0), // initial
+                       tostring_tuple(),
+                       compare_tuple(),
+                       1000, // length to copy
+                       100000); // runs
+}
+
+struct value_struct {
+  value_struct(){}
+  value_struct(const value_struct& other)
+  { first = other.first; second = other.second; third = other.third; }
+
+  value_struct(double first, double second, double third) :
+      first(first), second(second), third(third) {}
+
+  double first, second, third;
+};
+struct f_struct {
+  value_struct operator()(int i, microsecond_t t)
+  {
+    return value_struct(i * 2., static_cast<double>(i) / 2., i * 1.);
+  }
+};
+struct tostring_struct {
+  std::string operator()(value_struct& v)
+  {
+    std::ostringstream os;
+    os << "<" << v.first << "," << v.second << "," << v.third << ">";
+    return os.str();
+  }
+};
+struct compare_struct {
+  bool operator()(value_struct& expect, value_struct& actual)
+  {
+    return expect.first == actual.first &&
+        expect.second == actual.second &&
+        expect.third == actual.third;
+  }
+};
+
+TEST(MovingWindowTest, StructTest1)
+{
+  test_series<value_struct>(1, // period duration
+                            10000, // periods
+                            1000000, // total events
+                            f_struct(),
+                            value_struct(0., 0., 0), // initial
+                            tostring_struct(),
+                            compare_struct(),
+                            1000, // length to copy
+                            100000); // runs
+}
