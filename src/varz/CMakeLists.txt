@@ -20,6 +20,8 @@ set(atp_varz_srcs
 set(atp_varz_libs
   dl
   boost_system
+  boost_thread
+  json_spirit
   gflags
   glog
 )

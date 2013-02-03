@@ -1,13 +1,7 @@
 #ifndef ATP_TIME_SERIES_H_
 #define ATP_TIME_SERIES_H_
 
-#include <boost/assign.hpp>
-#include <boost/bind.hpp>
-#include <boost/circular_buffer.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/function.hpp>
-#include <boost/pool/object_pool.hpp>
-#include <boost/pool/pool_alloc.hpp>
 
 
 namespace atp {
@@ -40,6 +34,9 @@ class data_series
 {
 
  public:
+
+  typedef boost::function< V(const data_series<T, V>&) > series_operation;
+  typedef boost::function< V(T*, V*, size_t) > array_operation;
 
   data_series() : t(*this) {}
 

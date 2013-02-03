@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 
+#include <boost/circular_buffer.hpp>
+#include <boost/pool/object_pool.hpp>
+#include <boost/pool/pool_alloc.hpp>
 #include <boost/ref.hpp>
 
 #include "common/moving_window_callback.hpp"
@@ -39,13 +42,11 @@ class moving_window : public data_series<microsecond_t, element_t>
 {
  public:
 
-  typedef
-  function< element_t(const data_series<microsecond_t, element_t>&) >
-  series_operation;
+  typedef typename
+  data_series<microsecond_t, element_t>::series_operation series_operation;
 
-  typedef
-  function< element_t(microsecond_t*, element_t*, size_t) >
-  array_operation;
+  typedef typename
+  data_series<microsecond_t, element_t>::array_operation array_operation;
 
 
   /// total duration, time resolution, and initial value
