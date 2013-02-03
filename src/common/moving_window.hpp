@@ -306,8 +306,8 @@ class moving_window : public data_series<microsecond_t, element_t>
   /// implements data_series::apply
   virtual data_series<microsecond_t, element_t>&
   apply2(const string& id,
-        sample_array_operation op,
-        const size_t min_samples = 1)
+         sample_array_operation op,
+         const size_t min_samples = 1)
   {
     operation<sample_array_operation> rec(id, op, min_samples,
                                           history_duration_,
@@ -319,8 +319,8 @@ class moving_window : public data_series<microsecond_t, element_t>
   /// implements data_series::apply
   virtual data_series<microsecond_t, element_t>&
   apply3(const string& id,
-        value_array_operation op,
-        const size_t min_samples = 1)
+         value_array_operation op,
+         const size_t min_samples = 1)
   {
     operation<value_array_operation> rec(id, op, min_samples,
                                          history_duration_,

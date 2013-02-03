@@ -450,6 +450,10 @@ struct log
   {
     return ::log(series[0]);
   }
+  double operator()(const double* series, const size_t len)
+  {
+    return ::log(series[0]);
+  }
 };
 
 struct negate
@@ -504,7 +508,7 @@ TEST(MovingWindowTest, SeriesOperationsUsage)
       microseconds(period_duration * periods),
       microseconds(period_duration), 0.);
 
-  trace& log = fx.apply("log", operations::log());
+  trace& log = fx.apply3("log", operations::log());
   trace& dxdt = fx.apply("dx/dt", operations::dfdt(), 2);
   trace& d2xdt2 = fx.apply("d2x/dt2", operations::df2dt2(), 3);
 

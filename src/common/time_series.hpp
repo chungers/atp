@@ -36,8 +36,9 @@ class data_series
  public:
 
   typedef boost::function< V(const data_series<T, V>&) > series_operation;
-  typedef boost::function< V(T*, V*, size_t) > sample_array_operation;
-  typedef boost::function< V(V*, size_t) > value_array_operation;
+  typedef boost::function< V(const T*, const V*, const size_t) >
+  sample_array_operation;
+  typedef boost::function< V(const V*, const size_t) > value_array_operation;
 
   data_series() : t(*this) {}
 
@@ -47,13 +48,18 @@ class data_series
   virtual size_t size() const = 0;
   virtual sample_interval_t time_period() const = 0;
 
+  /// Three different forms of apply with different functor types
+  /// Note that we have to use different function names because
+  /// a class can overload all three operators and so we need different
+  /// function names to disambiguate which corresponding functor we want to
+  /// use.
   virtual data_series<T, V>& apply(const std::string& id,
                                    series_operation op,
                                    const size_t min_samples = 1) = 0;
 
   virtual data_series<T, V>& apply2(const std::string& id,
-                                   sample_array_operation op,
-                                   const size_t min_samples = 1) = 0;
+                                    sample_array_operation op,
+                                    const size_t min_samples = 1) = 0;
 
   virtual data_series<T, V>& apply3(const std::string& id,
                                     value_array_operation op,
