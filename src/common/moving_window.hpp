@@ -43,11 +43,16 @@ class moving_window : public data_series<microsecond_t, element_t>
  public:
 
   typedef typename
-  data_series<microsecond_t, element_t>::series_operation series_operation;
+  data_series<microsecond_t, element_t>::series_operation
+  series_operation;
 
   typedef typename
-  data_series<microsecond_t, element_t>::array_operation array_operation;
+  data_series<microsecond_t, element_t>::sample_array_operation
+  sample_array_operation;
 
+  typedef typename
+  data_series<microsecond_t, element_t>::value_array_operation
+  value_array_operation;
 
   /// total duration, time resolution, and initial value
   moving_window(time_duration h, sample_interval_t i, element_t init) :
@@ -75,9 +80,9 @@ class moving_window : public data_series<microsecond_t, element_t>
          ++itr) {
       delete itr->second.series;
     }
-    typename vector<array_operation_pair>::iterator itr2;
-    for (itr2 = array_operations.begin();
-         itr2 != array_operations.end();
+    typename vector<sample_array_operation_pair>::iterator itr2;
+    for (itr2 = sample_array_operations.begin();
+         itr2 != sample_array_operations.end();
          ++itr2) {
       delete itr2->second.series;
     }
@@ -246,16 +251,31 @@ class moving_window : public data_series<microsecond_t, element_t>
       (*itr->second.series)(current_ts_, derived);
     }
 
-    if (array_operations.size() > 0) {
+    if (value_array_operations.size() > 0) {
+      // do array copy
+      size_t len = capacity();
+      element_t vbuff[len];
+      if (copy_last_data(&vbuff[0], len)) {
+        typename vector<value_array_operation_pair>::iterator itr2;
+        for (itr2 = value_array_operations.begin();
+             itr2 != value_array_operations.end();
+           ++itr2) {
+          element_t derived = itr2->second.functor(&vbuff[0], len);
+          (*itr2->second.series)(current_ts_, derived);
+        }
+      }
+    }
+
+    if (sample_array_operations.size() > 0) {
       // do array copy
       size_t len = capacity();
       microsecond_t tbuff[len];
       element_t vbuff[len];
 
       if (copy_last(&tbuff[0], &vbuff[0], len)) {
-        typename vector<array_operation_pair>::iterator itr2;
-        for (itr2 = array_operations.begin();
-             itr2 != array_operations.end();
+        typename vector<sample_array_operation_pair>::iterator itr2;
+        for (itr2 = sample_array_operations.begin();
+             itr2 != sample_array_operations.end();
            ++itr2) {
           element_t derived = itr2->second.functor(&tbuff[0], &vbuff[0], len);
           (*itr2->second.series)(current_ts_, derived);
@@ -271,9 +291,11 @@ class moving_window : public data_series<microsecond_t, element_t>
     return p;
   }
 
-  data_series<microsecond_t, element_t>& apply(const string& id,
-                                               series_operation op,
-                                               const size_t min_samples = 1)
+  /// implements data_series::apply
+  virtual data_series<microsecond_t, element_t>&
+  apply(const string& id,
+        series_operation op,
+        const size_t min_samples = 1)
   {
     operation<series_operation> rec(id, op, min_samples, history_duration_,
                                     interval_, init_);
@@ -281,15 +303,33 @@ class moving_window : public data_series<microsecond_t, element_t>
     return *rec.series;
   }
 
-  moving_window<element_t, latest<element_t> >& apply2(const string& id,
-                                               series_operation op,
-                                               const size_t min_samples = 1)
+  /// implements data_series::apply
+  virtual data_series<microsecond_t, element_t>&
+  apply2(const string& id,
+        sample_array_operation op,
+        const size_t min_samples = 1)
   {
-    operation<series_operation> rec(id, op, min_samples, history_duration_,
-                                    interval_, init_);
-    series_operations.push_back(series_operation_pair(id, rec));
+    operation<sample_array_operation> rec(id, op, min_samples,
+                                          history_duration_,
+                                          interval_, init_);
+    sample_array_operations.push_back(sample_array_operation_pair(id, rec));
     return *rec.series;
   }
+
+  /// implements data_series::apply
+  virtual data_series<microsecond_t, element_t>&
+  apply3(const string& id,
+        value_array_operation op,
+        const size_t min_samples = 1)
+  {
+    operation<value_array_operation> rec(id, op, min_samples,
+                                         history_duration_,
+                                         interval_, init_);
+    value_array_operations.push_back(value_array_operation_pair(id, rec));
+    return *rec.series;
+  }
+
+
 
  private:
 
@@ -342,11 +382,18 @@ class moving_window : public data_series<microsecond_t, element_t>
     moving_window< element_t, latest<element_t> >* series;
   };
 
-  typedef pair<string, operation<series_operation> > series_operation_pair;
-  typedef pair<string, operation<array_operation> > array_operation_pair;
+  typedef pair<string, operation<series_operation> >
+  series_operation_pair;
+
+  typedef pair<string, operation<sample_array_operation> >
+  sample_array_operation_pair;
+
+  typedef pair<string, operation<value_array_operation> >
+  value_array_operation_pair;
 
   vector<series_operation_pair> series_operations;
-  vector<array_operation_pair> array_operations;
+  vector<sample_array_operation_pair> sample_array_operations;
+  vector<value_array_operation_pair> value_array_operations;
 
 };
 

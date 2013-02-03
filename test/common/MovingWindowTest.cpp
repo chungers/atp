@@ -509,7 +509,7 @@ TEST(MovingWindowTest, SeriesOperationsUsage)
   trace& d2xdt2 = fx.apply("d2x/dt2", operations::df2dt2(), 3);
 
   // dependent the result of the computation --> an extra pipeline stage.
-  close_series& linear = fx.apply2("2x+1", operations::linear(2., 1.));
+  trace& linear = fx.apply("2x+1", operations::linear(2., 1.));
   trace& dxdt_2 = linear.apply("dx/dt", operations::dfdt(), 2);
 
   boost::uint64_t t = now_micros();
