@@ -163,6 +163,31 @@ set(prototype_indicator_libs
   )
 cpp_gtest(prototype_indicator)
 
+# OhlcPrototype
+set(prototype_ohlc_incs
+  ${GEN_DIR}
+  ${SRC_DIR}
+  ${PROTOTYPE_DIR}
+  ${IBAPI_ROOT}
+  ${IBAPI_ROOT}/Shared
+)
+set(prototype_ohlc_srcs
+  ${TEST_DIR}/AllTests.cpp
+  ohlc_prototype.cpp
+)
+set(prototype_ohlc_libs
+  atp_service_all
+  atp_platform_all
+  boost_system
+  boost_iostreams
+  gflags
+  glog
+  ta_lib
+  bz2
+  z
+  )
+cpp_gtest(prototype_ohlc)
+
 # prototype_strategy
 set(prototype_strategy_incs
   ${GEN_DIR}
@@ -219,5 +244,6 @@ add_dependencies(all_prototypes
   prototype_numeric
   prototype_ib
   prototype_indicator
+  prototype_ohlc
   prototype_strategy
 )

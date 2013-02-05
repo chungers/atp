@@ -23,8 +23,6 @@ using boost::uint64_t;
 namespace atp {
 namespace time {
 
-typedef boost::uint64_t timestamp_t;
-
 //eastern timezone is utc-5
 /// http://www.boost.org/doc/libs/1_37_0/doc/html/boost/date_time/local_adjustor.html
 typedef boost::date_time::local_adjustor<ptime, -5, us_dst> us_eastern;
@@ -37,10 +35,6 @@ static const ptime EPOCH(boost::gregorian::date(1970,boost::gregorian::Jan,1));
 static const std::locale TIME_FORMAT = std::locale(
     std::cout.getloc(),
     new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S%F%Q"));
-
-// static const std::locale TIME_FORMAT = std::locale(
-//     std::cout.getloc(),
-//     new boost::posix_time::time_input_facet("%Y-%m-%d %H:%M:%S%F%Q"));
 
 static const time_duration RTH_START_EST(9, 30, 0, 0);
 static const time_duration RTH_END_EST(16, 0, 0, 0);

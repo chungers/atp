@@ -2,6 +2,7 @@
 #define ATP_TIME_SERIES_H_
 
 #include <boost/function.hpp>
+#include "common/time_utils.hpp"
 
 
 namespace atp {
@@ -14,8 +15,8 @@ typedef boost::posix_time::time_duration sample_interval_t;
 template <typename T, typename V> class data_series;
 
 
-  /// Syntax sugar -- a class that has the array element operator
-  /// to allow specification of time using foo.t[-1] syntax.
+/// Syntax sugar -- a class that has the array element operator
+/// to allow specification of time using foo.t[-1] syntax.
 template <typename T, typename V>
 class time_axis {
  public:

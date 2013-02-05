@@ -11,7 +11,7 @@
 #include <boost/bind.hpp>
 
 #include "common.hpp"
-#include "common/time_utils.hpp"
+
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
 #include "platform/platform.hpp"
@@ -61,7 +61,7 @@ using boost::posix_time::ptime;
 using boost::posix_time::time_duration;
 using boost::posix_time::milliseconds;
 
-using atp::time::timestamp_t;
+using atp::platform::types::timestamp_t;
 
 struct state_t
 {

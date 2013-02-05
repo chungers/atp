@@ -11,7 +11,7 @@ namespace p = proto::ib;
 using namespace std;
 typedef boost::uint64_t timer_t;
 
-using atp::time::timestamp_t;
+using atp::platform::types::timestamp_t;
 
 
 ticker_id_symbol_map_t& symbol_map()

@@ -3,11 +3,13 @@
 
 #include <boost/function.hpp>
 
+#include "common/time_series.hpp"
+
 namespace atp {
 namespace platform {
 namespace types {
 
-typedef boost::uint64_t timestamp_t;
+typedef atp::time_series::microsecond_t timestamp_t;
 
 } // types
 } // platform
