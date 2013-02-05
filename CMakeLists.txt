@@ -6,7 +6,18 @@ cmake_minimum_required(VERSION 2.6)
 project(ATP)
 
 
-set(OPTIMIZE_LEVEL 2)
+# Platform specific parameters
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+   set(OperatingSystem "Mac OS X")
+   set(OPTIMIZE_LEVEL 0)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+   set(OperatingSystem "Linux")
+   set(OPTIMIZE_LEVEL 4)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+
 # -O2 -fomit-frame-pointer for prod (no profiling)
 
 # Build for debugging and profiling
