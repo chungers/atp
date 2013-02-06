@@ -114,11 +114,11 @@ struct logger_post_process : public ohlc_post_process<V>
 
 typedef ohlc<double, post_process_cout<double> > ohlc_t;
 
-struct agent
+struct trader
 {
-  typedef atp::platform::callback::update_event<double>::func agent_update;
+  typedef atp::platform::callback::update_event<double>::func updater;
 
-  agent(int bars, int seconds_per_bar) :
+  trader(int bars, int seconds_per_bar) :
       ohlc(seconds(bars * seconds_per_bar),
            seconds(seconds_per_bar), 0.) {}
 
@@ -133,23 +133,6 @@ struct agent
   ohlc_t ohlc;
 };
 
-struct trader
-{
-  typedef atp::platform::callback::update_event<double>::func updater;
-
-  trader(ohlc_t& ohlc) : ohlc(ohlc) {}
-
-  /// receives update of LAST
-  void operator()(const microsecond_t& t, const double& v)
-  {
-    ptime tt = atp::time::as_ptime(t);
-    cout << atp::time::to_est(tt) << "," << v << std::endl;
-    ohlc(t, v);
-  }
-
-  ohlc_t& ohlc;
-};
-
 TEST(OhlcPrototype, OhlcUsage)
 {
   using namespace atp::time_series;
@@ -161,15 +144,8 @@ TEST(OhlcPrototype, OhlcUsage)
 
   marketdata_handler<MarketData> feed_handler1;
 
-  // A wrapper class -- timestamp of ohlc is wrong
-  agent agent(bars, bar_interval);
-  // Need to cast to disambiguate which functor type we are using.
-  //feed_handler1.bind("LAST", static_cast<agent::agent_update>(agent));
-
-  // For some reason, only this works properly -- the ohlc operator()
-  // gets called and the timestamps are correct.
-  ohlc_t ohlc(seconds(bars * bar_interval), seconds(bar_interval), 0.);
-  trader trader(ohlc);
+  // A typical trader class that contains ohlc and other indicators
+  trader trader(bars, bar_interval);
   feed_handler1.bind("LAST", static_cast<trader::updater>(trader));
 
   message_processor::protobuf_handlers_map symbol_handlers1;

@@ -71,7 +71,6 @@ class moving_window : public data_series<microsecond_t, element_t>
     }
   }
 
-
   ~moving_window()
   {
     typename vector<series_operation_pair>::iterator itr;

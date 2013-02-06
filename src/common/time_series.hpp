@@ -15,21 +15,6 @@ typedef boost::posix_time::time_duration sample_interval_t;
 template <typename T, typename V> class data_series;
 
 
-/// Syntax sugar -- a class that has the array element operator
-/// to allow specification of time using foo.t[-1] syntax.
-template <typename T, typename V>
-class time_axis {
- public:
-  time_axis(const data_series<T, V>& series) : series(series) {};
-  const T operator[](int i) const
-  {
-    return series.get_time(i);
-  }
- private:
-  const data_series<T,V>& series;
-};
-
-
 template <typename T, typename V>
 class data_series
 {
@@ -40,8 +25,6 @@ class data_series
   typedef boost::function< V(const T*, const V*, const size_t) >
   sample_array_operation;
   typedef boost::function< V(const V*, const size_t) > value_array_operation;
-
-  data_series() : t(*this) {}
 
   /// supports backwards indexing (negative index)
   virtual V operator[](int index) const = 0;
@@ -65,8 +48,6 @@ class data_series
   virtual data_series<T, V>& apply3(const std::string& id,
                                     value_array_operation op,
                                     const size_t min_samples = 1) = 0;
-
-  const time_axis<T, V> t;
 };
 
 

@@ -58,7 +58,6 @@ class ohlc
       , close_(h, s, initial)
       , high_(h, s, initial)
       , low_(h, s, initial)
-      , t(open_)
   {
   }
 
@@ -103,9 +102,6 @@ class ohlc
   {
     return low_;
   }
-
- public:
-  const time_axis<microsecond_t, V> t;
 
  private:
 

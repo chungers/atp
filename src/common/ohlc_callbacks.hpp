@@ -43,7 +43,7 @@ class post_process_cout : public ohlc_post_process<V>
                          const data_series<microsecond_t, V>& close)
   {
     for (int i = -count; i < 0; ++i) {
-      ptime t = atp::time::as_ptime(open.t[i]);
+      ptime t = atp::time::as_ptime(open.get_time(i));
       cout << atp::time::to_est(t) << ","
            << open[i] << ","
            << high[i] << ","
