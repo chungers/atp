@@ -1,6 +1,7 @@
 #ifndef ATP_TIME_SERIES_OHLC_CALLBACKS_H_
 #define ATP_TIME_SERIES_OHLC_CALLBACKS_H_
 
+#include <string>
 
 #include "common/moving_window_samplers.hpp"
 #include "common/ohlc.hpp"
@@ -30,7 +31,8 @@ class post_process_cout : public ohlc_post_process<V>
   typedef atp::time_series::sampler::min<V> ohlc_low;
   typedef atp::time_series::sampler::max<V> ohlc_high;
 
-  post_process_cout() :
+  post_process_cout(const string& id, const string& label) :
+      id_(id), label_(label),
       facet_(new time_facet("%Y-%m-%d %H:%M:%S%F%Q"))
   {
     std::cout.imbue(std::locale(std::cout.getloc(), facet_));
@@ -45,6 +47,8 @@ class post_process_cout : public ohlc_post_process<V>
     for (int i = -count; i < 0; ++i) {
       ptime t = atp::time::as_ptime(open.get_time(i));
       cout << atp::time::to_est(t) << ","
+           << id_ << ","
+           << label_ << ","
            << open[i] << ","
            << high[i] << ","
            << low[i] << ","
@@ -53,6 +57,8 @@ class post_process_cout : public ohlc_post_process<V>
   }
 
  private:
+  string id_;
+  string label_;
   time_facet* facet_;
 };
 

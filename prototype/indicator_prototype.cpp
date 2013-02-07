@@ -181,9 +181,7 @@ TEST(IndicatorPrototype, OhlcUsage)
   using namespace atp::time_series;
   using namespace atp::time_series::callback;
 
-  typedef ohlc<double, post_process_cout<double> > ohlc_last;
-  typedef ohlc<double, logger_post_process<double> > ohlc_last_logging;
-
+  typedef ohlc<double> ohlc_last;
 
   int scan_seconds = 10;
   marketdata_handler<MarketData> feed_handler1;

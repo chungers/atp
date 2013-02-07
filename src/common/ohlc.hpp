@@ -19,16 +19,22 @@ using atp::time_series::microsecond_t;
 template <typename V>
 struct ohlc_post_process
 {
-  typedef atp::time_series::sampler::open<V> ohlc_open;
-  typedef atp::time_series::sampler::close<V> ohlc_close;
-  typedef atp::time_series::sampler::min<V> ohlc_low;
-  typedef atp::time_series::sampler::max<V> ohlc_high;
+  virtual void operator()(const size_t count,
+                          const data_series<microsecond_t, V>& open,
+                          const data_series<microsecond_t, V>& high,
+                          const data_series<microsecond_t, V>& low,
+                          const data_series<microsecond_t, V>& close) = 0;
+};
 
-  inline void operator()(const size_t count,
-                         const data_series<microsecond_t, V>& open,
-                         const data_series<microsecond_t, V>& high,
-                         const data_series<microsecond_t, V>& low,
-                         const data_series<microsecond_t, V>& close)
+
+template <typename V>
+struct ohlc_post_process_noop : public ohlc_post_process<V>
+{
+  virtual void operator()(const size_t count,
+                          const data_series<microsecond_t, V>& open,
+                          const data_series<microsecond_t, V>& high,
+                          const data_series<microsecond_t, V>& low,
+                          const data_series<microsecond_t, V>& close)
   {
     UNUSED(count); UNUSED(open); UNUSED(high); UNUSED(low); UNUSED(close);
   }
@@ -36,29 +42,32 @@ struct ohlc_post_process
 } // callback
 
 
-template <typename V, typename PostProcess = callback::ohlc_post_process<V> >
+
+using namespace atp::time_series::sampler;
+
+template <typename V>
 class ohlc
 {
+
  public:
 
-  typedef atp::time_series::sampler::open<V> ohlc_open;
-  typedef moving_window<V, ohlc_open > mw_open;
-
-  typedef atp::time_series::sampler::close<V> ohlc_close;
-  typedef moving_window<V, ohlc_close > mw_close;
-
-  typedef atp::time_series::sampler::max<V> ohlc_high;
-  typedef moving_window<V, ohlc_high > mw_high;
-
-  typedef atp::time_series::sampler::min<V> ohlc_low;
-  typedef moving_window<V, ohlc_low > mw_low;
+  typedef moving_window<V, sampler::open<V> > mw_open;
+  typedef moving_window<V, sampler::close<V> > mw_close;
+  typedef moving_window<V, sampler::max<V> > mw_high;
+  typedef moving_window<V, sampler::min<V> > mw_low;
 
   ohlc(time_duration h, time_duration s, V initial) :
       open_(h, s, initial)
       , close_(h, s, initial)
       , high_(h, s, initial)
       , low_(h, s, initial)
+      , post_(NULL)
   {
+  }
+
+  void set(callback::ohlc_post_process<V>& pp)
+  {
+    post_ = &pp;
   }
 
   size_t operator()(const microsecond_t& timestamp, const V& value)
@@ -79,7 +88,10 @@ class ohlc
     low_(timestamp, value);
 
     // assume the sizes are all the same.
-    post_(open, open_, high_, low_, close_);
+    if (post_ != NULL) {
+      (*post_)(open, open_, high_, low_, close_);
+    }
+
     return open;
   }
 
@@ -109,7 +121,7 @@ class ohlc
   mw_close close_;
   mw_high high_;
   mw_low low_;
-  PostProcess post_;
+  callback::ohlc_post_process<V>* post_;
 
 };
 

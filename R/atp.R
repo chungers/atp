@@ -118,3 +118,25 @@ atp.ohlc <- function(data, on="secs", multiple=1) {
 	m
 }
 
+atp.process_output <- function(fname) {
+  
+  library(quantmod)
+
+  colNames <- c('timestamp', 'id', 'label', 'v1', 'v2', 'v3', 'v4')
+  colTypes <- c('character', 'character', 'character', 'numeric', 'numeric', 'numeric', 'numeric')
+  df <- read.table(fname, sep=',', fill=TRUE, col.names=colNames, colClasses=colTypes)
+  last <- subset(df, df$label=='last')
+  last.xts <- as.xts(df$v1, order.by=as.POSIXlt(df$timestamp, tz="Americas/New_York"))
+  ohlc <- subset(df, df$label=='ohlc')
+  open.xts <- as.xts(ohlc$v1, order.by=as.POSIXlt(ohlc$timestamp, tz="Americas/New_York"))
+  high.xts <- as.xts(ohlc$v2, order.by=as.POSIXlt(ohlc$timestamp, tz="Americas/New_York"))
+  low.xts <- as.xts(ohlc$v3, order.by=as.POSIXlt(ohlc$timestamp, tz="Americas/New_York"))
+  close.xts <- as.xts(ohlc$v4, order.by=as.POSIXlt(ohlc$timestamp, tz="Americas/New_York"))
+  cols <- c('Open', 'High', 'Low', 'Close')
+  ohlc.xts <- cbind(open.xts, high.xts, low.xts, close.xts)
+  colnames(ohlc.xts) <- cols
+ 
+  chartSeries(ohlc.xts)
+  
+  list(last=last.xts, ohlc=ohlc.xts)
+}

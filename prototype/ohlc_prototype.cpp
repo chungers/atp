@@ -112,24 +112,34 @@ struct logger_post_process : public ohlc_post_process<V>
 } // atp
 
 
-typedef ohlc<double, post_process_cout<double> > ohlc_t;
+typedef ohlc<double> ohlc_t;
 
 struct trader
 {
   typedef atp::platform::callback::update_event<double>::func updater;
 
-  trader(int bars, int seconds_per_bar) :
+  trader(const string id, int bars, int seconds_per_bar) :
+      id(id),
+      ohlc_pp(id, "ohlc"),
       ohlc(seconds(bars * seconds_per_bar),
-           seconds(seconds_per_bar), 0.) {}
+           seconds(seconds_per_bar), 0.)
+  {
+    ohlc.set(ohlc_pp);
+  }
 
   /// receives update of LAST
   void operator()(const microsecond_t& t, const double& v)
   {
     ptime tt = atp::time::as_ptime(t);
-    cout << atp::time::to_est(tt) << "," << v << std::endl;
+    cout << atp::time::to_est(tt) << ","
+         << id << ","
+         << "last" << ","
+         << v << std::endl;
     ohlc(t, v);
   }
 
+  string id;
+  post_process_cout<double> ohlc_pp;
   ohlc_t ohlc;
 };
 
@@ -145,7 +155,7 @@ TEST(OhlcPrototype, OhlcUsage)
   marketdata_handler<MarketData> feed_handler1;
 
   // A typical trader class that contains ohlc and other indicators
-  trader trader(bars, bar_interval);
+  trader trader("trader1", bars, bar_interval);
   feed_handler1.bind("LAST", static_cast<trader::updater>(trader));
 
   message_processor::protobuf_handlers_map symbol_handlers1;
