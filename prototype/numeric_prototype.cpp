@@ -27,8 +27,8 @@
 using std::string;
 
 using namespace boost::posix_time;
-using namespace atp::time_series;
-using namespace atp::time_series::callback;
+using namespace atp::common;
+using namespace atp::common::callback;
 using namespace atp::platform::marketdata;
 using boost::posix_time::time_duration;
 
@@ -40,12 +40,12 @@ using boost::function;
 namespace prototype {
 
 template <typename V>
-class indicator : public moving_window<V, atp::time_series::sampler::close<V> >
+class indicator : public moving_window<V, atp::common::sampler::close<V> >
 {
  public:
   indicator(const string& id,
             time_duration h, sample_interval_t i, V init) :
-      moving_window<V, atp::time_series::sampler::close<V> >(h, i, init),
+      moving_window<V, atp::common::sampler::close<V> >(h, i, init),
       id_(id)
   {
     LOG(INFO) << get_id() << " created.";
@@ -177,13 +177,13 @@ class prototype_marketdata_handler : public marketdata_handler<E>
 
 TEST(NumericPrototype, DerivedCalculations)
 {
-  using namespace atp::time_series;
-  using namespace atp::time_series::callback;
+  using namespace atp::common;
+  using namespace atp::common::callback;
   using namespace prototype;
 
   atp::platform::prototype_marketdata_handler<MarketData> feed;
 
-  moving_window< double, atp::time_series::sampler::close<double> >
+  moving_window< double, atp::common::sampler::close<double> >
       price(microseconds(10), microseconds(1), 0);
 
   first_derivative<double> close_rate("d/dt",
@@ -191,7 +191,7 @@ TEST(NumericPrototype, DerivedCalculations)
   first_derivative<double> close_rate2("d/dt-2",
                                        microseconds(10), microseconds(1), 0);
 
-  prototype::pipeline<double, atp::time_series::sampler::close<double> >
+  prototype::pipeline<double, atp::common::sampler::close<double> >
       pp = price >> close_rate2 >> close_rate;
 
   microsecond_t t = now_micros();

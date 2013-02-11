@@ -9,7 +9,7 @@ namespace atp {
 namespace platform {
 namespace types {
 
-typedef atp::time_series::microsecond_t timestamp_t;
+typedef atp::common::microsecond_t timestamp_t;
 
 } // types
 } // platform

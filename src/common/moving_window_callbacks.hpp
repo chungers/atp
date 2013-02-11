@@ -1,5 +1,5 @@
-#ifndef ATP_TIME_SERIES_MOVING_WINDOW_CALLBACKS_H_
-#define ATP_TIME_SERIES_MOVING_WINDOW_CALLBACKS_H_
+#ifndef ATP_COMMON_MOVING_WINDOW_CALLBACKS_H_
+#define ATP_COMMON_MOVING_WINDOW_CALLBACKS_H_
 
 #include <string>
 
@@ -11,18 +11,17 @@
 
 using namespace std;
 using namespace boost::posix_time;
-using atp::time_series::data_series;
+using atp::common::time_series;
 
 /// Contains actual implementation of the callbacks as
 /// defined in common/moving_window_callback.hpp
 
 namespace atp {
-namespace time_series {
+namespace common {
 namespace callback {
 
 template <typename label_functor, typename T, typename V>
-class moving_window_post_process_cout :
-      public moving_window_post_process<T, V>
+class moving_window_post_process_cout : public moving_window_post_process<T, V>
 {
  public:
 
@@ -35,7 +34,7 @@ class moving_window_post_process_cout :
 
 
   inline virtual void operator()(const size_t count,
-                                 const data_series<T, V>& window)
+                                 const time_series<T, V>& window)
   {
     UNUSED(count);
     // Writes to stdout the last stable sample
@@ -51,7 +50,8 @@ class moving_window_post_process_cout :
 };
 
 } // callback
-} // time_series
+} // moving_window
+} // common
 } // atp
 
-#endif //ATP_TIME_SERIES_MOVING_WINDOW_CALLBACKS_H_
+#endif //ATP_COMMON_MOVING_WINDOW_CALLBACKS_H_

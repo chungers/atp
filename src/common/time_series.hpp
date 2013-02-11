@@ -1,5 +1,5 @@
-#ifndef ATP_TIME_SERIES_H_
-#define ATP_TIME_SERIES_H_
+#ifndef ATP_COMMON_TIME_SERIES_H_
+#define ATP_COMMON_TIME_SERIES_H_
 
 #include <boost/function.hpp>
 #include "common/time_utils.hpp"
@@ -7,22 +7,21 @@
 
 
 namespace atp {
-namespace time_series {
+namespace common {
 
 typedef proto::platform::Id Id;
 typedef boost::uint64_t microsecond_t;
 typedef boost::posix_time::time_duration sample_interval_t;
 
-template <typename T, typename V> class data_series;
 
 
 template <typename T, typename V>
-class data_series
+class time_series
 {
 
  public:
 
-  typedef boost::function< V(const data_series<T, V>&) > series_operation;
+  typedef boost::function< V(const time_series<T, V>&) > series_operation;
   typedef boost::function< V(const T*, const V*, const size_t) >
   sample_array_operation;
   typedef boost::function< V(const V*, const size_t) > value_array_operation;
@@ -39,15 +38,15 @@ class data_series
   /// a class can overload all three operators and so we need different
   /// function names to disambiguate which corresponding functor we want to
   /// use.
-  virtual data_series<T, V>& apply(const std::string& id,
+  virtual time_series<T, V>& apply(const std::string& id,
                                    series_operation op,
                                    const size_t min_samples = 1) = 0;
 
-  virtual data_series<T, V>& apply2(const std::string& id,
+  virtual time_series<T, V>& apply2(const std::string& id,
                                     sample_array_operation op,
                                     const size_t min_samples = 1) = 0;
 
-  virtual data_series<T, V>& apply3(const std::string& id,
+  virtual time_series<T, V>& apply3(const std::string& id,
                                     value_array_operation op,
                                     const size_t min_samples = 1) = 0;
 };
@@ -59,4 +58,4 @@ class data_series
 } // atp
 
 
-#endif //ATP_TIME_SERIES_H_
+#endif //ATP_COMMON_TIME_SERIES_H_

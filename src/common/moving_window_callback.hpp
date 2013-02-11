@@ -5,15 +5,13 @@
 #include "common/time_series.hpp"
 
 namespace atp {
-namespace time_series {
-
-
+namespace common {
 namespace callback {
 
 template <typename T, typename V>
 struct moving_window_post_process
 {
-  virtual void operator()(const size_t count, const data_series<T,V>& window)
+  virtual void operator()(const size_t count, const time_series<T,V>& window)
   {
     UNUSED(count); UNUSED(window);
     // no-op
@@ -21,7 +19,8 @@ struct moving_window_post_process
 };
 
 } // callback
-} // time_series
+
+} // common
 } // atp
 
 #endif //ATP_COMMON_MOVING_WINDOW_CALLBACK_H_

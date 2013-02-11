@@ -1,5 +1,5 @@
-#ifndef ATP_TIME_SERIES_OHLC_CALLBACKS_H_
-#define ATP_TIME_SERIES_OHLC_CALLBACKS_H_
+#ifndef ATP_COMMON_OHLC_CALLBACKS_H_
+#define ATP_COMMON_OHLC_CALLBACKS_H_
 
 #include <string>
 
@@ -11,14 +11,14 @@
 
 using namespace std;
 using namespace boost::posix_time;
-using atp::time_series::data_series;
+using atp::common::time_series;
 
 
 namespace atp {
-namespace time_series {
+namespace common {
 namespace callback {
 
-using atp::time_series::microsecond_t;
+using atp::common::microsecond_t;
 
 // partial specialization of the template
 template <typename V>
@@ -26,10 +26,10 @@ class post_process_cout : public ohlc_post_process<V>
 {
  public:
 
-  typedef atp::time_series::sampler::open<V> ohlc_open;
-  typedef atp::time_series::sampler::close<V> ohlc_close;
-  typedef atp::time_series::sampler::min<V> ohlc_low;
-  typedef atp::time_series::sampler::max<V> ohlc_high;
+  typedef atp::common::sampler::open<V> ohlc_open;
+  typedef atp::common::sampler::close<V> ohlc_close;
+  typedef atp::common::sampler::min<V> ohlc_low;
+  typedef atp::common::sampler::max<V> ohlc_high;
 
   post_process_cout() :
       facet_(new time_facet("%Y-%m-%d %H:%M:%S%F%Q"))
@@ -39,10 +39,10 @@ class post_process_cout : public ohlc_post_process<V>
 
   inline void operator()(const size_t count,
                          const Id& id,
-                         const data_series<microsecond_t, V>& open,
-                         const data_series<microsecond_t, V>& high,
-                         const data_series<microsecond_t, V>& low,
-                         const data_series<microsecond_t, V>& close)
+                         const time_series<microsecond_t, V>& open,
+                         const time_series<microsecond_t, V>& high,
+                         const time_series<microsecond_t, V>& low,
+                         const time_series<microsecond_t, V>& close)
   {
     for (int i = -count; i < 0; ++i) {
       ptime t = atp::time::as_ptime(open.get_time(i));
@@ -60,7 +60,7 @@ class post_process_cout : public ohlc_post_process<V>
 };
 
 } // callback
-} // time_series
+} // common
 } // atp
 
-#endif //ATP_TIME_SERIES_OHLC_CALLBACKS_H_
+#endif //ATP_COMMON_OHLC_CALLBACKS_H_

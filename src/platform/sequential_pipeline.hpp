@@ -9,8 +9,8 @@
 #include "platform/indicator.hpp"
 
 
-using atp::time_series::microsecond_t;
-using atp::time_series::moving_window;
+using atp::common::microsecond_t;
+using atp::common::moving_window;
 
 
 

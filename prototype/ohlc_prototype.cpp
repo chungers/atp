@@ -32,9 +32,9 @@ using namespace boost::posix_time;
 using namespace atp::log_reader;
 using namespace atp::platform::callback;
 using namespace atp::platform::marketdata;
-using namespace atp::time_series;
-using namespace atp::time_series::callback;
-using namespace atp::time_series::sampler;
+using namespace atp::common;
+using namespace atp::common::callback;
+using namespace atp::common::sampler;
 
 using atp::platform::message_processor;
 using atp::platform::types::timestamp_t;
@@ -72,11 +72,11 @@ void print(const timestamp_t& ts, const V& v,
 
 
 namespace atp {
-namespace time_series {
+namespace common {
 namespace callback {
 
-using atp::time_series::data_series;
-using atp::time_series::microsecond_t;
+using atp::common::time_series;
+using atp::common::microsecond_t;
 
 
 // partial specialization of the template
@@ -85,17 +85,17 @@ using atp::time_series::microsecond_t;
 template <typename V>
 struct logger_post_process : public ohlc_post_process<V>
 {
-  typedef atp::time_series::sampler::open<V> ohlc_open;
-  typedef atp::time_series::sampler::close<V> ohlc_close;
-  typedef atp::time_series::sampler::min<V> ohlc_low;
-  typedef atp::time_series::sampler::max<V> ohlc_high;
+  typedef atp::common::sampler::open<V> ohlc_open;
+  typedef atp::common::sampler::close<V> ohlc_close;
+  typedef atp::common::sampler::min<V> ohlc_low;
+  typedef atp::common::sampler::max<V> ohlc_high;
 
   inline void operator()(const size_t count,
                          const Id& id,
-                         const data_series<microsecond_t, V>& open,
-                         const data_series<microsecond_t, V>& high,
-                         const data_series<microsecond_t, V>& low,
-                         const data_series<microsecond_t, V>& close)
+                         const time_series<microsecond_t, V>& open,
+                         const time_series<microsecond_t, V>& high,
+                         const time_series<microsecond_t, V>& low,
+                         const time_series<microsecond_t, V>& close)
   {
     for (int i = -count; i < 0; ++i) {
       ptime t = atp::time::as_ptime(open.t[i]);
@@ -108,7 +108,7 @@ struct logger_post_process : public ohlc_post_process<V>
   }
 };
 } // callback
-} // time_series
+} // common
 } // atp
 
 
@@ -148,8 +148,8 @@ struct trader
 
 TEST(OhlcPrototype, OhlcUsage)
 {
-  using namespace atp::time_series;
-  using namespace atp::time_series::callback;
+  using namespace atp::common;
+  using namespace atp::common::callback;
 
   int bars = 60; // seconds
   int bar_interval = 10;

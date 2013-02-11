@@ -2,7 +2,7 @@
 #define ATP_COMMON_MOVING_WINDOW_INTERVAL_POLICY_H_
 
 namespace atp {
-namespace time_series {
+namespace common {
 
 struct time_interval_policy {
 
@@ -44,7 +44,7 @@ struct time_interval_policy {
 };
 
 
-} // time_series
+} // common
 } // atp
 
 #endif // ATP_COMMON_MOVING_WINDOW_INTERVAL_POLICY_H_

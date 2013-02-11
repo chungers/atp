@@ -1,5 +1,5 @@
-#ifndef ATP_TIME_SERIES_OHLC_H_
-#define ATP_TIME_SERIES_OHLC_H_
+#ifndef ATP_COMMON_OHLC_H_
+#define ATP_COMMON_OHLC_H_
 
 #include "common.hpp"
 #include "common/time_series.hpp"
@@ -9,15 +9,15 @@
 
 
 using boost::posix_time::time_duration;
-using atp::time_series::data_series;
+using atp::common::time_series;
 
 
 namespace atp {
-namespace time_series {
+namespace common {
 namespace callback {
 
-using atp::time_series::microsecond_t;
-using atp::time_series::Id;
+using atp::common::microsecond_t;
+using atp::common::Id;
 
 
 template <typename V>
@@ -25,10 +25,10 @@ struct ohlc_post_process
 {
   virtual void operator()(const size_t count,
                           const Id& id,
-                          const data_series<microsecond_t, V>& open,
-                          const data_series<microsecond_t, V>& high,
-                          const data_series<microsecond_t, V>& low,
-                          const data_series<microsecond_t, V>& close) = 0;
+                          const time_series<microsecond_t, V>& open,
+                          const time_series<microsecond_t, V>& high,
+                          const time_series<microsecond_t, V>& low,
+                          const time_series<microsecond_t, V>& close) = 0;
 };
 
 
@@ -37,10 +37,10 @@ struct ohlc_post_process_noop : public ohlc_post_process<V>
 {
   virtual void operator()(const size_t count,
                           const Id& id,
-                          const data_series<microsecond_t, V>& open,
-                          const data_series<microsecond_t, V>& high,
-                          const data_series<microsecond_t, V>& low,
-                          const data_series<microsecond_t, V>& close)
+                          const time_series<microsecond_t, V>& open,
+                          const time_series<microsecond_t, V>& high,
+                          const time_series<microsecond_t, V>& low,
+                          const time_series<microsecond_t, V>& close)
   {
     UNUSED(count); UNUSED(open); UNUSED(high); UNUSED(low); UNUSED(close);
   }
@@ -49,7 +49,7 @@ struct ohlc_post_process_noop : public ohlc_post_process<V>
 
 
 
-using namespace atp::time_series::sampler;
+using namespace atp::common::sampler;
 
 template <typename V>
 class ohlc
@@ -116,22 +116,22 @@ class ohlc
     return open;
   }
 
-  const data_series<microsecond_t, V>& open() const
+  const time_series<microsecond_t, V>& open() const
   {
     return open_;
   }
 
-  const data_series<microsecond_t, V>& close() const
+  const time_series<microsecond_t, V>& close() const
   {
     return close_;
   }
 
-  const data_series<microsecond_t, V>& high() const
+  const time_series<microsecond_t, V>& high() const
   {
     return high_;
   }
 
-  const data_series<microsecond_t, V>& low() const
+  const time_series<microsecond_t, V>& low() const
   {
     return low_;
   }
@@ -152,8 +152,8 @@ class ohlc
 };
 
 
-} // time_series
+} // common
 } // atp
 
 
-#endif //ATP_TIME_SERIES_OHLC_H_
+#endif //ATP_COMMON_OHLC_H_

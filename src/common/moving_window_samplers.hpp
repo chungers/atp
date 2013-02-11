@@ -7,7 +7,7 @@
 
 
 namespace atp {
-namespace time_series {
+namespace common {
 
 namespace sampler {
 
@@ -105,7 +105,7 @@ struct close
 };
 
 } // namespace sampler
-} // time_series
+} // common
 } // atp
 
 #endif //ATP_COMMON_MOVING_WINDOW_SAMPLERS_H_

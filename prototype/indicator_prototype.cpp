@@ -38,8 +38,8 @@ using namespace boost::posix_time;
 using namespace atp::log_reader;
 using namespace atp::platform::callback;
 using namespace atp::platform::marketdata;
-using namespace atp::time_series;
-using namespace atp::time_series::callback;
+using namespace atp::common;
+using namespace atp::common::callback;
 
 
 using atp::platform::message_processor;
@@ -57,7 +57,7 @@ DEFINE_string(log_file, LOG_FILE, "log file name");
 static const string PUB_ENDPOINT = "ipc://_logreader.ipc";
 
 
-using namespace atp::time_series::sampler;
+using namespace atp::common::sampler;
 
 typedef moving_window< double, latest<double> > mw_latest_double;
 
@@ -80,48 +80,6 @@ void print(const timestamp_t& ts, const V& v,
             << "]";
   (*count)++;
 }
-
-
-namespace atp {
-namespace time_series {
-namespace callback {
-
-using atp::time_series::data_series;
-using atp::time_series::microsecond_t;
-
-
-// partial specialization of the template
-// this is required to be here because the linker can't find
-// the specialization in a lib.
-template <typename V>
-struct logger_post_process : public ohlc_post_process<V>
-{
-  typedef atp::time_series::sampler::open<V> ohlc_open;
-  typedef atp::time_series::sampler::close<V> ohlc_close;
-  typedef atp::time_series::sampler::min<V> ohlc_low;
-  typedef atp::time_series::sampler::max<V> ohlc_high;
-
-  inline void operator()(const size_t count,
-                         const data_series<microsecond_t, V>& open,
-                         const data_series<microsecond_t, V>& high,
-                         const data_series<microsecond_t, V>& low,
-                         const data_series<microsecond_t, V>& close)
-  {
-    for (int i = -count; i < 0; ++i) {
-      ptime t = atp::time::as_ptime(open.get_time(-2 + i));
-      LOG(INFO) << atp::time::to_est(t) << ","
-                << "open=" << open[-2 + i]
-                << ",high=" << high[-2 + i]
-                << ",low=" << low[-2 + i]
-                << ",close=" << close[-2 + i];
-    }
-  }
-};
-
-} // callback
-} // time_series
-} // atp
-
 
 
 template <typename V>
@@ -178,8 +136,8 @@ class sequential_pipeline
 
 TEST(IndicatorPrototype, OhlcUsage)
 {
-  using namespace atp::time_series;
-  using namespace atp::time_series::callback;
+  using namespace atp::common;
+  using namespace atp::common::callback;
 
   typedef ohlc<double> ohlc_last;
 

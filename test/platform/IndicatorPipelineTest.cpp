@@ -16,7 +16,7 @@
 using std::string;
 
 
-using namespace atp::time_series;
+using namespace atp::common;
 using namespace atp::platform;
 using namespace atp::platform::marketdata;
 
@@ -49,12 +49,12 @@ class first_derivative : public indicator<V>
 
 TEST(IndicatorPipelineTest, UsageSyntax1)
 {
-  moving_window< double, atp::time_series::sampler::close<double> >
+  moving_window< double, atp::common::sampler::close<double> >
       price(microseconds(10), microseconds(1), 0);
 
   first_derivative<double> rate("rate", microseconds(10), microseconds(1), 0);
 
-  sequential_pipeline<double, atp::time_series::sampler::close<double> >
+  sequential_pipeline<double, atp::common::sampler::close<double> >
       pp = price >> rate;
 
   microsecond_t t = now_micros();
@@ -88,7 +88,7 @@ TEST(IndicatorPipelineTest, UsageSyntax2)
 
   marketdata_handler<MarketData> feed;
 
-  moving_window< double, atp::time_series::sampler::close<double> >
+  moving_window< double, atp::common::sampler::close<double> >
       price(microseconds(10), microseconds(1), 0);
 
   first_derivative<double> rate("rate", microseconds(10), microseconds(1), 0);

@@ -21,12 +21,12 @@ using std::pair;
 using std::string;
 using std::vector;
 
-using atp::time_series::sampler::latest;
+using atp::common::sampler::latest;
 
 namespace atp {
-namespace time_series {
+namespace common {
 
-using namespace callback;
+using namespace common::callback;
 
 /// A moving window of time-based values
 /// Different strategies for sampling can be set up.
@@ -38,20 +38,20 @@ template <
   typename PostProcess = moving_window_post_process<microsecond_t, element_t>,
   typename Alloc = boost::pool_allocator<element_t>,
   typename time_interval_policy = time_interval_policy::align_at_zero >
-class moving_window : public data_series<microsecond_t, element_t>
+class moving_window : public time_series<microsecond_t, element_t>
 {
  public:
 
   typedef typename
-  data_series<microsecond_t, element_t>::series_operation
+  time_series<microsecond_t, element_t>::series_operation
   series_operation;
 
   typedef typename
-  data_series<microsecond_t, element_t>::sample_array_operation
+  time_series<microsecond_t, element_t>::sample_array_operation
   sample_array_operation;
 
   typedef typename
-  data_series<microsecond_t, element_t>::value_array_operation
+  time_series<microsecond_t, element_t>::value_array_operation
   value_array_operation;
 
   /// total duration, time resolution, and initial value
@@ -290,8 +290,8 @@ class moving_window : public data_series<microsecond_t, element_t>
     return p;
   }
 
-  /// implements data_series::apply
-  virtual data_series<microsecond_t, element_t>&
+  /// implements time_series::apply
+  virtual time_series<microsecond_t, element_t>&
   apply(const string& id,
         series_operation op,
         const size_t min_samples = 1)
@@ -302,8 +302,8 @@ class moving_window : public data_series<microsecond_t, element_t>
     return *rec.series;
   }
 
-  /// implements data_series::apply
-  virtual data_series<microsecond_t, element_t>&
+  /// implements time_series::apply
+  virtual time_series<microsecond_t, element_t>&
   apply2(const string& id,
          sample_array_operation op,
          const size_t min_samples = 1)
@@ -315,8 +315,8 @@ class moving_window : public data_series<microsecond_t, element_t>
     return *rec.series;
   }
 
-  /// implements data_series::apply
-  virtual data_series<microsecond_t, element_t>&
+  /// implements time_series::apply
+  virtual time_series<microsecond_t, element_t>&
   apply3(const string& id,
          value_array_operation op,
          const size_t min_samples = 1)
@@ -402,12 +402,12 @@ class moving_window : public data_series<microsecond_t, element_t>
   vector<sample_array_operation_pair> sample_array_operations;
   vector<value_array_operation_pair> value_array_operations;
 
-  atp::time_series::Id id_;
+  atp::common::Id id_;
 };
 
 
 
-} // time_series
+} // common
 } // atp
 
 

@@ -45,7 +45,7 @@ using namespace boost::posix_time;
 using namespace atp::log_reader;
 using namespace atp::platform::callback;
 using namespace atp::platform::marketdata;
-using namespace atp::time_series;
+using namespace atp::common;
 
 using atp::platform::message_processor;
 using atp::platform::types::timestamp_t;
