@@ -3,12 +3,13 @@
 
 #include <boost/function.hpp>
 #include "common/time_utils.hpp"
+#include "proto/platform.pb.h"
 
 
 namespace atp {
 namespace time_series {
 
-
+typedef proto::platform::Id Id;
 typedef boost::uint64_t microsecond_t;
 typedef boost::posix_time::time_duration sample_interval_t;
 
@@ -31,6 +32,7 @@ class data_series
   virtual T get_time(int index) const = 0;
   virtual size_t size() const = 0;
   virtual sample_interval_t time_period() const = 0;
+  virtual const Id& id() const = 0;
 
   /// Three different forms of apply with different functor types
   /// Note that we have to use different function names because

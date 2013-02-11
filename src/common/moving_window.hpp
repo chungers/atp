@@ -328,7 +328,15 @@ class moving_window : public data_series<microsecond_t, element_t>
     return *rec.series;
   }
 
+  void set(const Id& id)
+  {
+    id_ = id;
+  }
 
+  virtual const Id& id() const
+  {
+    return id_;
+  }
 
  private:
 
@@ -394,6 +402,7 @@ class moving_window : public data_series<microsecond_t, element_t>
   vector<sample_array_operation_pair> sample_array_operations;
   vector<value_array_operation_pair> value_array_operations;
 
+  atp::time_series::Id id_;
 };
 
 

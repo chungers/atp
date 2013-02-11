@@ -31,14 +31,14 @@ class post_process_cout : public ohlc_post_process<V>
   typedef atp::time_series::sampler::min<V> ohlc_low;
   typedef atp::time_series::sampler::max<V> ohlc_high;
 
-  post_process_cout(const string& id, const string& label) :
-      id_(id), label_(label),
+  post_process_cout() :
       facet_(new time_facet("%Y-%m-%d %H:%M:%S%F%Q"))
   {
     std::cout.imbue(std::locale(std::cout.getloc(), facet_));
   }
 
   inline void operator()(const size_t count,
+                         const Id& id,
                          const data_series<microsecond_t, V>& open,
                          const data_series<microsecond_t, V>& high,
                          const data_series<microsecond_t, V>& low,
@@ -47,8 +47,7 @@ class post_process_cout : public ohlc_post_process<V>
     for (int i = -count; i < 0; ++i) {
       ptime t = atp::time::as_ptime(open.get_time(i));
       cout << atp::time::to_est(t) << ","
-           << id_ << ","
-           << label_ << ","
+           << id << ","
            << open[i] << ","
            << high[i] << ","
            << low[i] << ","
@@ -57,8 +56,6 @@ class post_process_cout : public ohlc_post_process<V>
   }
 
  private:
-  string id_;
-  string label_;
   time_facet* facet_;
 };
 

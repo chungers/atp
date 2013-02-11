@@ -91,6 +91,7 @@ struct logger_post_process : public ohlc_post_process<V>
   typedef atp::time_series::sampler::max<V> ohlc_high;
 
   inline void operator()(const size_t count,
+                         const Id& id,
                          const data_series<microsecond_t, V>& open,
                          const data_series<microsecond_t, V>& high,
                          const data_series<microsecond_t, V>& low,
@@ -106,7 +107,6 @@ struct logger_post_process : public ohlc_post_process<V>
     }
   }
 };
-
 } // callback
 } // time_series
 } // atp
@@ -118,12 +118,13 @@ struct trader
 {
   typedef atp::platform::callback::update_event<double>::func updater;
 
-  trader(const string id, int bars, int seconds_per_bar) :
+  trader(const Id& id, int bars, int seconds_per_bar) :
       id(id),
-      ohlc_pp(id, "ohlc"),
+      ohlc_pp(),
       ohlc(seconds(bars * seconds_per_bar),
            seconds(seconds_per_bar), 0.)
   {
+    ohlc.set(id);
     ohlc.set(ohlc_pp);
   }
 
@@ -132,13 +133,15 @@ struct trader
   {
     ptime tt = atp::time::as_ptime(t);
     cout << atp::time::to_est(tt) << ","
-         << id << ","
+         << id.name() << ","
+         << id.variant() << ","
+         << id.signal() << ","
          << "last" << ","
          << v << std::endl;
     ohlc(t, v);
   }
 
-  string id;
+  Id id;
   post_process_cout<double> ohlc_pp;
   ohlc_t ohlc;
 };
@@ -155,7 +158,12 @@ TEST(OhlcPrototype, OhlcUsage)
   marketdata_handler<MarketData> feed_handler1;
 
   // A typical trader class that contains ohlc and other indicators
-  trader trader("trader1", bars, bar_interval);
+  Id id;
+  id.set_name("trader1");
+  id.set_variant("test1");
+  id.set_signal("AAPL.STK");
+  id.set_label("ohlc");
+  trader trader(id, bars, bar_interval);
   feed_handler1.bind("LAST", static_cast<trader::updater>(trader));
 
   message_processor::protobuf_handlers_map symbol_handlers1;

@@ -1,0 +1,23 @@
+package proto.platform;
+
+//option optimize_for = LITE_RUNTIME;
+
+// An identifier for a strategy, its variation, signals, etc.
+message Id {
+
+  // strategy name
+  required string name = 1;
+
+  // the variation (e.g. of different parameter) -- to distinguish
+  // different strategy variations that may be run concurrently (as in
+  // simulation or backtesting).
+  optional string variant = 2;
+
+  // the component e.g. AAPL.STK and SPX.IND -- this is used
+  // to identify the actual signal within a strategy
+  optional string signal = 3;
+
+  // some label, eg. 'ohlc', 'sma-20', 'order', etc.
+  optional string label = 4;
+
+};

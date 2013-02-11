@@ -11,6 +11,7 @@ using boost::posix_time::ptime;
 using namespace proto::common;
 using namespace proto::historian;
 using namespace proto::ib;
+using namespace proto::platform;
 using namespace atp::time;
 
 namespace proto {
@@ -24,6 +25,16 @@ std::ostream& format(std::ostream& out, const int v)
 } // common
 } // proto
 
+std::ostream& operator<<(std::ostream& out, const Id& v)
+{
+  using namespace proto::platform;
+  out << v.name() << ','
+      << v.variant() << ','
+      << v.signal() << ','
+      << v.label();
+  return out;
+}
+
 std::ostream& operator<<(std::ostream& out, const Date& v)
 {
   using namespace proto::common;
@@ -32,7 +43,6 @@ std::ostream& operator<<(std::ostream& out, const Date& v)
   format(out, v.day());
   return out;
 }
-
 std::ostream& operator<<(std::ostream& out, const Time& v)
 {
   using namespace proto::common;
