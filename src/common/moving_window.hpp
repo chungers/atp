@@ -63,7 +63,8 @@ class moving_window : public time_series<microsecond_t, element_t>
       current_value_(init),
       current_ts_(0),
       collected_(0),
-      time_interval_policy_(i.total_microseconds())
+      time_interval_policy_(i.total_microseconds()),
+      post_process_(NULL)
   {
     // fill the buffer with the default valule.
     for (size_t i = 0; i < buffer_.capacity(); ++i) {
@@ -285,7 +286,7 @@ class moving_window : public time_series<microsecond_t, element_t>
     // Call the post process callback after time have advanced to the
     // next window
     size_t p = static_cast<size_t>(windows);
-    if (p > 0) post_process_(p, *this);
+    if (post_process_ != NULL && p > 0) (*post_process_)(p, id(), *this);
 
     return p;
   }
@@ -338,6 +339,11 @@ class moving_window : public time_series<microsecond_t, element_t>
     return id_;
   }
 
+  void set(callback::moving_window_post_process<microsecond_t, element_t>& pp)
+  {
+    post_process_ = &pp;
+  }
+
  private:
 
   /// Generate the time array based on the current time and the sampling
@@ -372,7 +378,7 @@ class moving_window : public time_series<microsecond_t, element_t>
   sampler_t sampler_;
   time_interval_policy time_interval_policy_;
 
-  PostProcess post_process_;
+  callback::moving_window_post_process<microsecond_t, element_t>* post_process_;
 
   template <typename operation_type>
   struct operation

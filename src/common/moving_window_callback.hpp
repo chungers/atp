@@ -8,13 +8,24 @@ namespace atp {
 namespace common {
 namespace callback {
 
+using atp::common::Id;
+
 template <typename T, typename V>
 struct moving_window_post_process
 {
-  virtual void operator()(const size_t count, const time_series<T,V>& window)
+  virtual void operator()(const size_t count,
+                          const Id& id,
+                          const time_series<T,V>& window) = 0;
+};
+
+template <typename T, typename V>
+struct moving_window_post_process_noop : public moving_window_post_process<T, V>
+{
+  virtual void operator()(const size_t count,
+                          const Id& id,
+                          const time_series<T,V>& window)
   {
-    UNUSED(count); UNUSED(window);
-    // no-op
+    UNUSED(count); UNUSED(id); UNUSED(window);
   }
 };
 

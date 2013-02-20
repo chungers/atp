@@ -42,7 +42,8 @@ struct ohlc_post_process_noop : public ohlc_post_process<V>
                           const time_series<microsecond_t, V>& low,
                           const time_series<microsecond_t, V>& close)
   {
-    UNUSED(count); UNUSED(open); UNUSED(high); UNUSED(low); UNUSED(close);
+    UNUSED(count); UNUSED(id);
+    UNUSED(open); UNUSED(high); UNUSED(low); UNUSED(close);
   }
 };
 } // callback
