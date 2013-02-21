@@ -58,6 +58,10 @@ class LogReader
                  const time_duration_t& duration = pos_infin,
                  const time_t& start = neg_infin);
 
+  bool is_est()
+  {
+    return est_;
+  }
 
  private:
   string logfile_;

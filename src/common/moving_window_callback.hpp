@@ -13,20 +13,11 @@ using atp::common::Id;
 template <typename T, typename V>
 struct moving_window_post_process
 {
+  virtual ~moving_window_post_process() {}
+
   virtual void operator()(const size_t count,
                           const Id& id,
                           const time_series<T,V>& window) = 0;
-};
-
-template <typename T, typename V>
-struct moving_window_post_process_noop : public moving_window_post_process<T, V>
-{
-  virtual void operator()(const size_t count,
-                          const Id& id,
-                          const time_series<T,V>& window)
-  {
-    UNUSED(count); UNUSED(id); UNUSED(window);
-  }
 };
 
 } // callback

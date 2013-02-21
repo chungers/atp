@@ -3,16 +3,14 @@
 
 #include <boost/function.hpp>
 #include "common/time_utils.hpp"
-#include "proto/platform.pb.h"
+#include "common/types.hpp"
+
 
 
 namespace atp {
 namespace common {
 
-typedef proto::platform::Id Id;
-typedef boost::uint64_t microsecond_t;
 typedef boost::posix_time::time_duration sample_interval_t;
-
 
 
 template <typename T, typename V>
@@ -21,10 +19,18 @@ class time_series
 
  public:
 
-  typedef boost::function< V(const time_series<T, V>&) > series_operation;
+  typedef boost::function< V(const time_series<T, V>&) >
+  series_operation;
+
   typedef boost::function< V(const T*, const V*, const size_t) >
   sample_array_operation;
-  typedef boost::function< V(const V*, const size_t) > value_array_operation;
+
+  typedef boost::function< V(const V*, const size_t) >
+  value_array_operation;
+
+  virtual ~time_series()
+  {
+  }
 
   /// supports backwards indexing (negative index)
   virtual V operator[](int index) const = 0;

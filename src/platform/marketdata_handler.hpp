@@ -36,7 +36,7 @@ template <typename EventClass, typename serialized_data_t>
 inline bool deserialize(const serialized_data_t& raw, EventClass& event);
 
 template <typename EventClass>
-inline const timestamp_t get_timestamp(const EventClass& event);
+inline timestamp_t get_timestamp(const EventClass& event);
 
 template <typename EventClass, typename event_code_t>
 inline const event_code_t& get_event_code(const EventClass& event);

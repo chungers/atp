@@ -34,7 +34,6 @@ class message_processor::implementation : NoCopyAndAssign
     endpoint_(endpoint),
     handlers_(handlers),
     context_(context == NULL ? new ::zmq::context_t(1) : context),
-    own_context_(context == NULL),
     ready_(false),
     listener_thread_(new thread(boost::bind(&implementation::run, this)))
   {
@@ -117,7 +116,6 @@ class message_processor::implementation : NoCopyAndAssign
   string endpoint_;
   const message_processor::protobuf_handlers_map& handlers_;
   ::zmq::context_t* context_;
-  bool own_context_;
   bool ready_;
   scoped_ptr<thread> listener_thread_;
   mutex mutex_;

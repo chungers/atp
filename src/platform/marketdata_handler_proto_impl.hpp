@@ -25,7 +25,7 @@ inline bool deserialize(const string& raw, MarketData& m)
 }
 
 template <>
-inline const timestamp_t get_timestamp<MarketData>(const MarketData& m)
+inline timestamp_t get_timestamp<MarketData>(const MarketData& m)
 {
   return m.timestamp();
 }

@@ -23,6 +23,8 @@ using atp::common::Id;
 template <typename V>
 struct ohlc_post_process
 {
+  virtual ~ohlc_post_process() {}
+
   virtual void operator()(const size_t count,
                           const Id& id,
                           const time_series<microsecond_t, V>& open,
@@ -136,6 +138,28 @@ class ohlc
   {
     return low_;
   }
+
+  mw_open& mutable_open()
+  {
+    return open_;
+  }
+
+  mw_high& mutable_high()
+  {
+    return high_;
+  }
+
+  mw_low& mutable_low()
+  {
+    return low_;
+  }
+
+  mw_close& mutable_close()
+  {
+    return close_;
+  }
+
+
 
   const Id& id() const
   {

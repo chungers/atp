@@ -1,6 +1,9 @@
 #ifndef ATP_COMMON_MOVING_WINDOW_INTERVAL_POLICY_H_
 #define ATP_COMMON_MOVING_WINDOW_INTERVAL_POLICY_H_
 
+#include "common/time_utils.hpp"
+
+
 namespace atp {
 namespace common {
 

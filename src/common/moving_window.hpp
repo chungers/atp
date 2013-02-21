@@ -13,6 +13,7 @@
 #include "common/moving_window_callback.hpp"
 #include "common/moving_window_interval_policy.hpp"
 #include "common/moving_window_samplers.hpp"
+#include "common/time_series.hpp"
 
 
 using boost::function;

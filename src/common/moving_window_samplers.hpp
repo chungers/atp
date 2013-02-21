@@ -8,7 +8,6 @@
 
 namespace atp {
 namespace common {
-
 namespace sampler {
 
 template <typename element_t>

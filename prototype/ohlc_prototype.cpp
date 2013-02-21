@@ -13,6 +13,7 @@
 #include <glog/logging.h>
 
 #include "common/moving_window.hpp"
+#include "common/moving_window_callbacks.hpp"
 #include "common/ohlc.hpp"
 #include "common/ohlc_callbacks.hpp"
 
@@ -120,12 +121,12 @@ struct trader
 
   trader(const Id& id, int bars, int seconds_per_bar) :
       id(id),
-      ohlc_pp(),
       ohlc(seconds(bars * seconds_per_bar),
            seconds(seconds_per_bar), 0.)
   {
     ohlc.set(id);
     ohlc.set(ohlc_pp);
+    ohlc.mutable_close().set(mv_pp);
   }
 
   /// receives update of LAST
@@ -143,6 +144,7 @@ struct trader
 
   Id id;
   post_process_cout<double> ohlc_pp;
+  moving_window_post_process_cout<microsecond_t, double> mv_pp;
   ohlc_t ohlc;
 };
 
@@ -185,4 +187,3 @@ TEST(OhlcPrototype, OhlcUsage)
   subscriber.block();
   delete th;
 }
-
