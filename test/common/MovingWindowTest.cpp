@@ -549,145 +549,8 @@ TEST(MovingWindowTest, SeriesOperationsUsage)
   }
 }
 
-/*
-TEST(MovingWindowTest, TupleUsageTest)
-{
-  using namespace boost;
 
-  typedef tuple<double, double, int> value_t;
-  typedef moving_window<value_t, latest<value_t> > time_window;
-  typedef std::pair<microsecond_t, value_t> sample;
-  typedef std::vector<sample> series;
-  typedef series::iterator series_itr;
-  typedef series::reverse_iterator series_reverse_itr;
-
-  unsigned int period_duration = 1;
-  unsigned int periods = 1000;
-
-  time_window fx(microseconds(period_duration * periods),
-                 microseconds(period_duration), value_t(0., 0., 0));
-
-  boost::uint64_t t = now_micros();
-  t = t - ( t % period_duration ); // this is so that time lines up nicely.
-
-  series data, expects;
-  vector<microsecond_t> times;
-
-  microsecond_t now = now_micros();
-  for (unsigned int i = 0; i <= periods*period_duration; ++i) {
-    value_t val = value_t(pow(static_cast<double>(i), 2.), 2.*i, 2);
-    VLOG(100) << atp::time::to_est(atp::time::as_ptime(t + i))
-              <<", i = " << i << ", "
-              << '['
-              << get<0>(val) << "," << get<1>(val) << "," << get<2>(val)
-              << ']';
-
-    microsecond_t now2 = now_micros();
-    fx(t + i, val);
-    times.push_back(now_micros() - now2);
-
-    data.push_back(sample(t + i, val));
-  }
-  microsecond_t total_elapsed = now_micros() - now;
-
-  // Calculate expectations based on closing of a period to
-  // match the moving_window's sampler (defaults to close)
-  microsecond_t period_start = t;
-  value_t period_close;
-  for (series_itr itr = data.begin(); itr != data.end(); ++itr) {
-    if (itr->first - period_start >= period_duration) {
-      expects.push_back(sample(period_start, period_close));
-      period_start = itr->first;
-    }
-    // closing value of the period --> always the latest value
-    period_close = itr->second;
-  }
-  // add last current observation
-  expects.push_back(sample(period_start, period_close));
-
-  VLOG(50) << "expectations:";
-  for (series_itr itr = expects.begin(); itr != expects.end(); ++itr) {
-    value_t val = itr->second;
-    VLOG(100)
-        << atp::time::to_est(atp::time::as_ptime(itr->first)) << ", "
-        << "(" << itr->first - t << ", "
-        << '['
-        << get<0>(val) << "," << get<1>(val) << "," << get<2>(val)
-        << ']';
-  }
-
-  size_t len = periods + 1;  // history + current observation
-  microsecond_t tbuff[len];
-  value_t buff[len];
-  microsecond_t tbuff2[len];
-  value_t buff2[len];
-  value_t buff3[len];
-
-  int runs = 10000;
-  microsecond_t total1 = 0;
-  microsecond_t total2 = 0;
-  microsecond_t total3 = 0;
-  microsecond_t s = 0;
-
-  for (int i = 0; i < runs; ++i) {
-    s = now_micros();
-    int copied1 = fx.copy_last(&tbuff[0], &buff[0], len);
-    total1 += now_micros() - s;
-
-    EXPECT_EQ(len, copied1);
-
-    s = now_micros();
-    int copied2 = fx.copy_last_slow(&tbuff2[0], &buff2[0], len);
-    total2 += now_micros() - s;
-
-    EXPECT_EQ(len, copied2);
-
-    s = now_micros();
-    int copied3 = fx.copy_last_data(&buff3[0], len);
-    total3 += now_micros() - s;
-
-    EXPECT_EQ(len, copied3);
-    // EXPECT_EQ(0,
-    //           memcmp(static_cast<void*>(&tbuff[0]),
-    //                  static_cast<void*>(&tbuff2[0]),
-    //                  len * sizeof(microsecond_t)));
-    // EXPECT_EQ(0,
-    //           memcmp(static_cast<void*>(&buff[0]),
-    //                  static_cast<void*>(&buff2[0]),
-    //                  len * sizeof(value_t)));
-  }
-  LOG(INFO) << "copy " << runs << " runs";
-  LOG(INFO) << "avg copy time (array_one/two) data only = " << total3/runs;
-  LOG(INFO) << "avg copy time (array_one/two)           = " << total1/runs;
-  LOG(INFO) << "avg copy time (reverse_itr)             = " << total2/runs;
-  LOG(INFO) << "t = " << t;
-  LOG(INFO) << "get_time[0] = " << fx.get_time() - t;
-
-  // Compare the sampled data with expectations
-  for (unsigned int i = 0; i < len; ++i) {
-    value_t val = buff[i];
-    VLOG(100)
-        << atp::time::to_est(atp::time::as_ptime(tbuff[i])) << ", "
-        << "(" << tbuff[i] - t << ", "
-        << '['
-        << get<0>(val) << "," << get<1>(val) << "," << get<2>(val)
-        << "])";
-
-    ASSERT_EQ(expects[i].first, tbuff[i]);
-    ASSERT_EQ(get<0>(expects[i].second), get<0>(buff[i]));
-    ASSERT_EQ(get<1>(expects[i].second), get<1>(buff[i]));
-    ASSERT_EQ(get<2>(expects[i].second), get<2>(buff[i]));
-
-    ASSERT_EQ(get<0>(expects[i].second), get<0>(buff3[i]));
-    ASSERT_EQ(get<1>(expects[i].second), get<1>(buff3[i]));
-    ASSERT_EQ(get<2>(expects[i].second), get<2>(buff3[i]));
-  }
-  LOG(INFO) << "Total t = " << total_elapsed << " usec";
-  LOG(INFO) << "avg t = " << get_average_time(times);
-}
-
-*/
-
+/// Test template
 template <typename value_t>
 void test_series(unsigned int period_duration,
                  unsigned int periods,
@@ -696,10 +559,12 @@ void test_series(unsigned int period_duration,
                  const value_t& initial,
                  function< std::string(value_t&) > tostring,
                  function< bool(value_t&, value_t&) > compare,
-                 int copy_length, // = periods + 1,
+                 int copy_len, // = periods + 1,
                  int runs = 10000)
 {
   using namespace boost;
+
+  const int copy_length = copy_len;
 
   typedef moving_window<value_t, latest<value_t> > time_window;
   typedef std::pair<microsecond_t, value_t> sample;
@@ -777,10 +642,11 @@ void test_series(unsigned int period_duration,
   }
 
   microsecond_t tbuff[copy_length];
-  value_t buff[copy_length];
   microsecond_t tbuff2[copy_length];
-  value_t buff2[copy_length];
-  value_t buff3[copy_length];
+
+  value_t *buff = new value_t[copy_length];
+  value_t *buff2 = new value_t[copy_length];
+  value_t *buff3 = new value_t[copy_length];
 
   microsecond_t total1 = 0;
   microsecond_t total2 = 0;
@@ -831,7 +697,12 @@ void test_series(unsigned int period_duration,
                         buff[copy_length - i]));
   }
   LOG(INFO) << "Total t = " << total_elapsed << " usec";
-  LOG(INFO) << "avg t = " << get_average_time(times);
+  LOG(INFO) << "avg t = " << get_average_time(times) << " usec";
+
+  delete buff;
+  delete buff2;
+  delete buff3;
+
 }
 
 template<typename V>
@@ -930,6 +801,7 @@ TEST(MovingWindowTest, UsageDoubleTest5)
 }
 
 
+
 typedef tuple<double, double, int> value_t;
 struct f_tuple {
   value_t operator()(int i, microsecond_t t)
@@ -955,20 +827,19 @@ struct compare_tuple {
   }
 };
 
-/*
 TEST(MovingWindowTest, TupleTest1)
 {
   test_series<value_t>(1, // period duration
-                       10000, // periods
-                       1000000, // total events
+                       100, // periods
+                       10000, // total events
                        f_tuple(),
                        value_t(0., 0., 0), // initial
                        tostring_tuple(),
                        compare_tuple(),
-                       1000, // length to copy
-                       100000); // runs
+                       80, // length to copy
+                       10000); // runs
 }
-*/
+
 
 struct value_struct {
   value_struct(){}
@@ -1004,17 +875,15 @@ struct compare_struct {
   }
 };
 
-/*
 TEST(MovingWindowTest, StructTest1)
 {
   test_series<value_struct>(1, // period duration
-                            10000, // periods
-                            1000000, // total events
+                            100, // periods
+                            10000, // total events
                             f_struct(),
                             value_struct(0., 0., 0), // initial
                             tostring_struct(),
                             compare_struct(),
-                            1000, // length to copy
-                            100000); // runs
+                            80, // length to copy
+                            1000); // runs
 }
-*/

@@ -252,10 +252,14 @@ class moving_window : public time_series<microsecond_t, element_t>
       (*itr->second.series)(current_ts_, derived);
     }
 
+    //////////////////////
+    /// copy data to call the operators
+    const size_t len = capacity();
+    // element_t vbuff[len];  compiled ok on less restrictive compilers.
+    element_t *vbuff = new element_t[len];
+
     if (value_array_operations.size() > 0) {
       // do array copy
-      size_t len = capacity();
-      element_t vbuff[len];
       if (copy_last_data(&vbuff[0], len)) {
         typename vector<value_array_operation_pair>::iterator itr2;
         for (itr2 = value_array_operations.begin();
@@ -269,10 +273,7 @@ class moving_window : public time_series<microsecond_t, element_t>
 
     if (sample_array_operations.size() > 0) {
       // do array copy
-      size_t len = capacity();
       microsecond_t tbuff[len];
-      element_t vbuff[len];
-
       if (copy_last(&tbuff[0], &vbuff[0], len)) {
         typename vector<sample_array_operation_pair>::iterator itr2;
         for (itr2 = sample_array_operations.begin();
@@ -283,6 +284,9 @@ class moving_window : public time_series<microsecond_t, element_t>
         }
       }
     }
+
+    delete vbuff;
+    //////////////////////
 
     // Call the post process callback after time have advanced to the
     // next window
