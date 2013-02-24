@@ -10,6 +10,7 @@
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/ref.hpp>
 
+#include "log_levels.h"
 #include "common/moving_window_callback.hpp"
 #include "common/moving_window_interval_policy.hpp"
 #include "common/moving_window_samplers.hpp"
@@ -36,7 +37,6 @@ template <
   typename sampler_t = function<element_t(const element_t& last,
                                           const element_t& current,
                                           bool new_sample_period) >,
-  typename PostProcess = moving_window_post_process<microsecond_t, element_t>,
   typename Alloc = boost::pool_allocator<element_t>,
   typename time_interval_policy = time_interval_policy::align_at_zero >
 class moving_window : public time_series<microsecond_t, element_t>
@@ -253,39 +253,46 @@ class moving_window : public time_series<microsecond_t, element_t>
     }
 
     //////////////////////
-    /// copy data to call the operators
-    const size_t len = capacity();
-    // element_t vbuff[len];  compiled ok on less restrictive compilers.
-    element_t *vbuff = new element_t[len];
+    /// copy data and call the operators
+    if (value_array_operations.size() > 0 ||
+        sample_array_operations.size() > 0) {
 
-    if (value_array_operations.size() > 0) {
-      // do array copy
-      if (copy_last_data(&vbuff[0], len)) {
-        typename vector<value_array_operation_pair>::iterator itr2;
-        for (itr2 = value_array_operations.begin();
-             itr2 != value_array_operations.end();
-           ++itr2) {
-          element_t derived = itr2->second.functor(&vbuff[0], len);
-          (*itr2->second.series)(current_ts_, derived);
+      // element_t vbuff[len];  compiled ok on less restrictive compilers.
+      const size_t len = capacity();
+      element_t *vbuff = new element_t[len];
+      size_t copied = copy_last_data(&vbuff[0], len);
+
+      if (copied == len) {
+        typename vector<value_array_operation_pair>::iterator itr;
+        for (itr = value_array_operations.begin();
+             itr != value_array_operations.end();
+           ++itr) {
+          element_t derived = itr->second.functor(&vbuff[0], len);
+          (*itr->second.series)(current_ts_, derived);
         }
-      }
-    }
-
-    if (sample_array_operations.size() > 0) {
-      // do array copy
-      microsecond_t tbuff[len];
-      if (copy_last(&tbuff[0], &vbuff[0], len)) {
-        typename vector<sample_array_operation_pair>::iterator itr2;
-        for (itr2 = sample_array_operations.begin();
-             itr2 != sample_array_operations.end();
-           ++itr2) {
-          element_t derived = itr2->second.functor(&tbuff[0], &vbuff[0], len);
-          (*itr2->second.series)(current_ts_, derived);
+        if (sample_array_operations.size() > 0) {
+          microsecond_t tbuff[len];
+          size_t time_generated = generate_time_array(&tbuff[0], len);
+          if (time_generated == len) {
+            typename vector<sample_array_operation_pair>::iterator itr;
+            for (itr = sample_array_operations.begin();
+                 itr != sample_array_operations.end();
+                 ++itr) {
+              element_t derived = itr->second.functor(
+                  &tbuff[0], &vbuff[0], len);
+              (*itr->second.series)(current_ts_, derived);
+            }
+          } else {
+            MOVING_WINDOW_ERROR << id()
+                                << " cannot generate time array";
+          }
         }
+      } else {
+        MOVING_WINDOW_ERROR << id()
+                            << " cannot copy data array";
       }
+      delete vbuff;
     }
-
-    delete vbuff;
     //////////////////////
 
     // Call the post process callback after time have advanced to the
@@ -348,6 +355,7 @@ class moving_window : public time_series<microsecond_t, element_t>
   {
     post_process_ = &pp;
   }
+
 
  private:
 
@@ -415,6 +423,13 @@ class moving_window : public time_series<microsecond_t, element_t>
 
   atp::common::Id id_;
 };
+
+
+template <typename element_t>
+moving_window<element_t> join()
+{
+
+}
 
 
 

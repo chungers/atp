@@ -23,7 +23,6 @@
 using namespace boost;
 using namespace boost::assign;
 using namespace boost::posix_time;
-using namespace atp::common::sampler;
 
 using atp::common::time_interval_policy;
 using atp::common::moving_window;
@@ -101,7 +100,7 @@ TEST(MovingWindowTest, NegativeIndexTest1)
   microsecond_t n, dt;
 
   /// Test that adds more values than the buffer's capacity
-  moving_window< double, close<double> > close1(
+  moving_window< double, atp::common::sampler::close<double> > close1(
       microseconds(400), microseconds(1), 0.);
 
   for (int i = 0; i < 500; ++i) {
@@ -123,7 +122,7 @@ TEST(MovingWindowTest, NegativeIndexTest2)
   microsecond_t n, dt;
 
   /// Test that adds exactly the buffer's capacity
-  moving_window< double, close<double> > close2(
+  moving_window< double, atp::common::sampler::close<double> > close2(
       microseconds(500), microseconds(1), 0.);
 
   for (int i = 0; i < 500; ++i) {
@@ -165,7 +164,7 @@ TEST(MovingWindowTest, NegativeIndexTest3)
   microsecond_t n, dt;
 
   // the case where the entire buffer hasn't been filled.
-  moving_window< double, close<double> > close3(
+  moving_window< double, atp::common::sampler::close<double> > close3(
       microseconds(5000), microseconds(1), 0.);
 
   for (int i = 0; i < 500; ++i) {
@@ -188,7 +187,7 @@ TEST(MovingWindowTest, NegativeIndexTest3)
 
 TEST(MovingWindowTest, SamplerTest)
 {
-  moving_window< double, open<double> > open(
+  moving_window< double, atp::common::sampler::open<double> > open(
       microseconds(1000), microseconds(10), 0.);
 
   boost::uint64_t t = 10000000000;
@@ -214,7 +213,7 @@ TEST(MovingWindowTest, SamplerTest)
   EXPECT_EQ(13., open[-1]);
   EXPECT_EQ(10., open[-2]);
 
-  moving_window< double, close<double> > close(
+  moving_window< double, atp::common::sampler::close<double> > close(
       microseconds(1000), microseconds(10), 0.);
 
   close.on(t + 10001, 10.);
