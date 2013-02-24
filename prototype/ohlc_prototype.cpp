@@ -115,7 +115,7 @@ struct logger_post_process : public ohlc_post_process<V>
 
 typedef ohlc<double> ohlc_t;
 
-struct trader
+struct trader : public moving_window_post_process<microsecond_t, double>
 {
   typedef atp::platform::callback::update_event<double>::func updater;
 
@@ -125,15 +125,52 @@ struct trader
            seconds(seconds_per_bar), 0.),
       mid(seconds(bars * seconds_per_bar),
           seconds(seconds_per_bar), 0.),
-      bid(0.), ask(0.)
+      bid(seconds(bars * seconds_per_bar),
+          seconds(seconds_per_bar), 0.),
+      ask(seconds(bars * seconds_per_bar),
+          seconds(seconds_per_bar), 0.),
+      timer(seconds(bars),
+            seconds(1), 0.)
   {
     ohlc.set(id);
     ohlc.set(ohlc_pp);
-    ohlc.mutable_close().set(mv_pp);
+       ohlc.mutable_close().set(mv_pp);
+
     Id midId = id;
     midId.set_label("mid");
     mid.set(midId);
     mid.set(mv_pp);
+
+    Id bidId = id;
+    bidId.set_label("bid");
+    bid.set(bidId);
+    bid.set(mv_pp);
+
+    Id askId = id;
+    askId.set_label("ask");
+    ask.set(askId);
+    ask.set(mv_pp);
+
+    Id timerId = id;
+    timerId.set_label("trade-eval");
+    timer.set(timerId);
+    timer.set(*this);
+  }
+
+  virtual void operator()(const size_t count,
+                          const Id& id,
+                          const time_series<microsecond_t, double>& window)
+  {
+    if (count > 0) {
+      ptime t = atp::time::as_ptime(window.get_time(0));
+      ptime t2 = atp::time::as_ptime(window.get_time(-1));
+      cout << atp::time::to_est(t2) << ","
+           << atp::time::to_est(t) << ","
+           << id << " ==> evaluate trade ==> "
+           << "current bid = " << bid[0] << ", ask = " << ask[0]
+           << ", mid = " << mid[0] << ", last = " << ohlc.close()[0]
+           << std::endl;
+    }
   }
 
   /// receives update of LAST
@@ -147,33 +184,36 @@ struct trader
          << "last" << ","
          << v << std::endl;
     ohlc(t, v);
+    timer(t, v);
   }
 
   /// receives update of LAST
   void on_bid(const microsecond_t& t, const double& v)
   {
-    ptime tt = atp::time::as_ptime(t);
+    // ptime tt = atp::time::as_ptime(t);
     // cout << atp::time::to_est(tt) << ","
     //      << id.name() << ","
     //      << id.variant() << ","
     //      << id.signal() << ","
-    //      << "bid" << ","
+    //      << "bid-inst" << ","
     //      << v << std::endl;
-    bid = v;
-    mid(t, bid + (ask - bid) / 2.);
+    bid(t, v);
+    mid(t, (ask[0] + bid[0]) / 2.);
+    timer(t, v);
   }
 
   void on_ask(const microsecond_t& t, const double& v)
   {
-    ptime tt = atp::time::as_ptime(t);
+    // ptime tt = atp::time::as_ptime(t);
     // cout << atp::time::to_est(tt) << ","
     //      << id.name() << ","
     //      << id.variant() << ","
     //      << id.signal() << ","
-    //      << "ask" << ","
+    //      << "ask-inst" << ","
     //      << v << std::endl;
-    ask = v;
-    mid(t, bid + (ask - bid) / 2.);
+    ask(t, v);
+    mid(t, (ask[0] + bid[0]) / 2.);
+    timer(t, v);
   }
 
   void bind(marketdata_handler<MarketData>& feed_handler)
@@ -193,8 +233,8 @@ struct trader
   post_process_cout<double> ohlc_pp;
   moving_window_post_process_cout<microsecond_t, double> mv_pp;
   ohlc_t ohlc;
-  moving_window<double, atp::common::sampler::close<double> > mid;
-  double bid, ask;
+  moving_window<double, atp::common::sampler::close<double> > mid, bid, ask,
+                 timer; // timer is just for tracking time and calling trades
 };
 
 TEST(OhlcPrototype, OhlcUsage)

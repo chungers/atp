@@ -52,7 +52,7 @@ class moving_window_post_process_cout : public moving_window_post_process<T, V>
                                  const time_series<T, V>& window)
   {
     for (int i = -count; i < 0; ++i) {
-      ptime t = atp::time::as_ptime(window.get_time(-i));
+      ptime t = atp::time::as_ptime(window.get_time(i));
       cout << atp::time::to_est(t) << ","
            << id << ","
            << window[i] << endl;
