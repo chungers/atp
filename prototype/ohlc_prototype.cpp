@@ -115,26 +115,39 @@ struct logger_post_process : public ohlc_post_process<V>
 
 typedef ohlc<double> ohlc_t;
 
-struct trader : public moving_window_post_process<microsecond_t, double>
+struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
 {
   typedef atp::platform::callback::update_event<double>::func updater;
+  typedef moving_window<
+    microsecond_t, atp::common::sampler::close<microsecond_t> > timer_t;
 
-  trader(const Id& id, int bars, int seconds_per_bar) :
-      id(id),
+  trader(const Id& _id, int bars, int seconds_per_bar) :
+      id(_id),
       ohlc(seconds(bars * seconds_per_bar),
            seconds(seconds_per_bar), 0.),
+      ohlc2(seconds(bars * seconds_per_bar),
+            seconds(seconds_per_bar), 0.),
       mid(seconds(bars * seconds_per_bar),
           seconds(seconds_per_bar), 0.),
       bid(seconds(bars * seconds_per_bar),
           seconds(seconds_per_bar), 0.),
       ask(seconds(bars * seconds_per_bar),
           seconds(seconds_per_bar), 0.),
-      timer(seconds(bars),
-            seconds(1), 0.)
+      mid2(seconds(bars * seconds_per_bar),
+           seconds(seconds_per_bar), 0.),
+      bid2(seconds(bars * seconds_per_bar),
+           seconds(seconds_per_bar), 0.),
+      ask2(seconds(bars * seconds_per_bar),
+           seconds(seconds_per_bar), 0.),
+      ten_sec_timer(seconds(bars),
+                    seconds(10), 0)
   {
+    /////////////////////////////////////
+    id.set_signal("AAPL.STK");
+    id.set_label("ohlc");
     ohlc.set(id);
     ohlc.set(ohlc_pp);
-       ohlc.mutable_close().set(mv_pp);
+    ohlc.mutable_close().set(mv_pp);
 
     Id midId = id;
     midId.set_label("mid");
@@ -151,15 +164,43 @@ struct trader : public moving_window_post_process<microsecond_t, double>
     ask.set(askId);
     ask.set(mv_pp);
 
-    Id timerId = id;
-    timerId.set_label("trade-eval");
-    timer.set(timerId);
-    timer.set(*this);
+    /////////////////////////////////////
+    Id id2 = id;
+    id2.set_signal("GOOG.STK");
+    id2.set_label("ohlc");
+    ohlc2.set(id2);
+    ohlc2.set(ohlc_pp);
+    ohlc2.mutable_close().set(mv_pp);
+
+    Id midId2 = id;
+    midId2.set_signal("GOOG.STK");
+    midId2.set_label("mid");
+    mid2.set(midId2);
+    mid2.set(mv_pp);
+
+    Id bidId2 = id;
+    bidId2.set_signal("GOOG.STK");
+    bidId2.set_label("bid");
+    bid2.set(bidId2);
+    bid2.set(mv_pp);
+
+    Id askId2 = id;
+    askId2.set_signal("GOOG.STK");
+    askId2.set_label("ask");
+    ask2.set(askId2);
+    ask2.set(mv_pp);
+
+    Id timerId2 = id;
+    timerId2.set_label("trade-eval-10-sec");
+    ten_sec_timer.set(timerId2);
+    ten_sec_timer.set(*this);
   }
 
   virtual void operator()(const size_t count,
                           const Id& id,
-                          const time_series<microsecond_t, double>& window)
+                          const time_series<
+                          microsecond_t,
+                          microsecond_t>& window)
   {
     if (count > 0) {
       ptime t = atp::time::as_ptime(window.get_time(0));
@@ -173,7 +214,7 @@ struct trader : public moving_window_post_process<microsecond_t, double>
     }
   }
 
-  /// receives update of LAST
+
   void on_last(const microsecond_t& t, const double& v)
   {
     ptime tt = atp::time::as_ptime(t);
@@ -184,10 +225,10 @@ struct trader : public moving_window_post_process<microsecond_t, double>
          << "last" << ","
          << v << std::endl;
     ohlc(t, v);
-    timer(t, v);
+    ten_sec_timer(t, t);
   }
 
-  /// receives update of LAST
+
   void on_bid(const microsecond_t& t, const double& v)
   {
     // ptime tt = atp::time::as_ptime(t);
@@ -199,7 +240,7 @@ struct trader : public moving_window_post_process<microsecond_t, double>
     //      << v << std::endl;
     bid(t, v);
     mid(t, (ask[0] + bid[0]) / 2.);
-    timer(t, v);
+    ten_sec_timer(t, t);
   }
 
   void on_ask(const microsecond_t& t, const double& v)
@@ -213,28 +254,75 @@ struct trader : public moving_window_post_process<microsecond_t, double>
     //      << v << std::endl;
     ask(t, v);
     mid(t, (ask[0] + bid[0]) / 2.);
-    timer(t, v);
+    ten_sec_timer(t, t);
   }
 
-  void bind(marketdata_handler<MarketData>& feed_handler)
+  void on_last2(const microsecond_t& t, const double& v)
   {
-    feed_handler.bind(
+    ptime tt = atp::time::as_ptime(t);
+    cout << atp::time::to_est(tt) << ","
+         << id.name() << ","
+         << id.variant() << ","
+         << "GOOG.STK" << ","
+         << "last" << ","
+         << v << std::endl;
+    ohlc2(t, v);
+    ten_sec_timer(t, t);
+  }
+
+
+  void on_bid2(const microsecond_t& t, const double& v)
+  {
+    bid2(t, v);
+    mid2(t, (ask2[0] + bid2[0]) / 2.);
+    ten_sec_timer(t, t);
+  }
+
+  void on_ask2(const microsecond_t& t, const double& v)
+  {
+    ask2(t, v);
+    mid2(t, (ask2[0] + bid2[0]) / 2.);
+    ten_sec_timer(t, t);
+  }
+
+  void setup(message_processor::protobuf_handlers_map& map)
+  {
+    feed_handler1.bind(
         "LAST",
         static_cast<updater>(boost::bind(&trader::on_last, this, _1, _2)));
-    feed_handler.bind(
+    feed_handler1.bind(
         "BID",
         static_cast<updater>(boost::bind(&trader::on_bid, this, _1, _2)));
-    feed_handler.bind(
+    feed_handler1.bind(
         "ASK",
         static_cast<updater>(boost::bind(&trader::on_ask, this, _1, _2)));
+
+    feed_handler2.bind(
+        "LAST",
+        static_cast<updater>(boost::bind(&trader::on_last2,
+                                         this, _1, _2)));
+    feed_handler2.bind(
+        "BID",
+        static_cast<updater>(boost::bind(&trader::on_bid2,
+                                         this, _1, _2)));
+    feed_handler2.bind(
+        "ASK",
+        static_cast<updater>(boost::bind(&trader::on_ask2,
+                                         this, _1, _2)));
+    map.register_handler("AAPL.STK", feed_handler1);
+    map.register_handler("GOOG.STK", feed_handler2);  // pretend GOOG is the index or the other half of the pair
   }
 
   Id id;
   post_process_cout<double> ohlc_pp;
   moving_window_post_process_cout<microsecond_t, double> mv_pp;
-  ohlc_t ohlc;
-  moving_window<double, atp::common::sampler::close<double> > mid, bid, ask,
-                 timer; // timer is just for tracking time and calling trades
+  ohlc_t ohlc, ohlc2;
+  moving_window<double, atp::common::sampler::close<double> > mid, bid, ask;
+  moving_window<double, atp::common::sampler::close<double> > mid2, bid2, ask2;
+
+  timer_t ten_sec_timer; // timer is just for tracking time and calling trades
+
+  marketdata_handler<MarketData> feed_handler1, feed_handler2;
 };
 
 TEST(OhlcPrototype, OhlcUsage)
@@ -242,30 +330,27 @@ TEST(OhlcPrototype, OhlcUsage)
   using namespace atp::common;
   using namespace atp::common::callback;
 
+  message_processor::protobuf_handlers_map symbol_handlers1;
+  symbol_handlers1.register_handler(
+      atp::log_reader::DATA_END,
+      boost::bind(&stop_function, _1, _2, "End of Log"));
+
+  ////////////////////////////////////////
+  // A typical trader class that contains ohlc and other indicators
+
   int bars = 60; // seconds
   int bar_interval = 10;
   int scan_seconds = bars * bar_interval * 5;
 
-  marketdata_handler<MarketData> feed_handler1;
-
-  // A typical trader class that contains ohlc and other indicators
   Id id;
   id.set_name("trader1");
   id.set_variant("test1");
-  id.set_signal("AAPL.STK");
-  id.set_label("ohlc");
   trader trader(id, bars, bar_interval);
 
-  // bind all the handlers
-  trader.bind(feed_handler1);
+  trader.setup(symbol_handlers1);
 
-  message_processor::protobuf_handlers_map symbol_handlers1;
-  symbol_handlers1.register_handler("AAPL.STK", feed_handler1);
-  symbol_handlers1.register_handler(
-      atp::log_reader::DATA_END,
-      boost::bind(&stop_function, _1, _2, "End of Log"));
+
   message_processor subscriber(PUB_ENDPOINT, symbol_handlers1);
-
 
   LOG(INFO) << "Starting thread";
   LogReader reader(FLAGS_data_dir + FLAGS_log_file);
