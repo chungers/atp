@@ -326,7 +326,8 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
     map.register_handler("GOOG.STK", feed_handler2);
 
     // control message
-    control_handler.bind(boost::bind(&trader::on_control, this, _1, _2));
+    control_handler.bind(control_handler.message_key(),
+                         boost::bind(&trader::on_control, this, _1, _2));
     map.register_handler(control_handler.message_key(),
                          control_handler);
   }

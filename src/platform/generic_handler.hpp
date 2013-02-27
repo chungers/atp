@@ -5,6 +5,7 @@
 #include <string>
 
 #include <boost/function.hpp>
+#include <boost/unordered_map.hpp>
 
 #include "platform/types.hpp"
 
@@ -54,17 +55,20 @@ class generic_handler
     if (deserialize(msg, event)) {
 
       timestamp_t ts = get_timestamp<EventClass>(event);
-      return handler_(ts, event);
-
+      if (handlers_.find(key) != handlers_.end()) {
+        return handlers_[key](ts, event);
+      } else {
+        return -1;
+      }
     } else {
       LOG(WARNING) << "Cannot deserialize: " << key << ", msg = " << msg;
       return -1;
     }
   }
 
-  void bind(handler_t handler)
+  void bind(const message_key_t key, const handler_t& handler)
   {
-    handler_ = handler;
+    handlers_[key] = handler;
   }
 
   message_key_t message_key()
@@ -74,8 +78,10 @@ class generic_handler
 
  private:
 
+  typedef boost::unordered_map<message_key_t, handler_t> handler_map;
+
   EventClass prototype_;
-  handler_t handler_;
+  handler_map handlers_;
 };
 
 } // platform
