@@ -17,6 +17,7 @@
 #include "common/ohlc.hpp"
 #include "common/ohlc_callbacks.hpp"
 
+#include "platform/control_message_handler.hpp"
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
 
@@ -39,7 +40,10 @@ using namespace atp::common::sampler;
 
 using atp::platform::message_processor;
 using atp::platform::types::timestamp_t;
+using atp::platform::generic_handler;
+
 using proto::ib::MarketData;
+using proto::platform::ControlMessage;
 
 using boost::posix_time::time_duration;
 
@@ -285,6 +289,13 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
     ten_sec_timer(t, t);
   }
 
+  int on_control(const atp::platform::types::timestamp_t& t,
+                 const ControlMessage& control)
+  {
+    LOG(INFO) << "Got " << t << ", " << control.target();
+    return 0;
+  }
+
   void setup(message_processor::protobuf_handlers_map& map)
   {
     feed_handler1.bind(
@@ -310,7 +321,14 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
         static_cast<updater>(boost::bind(&trader::on_ask2,
                                          this, _1, _2)));
     map.register_handler("AAPL.STK", feed_handler1);
-    map.register_handler("GOOG.STK", feed_handler2);  // pretend GOOG is the index or the other half of the pair
+
+    // pretend GOOG is the index or the other half of the pair
+    map.register_handler("GOOG.STK", feed_handler2);
+
+    // control message
+    control_handler.bind(boost::bind(&trader::on_control, this, _1, _2));
+    map.register_handler(control_handler.message_key(),
+                         control_handler);
   }
 
   Id id;
@@ -323,6 +341,7 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
   timer_t ten_sec_timer; // timer is just for tracking time and calling trades
 
   marketdata_handler<MarketData> feed_handler1, feed_handler2;
+  generic_handler<ControlMessage> control_handler;
 };
 
 TEST(OhlcPrototype, OhlcUsage)

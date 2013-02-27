@@ -21,3 +21,11 @@ message Id {
   optional string label = 4;
 
 };
+
+message ControlMessage {
+
+  required uint64 timestamp = 1;
+
+  optional Id target = 2;
+
+};

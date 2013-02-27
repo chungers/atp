@@ -136,7 +136,6 @@ class value_updater
 };
 
 
-
 /// Market data handler that generalizes
 /// 1. an event class
 /// 2. special serialized data type (e.g. string)
