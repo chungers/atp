@@ -9,6 +9,7 @@
 #include <boost/pool/object_pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/ref.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "log_levels.h"
 #include "common/moving_window_callback.hpp"
@@ -75,18 +76,6 @@ class moving_window : public time_series<microsecond_t, element_t>
 
   ~moving_window()
   {
-    typename vector<series_operation_pair>::iterator itr;
-    for (itr = series_operations.begin();
-         itr != series_operations.end();
-         ++itr) {
-      delete itr->second.series;
-    }
-    typename vector<sample_array_operation_pair>::iterator itr2;
-    for (itr2 = sample_array_operations.begin();
-         itr2 != sample_array_operations.end();
-         ++itr2) {
-      delete itr2->second.series;
-    }
   }
 
   /// Returns the duration of the history maintained by this moving_window
@@ -309,9 +298,11 @@ class moving_window : public time_series<microsecond_t, element_t>
         series_operation op,
         const size_t min_samples = 1)
   {
+    moving_window<element_t, latest<element_t> > *mw =
+        new moving_window<element_t, latest<element_t> >(history_duration_,
+                                                         interval_, init_);
     operation<series_operation> rec(id_, id,
-                                    op, min_samples, history_duration_,
-                                    interval_, init_);
+                                    op, min_samples, mw);
     series_operations.push_back(series_operation_pair(id, rec));
     return *rec.series;
   }
@@ -322,9 +313,10 @@ class moving_window : public time_series<microsecond_t, element_t>
          sample_array_operation op,
          const size_t min_samples = 1)
   {
-    operation<sample_array_operation> rec(id_, id, op, min_samples,
-                                          history_duration_,
-                                          interval_, init_);
+    moving_window<element_t, latest<element_t> > *mw =
+        new moving_window<element_t, latest<element_t> >(history_duration_,
+                                                         interval_, init_);
+    operation<sample_array_operation> rec(id_, id, op, min_samples, mw);
     sample_array_operations.push_back(sample_array_operation_pair(id, rec));
     return *rec.series;
   }
@@ -335,9 +327,10 @@ class moving_window : public time_series<microsecond_t, element_t>
          value_array_operation op,
          const size_t min_samples = 1)
   {
-    operation<value_array_operation> rec(id_, id, op, min_samples,
-                                         history_duration_,
-                                         interval_, init_);
+    moving_window<element_t, latest<element_t> > *mw =
+        new moving_window<element_t, latest<element_t> >(history_duration_,
+                                                         interval_, init_);
+    operation<value_array_operation> rec(id_, id, op, min_samples, mw);
     value_array_operations.push_back(value_array_operation_pair(id, rec));
     return *rec.series;
   }
@@ -348,9 +341,10 @@ class moving_window : public time_series<microsecond_t, element_t>
          callback::moving_window_post_process<microsecond_t, element_t>& pp,
          const size_t min_samples = 1)
   {
-    operation<value_array_operation> rec(id_, id, op, min_samples,
-                                         history_duration_,
-                                         interval_, init_);
+    moving_window<element_t, latest<element_t> > *mw =
+        new moving_window<element_t, latest<element_t> >(history_duration_,
+                                                         interval_, init_);
+    operation<value_array_operation> rec(id_, id, op, min_samples, mw);
     value_array_operations.push_back(value_array_operation_pair(id, rec));
     rec.series->set(pp);
     return *rec.series;
@@ -413,20 +407,18 @@ class moving_window : public time_series<microsecond_t, element_t>
   {
     explicit operation(const Id& parent_id,
                        const string id, operation_type op, size_t min_samples,
-                       time_duration h, sample_interval_t i, element_t init) :
-        id(id), functor(op), min_samples(min_samples),
-        series(new moving_window<element_t, latest<element_t> >(h, i, init))
+                       moving_window<element_t, latest<element_t> > *mw) :
+        id(id), functor(op), min_samples(min_samples), series(mw)
     {
       Id sid = parent_id;
       sid.set_label(parent_id.label() + '$' + id);
       series->set(sid);
     }
 
-
     string id;
     operation_type functor;
     size_t min_samples;
-    moving_window< element_t, latest<element_t> >* series;
+    boost::shared_ptr< moving_window< element_t, latest<element_t> > > series;
   };
 
   typedef pair<string, operation<series_operation> >

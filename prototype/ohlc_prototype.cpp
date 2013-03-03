@@ -173,7 +173,7 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
            seconds(seconds_per_bar), 0.),
       ten_sec_timer(seconds(bars),
                     seconds(10), 0),
-      sma5(5)
+      sma5(5), sma20(20)
   {
     /////////////////////////////////////
     id.set_signal("AAPL.STK");
@@ -181,7 +181,8 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
     ohlc.set(id);
     ohlc.set(ohlc_pp);
     ohlc.mutable_close().set(mv_pp);
-    ohlc.mutable_close().apply3("sma5", sma5, mv_pp, 10);
+    ta_sma5 = &ohlc.mutable_close().apply3("sma5", sma5, mv_pp);
+    ta_sma20 = &ohlc.mutable_close().apply3("sma20", sma20, mv_pp);
 
     Id midId = id;
     midId.set_label("mid");
@@ -237,13 +238,15 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
                           microsecond_t>& window)
   {
     if (count > 0) {
+
+      string indicator = ((*ta_sma5)[0] > (*ta_sma20)[0]) ? ",1" : ",0";
+
       ptime t = atp::time::as_ptime(window.get_time(0));
       ptime t2 = atp::time::as_ptime(window.get_time(-1));
       cout << atp::time::to_est(t2) << ","
            << atp::time::to_est(t) << ","
-           << id << " ==> evaluate trade ==> "
-           << "current bid = " << bid[0] << ", ask = " << ask[0]
-           << ", mid = " << mid[0] << ", last = " << ohlc.close()[0]
+           << id << "," << (*ta_sma5)[0] << "," << (*ta_sma20)[0]
+           << indicator
            << std::endl;
     }
   }
@@ -375,6 +378,9 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
   generic_handler<ControlMessage> control_handler;
 
   sma sma5;
+  time_series<microsecond_t, double>* ta_sma5;
+  sma sma20;
+  time_series<microsecond_t, double>* ta_sma20;
 };
 
 TEST(OhlcPrototype, OhlcUsage)
