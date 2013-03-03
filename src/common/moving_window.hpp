@@ -418,7 +418,7 @@ class moving_window : public time_series<microsecond_t, element_t>
         series(new moving_window<element_t, latest<element_t> >(h, i, init))
     {
       Id sid = parent_id;
-      sid.set_label(parent_id.label() + '.' + id);
+      sid.set_label(parent_id.label() + '$' + id);
       series->set(sid);
     }
 

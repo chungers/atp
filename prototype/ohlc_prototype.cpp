@@ -128,9 +128,9 @@ struct sma
     // for (size_t i = 0; i < len; ++i) {
     //   LOG(INFO) << "series " << len << ", " << series[i];
     // }
-    double out[len];
-    int outIndex = 0;
-    int outCount = 0;
+    TA_Real out[len];
+    TA_Integer outIndex, outCount;
+
     int ret = TA_MA(0, len-1, series, period, TA_MAType_SMA,
                     &outIndex, &outCount, &out[0]);
     // for (size_t i = 0; i < len; ++i) {
@@ -138,7 +138,7 @@ struct sma
     // }
 
     // LOG(INFO) << "sma = " << outIndex << ", "
-    //           << outCount << ", " << out[outCount - 1];
+    //            << outCount << ", " << out[outCount - 1];
     return out[outCount - 1];
   }
 
@@ -177,7 +177,7 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
   {
     /////////////////////////////////////
     id.set_signal("AAPL.STK");
-    id.set_label("last.ohlc");
+    id.set_label("last$ohlc");
     ohlc.set(id);
     ohlc.set(ohlc_pp);
     ohlc.mutable_close().set(mv_pp);
