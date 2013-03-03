@@ -309,7 +309,8 @@ class moving_window : public time_series<microsecond_t, element_t>
         series_operation op,
         const size_t min_samples = 1)
   {
-    operation<series_operation> rec(id, op, min_samples, history_duration_,
+    operation<series_operation> rec(id_, id,
+                                    op, min_samples, history_duration_,
                                     interval_, init_);
     series_operations.push_back(series_operation_pair(id, rec));
     return *rec.series;
@@ -321,7 +322,7 @@ class moving_window : public time_series<microsecond_t, element_t>
          sample_array_operation op,
          const size_t min_samples = 1)
   {
-    operation<sample_array_operation> rec(id, op, min_samples,
+    operation<sample_array_operation> rec(id_, id, op, min_samples,
                                           history_duration_,
                                           interval_, init_);
     sample_array_operations.push_back(sample_array_operation_pair(id, rec));
@@ -334,10 +335,24 @@ class moving_window : public time_series<microsecond_t, element_t>
          value_array_operation op,
          const size_t min_samples = 1)
   {
-    operation<value_array_operation> rec(id, op, min_samples,
+    operation<value_array_operation> rec(id_, id, op, min_samples,
                                          history_duration_,
                                          interval_, init_);
     value_array_operations.push_back(value_array_operation_pair(id, rec));
+    return *rec.series;
+  }
+
+  virtual time_series<microsecond_t, element_t>&
+  apply3(const string& id,
+         value_array_operation op,
+         callback::moving_window_post_process<microsecond_t, element_t>& pp,
+         const size_t min_samples = 1)
+  {
+    operation<value_array_operation> rec(id_, id, op, min_samples,
+                                         history_duration_,
+                                         interval_, init_);
+    value_array_operations.push_back(value_array_operation_pair(id, rec));
+    rec.series->set(pp);
     return *rec.series;
   }
 
@@ -396,11 +411,17 @@ class moving_window : public time_series<microsecond_t, element_t>
   template <typename operation_type>
   struct operation
   {
-    explicit operation(const string id, operation_type op, size_t min_samples,
+    explicit operation(const Id& parent_id,
+                       const string id, operation_type op, size_t min_samples,
                        time_duration h, sample_interval_t i, element_t init) :
         id(id), functor(op), min_samples(min_samples),
         series(new moving_window<element_t, latest<element_t> >(h, i, init))
-    {}
+    {
+      Id sid = parent_id;
+      sid.set_label(parent_id.label() + '.' + id);
+      series->set(sid);
+    }
+
 
     string id;
     operation_type functor;

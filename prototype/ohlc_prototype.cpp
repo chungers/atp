@@ -12,6 +12,8 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
+#include <ta-lib/ta_func.h>
+
 #include "common/moving_window.hpp"
 #include "common/moving_window_callbacks.hpp"
 #include "common/ohlc.hpp"
@@ -117,6 +119,32 @@ struct logger_post_process : public ohlc_post_process<V>
 } // atp
 
 
+struct sma
+{
+  sma(int period) : period(period) {}
+
+  double operator()(const double* series, const size_t len)
+  {
+    // for (size_t i = 0; i < len; ++i) {
+    //   LOG(INFO) << "series " << len << ", " << series[i];
+    // }
+    double out[len];
+    int outIndex = 0;
+    int outCount = 0;
+    int ret = TA_MA(0, len-1, series, period, TA_MAType_SMA,
+                    &outIndex, &outCount, &out[0]);
+    // for (size_t i = 0; i < len; ++i) {
+    //   LOG(INFO) << "ma " << len << ", " << out[i];
+    // }
+
+    // LOG(INFO) << "sma = " << outIndex << ", "
+    //           << outCount << ", " << out[outCount - 1];
+    return out[outCount - 1];
+  }
+
+  int period;
+};
+
 typedef ohlc<double> ohlc_t;
 
 struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
@@ -144,14 +172,16 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
       ask2(seconds(bars * seconds_per_bar),
            seconds(seconds_per_bar), 0.),
       ten_sec_timer(seconds(bars),
-                    seconds(10), 0)
+                    seconds(10), 0),
+      sma5(5)
   {
     /////////////////////////////////////
     id.set_signal("AAPL.STK");
-    id.set_label("ohlc");
+    id.set_label("last.ohlc");
     ohlc.set(id);
     ohlc.set(ohlc_pp);
     ohlc.mutable_close().set(mv_pp);
+    ohlc.mutable_close().apply3("sma5", sma5, mv_pp, 10);
 
     Id midId = id;
     midId.set_label("mid");
@@ -343,6 +373,8 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
 
   marketdata_handler<MarketData> feed_handler1, feed_handler2;
   generic_handler<ControlMessage> control_handler;
+
+  sma sma5;
 };
 
 TEST(OhlcPrototype, OhlcUsage)
