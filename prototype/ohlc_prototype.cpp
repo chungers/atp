@@ -6,7 +6,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/thread.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #include <gflags/gflags.h>
 #include <gtest/gtest.h>
@@ -145,7 +145,59 @@ struct sma
   int period;
 };
 
+
 typedef ohlc<double> ohlc_t;
+
+// MACD, MACD-signal, MACD-histogram
+typedef boost::tuple<double, double, double> macd_value_t;
+
+struct MACD : public moving_window_post_process<microsecond_t, macd_value_t>
+{
+  typedef
+  moving_window<macd_value_t, atp::common::sampler::close<macd_value_t> >
+  macd_series;
+
+  MACD(macd_series& series) : series(series) {}
+
+  virtual ~MACD() {}
+
+  double operator()(const microsecond_t* t,
+                    const double* price,
+                    const size_t len)
+  {
+    double outMACD[len];
+    double outMACDSignal[len];
+    double outMACDHist[len];
+    int outBegIdx = 0;
+    int outNBElement = 0;
+    int ret = TA_MACD(0, len-1, price, fastPeriod, slowPeriod, signalPeriod,
+                      &outBegIdx, &outNBElement,
+                      &outMACD[0], &outMACDSignal[0], &outMACDHist[0]);
+
+    series(t[len-1], macd_value_t(outMACD[outNBElement-1],
+                                  outMACDSignal[outNBElement-1],
+                                  outMACDHist[outNBElement-1]));
+  }
+
+  virtual void operator()(const size_t count,
+                          const Id& id,
+                          const time_series<microsecond_t, macd_value_t>& w)
+  {
+    for (int i = -count; i < 0; ++i) {
+      ptime t = atp::time::as_ptime(w.get_time(i));
+      cout << atp::time::to_est(t) << ","
+           << id << ","
+           << boost::get<0>(w[i]) << ','
+           << boost::get<1>(w[i]) << "*******************************"
+           << endl;
+    }
+  }
+
+  int fastPeriod, slowPeriod, signalPeriod;
+  macd_series& series;
+};
+
+
 
 struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
 {
@@ -173,7 +225,10 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
            seconds(seconds_per_bar), 0.),
       ten_sec_timer(seconds(bars),
                     seconds(10), 0),
-      sma5(5), sma20(20)
+      sma5(5), sma20(20),
+      macd(seconds(bars * seconds_per_bar),
+           seconds(seconds_per_bar), 0.),
+      macd_pp(macd)
   {
     /////////////////////////////////////
     id.set_signal("AAPL.STK");
@@ -229,6 +284,14 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
     timerId2.set_label("trade-eval-10-sec");
     ten_sec_timer.set(timerId2);
     ten_sec_timer.set(*this);
+
+    Id macdId = id;
+    macdId.set_label("last$ohlc$close$macd");
+    macd.set(macdId);
+    macd.set(macd_pp);
+
+    // connect the close to macd
+    ohlc.mutable_close().apply2("macd", macd_pp);
   }
 
   virtual void operator()(const size_t count,
@@ -381,6 +444,9 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
   time_series<microsecond_t, double>* ta_sma5;
   sma sma20;
   time_series<microsecond_t, double>* ta_sma20;
+
+  moving_window<macd_value_t, atp::common::sampler::close<macd_value_t> > macd;
+  MACD macd_pp;
 };
 
 TEST(OhlcPrototype, OhlcUsage)

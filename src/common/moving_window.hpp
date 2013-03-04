@@ -350,6 +350,7 @@ class moving_window : public time_series<microsecond_t, element_t>
     return *rec.series;
   }
 
+
   void set(const Id& id)
   {
     id_ = id;
