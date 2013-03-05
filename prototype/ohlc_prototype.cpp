@@ -157,7 +157,12 @@ struct MACD : public moving_window_post_process<microsecond_t, macd_value_t>
   moving_window<macd_value_t, atp::common::sampler::close<macd_value_t> >
   macd_series;
 
-  MACD(macd_series& series) : series(series) {}
+  MACD(int fastPeriod, int slowPeriod, int signalPeriod,
+       macd_series& series) :
+      fastPeriod(fastPeriod),
+      slowPeriod(slowPeriod),
+      signalPeriod(signalPeriod),
+      series(series) {}
 
   virtual ~MACD() {}
 
@@ -188,7 +193,8 @@ struct MACD : public moving_window_post_process<microsecond_t, macd_value_t>
       cout << atp::time::to_est(t) << ","
            << id << ","
            << boost::get<0>(w[i]) << ','
-           << boost::get<1>(w[i]) << "*******************************"
+           << boost::get<1>(w[i]) << ','
+           << boost::get<2>(w[i])
            << endl;
     }
   }
@@ -228,7 +234,7 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
       sma5(5), sma20(20),
       macd(seconds(bars * seconds_per_bar),
            seconds(seconds_per_bar), 0.),
-      macd_pp(macd)
+      macd_pp(5, 20, 20, macd)
   {
     /////////////////////////////////////
     id.set_signal("AAPL.STK");
