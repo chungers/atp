@@ -47,7 +47,7 @@ class first_derivative : public indicator<V>
 };
 
 
-TEST(IndicatorPipelineTest, UsageSyntax1)
+TEST(IndicatorTest, UsageSyntax1)
 {
   moving_window< double, atp::common::sampler::close<double> >
       price(microseconds(10), microseconds(1), 0);
@@ -83,7 +83,7 @@ TEST(IndicatorPipelineTest, UsageSyntax1)
 }
 
 
-TEST(IndicatorPipelineTest, UsageSyntax2)
+TEST(IndicatorTest, UsageSyntax2)
 {
 
   marketdata_handler<MarketData> feed;
