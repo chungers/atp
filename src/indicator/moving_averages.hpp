@@ -12,50 +12,19 @@ using atp::common::microsecond_t;
 namespace atp {
 namespace indicator {
 
-/// Simple Moving Average
-class SMA
+///
+class MA
 {
  public:
 
-  SMA(const SMAConfig& config);
+  MA(const MAConfig& config);
 
   double operator()(const microsecond_t& t,
                     const double* series,
                     const size_t len);
 
  private:
-  SMAConfig config_;
-};
-
-/// Exponential Moving Average
-class EMA
-{
- public:
-
-  EMA(const EMAConfig& config);
-
-  double operator()(const microsecond_t& t,
-                    const double* series,
-                    const size_t len);
-
- private:
-  EMAConfig config_;
-};
-
-
-/// Kaufman Adaptive Moving Average
-class KAMA
-{
- public:
-
-  KAMA(const KAMAConfig& config);
-
-  double operator()(const microsecond_t& t,
-                    const double* series,
-                    const size_t len);
-
- private:
-  KAMAConfig config_;
+  MAConfig config_;
 };
 
 

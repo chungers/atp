@@ -151,7 +151,6 @@ typedef ohlc<double> ohlc_t;
 
 // MACD, MACD-signal, MACD-histogram
 typedef boost::tuple<double, double, double> macd_value_t;
-
 struct MACD : public moving_window_post_process<microsecond_t, macd_value_t>
 {
   typedef
