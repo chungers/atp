@@ -25,7 +25,8 @@ class time_series
   typedef boost::function< V(const T*, const V*, const size_t) >
   sample_array_operation;
 
-  typedef boost::function< V(const V*, const size_t) >
+  typedef boost::function< V(const microsecond_t& current_t,
+                             const V*, const size_t) >
   value_array_operation;
 
   virtual ~time_series()

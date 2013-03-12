@@ -256,7 +256,7 @@ class moving_window : public time_series<microsecond_t, element_t>
         for (itr = value_array_operations.begin();
              itr != value_array_operations.end();
            ++itr) {
-          element_t derived = itr->second.functor(&vbuff[0], len);
+          element_t derived = itr->second.functor(current_ts_, &vbuff[0], len);
           (*itr->second.series)(current_ts_, derived);
         }
         if (sample_array_operations.size() > 0) {

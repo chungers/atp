@@ -123,7 +123,8 @@ struct sma
 {
   sma(int period) : period(period) {}
 
-  double operator()(const double* series, const size_t len)
+  double operator()(const microsecond_t& t,
+                    const double* series, const size_t len)
   {
     // for (size_t i = 0; i < len; ++i) {
     //   LOG(INFO) << "series " << len << ", " << series[i];
@@ -166,7 +167,7 @@ struct MACD : public moving_window_post_process<microsecond_t, macd_value_t>
 
   virtual ~MACD() {}
 
-  double operator()(const microsecond_t* t,
+  double operator()(const microsecond_t& t,
                     const double* price,
                     const size_t len)
   {
@@ -179,9 +180,9 @@ struct MACD : public moving_window_post_process<microsecond_t, macd_value_t>
                       &outBegIdx, &outNBElement,
                       &outMACD[0], &outMACDSignal[0], &outMACDHist[0]);
 
-    series(t[len-1], macd_value_t(outMACD[outNBElement-1],
-                                  outMACDSignal[outNBElement-1],
-                                  outMACDHist[outNBElement-1]));
+    series(t, macd_value_t(outMACD[outNBElement-1],
+                           outMACDSignal[outNBElement-1],
+                           outMACDHist[outNBElement-1]));
   }
 
   virtual void operator()(const size_t count,
@@ -297,7 +298,7 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
     macd.set(macd_pp);
 
     // connect the close to macd
-    ohlc.mutable_close().apply2("macd", macd_pp);
+    ohlc.mutable_close().apply3("macd", macd_pp);
   }
 
   virtual void operator()(const size_t count,
