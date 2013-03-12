@@ -29,6 +29,10 @@ add_subdirectory(zmq)
 # CouchDB
 add_subdirectory(couchdb)
 
+# Indicator
+# - technical indicators and other time series operations
+add_subdirectory(indicator)
+
 # Platform
 # - composition of lower-level layers like zmq, ib, proto, etc.
 add_subdirectory(platform)
@@ -42,6 +46,3 @@ add_subdirectory(historian)
 
 # Actual mains / programs
 add_subdirectory(main)
-
-
-
