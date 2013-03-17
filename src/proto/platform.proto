@@ -2,6 +2,9 @@ package proto.platform;
 
 //option optimize_for = LITE_RUNTIME;
 
+import "indicator.proto";
+
+
 // An identifier for a strategy, its variation, signals, etc.
 message Id {
 
@@ -17,8 +20,11 @@ message Id {
   // to identify the actual signal within a strategy
   optional string signal = 3;
 
+  // the event associated with the signal source (e.g. ASK)
+  optional string event = 4;
+
   // some label, eg. 'ohlc', 'sma-20', 'order', etc.
-  optional string label = 4;
+  optional string label = 5;
 
 };
 
@@ -28,4 +34,31 @@ message ControlMessage {
 
   optional Id target = 2;
 
+};
+
+
+message Signal {
+
+  required Id id = 1;
+
+  required uint64 duration_micros = 2;  // 10 ^ 7 for 10 seconds
+  required uint64 interval_micros = 3;  // 1000 for 1 msec bar
+
+  optional bool use_ohlc = 4;
+  optional bool std_out = 5;
+
+  message Indicator {
+    required string name = 1;
+    required proto.indicator.IndicatorConfig config = 2;
+  };
+
+  repeated Indicator indicator = 6;
+};
+
+message Strategy {
+
+  required Id id = 1;
+  optional string comments = 2;
+
+  repeated Signal signal = 3;
 };

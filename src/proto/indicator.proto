@@ -21,4 +21,18 @@ message MACDConfig {
   required MAConfig fast = 1;
   required MAConfig slow = 2;
   required MAConfig signal = 3;
+
 }
+
+message IndicatorConfig {
+
+  enum Type {
+    MA = 0;
+    MACD = 1;
+  }
+
+  required Type type = 1 [ default = MA ];
+
+  optional MAConfig ma = 2;
+  optional MACDConfig macd = 3;
+};
