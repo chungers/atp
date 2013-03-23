@@ -36,7 +36,6 @@ message ControlMessage {
 
 };
 
-
 message Signal {
 
   required Id id = 1;
