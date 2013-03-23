@@ -56,7 +56,13 @@ TEST(StrategyTest, UsageSyntax1)
   Signal* signal3 = strategy.add_signal();
   signal3->MergeFrom(*signal); // get everything from signal
   signal3->mutable_id()->set_event("LAST");
+
   signal3->set_use_ohlc(true); // use ohlc
+  // all the indicators use the ohlc close as the source
+  for (int i = 0; i < signal3->indicator_size(); ++i) {
+    signal3->mutable_indicator(i)->set_ohlc_source(Signal_Indicator::CLOSE);
+  }
+
 
   EXPECT_TRUE(strategy.IsInitialized());
 

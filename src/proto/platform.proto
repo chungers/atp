@@ -49,6 +49,14 @@ message Signal {
   message Indicator {
     required string name = 1;
     required proto.indicator.IndicatorConfig config = 2;
+
+    enum OhlcSource {
+      OPEN  = 0;
+      HIGH  = 1;
+      LOW   = 2;
+      CLOSE = 3;
+    };
+    optional OhlcSource ohlc_source = 3;
   };
 
   repeated Indicator indicator = 6;
