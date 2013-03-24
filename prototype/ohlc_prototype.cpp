@@ -179,9 +179,9 @@ struct MACD : public moving_window_post_process<microsecond_t, macd_value_t>
                       &outBegIdx, &outNBElement,
                       &outMACD[0], &outMACDSignal[0], &outMACDHist[0]);
 
-    series(t, macd_value_t(outMACD[outNBElement-1],
-                           outMACDSignal[outNBElement-1],
-                           outMACDHist[outNBElement-1]));
+    return series(t, macd_value_t(outMACD[outNBElement-1],
+                                  outMACDSignal[outNBElement-1],
+                                  outMACDHist[outNBElement-1]));
   }
 
   virtual void operator()(const size_t count,
@@ -237,8 +237,8 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
       macd_pp(5, 20, 20, macd)
   {
     /////////////////////////////////////
-    id.set_signal("AAPL.STK");
-    id.set_label("last$ohlc");
+    id.set_source("AAPL.STK");
+    id.add_label("last$ohlc");
     ohlc.set(id);
     ohlc.set(ohlc_pp);
     ohlc.mutable_close().set(mv_pp);
@@ -246,53 +246,53 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
     ta_sma20 = &ohlc.mutable_close().apply3("sma20", sma20, mv_pp);
 
     Id midId = id;
-    midId.set_label("mid");
+    midId.add_label("mid");
     mid.set(midId);
     mid.set(mv_pp);
 
     Id bidId = id;
-    bidId.set_label("bid");
+    bidId.add_label("bid");
     bid.set(bidId);
     bid.set(mv_pp);
 
     Id askId = id;
-    askId.set_label("ask");
+    askId.add_label("ask");
     ask.set(askId);
     ask.set(mv_pp);
 
     /////////////////////////////////////
     Id id2 = id;
-    id2.set_signal("GOOG.STK");
-    id2.set_label("ohlc");
+    id2.set_source("GOOG.STK");
+    id2.add_label("ohlc");
     ohlc2.set(id2);
     ohlc2.set(ohlc_pp);
     ohlc2.mutable_close().set(mv_pp);
 
     Id midId2 = id;
-    midId2.set_signal("GOOG.STK");
-    midId2.set_label("mid");
+    midId2.set_source("GOOG.STK");
+    midId2.add_label("mid");
     mid2.set(midId2);
     mid2.set(mv_pp);
 
     Id bidId2 = id;
-    bidId2.set_signal("GOOG.STK");
-    bidId2.set_label("bid");
+    bidId2.set_source("GOOG.STK");
+    bidId2.add_label("bid");
     bid2.set(bidId2);
     bid2.set(mv_pp);
 
     Id askId2 = id;
-    askId2.set_signal("GOOG.STK");
-    askId2.set_label("ask");
+    askId2.set_source("GOOG.STK");
+    askId2.add_label("ask");
     ask2.set(askId2);
     ask2.set(mv_pp);
 
     Id timerId2 = id;
-    timerId2.set_label("trade-eval-10-sec");
+    timerId2.add_label("trade-eval-10-sec");
     ten_sec_timer.set(timerId2);
     ten_sec_timer.set(*this);
 
     Id macdId = id;
-    macdId.set_label("last$ohlc$close$macd");
+    macdId.add_label("last$ohlc$close$macd");
     macd.set(macdId);
     macd.set(macd_pp);
 
@@ -327,7 +327,7 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
     cout << atp::time::to_est(tt) << ","
          << id.name() << ","
          << id.variant() << ","
-         << id.signal() << ","
+         << id.source() << ","
          << "last" << ","
          << v << std::endl;
     ohlc(t, v);
@@ -341,7 +341,7 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
     // cout << atp::time::to_est(tt) << ","
     //      << id.name() << ","
     //      << id.variant() << ","
-    //      << id.signal() << ","
+    //      << id.source() << ","
     //      << "bid-inst" << ","
     //      << v << std::endl;
     bid(t, v);
@@ -355,7 +355,7 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
     // cout << atp::time::to_est(tt) << ","
     //      << id.name() << ","
     //      << id.variant() << ","
-    //      << id.signal() << ","
+    //      << id.source() << ","
     //      << "ask-inst" << ","
     //      << v << std::endl;
     ask(t, v);

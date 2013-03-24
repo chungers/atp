@@ -412,7 +412,7 @@ class moving_window : public time_series<microsecond_t, element_t>
         id(id), functor(op), min_samples(min_samples), series(mw)
     {
       Id sid = parent_id;
-      sid.set_label(parent_id.label() + '$' + id);
+      sid.add_label(parent_id.label(0) + '$' + id);
       series->set(sid);
     }
 

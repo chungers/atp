@@ -18,13 +18,13 @@ message Id {
 
   // the component e.g. AAPL.STK and SPX.IND -- this is used
   // to identify the actual signal within a strategy
-  optional string signal = 3;
+  optional string source = 3;
 
   // the event associated with the signal source (e.g. ASK)
   optional string event = 4;
 
   // some label, eg. 'ohlc', 'sma-20', 'order', etc.
-  optional string label = 5;
+  repeated string label = 5;
 
 };
 
@@ -50,6 +50,8 @@ message Signal {
     required string name = 1;
     required proto.indicator.IndicatorConfig config = 2;
 
+    // Special handling if the indicator is to use one of the
+    // OHLC values as its source.
     enum OhlcSource {
       OPEN  = 0;
       HIGH  = 1;

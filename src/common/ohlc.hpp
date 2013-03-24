@@ -84,13 +84,13 @@ class ohlc
     id_ = id;
     // set the id of the dependent moving_windows
     Id sub = id;
-    sub.set_label(id_.label() + "$open");
+    sub.add_label(id_.label(0) + "$open");
     open_.set(sub);
-    sub.set_label(id_.label() + "$high");
+    sub.add_label(id_.label(0) + "$high");
     high_.set(sub);
-    sub.set_label(id_.label() + "$low");
+    sub.add_label(id_.label(0) + "$low");
     low_.set(sub);
-    sub.set_label(id_.label() + "$close");
+    sub.add_label(id_.label(0) + "$close");
     close_.set(sub);
   }
 

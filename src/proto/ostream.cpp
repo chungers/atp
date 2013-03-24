@@ -30,8 +30,9 @@ std::ostream& operator<<(std::ostream& out, const Id& v)
   using namespace proto::platform;
   out << v.name() << ','
       << v.variant() << ','
-      << v.signal() << ','
-      << v.label();
+      << v.source();
+  for (int i = 0; i < v.label_size(); ++i)
+    out << (i == 0 ? "" : ",") << v.label(i);
   return out;
 }
 

@@ -30,7 +30,7 @@ TEST(StrategyTest, UsageSyntax1)
 
   Signal* signal = strategy.add_signal();
   signal->mutable_id()->MergeFrom(strategy.id());
-  signal->mutable_id()->set_signal("AAPL.STK");
+  signal->mutable_id()->set_source("AAPL.STK");
   signal->mutable_id()->set_event("BID");
 
   signal->set_duration_micros(10^6 * 60);
@@ -51,7 +51,7 @@ TEST(StrategyTest, UsageSyntax1)
 
   Signal* signal2 = strategy.add_signal();
   signal2->MergeFrom(*signal); // get everything from signal
-  signal->mutable_id()->set_event("ASK"); // and override the event for ASK
+  signal2->mutable_id()->set_event("ASK"); // and override the event for ASK
 
   Signal* signal3 = strategy.add_signal();
   signal3->MergeFrom(*signal); // get everything from signal
@@ -66,6 +66,23 @@ TEST(StrategyTest, UsageSyntax1)
 
   EXPECT_TRUE(strategy.IsInitialized());
 
+  EXPECT_EQ("AAPL.STK", strategy.signal(0).id().source());
+  EXPECT_EQ("BID", strategy.signal(0).id().event());
+  EXPECT_EQ("EMA5", strategy.signal(0).indicator(0).name());
+  EXPECT_EQ("EMA20", strategy.signal(0).indicator(1).name());
+
+  EXPECT_EQ("AAPL.STK", strategy.signal(1).id().source());
+  EXPECT_EQ("ASK", strategy.signal(1).id().event());
+  EXPECT_EQ("EMA5", strategy.signal(1).indicator(0).name());
+  EXPECT_EQ("EMA20", strategy.signal(1).indicator(1).name());
+
+  EXPECT_EQ("AAPL.STK", strategy.signal(2).id().source());
+  EXPECT_EQ("LAST", strategy.signal(2).id().event());
+  EXPECT_EQ("EMA5", strategy.signal(2).indicator(0).name());
+  EXPECT_EQ("EMA20", strategy.signal(2).indicator(1).name());
+  EXPECT_TRUE(strategy.signal(2).use_ohlc());
+  EXPECT_EQ(Signal_Indicator::CLOSE, strategy.signal(2).indicator(0).ohlc_source());
+  EXPECT_EQ(Signal_Indicator::CLOSE, strategy.signal(2).indicator(1).ohlc_source());
 }
 
 
