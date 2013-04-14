@@ -26,10 +26,7 @@ bool checkEXT(ptime t)
 /// Parse input string and set the ptime according to TIME_FORMAT
 bool parse(const std::string& input, ptime* output, bool est)
 {
-  ptime pt;
-  std::istringstream is(input);
-  is.imbue(TIME_FORMAT);
-  is >> pt;
+  ptime pt(time_from_string(input));
   if (pt != ptime()) {
     *output = (!est) ? pt : us_eastern::local_to_utc(pt);
     return true;
@@ -37,6 +34,18 @@ bool parse(const std::string& input, ptime* output, bool est)
   return false;
 }
 
+bool parse_BROKEN(const std::string& input, ptime* output, bool est)
+{
+  ptime pt;
+  std::istringstream is(input);
+  is.imbue(TIME_FORMAT);  // This does not appear to parse correctly.
+  is >> pt;
+  if (pt != ptime()) {
+    *output = (!est) ? pt : us_eastern::local_to_utc(pt);
+    return true;
+  }
+  return false;
+}
 
 } // namespace time
 } // namespace atp
