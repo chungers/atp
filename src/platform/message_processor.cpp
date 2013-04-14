@@ -12,6 +12,7 @@
 #include "platform/message_processor.hpp"
 
 using std::string;
+using std::vector;
 using boost::condition_variable;
 using boost::mutex;
 using boost::scoped_ptr;
@@ -28,10 +29,10 @@ class message_processor::implementation : NoCopyAndAssign
 {
  public:
 
-  implementation(const string& endpoint,
+  implementation(const vector<string>& endpoints,
                  const message_processor::protobuf_handlers_map& handlers,
                  ::zmq::context_t* context) :
-    endpoint_(endpoint),
+    endpoints_(endpoints),
     handlers_(handlers),
     context_(context == NULL ? new ::zmq::context_t(1) : context),
     ready_(false),
@@ -57,14 +58,18 @@ class message_processor::implementation : NoCopyAndAssign
   {
     ::zmq::socket_t socket(*context_, ZMQ_SUB);
 
-    try {
+    for (vector<string>::const_iterator itr = endpoints_.begin();
+         itr != endpoints_.end();
+         ++itr) {
 
-      socket.connect(endpoint_.c_str());
-      LOG(INFO) << "Connected to " << endpoint_;
+      try {
 
-    } catch (::zmq::error_t e) {
-      LOG(ERROR) << "Cannot connect to " << endpoint_;
-      return;
+        socket.connect(itr->c_str());
+        LOG(INFO) << "Connected to " << *itr;
+
+      } catch (::zmq::error_t e) {
+        LOG(ERROR) << "Cannot connect to " << *itr;
+      }
     }
 
     // Add subscriptions by the handler key
@@ -113,7 +118,7 @@ class message_processor::implementation : NoCopyAndAssign
     LOG(INFO) << "Listening thread stopped.";
   }
 
-  string endpoint_;
+  vector<string> endpoints_;
   const message_processor::protobuf_handlers_map& handlers_;
   ::zmq::context_t* context_;
   bool ready_;
@@ -126,7 +131,14 @@ class message_processor::implementation : NoCopyAndAssign
 message_processor::message_processor(const string& endpoint,
                                      const protobuf_handlers_map& handlers,
                                      ::zmq::context_t* context) :
-    impl_(new implementation(endpoint, handlers, context))
+    impl_(new implementation(vector<string>(1, endpoint), handlers, context))
+{
+}
+
+message_processor::message_processor(const vector<string>& endpoints,
+                                     const protobuf_handlers_map& handlers,
+                                     ::zmq::context_t* context) :
+    impl_(new implementation(endpoints, handlers, context))
 {
 }
 

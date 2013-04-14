@@ -47,6 +47,7 @@ message Signal {
   optional bool std_out = 5;
 
   message Indicator {
+
     required string name = 1;
     required proto.indicator.IndicatorConfig config = 2;
 

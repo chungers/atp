@@ -47,7 +47,7 @@ TEST(LogReaderTest, LoadLogFileTest)
   LogReader::marketdepth_visitor_t m2 = p2;
 
   ptime start;
-  EXPECT_TRUE(atp::time::parse("2012-12-31 09:35:00", &start));
+  ASSERT_TRUE(atp::time::parse("2012-12-31 09:35:00", &start));
 
   LOG(INFO) << "Starting at " << start;
   size_t processed = reader.Process(m1, m2, seconds(5), start);

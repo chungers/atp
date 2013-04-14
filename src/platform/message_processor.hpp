@@ -2,6 +2,7 @@
 #define ATP_PLATFORM_MESSAGE_PROCESSOR_H_
 
 #include <string>
+#include <vector>
 
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -14,6 +15,7 @@
 
 
 using std::string;
+using std::vector;
 using boost::function;
 using boost::scoped_ptr;
 using boost::unordered_map;
@@ -100,10 +102,15 @@ class message_processor : NoCopyAndAssign
 
   typedef handlers_map<string, string> protobuf_handlers_map;
 
+  // Single endpoint
   message_processor(const string& endpoint,
                     const protobuf_handlers_map& handlers,
                     ::zmq::context_t* context = NULL);
 
+  // Subscription to multiple endpoints
+  message_processor(const vector<string>& endpoints,
+                    const protobuf_handlers_map& handlers,
+                    ::zmq::context_t* context = NULL);
   ~message_processor();
 
   void block();
