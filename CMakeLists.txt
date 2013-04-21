@@ -140,9 +140,9 @@ message(STATUS "Make sure leveldb's Makefile has the -fPIC option set for shared
 third_party_plain_make(leveldb)
 
 # Include the subdirectories required for this project:
-add_subdirectory(src)
-add_subdirectory(prototype)
-add_subdirectory(test)
+add_subdirectory(src/cpp)
+add_subdirectory(prototype/cpp)
+add_subdirectory(test/cpp)
 add_subdirectory(R-packages)
 
 # Add this dependency here to make sure all the libs are built before R build

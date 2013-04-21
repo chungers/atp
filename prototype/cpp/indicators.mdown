@@ -1,0 +1,100 @@
+# Indicators and Signals
+
+## Design
+Indicators are
+
++ Some derived value that is a function of the time series, of `x[t]` and
+`x[t-1]`, `x[t-2]`, ...
++ The time series `x` can be any of
+  + bid
+  + ask
+  + last_trade
+  + bid_size
+  + ask_size
+  + last_trade_size
++ Since data arrives at uneven intervals, the data must be regularized with
+respect to time.  We can use standard aggregation techniques of hloc (candle -
+hi/lo/open/close) for some configurable time interval (e.g. 1 sec or 10 msec).
++ If we normalize `x` using the hloc technique above, then we'd usually use the
+closing value of all intervals.
++ Indicators only read the time series `x` to derive a computed value.  It can
+keep a history of previous computed values.
++ Since indicators do not mutate the time series, they can be parallelized via
+executor pool.
++ Indicators are to maintain a history so that signals can be computed off
+some historical values of them.
+
+Signals are, on the other hand:
++ A computed value, a function of, the indicators at time `t` or `t-1`, ...
++ Cannot be computed until all of the indicators it depends upon have been
+computed.  This implies some implementation using futures, if the indicator
+computations are to be parallelized.
++ Signals are then used to derive
+  + yes/no decision to enter a trade
+  + potentially determine the trade sizing (probably not common initially).
+
+# Implementation
+
+Start from the bottom and work its way up:
+
++ To be memory efficient, use `boost::circular_buffer` for maintaining a history
+of the time series `x`.
+
++ The time series `x` includes
+
+  + a `circular_buffer` of regularly timed samples (based on whatever technique)
+  + a `current` value that can be changed within the current time window based
+on received market data events.
+
++ When the `current` value reaches the end of the time window, it is
+`push_back` onto the `circular_buffer`.
+
++ Indicators will then do read-only access of
+
+   + the `circular_buffer`, plus
+   + the `current` value
+
++ Use TA-lib c library for indicator computation
+
+  + Use private array buffers for passing information in and out of
+ta-lib functions.  This is because ta-lib functions use arrays as function
+arguments and will not work properly with bounded circular buffers.
+
+  + The input buffers to the ta-lib functions will copy from the
+history `circular_buffer` and the `current` value from the input time
+series.
+
+  + Indicators will be computed in parallel, using a simple `executor` queue.
+
+  + The copy of the `current` value and the history into input buffers
+should be done only once and for all indicators at the current step.
+This is to ensure that all indicators are using the same history. TA-lib
+functions *should not* mutate the input array buffer, so it *may be* safe
+to share across all threads.
+
+# Some Math
+
+Computing the first derivative of a discrete-time signal, we look at finite
+difference methods.  In this case, we use the backward difference form.
+
+   dx/dt = [ x(t) - x(t-1) ] / T
+   d2x/dt2 = [ x(t) - 2x(t-1) + x(t-2) ] / T^2
+
+See [http://www.edaboard.com/thread169215.html](http://www.edaboard.com/thread169215.html)
+and [http://en.wikipedia.org/wiki/Finite_difference](http://en.wikipedia.org/wiki/Finite_difference).  Basically, the derivative of N th order is approximated by
+
+   dNf(x)/dtN = backward_diff(N, T, F(x)) / T^N + O(T)
+
+where O(T) is the error term from taylor series approximation and
+the backward_difference operator for discrete function of F is
+
+   backward_diff(N, T, F(x)) := sum[i=0:N]( -1 ^i * choose(N, i) * f(x - i*T) )
+
+where choose is `combination` of choose i from N or binomial coefficient.
+
+
+Using GSL, the backward difference derivative is computed as
+[https://github.com/lab616/third_party/blob/master/gsl-1.15/deriv/deriv.c#L101](https://github.com/lab616/third_party/blob/master/gsl-1.15/deriv/deriv.c#L101).
+Note that this uses a 4-point rule and assumes a continuous function.
+
+

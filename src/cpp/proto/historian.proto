@@ -1,0 +1,71 @@
+package proto.historian;
+
+option optimize_for = LITE_RUNTIME;
+
+import "common.proto";
+import "ib.proto";
+
+enum Type {
+  INDEXED_VALUE = 0;
+  SESSION_LOG = 1;
+  IB_MARKET_DATA = 2;
+  IB_MARKET_DEPTH = 3;
+}
+
+// For each symbol and a full session of data
+// (e.g. per day).  This is useful for scanning
+// for what data is available in the db.
+message SessionLog {
+  required string symbol = 1;
+  required uint64 start_timestamp = 2;
+  required uint64 stop_timestamp = 3;
+  required string source = 4;
+}
+
+message IndexedValue {
+
+  required uint64 timestamp = 1;
+  required proto.common.Value value = 2;
+}
+
+message Record {
+
+  required Type type = 1;
+  optional string key = 2;
+
+  optional IndexedValue indexed_value = 10;
+  optional SessionLog session_log = 11;
+
+  optional ib.MarketData ib_marketdata = 21;
+  optional ib.MarketDepth ib_marketdepth = 22;
+}
+
+
+message QueryByRange {
+  required Type type = 1;
+  required string first = 2;
+  required string last = 3;
+  optional string index = 4;
+}
+
+message QueryBySymbol {
+  required Type type = 1;
+  required string symbol = 2;
+  optional uint64 utc_first_micros = 3;
+  optional uint64 utc_last_micros = 4;
+  optional string index = 5;
+}
+
+message Query {
+
+  enum Type {
+    QUERY_BY_RANGE = 0;
+    QUERY_BY_SYMBOL = 1;
+  }
+
+  required Type type = 1;
+  required string callback = 2;
+
+  optional QueryByRange query_by_range = 3;
+  optional QueryBySymbol query_by_symbol = 4;
+}

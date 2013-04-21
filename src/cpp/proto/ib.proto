@@ -1,0 +1,239 @@
+// Events / data from the IB API.
+package proto.ib;
+
+//option optimize_for = LITE_RUNTIME;
+
+import "common.proto";
+
+message MarketData {
+
+  required uint64 timestamp = 1;
+  required string symbol = 2;
+  required string event = 3;
+  required proto.common.Value value = 4;
+  required uint64 contract_id = 5;
+}
+
+message MarketDepth {
+
+  enum Side {
+    ASK = 0;
+    BID = 1;
+  }
+
+  enum Operation {
+    INSERT = 0;
+    UPDATE = 1;
+    DELETE = 2;
+  }
+
+  required uint64 timestamp = 1;
+  required string symbol = 2;
+  required Side side = 3;
+  required double price = 4;
+  required uint64 size = 5;
+  required Operation operation = 6;
+  required uint32 level = 7;
+  optional string mm = 8;
+
+  required uint64 contract_id = 9;
+}
+
+/** Example twsContract (see R/IBrokers module):
+ $ conId          : chr "96099040"
+ $ symbol         : chr "GOOG"
+ $ sectype        : chr "OPT"
+ $ exch           : chr "SMART"
+ $ primary        : chr ""
+ $ expiry         : chr "20111028"
+ $ strike         : chr "590"
+ $ currency       : chr "USD"
+ $ right          : chr "C"
+ $ local          : chr "GOOG  111028C00590000"
+ $ multiplier     : chr "100"
+ $ combo_legs_desc: chr ""
+ $ comboleg       : chr ""
+ $ include_expired: chr ""
+ $ secIdType      : chr ""
+ $ secId          : chr ""
+*/
+message Contract {
+
+  enum Type {
+    INDEX = 0; // IND
+    STOCK = 1; // STK
+    OPTION = 2; // OPT
+  }
+
+  required uint64 id = 1;
+  required string symbol = 2;
+
+  optional Type type = 3 [ default = STOCK ];
+  optional string exchange = 4 [ default = "SMART" ];
+  optional string local_symbol = 5;
+
+  enum Right {
+    PUT = 0; // P
+    CALL = 1;  // C
+  }
+  optional Right right = 6;
+  optional proto.common.Money strike = 7;
+  optional proto.common.Date expiry = 8;
+  optional int32 multiplier = 9 [ default = 100 ];
+}
+
+message ContractDetails {
+
+  required uint64 id = 1;
+  required string symbol = 2;
+
+  required Contract summary = 3;
+
+
+  optional string marketName = 4;
+  optional string tradingClass = 5;
+  optional double minTick = 6;
+  optional string orderTypes = 7;
+  optional string validExchanges = 8;
+  optional int32 priceMagnifier = 9;
+  optional int32 underConId = 10;
+  optional string longName = 11;
+  optional string contractMonth = 12;
+  optional string industry = 13;
+  optional string category = 14;
+  optional string subcategory = 15;
+  optional string timeZoneId = 16;
+  optional string tradingHours = 17;
+  optional string liquidHours = 18;
+}
+
+message RequestContractDetails {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required uint32 request_id = 3;
+  required Contract contract = 4;
+}
+
+message ContractDetailsResponse {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required ContractDetails details = 3;
+}
+
+message ContractDetailsEnd {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required uint32 request_id = 3;
+}
+
+message RequestMarketData {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required Contract contract = 3;
+  optional string tick_types = 4;
+  optional bool snapshot = 5 [ default = false ];
+}
+
+message CancelMarketData {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required Contract contract = 3;
+}
+
+message RequestMarketDepth {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required Contract contract = 3;
+  optional uint32 rows = 4 [ default = 20 ];
+}
+
+message CancelMarketDepth {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required Contract contract = 3;
+}
+
+
+message OrderStatus {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required uint64 order_id = 3;
+  required string status = 4;
+  required uint32 filled = 5;
+  required uint32 remaining = 6;
+  required proto.common.Money avg_fill_price = 7;
+  required proto.common.Money last_fill_price = 8;
+
+  required uint32 client_id = 9;
+  required uint32 perm_id = 10;
+  required uint32 parent_id = 11;
+  required string why_held = 12 [ default = "locate" ];
+}
+
+message CancelOrder {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required uint64 order_id = 3;
+}
+
+message Order {
+
+  enum Action {
+    BUY = 1;
+    SELL = 2;
+    SSHORT = 3;
+  }
+
+  enum TimeInForce {
+    DAY = 1;
+    GTC = 2;
+    IOC = 3;
+  }
+
+  required uint64 id = 1;
+  optional string ref = 2;
+
+  required Action action = 3;
+  required Contract contract = 4;
+
+  required uint32 quantity = 5;
+  optional bool all_or_none = 6 [ default = true ];
+  optional uint32 min_quantity = 7;
+
+  optional bool outside_rth = 8 [ default = false ];
+  optional TimeInForce time_in_force = 9 [ default = IOC ];
+}
+
+message MarketOrder {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required Order order = 3;
+}
+
+message LimitOrder {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required Order order = 3;
+  required proto.common.Money limit_price = 4;
+}
+
+message StopLimitOrder {
+  required uint64 timestamp = 1;
+  required uint64 message_id = 2;
+
+  required Order order = 3;
+  required proto.common.Money limit_price = 4;
+  required proto.common.Money stop_price = 5;
+}
+

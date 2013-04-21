@@ -1,0 +1,38 @@
+// Indicator proto definitions.
+
+package proto.indicator;
+
+//option optimize_for = LITE_RUNTIME;
+
+message MAConfig {
+
+  enum Type {
+    SIMPLE = 0;
+    EXPONENTIAL = 1;
+    KAUFMAN_ADAPTIVE = 2;
+  }
+  required Type type = 1 [ default = SIMPLE ];
+  required int32 period = 2;
+
+}
+
+message MACDConfig {
+
+  required MAConfig fast = 1;
+  required MAConfig slow = 2;
+  required MAConfig signal = 3;
+
+}
+
+message IndicatorConfig {
+
+  enum Type {
+    MA = 0;
+    MACD = 1;
+  }
+
+  required Type type = 1 [ default = MA ];
+
+  optional MAConfig ma = 2;
+  optional MACDConfig macd = 3;
+};

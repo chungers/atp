@@ -1,0 +1,14 @@
+// Prototype / testing proto definitions
+
+package proto.test;
+
+
+message Candle {
+  required int32 timestamp = 1;
+  optional double open = 2;
+  optional double close = 3;
+  optional double high = 4;
+  optional double low = 5;
+  optional int32 count = 6;
+}
+
