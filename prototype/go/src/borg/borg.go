@@ -5,5 +5,5 @@ import (
 )
 
 func Borg() {
-     fmt.Println("hello borg\n")
+     fmt.Println("hello borg!!")
 }
