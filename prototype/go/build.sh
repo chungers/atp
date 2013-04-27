@@ -4,6 +4,8 @@ export GOPATH=`pwd`:$GOPATH
 
 echo "GOPATH=$GOPATH"
 
-#pushd src/main
+# set up required packages
+go get github.com/hoisie/web
+
 go build src/main/main.go
-#popd
+
