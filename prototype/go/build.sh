@@ -12,9 +12,13 @@ echo "GOPATH=$GOPATH"
 export PATH=$(pwd)/bin:$PATH
 echo "PATH=$PATH"
 
+export CGO_CFLAGS="-I/usr/include -I/usr/local/include -I$ATP_DIR/build/third_party/include" 
+export CGO_LDFLAGS="-L/usr/lib -L/usr/local/lib -L$ATP_DIR/build/third_party/lib" 
+
 # set up required packages
 go get -u github.com/hoisie/web
 go get -u code.google.com/p/goprotobuf/...
+go get github.com/jmhodges/levigo
 
 # build the protocol buffers
 protoc --go_out=src --proto_path=$PROTO_DIR $PROTO_DIR/*.proto
