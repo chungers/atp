@@ -5,11 +5,11 @@ ATP_DIR=$(pwd)/../..
 PROTOTYPE_DIR=$ATP_DIR/prototype
 PROTO_DIR=$PROTOTYPE_DIR/proto
 
-
+export GOROOT=/usr/local/go
 export GOPATH=`pwd`:$GOPATH
 echo "GOPATH=$GOPATH"
 
-export PATH=$(pwd)/bin:$PATH
+export PATH=$(pwd)/bin:$GOROOT/bin:$PATH
 echo "PATH=$PATH"
 
 export CGO_CFLAGS="-I/usr/include -I/usr/local/include -I$ATP_DIR/build/third_party/include" 
