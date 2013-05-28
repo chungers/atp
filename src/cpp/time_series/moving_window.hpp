@@ -1,5 +1,5 @@
-#ifndef ATP_COMMON_MOVING_WINDOW_H_
-#define ATP_COMMON_MOVING_WINDOW_H_
+#ifndef ATP_TIME_SERIES_MOVING_WINDOW_H_
+#define ATP_TIME_SERIES_MOVING_WINDOW_H_
 
 #include <cmath>
 #include <string>
@@ -12,10 +12,10 @@
 #include <boost/shared_ptr.hpp>
 
 #include "log_levels.h"
-#include "common/moving_window_callback.hpp"
-#include "common/moving_window_interval_policy.hpp"
-#include "common/moving_window_samplers.hpp"
-#include "common/time_series.hpp"
+#include "time_series/moving_window_callback.hpp"
+#include "time_series/moving_window_interval_policy.hpp"
+#include "time_series/moving_window_samplers.hpp"
+#include "time_series/time_series.hpp"
 
 
 using boost::function;
@@ -24,12 +24,13 @@ using std::pair;
 using std::string;
 using std::vector;
 
-using atp::common::sampler::latest;
+using atp::time_series::sampler::latest;
+
 
 namespace atp {
-namespace common {
+namespace time_series {
 
-using namespace common::callback;
+using namespace atp::time_series::callback;
 
 /// A moving window of time-based values
 /// Different strategies for sampling can be set up.
@@ -40,7 +41,7 @@ template <
                                           bool new_sample_period) >,
   typename Alloc = boost::pool_allocator<element_t>,
   typename time_interval_policy = time_interval_policy::align_at_zero >
-class moving_window : public time_series<microsecond_t, element_t>
+class moving_window : public atp::time_series::time_series<microsecond_t, element_t>
 {
  public:
 
@@ -412,7 +413,8 @@ class moving_window : public time_series<microsecond_t, element_t>
         id(id), functor(op), min_samples(min_samples), series(mw)
     {
       Id sid = parent_id;
-      sid.add_label(parent_id.label(0) + '$' + id);
+      if (parent_id.label_size() > 0)
+        sid.add_label(parent_id.label(0) + '$' + id);
       series->set(sid);
     }
 
@@ -447,8 +449,8 @@ moving_window<element_t> join()
 
 
 
-} // common
+} // time_series
 } // atp
 
 
-#endif //ATP_COMMON_MOVING_WINDOW_H_
+#endif //ATP_TIME_SERIES_MOVING_WINDOW_H_

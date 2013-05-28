@@ -17,6 +17,9 @@ add_subdirectory(proto)
 # Common stuff
 add_subdirectory(common)
 
+# Time series
+add_subdirectory(time_series)
+
 # Interactive Brokers adapter
 add_subdirectory(ib)
 

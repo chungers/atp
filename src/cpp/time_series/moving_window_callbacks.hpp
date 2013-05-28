@@ -1,24 +1,24 @@
-#ifndef ATP_COMMON_MOVING_WINDOW_CALLBACKS_H_
-#define ATP_COMMON_MOVING_WINDOW_CALLBACKS_H_
+#ifndef ATP_TIME_SERIES_MOVING_WINDOW_CALLBACKS_H_
+#define ATP_TIME_SERIES_MOVING_WINDOW_CALLBACKS_H_
 
 #include <string>
 
 #include "common.hpp"
-#include "common/moving_window.hpp"
-#include "common/time_utils.hpp"
+#include "time_series/moving_window.hpp"
+#include "time_series/time_utils.hpp"
 
 
 
 using namespace std;
 using namespace boost::posix_time;
-using atp::common::time_series;
 using atp::common::Id;
+using atp::time_series::time_series;
 
 /// Contains actual implementation of the callbacks as
-/// defined in common/moving_window_callback.hpp
+/// defined in time_series/moving_window_callback.hpp
 
 namespace atp {
-namespace common {
+namespace time_series {
 namespace callback {
 
 
@@ -52,8 +52,8 @@ class moving_window_post_process_cout : public moving_window_post_process<T, V>
                                  const time_series<T, V>& window)
   {
     for (int i = -count; i < 0; ++i) {
-      ptime t = atp::time::as_ptime(window.get_time(i));
-      cout << atp::time::to_est(t) << ","
+      ptime t = atp::time_series::as_ptime(window.get_time(i));
+      cout << atp::time_series::to_est(t) << ","
            << id << ","
            << window[i] << endl;
     }
@@ -64,7 +64,7 @@ class moving_window_post_process_cout : public moving_window_post_process<T, V>
 };
 
 } // callback
-} // common
+} // time_series
 } // atp
 
-#endif //ATP_COMMON_MOVING_WINDOW_CALLBACKS_H_
+#endif //ATP_TIME_SERIES_MOVING_WINDOW_CALLBACKS_H_

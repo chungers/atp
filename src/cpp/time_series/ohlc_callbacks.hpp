@@ -1,21 +1,21 @@
-#ifndef ATP_COMMON_OHLC_CALLBACKS_H_
-#define ATP_COMMON_OHLC_CALLBACKS_H_
+#ifndef ATP_TIME_SERIES_OHLC_CALLBACKS_H_
+#define ATP_TIME_SERIES_OHLC_CALLBACKS_H_
 
 #include <string>
 
-#include "common/moving_window_samplers.hpp"
-#include "common/ohlc.hpp"
-#include "common/time_utils.hpp"
+#include "time_series/moving_window_samplers.hpp"
+#include "time_series/ohlc.hpp"
+#include "time_series/time_utils.hpp"
 
 
 
 using namespace std;
 using namespace boost::posix_time;
-using atp::common::time_series;
+using atp::time_series::time_series;
 
 
 namespace atp {
-namespace common {
+namespace time_series {
 namespace callback {
 
 using atp::common::microsecond_t;
@@ -26,10 +26,10 @@ class post_process_cout : public ohlc_post_process<V>
 {
  public:
 
-  typedef atp::common::sampler::open<V> ohlc_open;
-  typedef atp::common::sampler::close<V> ohlc_close;
-  typedef atp::common::sampler::min<V> ohlc_low;
-  typedef atp::common::sampler::max<V> ohlc_high;
+  typedef atp::time_series::sampler::open<V> ohlc_open;
+  typedef atp::time_series::sampler::close<V> ohlc_close;
+  typedef atp::time_series::sampler::min<V> ohlc_low;
+  typedef atp::time_series::sampler::max<V> ohlc_high;
 
   post_process_cout() :
       facet_(new time_facet("%Y-%m-%d %H:%M:%S%F%Q"))
@@ -45,8 +45,8 @@ class post_process_cout : public ohlc_post_process<V>
                          const time_series<microsecond_t, V>& close)
   {
     for (int i = -count; i < 0; ++i) {
-      ptime t = atp::time::as_ptime(open.get_time(i));
-      cout << atp::time::to_est(t) << ","
+      ptime t = atp::time_series::as_ptime(open.get_time(i));
+      cout << atp::time_series::to_est(t) << ","
            << id << ","
            << open[i] << ","
            << high[i] << ","
@@ -60,7 +60,7 @@ class post_process_cout : public ohlc_post_process<V>
 };
 
 } // callback
-} // common
+} // time_series
 } // atp
 
-#endif //ATP_COMMON_OHLC_CALLBACKS_H_
+#endif //ATP_TIME_SERIES_OHLC_CALLBACKS_H_

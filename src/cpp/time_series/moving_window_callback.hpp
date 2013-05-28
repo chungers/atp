@@ -1,14 +1,16 @@
-#ifndef ATP_COMMON_MOVING_WINDOW_CALLBACK_H_
-#define ATP_COMMON_MOVING_WINDOW_CALLBACK_H_
+#ifndef ATP_TIME_SERIES_MOVING_WINDOW_CALLBACK_H_
+#define ATP_TIME_SERIES_MOVING_WINDOW_CALLBACK_H_
 
 #include "common.hpp"
-#include "common/time_series.hpp"
+#include "time_series/time_series.hpp"
+
 
 namespace atp {
-namespace common {
+namespace time_series {
 namespace callback {
 
 using atp::common::Id;
+
 
 template <typename T, typename V>
 struct moving_window_post_process
@@ -22,7 +24,7 @@ struct moving_window_post_process
 
 } // callback
 
-} // common
+} // time_series
 } // atp
 
-#endif //ATP_COMMON_MOVING_WINDOW_CALLBACK_H_
+#endif //ATP_TIME_SERIES_MOVING_WINDOW_CALLBACK_H_

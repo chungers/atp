@@ -1,23 +1,26 @@
-#ifndef ATP_COMMON_OHLC_H_
-#define ATP_COMMON_OHLC_H_
+#ifndef ATP_TIME_SERIES_OHLC_H_
+#define ATP_TIME_SERIES_OHLC_H_
 
 #include "common.hpp"
-#include "common/time_series.hpp"
-#include "common/moving_window.hpp"
-#include "common/moving_window_samplers.hpp"
+#include "time_series/time_series.hpp"
+#include "time_series/moving_window.hpp"
+#include "time_series/moving_window_samplers.hpp"
 #include "proto/ostream.hpp"
 
 
 using boost::posix_time::time_duration;
-using atp::common::time_series;
-
-
-namespace atp {
-namespace common {
-namespace callback {
 
 using atp::common::microsecond_t;
 using atp::common::Id;
+using atp::time_series::time_series;
+using namespace atp::time_series::sampler;
+
+
+
+namespace atp {
+namespace time_series {
+namespace callback {
+
 
 
 template <typename V>
@@ -51,8 +54,6 @@ struct ohlc_post_process_noop : public ohlc_post_process<V>
 } // callback
 
 
-
-using namespace atp::common::sampler;
 
 template <typename V>
 class ohlc
@@ -177,8 +178,8 @@ class ohlc
 };
 
 
-} // common
+} // time_series
 } // atp
 
 
-#endif //ATP_COMMON_OHLC_H_
+#endif //ATP_TIME_SERIES_OHLC_H_

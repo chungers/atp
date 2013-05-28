@@ -1,11 +1,13 @@
-#ifndef ATP_COMMON_MOVING_WINDOW_INTERVAL_POLICY_H_
-#define ATP_COMMON_MOVING_WINDOW_INTERVAL_POLICY_H_
+#ifndef ATP_TIME_SERIES_MOVING_WINDOW_INTERVAL_POLICY_H_
+#define ATP_TIME_SERIES_MOVING_WINDOW_INTERVAL_POLICY_H_
 
-#include "common/time_utils.hpp"
+#include "time_series/time_utils.hpp"
 
 
 namespace atp {
-namespace common {
+namespace time_series {
+
+using atp::common::microsecond_t;
 
 struct time_interval_policy {
 
@@ -47,7 +49,7 @@ struct time_interval_policy {
 };
 
 
-} // common
+} // time_series
 } // atp
 
-#endif // ATP_COMMON_MOVING_WINDOW_INTERVAL_POLICY_H_
+#endif // ATP_TIME_SERIES_MOVING_WINDOW_INTERVAL_POLICY_H_

@@ -1,5 +1,5 @@
-#ifndef ATP_COMMON_MOVING_WINDOW_SAMPLERS_H_
-#define ATP_COMMON_MOVING_WINDOW_SAMPLERS_H_
+#ifndef ATP_TIME_SERIES_MOVING_WINDOW_SAMPLERS_H_
+#define ATP_TIME_SERIES_MOVING_WINDOW_SAMPLERS_H_
 
 #include <cmath>
 
@@ -7,7 +7,7 @@
 
 
 namespace atp {
-namespace common {
+namespace time_series {
 namespace sampler {
 
 template <typename element_t>
@@ -104,7 +104,7 @@ struct close
 };
 
 } // namespace sampler
-} // common
+} // time_series
 } // atp
 
-#endif //ATP_COMMON_MOVING_WINDOW_SAMPLERS_H_
+#endif //ATP_TIME_SERIES_MOVING_WINDOW_SAMPLERS_H_

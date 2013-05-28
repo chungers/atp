@@ -5,12 +5,12 @@
 
 #include <boost/ref.hpp>
 
-#include "common/moving_window.hpp"
+#include "time_series/moving_window.hpp"
 #include "platform/indicator.hpp"
 
 
 using atp::common::microsecond_t;
-using atp::common::moving_window;
+using atp::time_series::moving_window;
 
 
 

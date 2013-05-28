@@ -14,10 +14,10 @@
 
 #include <ta-lib/ta_func.h>
 
-#include "common/moving_window.hpp"
-#include "common/moving_window_callbacks.hpp"
-#include "common/ohlc.hpp"
-#include "common/ohlc_callbacks.hpp"
+#include "time_series/moving_window.hpp"
+#include "time_series/moving_window_callbacks.hpp"
+#include "time_series/ohlc.hpp"
+#include "time_series/ohlc_callbacks.hpp"
 
 #include "platform/control_message_handler.hpp"
 #include "platform/marketdata_handler_proto_impl.hpp"
@@ -37,8 +37,9 @@ using namespace atp::log_reader;
 using namespace atp::platform::callback;
 using namespace atp::platform::marketdata;
 using namespace atp::common;
-using namespace atp::common::callback;
-using namespace atp::common::sampler;
+using namespace atp::time_series;
+using namespace atp::time_series::callback;
+using namespace atp::time_series::sampler;
 
 using atp::platform::message_processor;
 using atp::platform::types::timestamp_t;
@@ -82,7 +83,7 @@ namespace atp {
 namespace common {
 namespace callback {
 
-using atp::common::time_series;
+using atp::time_series::time_series;
 using atp::common::microsecond_t;
 
 
@@ -92,10 +93,10 @@ using atp::common::microsecond_t;
 template <typename V>
 struct logger_post_process : public ohlc_post_process<V>
 {
-  typedef atp::common::sampler::open<V> ohlc_open;
-  typedef atp::common::sampler::close<V> ohlc_close;
-  typedef atp::common::sampler::min<V> ohlc_low;
-  typedef atp::common::sampler::max<V> ohlc_high;
+  typedef atp::time_series::sampler::open<V> ohlc_open;
+  typedef atp::time_series::sampler::close<V> ohlc_close;
+  typedef atp::time_series::sampler::min<V> ohlc_low;
+  typedef atp::time_series::sampler::max<V> ohlc_high;
 
   inline void operator()(const size_t count,
                          const Id& id,
@@ -154,7 +155,7 @@ typedef boost::tuple<double, double, double> macd_value_t;
 struct MACD : public moving_window_post_process<microsecond_t, macd_value_t>
 {
   typedef
-  moving_window<macd_value_t, atp::common::sampler::close<macd_value_t> >
+  moving_window<macd_value_t, atp::time_series::sampler::close<macd_value_t> >
   macd_series;
 
   MACD(int fastPeriod, int slowPeriod, int signalPeriod,
@@ -209,7 +210,7 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
 {
   typedef atp::platform::callback::update_event<double>::func updater;
   typedef moving_window<
-    microsecond_t, atp::common::sampler::close<microsecond_t> > timer_t;
+    microsecond_t, atp::time_series::sampler::close<microsecond_t> > timer_t;
 
   trader(const Id& _id, int bars, int seconds_per_bar) :
       id(_id),
@@ -438,8 +439,8 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
   post_process_cout<double> ohlc_pp;
   moving_window_post_process_cout<microsecond_t, double> mv_pp;
   ohlc_t ohlc, ohlc2;
-  moving_window<double, atp::common::sampler::close<double> > mid, bid, ask;
-  moving_window<double, atp::common::sampler::close<double> > mid2, bid2, ask2;
+  moving_window<double, atp::time_series::sampler::close<double> > mid, bid, ask;
+  moving_window<double, atp::time_series::sampler::close<double> > mid2, bid2, ask2;
 
   timer_t ten_sec_timer; // timer is just for tracking time and calling trades
 
@@ -451,14 +452,14 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
   sma sma20;
   time_series<microsecond_t, double>* ta_sma20;
 
-  moving_window<macd_value_t, atp::common::sampler::close<macd_value_t> > macd;
+  moving_window<macd_value_t, atp::time_series::sampler::close<macd_value_t> > macd;
   MACD macd_pp;
 };
 
 TEST(OhlcPrototype, OhlcUsage)
 {
-  using namespace atp::common;
-  using namespace atp::common::callback;
+  using namespace atp::time_series;
+  using namespace atp::time_series::callback;
 
   message_processor::protobuf_handlers_map symbol_handlers1;
   symbol_handlers1.register_handler(

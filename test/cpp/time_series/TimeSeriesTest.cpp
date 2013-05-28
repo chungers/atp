@@ -9,21 +9,21 @@
 #include <glog/logging.h>
 
 #include "utils.hpp"
-#include "common/ohlc.hpp"
-#include "common/moving_window_callbacks.hpp"
-#include "common/time_series.hpp"
-#include "common/time_utils.hpp"
+#include "time_series/ohlc.hpp"
+#include "time_series/moving_window_callbacks.hpp"
+#include "time_series/time_series.hpp"
+#include "time_series/time_utils.hpp"
 
 using namespace boost::assign;
 using namespace boost::posix_time;
 
-using atp::common::time_series;
+using atp::time_series::time_series;
 using atp::common::microsecond_t;
 
 
 TEST(TimeSeriesTest, SamplerTest)
 {
-  atp::common::sampler::open<int> open;
+  atp::time_series::sampler::open<int> open;
   EXPECT_EQ(1, open(0, 1, true));
   EXPECT_EQ(1, open(1, 2, false));
   EXPECT_EQ(1, open(2, 3, false));
@@ -31,7 +31,7 @@ TEST(TimeSeriesTest, SamplerTest)
   EXPECT_EQ(1, open(4, 5, false));
   EXPECT_EQ(6, open(5, 6, true));
 
-  atp::common::sampler::close<int> close;
+  atp::time_series::sampler::close<int> close;
   EXPECT_EQ(0, close(-1, 0, false));
   EXPECT_EQ(1, close(0, 1, true));
   EXPECT_EQ(2, close(1, 2, false));
@@ -40,21 +40,21 @@ TEST(TimeSeriesTest, SamplerTest)
   EXPECT_EQ(5, close(4, 5, false));
   EXPECT_EQ(6, close(5, 6, true));
 
-  atp::common::sampler::max<int> max;
+  atp::time_series::sampler::max<int> max;
   EXPECT_EQ(2, max(1, 2, false));
   EXPECT_EQ(3, max(2, 3, true));
   EXPECT_EQ(3, max(3, 2, false));
   EXPECT_EQ(5, max(2, 5, false));
   EXPECT_EQ(1, max(5, 1, true));
 
-  atp::common::sampler::min<int> min;
+  atp::time_series::sampler::min<int> min;
   EXPECT_EQ(1, min(1, 2, false));
   EXPECT_EQ(3, min(2, 3, true));
   EXPECT_EQ(2, min(3, 2, false));
   EXPECT_EQ(2, min(2, 5, false));
   EXPECT_EQ(1, min(5, 1, true));
 
-  atp::common::sampler::latest<int> latest;
+  atp::time_series::sampler::latest<int> latest;
   EXPECT_EQ(1, latest(0, 1, true));
   EXPECT_EQ(2, latest(1, 2, false));
   EXPECT_EQ(3, latest(2, 3, false));
@@ -62,7 +62,7 @@ TEST(TimeSeriesTest, SamplerTest)
   EXPECT_EQ(5, latest(4, 5, false));
   EXPECT_EQ(6, latest(5, 6, true));
 
-  atp::common::sampler::avg<double> avg;
+  atp::time_series::sampler::avg<double> avg;
   EXPECT_EQ(1.,
             avg(0., 1., true));
   EXPECT_EQ((1. + 2.) / 2.,
@@ -75,9 +75,9 @@ TEST(TimeSeriesTest, SamplerTest)
             avg(4., 5., true));
 }
 
-using atp::common::ohlc;
-using atp::common::moving_window;
-using atp::common::time_series;
+using atp::time_series::ohlc;
+using atp::time_series::moving_window;
+using atp::time_series::time_series;
 
 
 TEST(TimeSeriesTest, OhlcUsage)

@@ -15,10 +15,10 @@
 #include "utils.hpp"
 #include "zmq/ZmqUtils.hpp"
 
-#include "common/moving_window.hpp"
-#include "common/ohlc.hpp"
-#include "common/ohlc_callbacks.hpp"
-#include "common/time_utils.hpp"
+#include "time_series/moving_window.hpp"
+#include "time_series/ohlc.hpp"
+#include "time_series/ohlc_callbacks.hpp"
+#include "time_series/time_utils.hpp"
 
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
@@ -39,7 +39,7 @@ using namespace atp::log_reader;
 using namespace atp::platform::callback;
 using namespace atp::platform::marketdata;
 using namespace atp::common;
-using namespace atp::common::callback;
+using namespace atp::time_series::callback;
 
 
 using atp::platform::message_processor;
@@ -57,7 +57,7 @@ DEFINE_string(log_file, LOG_FILE, "log file name");
 static const string PUB_ENDPOINT = "ipc://_logreader.ipc";
 
 
-using namespace atp::common::sampler;
+using namespace atp::time_series::sampler;
 
 typedef moving_window< double, latest<double> > mw_latest_double;
 
@@ -136,8 +136,8 @@ class sequential_pipeline
 
 TEST(IndicatorPrototype, OhlcUsage)
 {
-  using namespace atp::common;
-  using namespace atp::common::callback;
+  using namespace atp::time_series;
+  using namespace atp::time_series::callback;
 
   typedef ohlc<double> ohlc_last;
 
@@ -232,4 +232,3 @@ TEST(IndicatorPrototype, OhlcUsage)
       >> spx_sma20;
   */
 }
-

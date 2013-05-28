@@ -114,8 +114,8 @@ void update(const ptime& t, const V& v,
   time_duration elapsed_time = t - state->ct;
   if (elapsed_time > milliseconds(FLAGS_max_time_lapse_millis)) {
     LOG(WARNING) << "Event update exceeded " << FLAGS_max_time_lapse_millis
-                 << " msec. last=" << atp::time::to_est(state->ct)
-                 << ", now=" << atp::time::to_est(t)
+                 << " msec. last=" << atp::time_series::to_est(state->ct)
+                 << ", now=" << atp::time_series::to_est(t)
                  << ", dt=" << elapsed_time.total_milliseconds()
                  << " msec";
     state->count_time_lapse++;
@@ -137,13 +137,13 @@ void update(const ptime& t, const V& v,
 
   if (e == state_t::TIME_CHECK) {
 
-    ptime ib_time = atp::time::as_ptime(v * 1000000);
+    ptime ib_time = atp::time_series::as_ptime(v * 1000000);
     time_duration drift = t - ib_time;
     if (drift >= milliseconds(FLAGS_drift_millis)) {
       LOG(WARNING) << "Time drift exceeded " << FLAGS_drift_millis
                    << " msec: local="
-                   << atp::time::to_est(t)
-                   << ", ib=" << atp::time::to_est(ib_time)
+                   << atp::time_series::to_est(t)
+                   << ", ib=" << atp::time_series::to_est(ib_time)
                    << ", drift=" << drift.total_milliseconds()
                    << " msec";
       state->count_timestamp_drift++;
@@ -156,7 +156,7 @@ void print(const timestamp_t& ts, const V& v,
            V* state_var, state_t* state, bool print,
            state_t::event e)
 {
-  ptime t = atp::time::as_ptime(ts);
+  ptime t = atp::time_series::as_ptime(ts);
   update<V>(t, v, state_var, state, print, e);
 
   // print output
@@ -195,7 +195,7 @@ void print(const timestamp_t& ts, const V& v,
   std::cout << std::fixed << std::showpoint;
 
   std::cout << color
-            << atp::time::to_est(t)
+            << atp::time_series::to_est(t)
             << delim
             << state->symbol
             << delim
@@ -279,7 +279,7 @@ int main(int argc, char** argv)
 
   atp::version_info::log("watcher");
 
-  std::cout.imbue(atp::time::TIME_FORMAT);
+  std::cout.imbue(atp::time_series::TIME_FORMAT);
 
 
   // Signal handler: Ctrl-C

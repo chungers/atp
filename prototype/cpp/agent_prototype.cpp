@@ -15,8 +15,8 @@
 #include "utils.hpp"
 #include "zmq/ZmqUtils.hpp"
 
-#include "common/moving_window.hpp"
-#include "common/time_utils.hpp"
+#include "time_series/moving_window.hpp"
+#include "time_series/time_utils.hpp"
 
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
@@ -46,6 +46,7 @@ using namespace atp::log_reader;
 using namespace atp::platform::callback;
 using namespace atp::platform::marketdata;
 using namespace atp::common;
+using namespace atp::time_series;
 
 using atp::platform::message_processor;
 using atp::platform::types::timestamp_t;

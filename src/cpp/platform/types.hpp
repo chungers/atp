@@ -3,7 +3,7 @@
 
 #include <boost/function.hpp>
 
-#include "common/time_series.hpp"
+#include "common/types.hpp"
 
 namespace atp {
 namespace platform {

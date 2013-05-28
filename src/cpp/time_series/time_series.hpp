@@ -1,14 +1,17 @@
-#ifndef ATP_COMMON_TIME_SERIES_H_
-#define ATP_COMMON_TIME_SERIES_H_
+#ifndef ATP_TIME_SERIES_TIME_SERIES_H_
+#define ATP_TIME_SERIES_TIME_SERIES_H_
 
 #include <boost/function.hpp>
-#include "common/time_utils.hpp"
-#include "common/types.hpp"
 
+#include "common/types.hpp"
+#include "time_series/time_utils.hpp"
+
+
+using atp::common::microsecond_t;
 
 
 namespace atp {
-namespace common {
+namespace time_series {
 
 typedef boost::posix_time::time_duration sample_interval_t;
 
@@ -65,4 +68,4 @@ class time_series
 } // atp
 
 
-#endif //ATP_COMMON_TIME_SERIES_H_
+#endif //ATP_TIME_SERIES_TIME_SERIES_H_
