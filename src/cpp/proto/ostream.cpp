@@ -12,7 +12,7 @@ using namespace proto::common;
 using namespace proto::historian;
 using namespace proto::ib;
 using namespace proto::platform;
-using namespace atp::time;
+using namespace atp::common;
 
 namespace proto {
 namespace common {
@@ -117,7 +117,7 @@ std::ostream& operator<<(std::ostream& out, const IndexedValue& iv)
 
 std::ostream& operator<<(std::ostream& out, const SessionLog& log)
 {
-  using namespace atp::time;
+  using namespace atp::common;
   using namespace proto::common;
   ptime t1 = to_est(as_ptime(log.start_timestamp()));
   ptime t2 = to_est(as_ptime(log.start_timestamp()));
@@ -131,7 +131,7 @@ std::ostream& operator<<(std::ostream& out, const SessionLog& log)
 
 std::ostream& operator<<(std::ostream& out, const QueryByRange& q)
 {
-  using namespace atp::time;
+  using namespace atp::common;
   using namespace proto::common;
   out << "Query[" << q.first() << "," << q.last() << ")"
       << ", index=" << q.index();
@@ -140,7 +140,7 @@ std::ostream& operator<<(std::ostream& out, const QueryByRange& q)
 
 std::ostream& operator<<(std::ostream& out, const QueryBySymbol& q)
 {
-  using namespace atp::time;
+  using namespace atp::common;
   using namespace proto::common;
   ptime t1 = to_est(as_ptime(q.utc_first_micros()));
   ptime t2 = to_est(as_ptime(q.utc_last_micros()));
@@ -167,4 +167,3 @@ std::ostream& operator<<(std::ostream& os, const OrderStatus& o)
 
   return os;
 }
-

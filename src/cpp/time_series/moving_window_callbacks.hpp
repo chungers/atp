@@ -4,8 +4,9 @@
 #include <string>
 
 #include "common.hpp"
+#include "common/time_utils.hpp"
+
 #include "time_series/moving_window.hpp"
-#include "time_series/time_utils.hpp"
 
 
 
@@ -52,8 +53,8 @@ class moving_window_post_process_cout : public moving_window_post_process<T, V>
                                  const time_series<T, V>& window)
   {
     for (int i = -count; i < 0; ++i) {
-      ptime t = atp::time_series::as_ptime(window.get_time(i));
-      cout << atp::time_series::to_est(t) << ","
+      ptime t = atp::common::as_ptime(window.get_time(i));
+      cout << atp::common::to_est(t) << ","
            << id << ","
            << window[i] << endl;
     }

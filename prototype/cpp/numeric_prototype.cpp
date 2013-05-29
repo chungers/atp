@@ -13,10 +13,11 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
+
 #include "time_series/moving_window.hpp"
 #include "time_series/ohlc.hpp"
 #include "time_series/ohlc_callbacks.hpp"
-#include "time_series/time_utils.hpp"
+
 
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"

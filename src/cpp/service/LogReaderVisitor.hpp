@@ -48,8 +48,8 @@ struct MarketDataPrinter : LinePrinter
 {
   bool operator()(const proto::ib::MarketData& marketdata)
   {
-    boost::posix_time::ptime t = atp::time::as_ptime(marketdata.timestamp());
-    cout << atp::time::to_est(t) << ","
+    boost::posix_time::ptime t = atp::common::as_ptime(marketdata.timestamp());
+    cout << atp::common::to_est(t) << ","
          << marketdata.symbol() << ","
          << marketdata.event() << ",";
     switch (marketdata.value().type()) {
@@ -72,8 +72,8 @@ struct MarketDepthPrinter : LinePrinter
 {
   bool operator()(const proto::ib::MarketDepth& marketdepth)
   {
-    boost::posix_time::ptime t = atp::time::as_ptime(marketdepth.timestamp());
-    cout << atp::time::to_est(t) << ","
+    boost::posix_time::ptime t = atp::common::as_ptime(marketdepth.timestamp());
+    cout << atp::common::to_est(t) << ","
          << marketdepth.symbol() << ","
          << marketdepth.side() << ","
          << marketdepth.level() << ","

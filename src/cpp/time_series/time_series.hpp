@@ -4,7 +4,7 @@
 #include <boost/function.hpp>
 
 #include "common/types.hpp"
-#include "time_series/time_utils.hpp"
+#include "common/time_utils.hpp"
 
 
 using atp::common::microsecond_t;

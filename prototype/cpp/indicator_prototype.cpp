@@ -15,10 +15,11 @@
 #include "utils.hpp"
 #include "zmq/ZmqUtils.hpp"
 
+#include "common/time_utils.hpp"
 #include "time_series/moving_window.hpp"
 #include "time_series/ohlc.hpp"
 #include "time_series/ohlc_callbacks.hpp"
-#include "time_series/time_utils.hpp"
+
 
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
@@ -73,9 +74,9 @@ template <typename V>
 void print(const timestamp_t& ts, const V& v,
            const string& event, int* count)
 {
-  ptime t = atp::time::as_ptime(ts);
+  ptime t = atp::common::as_ptime(ts);
   LOG(INFO) << "Got " << event << " " << " = ["
-            << atp::time::to_est(t) << ", " << v
+            << atp::common::to_est(t) << ", " << v
             << ", ts=" << ts
             << "]";
   (*count)++;

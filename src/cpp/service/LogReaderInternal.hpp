@@ -219,7 +219,7 @@ static bool get_timestamp(const log_record_t& event, ptime* timestamp)
     return false;
   }
   log_timer_t ts = boost::lexical_cast<log_timer_t>(found->second);
-  *timestamp = atp::time::as_ptime(ts);
+  *timestamp = atp::common::as_ptime(ts);
   return true;
 }
 
@@ -230,11 +230,11 @@ static bool check_time(const log_record_t& event, bool regular_trading_hours)
     return false;
   }
 
-  bool ext = atp::time::checkEXT(t);
+  bool ext = atp::common::checkEXT(t);
   if (!ext) {
     return false; // outside trading hours
   }
-  bool rth = atp::time::checkRTH(t);
+  bool rth = atp::common::checkRTH(t);
   if (!rth && regular_trading_hours) {
     // Skip if not RTH and we want only data during trading hours.
     return false;

@@ -13,7 +13,7 @@ set(atp_time_series_incs
   ${SRC_DIR}
 )
 set(atp_time_series_srcs
-  time_utils.cpp
+#  time_utils.cpp
  )
 set(atp_time_series_libs
  boost_system
@@ -21,9 +21,9 @@ set(atp_time_series_libs
  glog
 )
 # Client implementation:
-cpp_library(atp_time_series)
+#cpp_library(atp_time_series)
 
 add_custom_target(all_time_series)
-add_dependencies(all_time_series
-  atp_time_series
-)
+#add_dependencies(all_time_series
+#  atp_time_series
+#)

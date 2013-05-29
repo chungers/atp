@@ -12,7 +12,7 @@
 #include "time_series/ohlc.hpp"
 #include "time_series/moving_window_callbacks.hpp"
 #include "time_series/time_series.hpp"
-#include "time_series/time_utils.hpp"
+
 
 using namespace boost::assign;
 using namespace boost::posix_time;

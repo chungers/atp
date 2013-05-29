@@ -3,7 +3,6 @@
 
 #include "time_series/moving_window.hpp"
 #include "time_series/moving_window_samplers.hpp"
-#include "time_series/time_utils.hpp"
 
 using atp::common::microsecond_t;
 using atp::time_series::moving_window;

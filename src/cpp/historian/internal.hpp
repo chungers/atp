@@ -17,7 +17,7 @@
 #include "proto/common.hpp"
 #include "proto/historian.hpp"
 
-using namespace atp::time;
+using namespace atp::common;
 
 using proto::common::Value;
 using proto::ib::MarketData;

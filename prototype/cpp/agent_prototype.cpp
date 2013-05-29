@@ -14,9 +14,10 @@
 
 #include "utils.hpp"
 #include "zmq/ZmqUtils.hpp"
+#include "common/time_utils.hpp"
 
 #include "time_series/moving_window.hpp"
-#include "time_series/time_utils.hpp"
+
 
 #include "platform/marketdata_handler_proto_impl.hpp"
 #include "platform/message_processor.hpp"
@@ -150,13 +151,13 @@ class order_flow_tracker
 
   void update_last_size(const timestamp_t& t, const int& v)
   {
-    ptime ts = atp::time::as_ptime(t);
+    ptime ts = atp::common::as_ptime(t);
 
     if (ts - last_size_pt < seconds(1)) {
       // LOG(WARNING)
       //     << "duplicate last size = "
-      //     << atp::time::to_est(last_size_pt) << ","
-      //     << atp::time::to_est(ts) << ","
+      //     << atp::common::to_est(last_size_pt) << ","
+      //     << atp::common::to_est(ts) << ","
       //     << v;
       return; // ignore -- duplicate data
     }
@@ -227,9 +228,9 @@ template <typename V>
 void aapl(const timestamp_t& ts, const V& v,
           const string& event, int* count)
 {
-  ptime t = atp::time::as_ptime(ts);
+  ptime t = atp::common::as_ptime(ts);
   LOG(INFO) << "Got appl " << event << " " << " = ["
-            << atp::time::to_est(t) << ", " << v
+            << atp::common::to_est(t) << ", " << v
             << ", ts=" << ts
             << "]";
   (*count)++;
@@ -309,9 +310,9 @@ void callOnMethod(const timestamp_t& ts, const V& v,
     // final pushed/aggregated value.
     EXPECT_EQ(count + 1, mw->copy_last(ts, last, count + 1));
     for (int i = 0; i < count; ++i) {
-      ptime tt = atp::time::as_ptime(ts[i]);
+      ptime tt = atp::common::as_ptime(ts[i]);
       LOG(INFO) << "==================================== "
-                << atp::time::to_est(tt) << "," << last[i];
+                << atp::common::to_est(tt) << "," << last[i];
     }
     *count_state = 0; // reset
   }
@@ -389,8 +390,8 @@ TEST(AgentPrototype, MovingWindowUsage)
             last_trade.copy_last(ts, last, last_trade.size()));
 
   for (int i = 0; i < last_trade.size(); ++i) {
-    ptime tt = atp::time::as_ptime(ts[i]);
-    LOG(INFO) << atp::time::to_est(tt) << "," << last[i];
+    ptime tt = atp::common::as_ptime(ts[i]);
+    LOG(INFO) << atp::common::to_est(tt) << "," << last[i];
   }
 }
 

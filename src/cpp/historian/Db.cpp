@@ -20,7 +20,7 @@
 #include "varz/varz.hpp"
 
 
-using namespace atp::time;
+using namespace atp::common;
 
 using proto::common::Value;
 using proto::ib::MarketData;
@@ -244,4 +244,3 @@ const std::string Db::GetDbPath()
 }
 
 } // namespace historian
-

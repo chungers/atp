@@ -90,13 +90,13 @@ int main(int argc, char** argv)
   ptime end;
 
   // EST to UTC
-  atp::time::parse(FLAGS_first, &start);
-  atp::time::parse(FLAGS_last, &end);
+  atp::common::parse(FLAGS_first, &start);
+  atp::common::parse(FLAGS_last, &end);
 
   QueryBySymbol q;
   q.set_symbol(FLAGS_symbol);
-  q.set_utc_first_micros(atp::time::as_micros(start));
-  q.set_utc_last_micros(atp::time::as_micros(end));
+  q.set_utc_first_micros(atp::common::as_micros(start));
+  q.set_utc_last_micros(atp::common::as_micros(end));
 
   // TODO abstract this detail into a cleaner api
   if (FLAGS_event.size() > 0) {

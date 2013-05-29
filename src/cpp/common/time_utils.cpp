@@ -7,7 +7,7 @@ using boost::posix_time::time_duration;
 using boost::uint64_t;
 
 namespace atp {
-namespace time {
+namespace common {
 
 /// Returns true if time given is within the regurlar trading hour (RTH)
 bool checkRTH(const ptime& t)
@@ -47,5 +47,5 @@ bool parse_BROKEN(const std::string& input, ptime* output, bool est)
   return false;
 }
 
-} // namespace time
+} // namespace common
 } // namespace atp

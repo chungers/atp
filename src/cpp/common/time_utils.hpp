@@ -21,7 +21,7 @@ using boost::posix_time::time_duration;
 using boost::uint64_t;
 
 namespace atp {
-namespace time {
+namespace common {
 
 //eastern timezone is utc-5
 /// http://www.boost.org/doc/libs/1_37_0/doc/html/boost/date_time/local_adjustor.html
@@ -75,7 +75,7 @@ bool checkEXT(ptime t);
 bool parse(const std::string& input, ptime* output, bool est=true);
 
 
-} // namespace time
+} // namespace common
 } // namespace atp
 
 #endif //ATP_TIME_UTILS_H_

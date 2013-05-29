@@ -14,10 +14,11 @@
 #include <glog/logging.h>
 
 #include "utils.hpp"
+#include "common/time_utils.hpp"
 #include "time_series/moving_window_callbacks.hpp"
 #include "time_series/moving_window_samplers.hpp"
 #include "time_series/moving_window.hpp"
-#include "time_series/time_utils.hpp"
+
 
 using namespace boost;
 using namespace boost::assign;
@@ -50,12 +51,12 @@ TEST(MovingWindowTest, MovingWindowPolicyTest)
   {
     microsecond_t t1 = 1349357412826693;
     microsecond_t t2 = 1349357414055175;
-    ptime px1 = atp::time_series::as_ptime(t1);
-    ptime px2 = atp::time_series::as_ptime(t2);
+    ptime px1 = atp::common::as_ptime(t1);
+    ptime px2 = atp::common::as_ptime(t2);
     int w = p2.count_windows(t1, t2);
     LOG(INFO) << "windows = " << w << ", diff = " << (t2 - t1) << ", "
-              << atp::time_series::to_est(px1) << ", "
-              << atp::time_series::to_est(px2);
+              << atp::common::to_est(px1) << ", "
+              << atp::common::to_est(px2);
     EXPECT_EQ(w, 2);
     EXPECT_TRUE(p2.is_new_window(t1, t2));
 
@@ -70,8 +71,8 @@ TEST(MovingWindowTest, MovingWindowPolicyTest)
 
     int w = p2.count_windows(t1, t2);
     LOG(INFO) << "windows = " << w << ", diff = " << (t2 - t1) << ", "
-              << atp::time_series::to_est(atp::time_series::as_ptime(t1)) << ", "
-              << atp::time_series::to_est(atp::time_series::as_ptime(t2));
+              << atp::common::to_est(atp::common::as_ptime(t1)) << ", "
+              << atp::common::to_est(atp::common::as_ptime(t2));
     EXPECT_EQ(w, 1);
     EXPECT_TRUE(p2.is_new_window(t1, t2));
 
@@ -84,8 +85,8 @@ TEST(MovingWindowTest, MovingWindowPolicyTest)
     microsecond_t t2 = 1349357414361851;
     int w = p2.count_windows(t1, t2);
     LOG(INFO) << "windows = " << w << ", diff = " << (t2 - t1) << ", "
-              << atp::time_series::to_est(atp::time_series::as_ptime(t1)) << ", "
-              << atp::time_series::to_est(atp::time_series::as_ptime(t2));
+              << atp::common::to_est(atp::common::as_ptime(t1)) << ", "
+              << atp::common::to_est(atp::common::as_ptime(t2));
     EXPECT_EQ(w, 0);
     EXPECT_FALSE(p2.is_new_window(t1, t2));
 
@@ -345,7 +346,7 @@ TEST(MovingWindowTest, FunctionTest)
   series data, expects;
   for (unsigned int i = 0; i <= periods*period_duration; ++i) {
     double val = pow(static_cast<double>(i), 2.) - 10. * i;
-    VLOG(100) << atp::time_series::to_est(atp::time_series::as_ptime(t + i))
+    VLOG(100) << atp::common::to_est(atp::common::as_ptime(t + i))
               <<", i = " << i << ", " << val;
     fx(t + i, val);
 
@@ -370,7 +371,7 @@ TEST(MovingWindowTest, FunctionTest)
   VLOG(50) << "expectations:";
   for (series_itr itr = expects.begin(); itr != expects.end(); ++itr) {
     VLOG(50)
-        << atp::time_series::to_est(atp::time_series::as_ptime(itr->first)) << ", "
+        << atp::common::to_est(atp::common::as_ptime(itr->first)) << ", "
         << "(" << itr->first - t << ", " << itr->second << ")";
   }
 
@@ -388,7 +389,7 @@ TEST(MovingWindowTest, FunctionTest)
   // Compare the sampled data with expectations
   for (unsigned int i = 0; i < len; ++i) {
     VLOG(50)
-        << atp::time_series::to_est(atp::time_series::as_ptime(tbuff[i])) << ", "
+        << atp::common::to_est(atp::common::as_ptime(tbuff[i])) << ", "
         << "(" << tbuff[i] - t << ", " << buff[i] << ")";
 
     ASSERT_EQ(expects[i].first, tbuff[i]);
@@ -412,7 +413,7 @@ TEST(MovingWindowTest, FunctionTest)
 
     int v = fx[-i];
     VLOG(50)
-        << atp::time_series::to_est(atp::time_series::as_ptime(tt)) << ", "
+        << atp::common::to_est(atp::common::as_ptime(tt)) << ", "
         << "(" << tt - t << ", " << v << ")";
     ASSERT_EQ(expects_itr->first, tt);
     ASSERT_EQ(expects_itr->second, v);
@@ -584,7 +585,7 @@ void test_series(unsigned int period_duration,
   for (unsigned int i = 0; i < total_events; ++i) {
     value_t val = func(i, t + i);
     VLOG(50) << "event: "
-             << atp::time_series::to_est(atp::time_series::as_ptime(t + i)) << ", "
+             << atp::common::to_est(atp::common::as_ptime(t + i)) << ", "
              << i << ", "
              << t << ", "
              << tostring(val);
@@ -622,7 +623,7 @@ void test_series(unsigned int period_duration,
     value_t val = itr->second;
     VLOG(50)
         << "expect: "
-        << atp::time_series::to_est(atp::time_series::as_ptime(itr->first)) << ", "
+        << atp::common::to_est(atp::common::as_ptime(itr->first)) << ", "
         << itr->first - t << ", "
         << itr->first << ", "
         << tostring(val);
@@ -634,7 +635,7 @@ void test_series(unsigned int period_duration,
     value_t val = itr->second;
     VLOG(50)
         << "last: "
-        << atp::time_series::to_est(atp::time_series::as_ptime(itr->first)) << ", "
+        << atp::common::to_est(atp::common::as_ptime(itr->first)) << ", "
         << itr->first - t << ", "
         << itr->first << ", "
         << tostring(val);
@@ -682,7 +683,7 @@ void test_series(unsigned int period_duration,
   for (unsigned int i = 1; i <= expects_last.size(); ++i) {
     value_t val = buff[copy_length - i];
     VLOG(50)
-        << atp::time_series::to_est(atp::time_series::as_ptime(tbuff[i])) << ", "
+        << atp::common::to_est(atp::common::as_ptime(tbuff[i])) << ", "
         << tbuff[copy_length - i] - t << ", "
         << tbuff[copy_length - i] << ", "
         << tostring(val)

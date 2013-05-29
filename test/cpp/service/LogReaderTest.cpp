@@ -47,7 +47,7 @@ TEST(LogReaderTest, LoadLogFileTest)
   LogReader::marketdepth_visitor_t m2 = p2;
 
   ptime start;
-  bool parsed_ok = atp::time::parse("2012-12-31 09:35:00.00", &start);
+  bool parsed_ok = atp::common::parse("2012-12-31 09:35:00.00", &start);
   LOG(INFO) << "Parsed as " << start;
 
   ASSERT_TRUE(parsed_ok);
@@ -140,6 +140,3 @@ TEST(LogReaderTest, ZmqVisitorTest)
   LOG(INFO) << "Blocking";
   sub.block();
 }
-
-
-

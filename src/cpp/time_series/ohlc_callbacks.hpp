@@ -3,9 +3,10 @@
 
 #include <string>
 
+#include "common/time_utils.hpp"
 #include "time_series/moving_window_samplers.hpp"
 #include "time_series/ohlc.hpp"
-#include "time_series/time_utils.hpp"
+
 
 
 
@@ -45,8 +46,8 @@ class post_process_cout : public ohlc_post_process<V>
                          const time_series<microsecond_t, V>& close)
   {
     for (int i = -count; i < 0; ++i) {
-      ptime t = atp::time_series::as_ptime(open.get_time(i));
-      cout << atp::time_series::to_est(t) << ","
+      ptime t = atp::common::as_ptime(open.get_time(i));
+      cout << atp::common::to_est(t) << ","
            << id << ","
            << open[i] << ","
            << high[i] << ","

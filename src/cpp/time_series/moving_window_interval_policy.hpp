@@ -1,7 +1,7 @@
 #ifndef ATP_TIME_SERIES_MOVING_WINDOW_INTERVAL_POLICY_H_
 #define ATP_TIME_SERIES_MOVING_WINDOW_INTERVAL_POLICY_H_
 
-#include "time_series/time_utils.hpp"
+#include "common/time_utils.hpp"
 
 
 namespace atp {

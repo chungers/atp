@@ -70,9 +70,9 @@ template <typename V>
 void print(const timestamp_t& ts, const V& v,
            const string& event, int* count)
 {
-  ptime t = atp::time::as_ptime(ts);
+  ptime t = atp::common::as_ptime(ts);
   LOG(INFO) << "Got " << event << " " << " = ["
-            << atp::time::to_est(t) << ", " << v
+            << atp::common::to_est(t) << ", " << v
             << ", ts=" << ts
             << "]";
   (*count)++;
@@ -106,8 +106,8 @@ struct logger_post_process : public ohlc_post_process<V>
                          const time_series<microsecond_t, V>& close)
   {
     for (int i = -count; i < 0; ++i) {
-      ptime t = atp::time::as_ptime(open.t[i]);
-      cout << atp::time::to_est(t) << ","
+      ptime t = atp::common::as_ptime(open.t[i]);
+      cout << atp::common::to_est(t) << ","
            << open[i] << ","
            << high[i] << ","
            << low[i] << ","
@@ -190,8 +190,8 @@ struct MACD : public moving_window_post_process<microsecond_t, macd_value_t>
                           const time_series<microsecond_t, macd_value_t>& w)
   {
     for (int i = -count; i < 0; ++i) {
-      ptime t = atp::time::as_ptime(w.get_time(i));
-      cout << atp::time::to_est(t) << ","
+      ptime t = atp::common::as_ptime(w.get_time(i));
+      cout << atp::common::to_est(t) << ","
            << id << ","
            << boost::get<0>(w[i]) << ','
            << boost::get<1>(w[i]) << ','
@@ -311,10 +311,10 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
 
       string indicator = ((*ta_sma5)[0] > (*ta_sma20)[0]) ? ",1" : ",0";
 
-      ptime t = atp::time::as_ptime(window.get_time(0));
-      ptime t2 = atp::time::as_ptime(window.get_time(-1));
-      cout << atp::time::to_est(t2) << ","
-           << atp::time::to_est(t) << ","
+      ptime t = atp::common::as_ptime(window.get_time(0));
+      ptime t2 = atp::common::as_ptime(window.get_time(-1));
+      cout << atp::common::to_est(t2) << ","
+           << atp::common::to_est(t) << ","
            << id << "," << (*ta_sma5)[0] << "," << (*ta_sma20)[0]
            << indicator
            << std::endl;
@@ -324,8 +324,8 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
 
   void on_last(const microsecond_t& t, const double& v)
   {
-    ptime tt = atp::time::as_ptime(t);
-    cout << atp::time::to_est(tt) << ","
+    ptime tt = atp::common::as_ptime(t);
+    cout << atp::common::to_est(tt) << ","
          << id.name() << ","
          << id.variant() << ","
          << id.source() << ","
@@ -338,8 +338,8 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
 
   void on_bid(const microsecond_t& t, const double& v)
   {
-    // ptime tt = atp::time::as_ptime(t);
-    // cout << atp::time::to_est(tt) << ","
+    // ptime tt = atp::common::as_ptime(t);
+    // cout << atp::common::to_est(tt) << ","
     //      << id.name() << ","
     //      << id.variant() << ","
     //      << id.source() << ","
@@ -352,8 +352,8 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
 
   void on_ask(const microsecond_t& t, const double& v)
   {
-    // ptime tt = atp::time::as_ptime(t);
-    // cout << atp::time::to_est(tt) << ","
+    // ptime tt = atp::common::as_ptime(t);
+    // cout << atp::common::to_est(tt) << ","
     //      << id.name() << ","
     //      << id.variant() << ","
     //      << id.source() << ","
@@ -366,8 +366,8 @@ struct trader : public moving_window_post_process<microsecond_t, microsecond_t>
 
   void on_last2(const microsecond_t& t, const double& v)
   {
-    ptime tt = atp::time::as_ptime(t);
-    cout << atp::time::to_est(tt) << ","
+    ptime tt = atp::common::as_ptime(t);
+    cout << atp::common::to_est(tt) << ","
          << id.name() << ","
          << id.variant() << ","
          << "GOOG.STK" << ","
